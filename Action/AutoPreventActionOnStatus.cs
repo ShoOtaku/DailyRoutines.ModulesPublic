@@ -140,7 +140,7 @@ public unsafe class CustomStatusPrevent : DailyModuleBase
         // 规范要求：在 OnPreUseAction 这种高频事件中，核心逻辑应被包裹
         try
         {
-            return statusManager->Status[statusIndex].RemainingTime > threshold;
+            return statusManager->Status[statusIndex].RemainingTime < threshold;
         }
         catch
         {
@@ -184,10 +184,10 @@ public unsafe class CustomStatusPrevent : DailyModuleBase
         ImGui.TableSetupColumn("图标", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFrameHeight() * 2);
         ImGui.TableSetupColumn("状态 ID", ImGuiTableColumnFlags.WidthFixed, 100f * GlobalFontScale);
         ImGui.TableSetupColumn("状态名称", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("阈值 (秒)", ImGuiTableColumnFlags.WidthFixed, 100f * GlobalFontScale);
+        ImGui.TableSetupColumn("剩余时间少于(秒)", ImGuiTableColumnFlags.WidthFixed, 120f * GlobalFontScale);
         ImGui.TableSetupColumn("操作", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFrameHeight() * 2);
         
-                ImGui.TableHeadersRow();
+        ImGui.TableHeadersRow();
 
         int? indexToRemove = null;
         for (var i = 0; i < ModuleConfig.StatusEntries.Count; i++)
