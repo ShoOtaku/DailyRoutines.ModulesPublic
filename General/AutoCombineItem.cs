@@ -152,7 +152,10 @@ public unsafe class AutoCombineItem : DailyModuleBase
 
                     if (targetSlot.Quantity >= targetSlot.MaxStackSize) break;
 
-                    TaskHelper.Enqueue(() => CombineSlots(sourceSlot, targetSlot));
+                    // 创建局部副本以避免闭包捕获循环变量
+                    var capturedSource = sourceSlot;
+                    var capturedTarget = targetSlot;
+                    TaskHelper.Enqueue(() => CombineSlots(capturedSource, capturedTarget));
                     TaskHelper.DelayNext(100);
                 }
             }
