@@ -81,12 +81,12 @@ public unsafe class AutoCombineItem : DailyModuleBase
         EnqueueCombineTasks(itemsToCombine);
     }
 
-    private static Dictionary<uint, List<SlotInfo>> FindItemsToCombine()
+    private static Dictionary<ulong, List<SlotInfo>> FindItemsToCombine()
     {
         var manager = InventoryManager.Instance();
         if (manager == null) return [];
 
-        var itemSlots = new Dictionary<uint, List<SlotInfo>>();
+        var itemSlots = new Dictionary<ulong, List<SlotInfo>>();
 
         var invTypes = new InventoryType[]
         {
@@ -108,16 +108,20 @@ public unsafe class AutoCombineItem : DailyModuleBase
 
                 var itemID = slot->ItemId;
                 var quantity = slot->GetQuantity();
+                var flags = slot->Flags;
 
                 if (quantity == 0) continue;
 
                 if (!LuminaGetter.TryGetRow<Item>(itemID, out var item)) continue;
                 if (item.StackSize <= 1) continue;
 
-                if (!itemSlots.TryGetValue(itemID, out var slots))
+                // 使用 ItemId 和 Flags 组合作为唯一标识，区分 HQ 和普通物品
+                var itemKey = ((ulong)itemID << 32) | (ulong)flags;
+
+                if (!itemSlots.TryGetValue(itemKey, out var slots))
                 {
                     slots = [];
-                    itemSlots[itemID] = slots;
+                    itemSlots[itemKey] = slots;
                 }
 
                 slots.Add(new SlotInfo
@@ -135,7 +139,7 @@ public unsafe class AutoCombineItem : DailyModuleBase
                         .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
     }
 
-    private void EnqueueCombineTasks(Dictionary<uint, List<SlotInfo>> itemsToCombine)
+    private void EnqueueCombineTasks(Dictionary<ulong, List<SlotInfo>> itemsToCombine)
     {
         TaskHelper.Abort();
 
@@ -190,7 +194,9 @@ public unsafe class AutoCombineItem : DailyModuleBase
             targetSlot == null || targetSlot->ItemId == 0)
             return true;
 
-        if (sourceSlot->ItemId != targetSlot->ItemId) return true;
+        // 检查 ItemId 和 Flags 是否都相同，确保 HQ 和普通物品不会合并
+        if (sourceSlot->ItemId != targetSlot->ItemId || sourceSlot->Flags != targetSlot->Flags)
+            return true;
 
         var sourceQuantity = sourceSlot->GetQuantity();
         var targetQuantity = targetSlot->GetQuantity();
