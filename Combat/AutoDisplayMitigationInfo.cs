@@ -18,7 +18,6 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Newtonsoft.Json;
 using LuminaStatus = Lumina.Excel.Sheets.Status;
 
-
 namespace DailyRoutines.ModulesPublic;
 
 public class AutoDisplayMitigationInfo : DailyModuleBase
@@ -65,12 +64,17 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
         // refresh mitigation status
         FrameworkManager.Register(OnFrameworkUpdateInterval, throttleMS: 500);
+
+        DService.ClientState.TerritoryChanged += OnZoneChangd;
     }
 
     protected override void Uninit()
     {
         // refresh mitigation status
         FrameworkManager.Unregister(OnFrameworkUpdateInterval);
+        
+        DService.ClientState.TerritoryChanged -= OnZoneChangd;
+        OnZoneChangd(0);
 
         // draw on party list
         DService.UiBuilder.Draw -= Draw;
@@ -247,6 +251,14 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
     #region Hooks
 
+    private static void OnZoneChangd(ushort obj)
+    {
+        MitigationManager.Clear();
+        MitigationManager.PartyMitigationCache.Clear();
+        PartyMemberIndexCache.Clear();
+        StatusBarManager.Clear();
+    }
+    
     private static unsafe void OnFrameworkUpdateInterval(IFramework _)
     {
         if (GameState.IsInPVPArea || Control.GetLocalPlayer() is null)
@@ -760,11 +772,10 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
             LocalActiveStatus.Clear();
             PartyActiveStatus.Clear();
             BattleNPCActiveStatus.Clear();
-            PartyMitigationCache.Clear();
         }
 
-        public static bool IsLocalEmpty()
-            => LocalActiveStatus.Count == 0 && LocalShield == 0 && BattleNPCActiveStatus.Count == 0;
+        public static bool IsLocalEmpty() => 
+            LocalActiveStatus.Count == 0 && LocalShield == 0 && BattleNPCActiveStatus.Count == 0;
 
         public static float[] FetchLocal()
         {
