@@ -39,12 +39,12 @@ public unsafe class AutoCombineItem : DailyModuleBase
         TaskHelper   = new() { TimeLimitMS = 10_000 };
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        FrameworkManager.Register(OnUpdate, throttleMS: 1000);
+        FrameworkManager.Reg(OnUpdate, throttleMS: 1000);
     }
     
     protected override void Uninit()
     {
-        FrameworkManager.Unregister(OnUpdate);
+        FrameworkManager.Unreg(OnUpdate);
 
         IsCombining   = false;
         LastCheckTime = DateTime.MinValue;
