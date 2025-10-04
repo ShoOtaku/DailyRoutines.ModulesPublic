@@ -124,66 +124,16 @@ public unsafe class CustomStatusPrevent : DailyModuleBase
         ImGui.TableSetupColumn(GetLoc("StatusName"), ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableSetupColumn(GetLoc("RemainingTimeLessThan"), ImGuiTableColumnFlags.WidthFixed, 120f * GlobalFontScale);
         ImGui.TableSetupColumn(GetLoc("Operations"), ImGuiTableColumnFlags.WidthFixed, ImGui.GetFrameHeight() * 2);
-        
+
         ImGui.TableHeadersRow();
 
+        var detectTypeNames = new[] { GetLoc("Self"), GetLoc("Target") };
         int? indexToRemove = null;
         for (var i = 0; i < ModuleConfig.StatusEntries.Count; i++)
         {
             var entry = ModuleConfig.StatusEntries[i];
-            ImGui.PushID($"CustomStatusEntry_{i}");
-
-            ImGui.TableNextRow();
-
-            ImGui.TableNextColumn();
-            var isEnabled = entry.IsEnabled;
-            if (ImGui.Checkbox("##IsEnabled", ref isEnabled))
-            {
-                entry.IsEnabled = isEnabled;
-                SaveConfig(ModuleConfig);
-            }
-
-            ImGui.TableNextColumn();
-            ImGui.SetNextItemWidth(-1);
-            var currentTarget = (int)entry.Target;
-            var detectTypeNames = new[] { GetLoc("Self"), GetLoc("Target") };
-            if (ImGui.Combo("##Target", ref currentTarget, detectTypeNames, detectTypeNames.Length))
-            {
-                entry.Target = (DetectType)currentTarget;
-                SaveConfig(ModuleConfig);
-            }
-
-            var hasStatus = LuminaGetter.TryGetRow<Status>(entry.StatusID, out var status);
-
-            ImGui.TableNextColumn();
-            if (hasStatus)
-            {
-                var icon = ImageHelper.GetGameIcon(status.Icon);
-                if (icon != null)
-                    ImGui.Image(icon.Handle, new Vector2(ImGui.GetFrameHeight()));
-            }
-
-            ImGui.TableNextColumn();
-            ImGui.Text(entry.StatusID.ToString());
-
-            ImGui.TableNextColumn();
-            ImGui.Text(hasStatus ? status.Name.ExtractText() : GetLoc("InvalidOrNotFound"));
-
-            ImGui.TableNextColumn();
-            ImGui.SetNextItemWidth(-1);
-            var threshold = entry.Threshold;
-            ImGui.InputFloat("##Threshold", ref threshold, 0.1f, 0.5f, "%.1f");
-            if (ImGui.IsItemDeactivatedAfterEdit())
-            {
-                entry.Threshold = Math.Max(0, threshold);
-                SaveConfig(ModuleConfig);
-            }
-
-            ImGui.TableNextColumn();
-            if (ImGui.Button(GetLoc("Remove")))
+            if (DrawStatusEntryRow(entry, i, detectTypeNames))
                 indexToRemove = i;
-
-            ImGui.PopID();
         }
 
         if (indexToRemove.HasValue)
@@ -191,6 +141,61 @@ public unsafe class CustomStatusPrevent : DailyModuleBase
             ModuleConfig.StatusEntries.RemoveAt(indexToRemove.Value);
             SaveConfig(ModuleConfig);
         }
+    }
+
+    private bool DrawStatusEntryRow(CustomStatusEntry entry, int index, string[] detectTypeNames)
+    {
+        ImGui.PushID(index);
+        ImGui.TableNextRow();
+
+        ImGui.TableNextColumn();
+        var isEnabled = entry.IsEnabled;
+        if (ImGui.Checkbox("##IsEnabled", ref isEnabled))
+        {
+            entry.IsEnabled = isEnabled;
+            SaveConfig(ModuleConfig);
+        }
+
+        ImGui.TableNextColumn();
+        ImGui.SetNextItemWidth(-1);
+        var currentTarget = (int)entry.Target;
+        if (ImGui.Combo("##Target", ref currentTarget, detectTypeNames, detectTypeNames.Length))
+        {
+            entry.Target = (DetectType)currentTarget;
+            SaveConfig(ModuleConfig);
+        }
+
+        var hasStatus = LuminaGetter.TryGetRow<Status>(entry.StatusID, out var status);
+
+        ImGui.TableNextColumn();
+        if (hasStatus)
+        {
+            var icon = ImageHelper.GetGameIcon(status.Icon);
+            if (icon != null)
+                ImGui.Image(icon.Handle, new Vector2(ImGui.GetFrameHeight()));
+        }
+
+        ImGui.TableNextColumn();
+        ImGui.Text($"{entry.StatusID}");
+
+        ImGui.TableNextColumn();
+        ImGui.Text(hasStatus ? status.Name.ExtractText() : GetLoc("InvalidOrNotFound"));
+
+        ImGui.TableNextColumn();
+        ImGui.SetNextItemWidth(-1);
+        var threshold = entry.Threshold;
+        ImGui.InputFloat("##Threshold", ref threshold, 0.1f, 0.5f, "%.1f");
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            entry.Threshold = Math.Max(0, threshold);
+            SaveConfig(ModuleConfig);
+        }
+
+        ImGui.TableNextColumn();
+        var shouldRemove = ImGui.Button(GetLoc("Remove"));
+
+        ImGui.PopID();
+        return shouldRemove;
     }
 
     private static string? GetStatusName(uint statusID) =>
