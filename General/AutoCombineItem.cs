@@ -26,12 +26,28 @@ public unsafe class AutoCombineItem : DailyModuleBase
     private static DateTime LastCheckTime = DateTime.MinValue;
     private static readonly TimeSpan CheckInterval = TimeSpan.FromSeconds(2);
 
+    private static readonly InventoryType[] InventoryTypes =
+    [
+        InventoryType.Inventory1,
+        InventoryType.Inventory2,
+        InventoryType.Inventory3,
+        InventoryType.Inventory4
+    ];
+
     protected override void Init()
     {
         TaskHelper   = new() { TimeLimitMS = 10_000 };
         ModuleConfig = LoadConfig<Config>() ?? new();
 
         FrameworkManager.Register(OnUpdate, throttleMS: 1000);
+    }
+    
+    protected override void Uninit()
+    {
+        FrameworkManager.Unregister(OnUpdate);
+
+        IsCombining   = false;
+        LastCheckTime = DateTime.MinValue;
     }
 
     private void OnUpdate(IFramework framework)
@@ -46,22 +62,16 @@ public unsafe class AutoCombineItem : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        var enableAuto = ModuleConfig.EnableAuto;
-        if (ImGui.Checkbox("启用自动合并", ref enableAuto))
-        {
-            ModuleConfig.EnableAuto = enableAuto;
+        var moduleConfigEnableAuto = ModuleConfig.EnableAuto;
+        if (ImGui.Checkbox("启用自动合并", ref moduleConfigEnableAuto))
             SaveConfig(ModuleConfig);
-        }
 
         ImGui.SameLine();
         ImGuiOm.HelpMarker("当背包物品变化时，自动检测并合并可叠加的物品");
 
-        var onlyNotInDuty = ModuleConfig.OnlyNotInDuty;
-        if (ImGui.Checkbox("仅在非副本状态下执行", ref onlyNotInDuty))
-        {
-            ModuleConfig.OnlyNotInDuty = onlyNotInDuty;
+        var moduleConfigOnlyNotInDuty = ModuleConfig.OnlyNotInDuty;
+        if (ImGui.Checkbox("仅在非副本状态下执行", ref moduleConfigOnlyNotInDuty))
             SaveConfig(ModuleConfig);
-        }
 
         ImGui.SameLine();
         ImGuiOm.HelpMarker("开启后，只在非副本状态下自动合并物品，避免影响副本内的操作");
@@ -88,18 +98,10 @@ public unsafe class AutoCombineItem : DailyModuleBase
 
         var itemSlots = new Dictionary<ulong, List<SlotInfo>>();
 
-        var invTypes = new InventoryType[]
-        {
-            InventoryType.Inventory1,
-            InventoryType.Inventory2,
-            InventoryType.Inventory3,
-            InventoryType.Inventory4
-        };
-
-        foreach (var invType in invTypes)
+        foreach (var invType in InventoryTypes)
         {
             var container = manager->GetInventoryContainer(invType);
-            if (container == null || !container->IsLoaded) continue;
+            if (!container->IsLoaded) continue;
 
             for (var i = 0; i < container->Size; i++)
             {
@@ -156,10 +158,7 @@ public unsafe class AutoCombineItem : DailyModuleBase
 
                     if (targetSlot.Quantity >= targetSlot.MaxStackSize) break;
 
-                    // 创建局部副本以避免闭包捕获循环变量
-                    var capturedSource = sourceSlot;
-                    var capturedTarget = targetSlot;
-                    TaskHelper.Enqueue(() => CombineSlots(capturedSource, capturedTarget));
+                    TaskHelper.Enqueue(() => CombineSlots(sourceSlot, targetSlot));
                     TaskHelper.DelayNext(100);
                 }
             }
@@ -198,31 +197,18 @@ public unsafe class AutoCombineItem : DailyModuleBase
         if (sourceSlot->ItemId != targetSlot->ItemId || sourceSlot->Flags != targetSlot->Flags)
             return true;
 
-        var sourceQuantity = sourceSlot->GetQuantity();
-        var targetQuantity = targetSlot->GetQuantity();
-
         if (!LuminaGetter.TryGetRow<Item>(sourceSlot->ItemId, out var item)) return true;
-        var maxStack = item.StackSize;
 
-        if (targetQuantity >= maxStack) return true;
-        if (sourceQuantity == 0) return true;
+        var targetQuantity = targetSlot->GetQuantity();
+        if (targetQuantity >= item.StackSize) return true;
+        if (sourceSlot->GetQuantity() == 0) return true;
 
         manager->MoveItemSlot(source.InventoryType, (ushort)source.SlotIndex,
                              target.InventoryType, (ushort)target.SlotIndex, true);
 
         return false;
     }
-
-    protected override void Uninit()
-    {
-        FrameworkManager.Unregister(OnUpdate);
-
-        IsCombining   = false;
-        LastCheckTime = DateTime.MinValue;
-
-        base.Uninit();
-    }
-
+    
     private class Config : ModuleConfiguration
     {
         public bool EnableAuto       { get; set; } = true;
@@ -231,9 +217,9 @@ public unsafe class AutoCombineItem : DailyModuleBase
 
     private class SlotInfo
     {
-        public InventoryType InventoryType { get; set; }
-        public int           SlotIndex     { get; set; }
-        public uint          Quantity      { get; set; }
-        public uint          MaxStackSize  { get; set; }
+        public InventoryType InventoryType { get; init; }
+        public int           SlotIndex     { get; init; }
+        public uint          Quantity      { get; init; }
+        public uint          MaxStackSize  { get; init; }
     }
 }
