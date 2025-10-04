@@ -64,14 +64,20 @@ public unsafe class AutoCombineItem : DailyModuleBase
     {
         var moduleConfigEnableAuto = ModuleConfig.EnableAuto;
         if (ImGui.Checkbox("启用自动合并", ref moduleConfigEnableAuto))
+        {
+            ModuleConfig.EnableAuto = moduleConfigEnableAuto;
             SaveConfig(ModuleConfig);
+        }
 
         ImGui.SameLine();
         ImGuiOm.HelpMarker("当背包物品变化时，自动检测并合并可叠加的物品");
 
         var moduleConfigOnlyNotInDuty = ModuleConfig.OnlyNotInDuty;
         if (ImGui.Checkbox("仅在非副本状态下执行", ref moduleConfigOnlyNotInDuty))
+        {
+            ModuleConfig.OnlyNotInDuty = moduleConfigOnlyNotInDuty;
             SaveConfig(ModuleConfig);
+        }
 
         ImGui.SameLine();
         ImGuiOm.HelpMarker("开启后，只在非副本状态下自动合并物品，避免影响副本内的操作");
