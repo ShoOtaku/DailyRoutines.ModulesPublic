@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
-using Dalamud.Plugin.Services;
+using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using OmenTools;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -14,18 +14,15 @@ public unsafe class AutoCombineItem : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = "自动合并物品",
-        Description = "自动合并背包中可以叠加的物品",
+        Title       = GetLoc("AutoCombineItemTitle"),
+        Description = GetLoc("AutoCombineItemDescription"),
         Category    = ModuleCategories.General,
         Author      = ["XSZYYS"]
     };
 
-    private static Config ModuleConfig = null!;
-
-    private static bool IsCombining;
-    private static DateTime LastCheckTime = DateTime.MinValue;
-    private static readonly TimeSpan CheckInterval = TimeSpan.FromSeconds(2);
-
+    private static readonly CompSig                        InventoryUpdateSig = new("48 89 5C 24 ?? 57 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 0F B7 5A");
+    private delegate        nint                           InventoryUpdateDelegate(nint a1, nint a2);
+    private static          Hook<InventoryUpdateDelegate>? InventoryUpdateHook;
     private static readonly InventoryType[] InventoryTypes =
     [
         InventoryType.Inventory1,
@@ -34,66 +31,79 @@ public unsafe class AutoCombineItem : DailyModuleBase
         InventoryType.Inventory4
     ];
 
+    private static Config ModuleConfig = null!;
+    private bool IsCombining;
+    
     protected override void Init()
     {
-        TaskHelper   = new() { TimeLimitMS = 10_000 };
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        TaskHelper  ??= new() { TimeLimitMS = 10_000 };
+        ModuleConfig  = LoadConfig<Config>() ?? new();
 
-        FrameworkManager.Reg(OnUpdate, throttleMS: 1000);
+        InventoryUpdateHook ??= InventoryUpdateSig.GetHook<InventoryUpdateDelegate>(OnInventoryUpdate);
+        InventoryUpdateHook.Enable();
     }
-    
+
     protected override void Uninit()
     {
-        FrameworkManager.Unreg(OnUpdate);
+        if (InventoryUpdateHook != null)
+        {
+            InventoryUpdateHook.Dispose();
+            InventoryUpdateHook = null;
+        }
 
-        IsCombining   = false;
-        LastCheckTime = DateTime.MinValue;
+        IsCombining = false;
     }
 
-    private void OnUpdate(IFramework framework)
+    private nint OnInventoryUpdate(nint a1, nint a2)
     {
-        if (!ModuleConfig.EnableAuto || IsCombining) return;
-        if (DateTime.Now - LastCheckTime < CheckInterval) return;
-        if (ModuleConfig.OnlyNotInDuty && BoundByDuty) return;
+        try
+        {
+            if (ModuleConfig.EnableAuto && !IsCombining && !TaskHelper.IsBusy)
+            {
+                if (ModuleConfig.OnlyNotInDuty && BoundByDuty)
+                    return InventoryUpdateHook!.Original(a1, a2);
 
-        LastCheckTime = DateTime.Now;
-        TryCombineItems();
+                IsCombining = true;
+                TaskHelper.Enqueue(() =>
+                {
+                    TryCombineItems();
+                    return true;
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            DService.Log.Error(ex, "合并任务出错");
+        }
+
+        return InventoryUpdateHook!.Original(a1, a2);
     }
 
     protected override void ConfigUI()
     {
-        var moduleConfigEnableAuto = ModuleConfig.EnableAuto;
-        if (ImGui.Checkbox("启用自动合并", ref moduleConfigEnableAuto))
-        {
-            ModuleConfig.EnableAuto = moduleConfigEnableAuto;
+        if (ImGui.Checkbox(GetLoc("Enable"), ref ModuleConfig.EnableAuto))
             SaveConfig(ModuleConfig);
-        }
 
         ImGui.SameLine();
-        ImGuiOm.HelpMarker("当背包物品变化时，自动检测并合并可叠加的物品");
 
-        var moduleConfigOnlyNotInDuty = ModuleConfig.OnlyNotInDuty;
-        if (ImGui.Checkbox("仅在非副本状态下执行", ref moduleConfigOnlyNotInDuty))
-        {
-            ModuleConfig.OnlyNotInDuty = moduleConfigOnlyNotInDuty;
+        if (ImGui.Checkbox(GetLoc("AutoCombineItem-OnlyNotInDuty"), ref ModuleConfig.OnlyNotInDuty))
             SaveConfig(ModuleConfig);
-        }
 
         ImGui.SameLine();
-        ImGuiOm.HelpMarker("开启后，只在非副本状态下自动合并物品，避免影响副本内的操作");
 
-        if (ImGui.Button("立即合并"))
+        if (ImGui.Button(GetLoc("AutoCombineItem-CombineNow")))
             TryCombineItems();
     }
 
     private void TryCombineItems()
     {
-        if (IsCombining || TaskHelper.IsBusy) return;
-
         var itemsToCombine = FindItemsToCombine();
-        if (itemsToCombine.Count == 0) return;
+        if (itemsToCombine.Count == 0)
+        {
+            IsCombining = false;
+            return;
+        }
 
-        IsCombining = true;
         EnqueueCombineTasks(itemsToCombine);
     }
 
@@ -107,7 +117,7 @@ public unsafe class AutoCombineItem : DailyModuleBase
         foreach (var invType in InventoryTypes)
         {
             var container = manager->GetInventoryContainer(invType);
-            if (!container->IsLoaded) continue;
+            if (container == null || !container->IsLoaded) continue;
 
             for (var i = 0; i < container->Size; i++)
             {
@@ -123,14 +133,11 @@ public unsafe class AutoCombineItem : DailyModuleBase
                 if (!LuminaGetter.TryGetRow<Item>(itemID, out var item)) continue;
                 if (item.StackSize <= 1) continue;
 
-                // 使用 ItemId 和 Flags 组合作为唯一标识，区分 HQ 和普通物品
+                // 高32位: ItemID, 低32位: Flags (包含 HQ 标记等信息)
                 var itemKey = ((ulong)itemID << 32) | (ulong)flags;
 
                 if (!itemSlots.TryGetValue(itemKey, out var slots))
-                {
-                    slots = [];
-                    itemSlots[itemKey] = slots;
-                }
+                    itemSlots[itemKey] = slots = [];
 
                 slots.Add(new SlotInfo
                 {
@@ -149,8 +156,6 @@ public unsafe class AutoCombineItem : DailyModuleBase
 
     private void EnqueueCombineTasks(Dictionary<ulong, List<SlotInfo>> itemsToCombine)
     {
-        TaskHelper.Abort();
-
         foreach (var (itemID, slots) in itemsToCombine)
         {
             var sortedSlots = slots.OrderByDescending(s => s.Quantity).ToList();
@@ -180,17 +185,13 @@ public unsafe class AutoCombineItem : DailyModuleBase
     private static bool? CombineSlots(SlotInfo source, SlotInfo target)
     {
         var manager = InventoryManager.Instance();
-        if (manager == null) return true;
-
-        var agentInventory = AgentModule.Instance()->GetAgentByInternalId(AgentId.Inventory);
-        if (agentInventory == null) return false;
+        if (manager == null) return false;
 
         var sourceContainer = manager->GetInventoryContainer(source.InventoryType);
-        var targetContainer = manager->GetInventoryContainer(target.InventoryType);
+        if (sourceContainer == null || !sourceContainer->IsLoaded) return false;
 
-        if (sourceContainer == null || !sourceContainer->IsLoaded ||
-            targetContainer == null || !targetContainer->IsLoaded)
-            return false;
+        var targetContainer = manager->GetInventoryContainer(target.InventoryType);
+        if (targetContainer == null || !targetContainer->IsLoaded) return false;
 
         var sourceSlot = sourceContainer->GetInventorySlot(source.SlotIndex);
         var targetSlot = targetContainer->GetInventorySlot(target.SlotIndex);
@@ -212,13 +213,13 @@ public unsafe class AutoCombineItem : DailyModuleBase
         manager->MoveItemSlot(source.InventoryType, (ushort)source.SlotIndex,
                              target.InventoryType, (ushort)target.SlotIndex, true);
 
-        return false;
+        return null;
     }
-    
+
     private class Config : ModuleConfiguration
     {
-        public bool EnableAuto       { get; set; } = true;
-        public bool OnlyNotInDuty    { get; set; } = true;
+        public bool EnableAuto;
+        public bool OnlyNotInDuty;
     }
 
     private class SlotInfo
