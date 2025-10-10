@@ -62,7 +62,7 @@ public class AutoCancelMountCast : DailyModuleBase
                     case true:
                         if (DService.ObjectTable.LocalPlayer is { } localPlayer &&
                             (localPlayer.CastActionType == ActionType.Mount ||
-                             localPlayer is { CastActionType: ActionType.GeneralAction, CastActionId: 9 }))
+                             localPlayer is { CastActionType: ActionType.GeneralAction, CastActionID: 9 }))
                         {
                             IsOnMountCasting = true;
 

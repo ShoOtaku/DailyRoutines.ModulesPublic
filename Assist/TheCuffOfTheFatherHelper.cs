@@ -41,7 +41,7 @@ public class TheCuffOfTheFatherHelper : DailyModuleBase
     {
         foreach (var obj in DService.ObjectTable)
         {
-            if (obj.ObjectKind != ObjectKind.BattleNpc || obj.DataId != 3865) continue;
+            if (obj.ObjectKind != ObjectKind.BattleNpc || obj.DataID != 3865) continue;
             
             if (DService.Condition[ConditionFlag.Mounted])
                 obj.ToStruct()->TargetableStatus |= ObjectTargetableFlags.IsTargetable;
