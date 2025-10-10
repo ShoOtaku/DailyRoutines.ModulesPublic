@@ -52,6 +52,10 @@ public unsafe class AutoCombineItem : DailyModuleBase
         }
 
         IsCombining = false;
+        
+        TaskHelper?.Abort();
+        TaskHelper?.Dispose();
+        TaskHelper = null;
     }
 
     private nint OnInventoryUpdate(nint a1, nint a2)
@@ -218,11 +222,11 @@ public unsafe class AutoCombineItem : DailyModuleBase
 
     private class Config : ModuleConfiguration
     {
-        public bool EnableAuto;
-        public bool OnlyNotInDuty;
+        public bool EnableAuto = true;
+        public bool OnlyNotInDuty = true;
     }
 
-    private class SlotInfo
+    private record SlotInfo
     {
         public InventoryType InventoryType { get; init; }
         public int           SlotIndex     { get; init; }
