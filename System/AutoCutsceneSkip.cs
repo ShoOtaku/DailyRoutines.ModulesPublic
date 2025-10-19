@@ -153,8 +153,6 @@ public unsafe class AutoCutsceneSkip : DailyModuleBase
     {
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
         CutsceneUnskippablePatch.Dispose();
-        
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

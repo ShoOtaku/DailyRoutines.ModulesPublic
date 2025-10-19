@@ -148,7 +148,5 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
         
         Service.AddonController.DetachNode(Button);
         Button = null;
-        
-        base.Uninit();
     }
 }

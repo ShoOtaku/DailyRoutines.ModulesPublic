@@ -79,8 +79,6 @@ public class HealerHelper : DailyModuleBase
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
         DService.Condition.ConditionChange    -= OnConditionChanged;
         FrameworkManager.Unreg(OnUpdate);
-
-        base.Uninit();
     }
 
     #endregion

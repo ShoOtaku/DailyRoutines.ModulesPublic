@@ -458,6 +458,14 @@ public unsafe class OptimizedFriendList : DailyModuleBase
             InfoProxyFriendList.Instance()->RequestData();
     }
 
+    [IPCProvider("DailyRoutines.Modules.OptimizedFriendlist.GetRemarkByContentID")]
+    private string GetRemarkByContentID(ulong contentID) =>
+        ModuleConfig.PlayerInfos.TryGetValue(contentID, out var info) ? !string.IsNullOrWhiteSpace(info.Remark) ? info.Remark : string.Empty : string.Empty;
+    
+    [IPCProvider("DailyRoutines.Modules.OptimizedFriendlist.GetNicknameByContentID")]
+    private string GetNicknameByContentID(ulong contentID) =>
+        ModuleConfig.PlayerInfos.TryGetValue(contentID, out var info) ? !string.IsNullOrWhiteSpace(info.Nickname) ? info.Nickname : string.Empty : string.Empty; 
+
     private class Config : ModuleConfiguration
     {
         public Dictionary<ulong, PlayerInfo> PlayerInfos = [];

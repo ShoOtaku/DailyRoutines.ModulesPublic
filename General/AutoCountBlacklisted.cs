@@ -142,8 +142,6 @@ public unsafe class AutoCountBlacklisted : DailyModuleBase
 
         DtrEntry?.Remove();
         DtrEntry = null;
-
-        base.Uninit();
     }
 
     public class Config : ModuleConfiguration

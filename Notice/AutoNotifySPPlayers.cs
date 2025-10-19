@@ -4,11 +4,9 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using DailyRoutines.Abstracts;
-using Dalamud.Hooking;
-using Dalamud.Interface;
+using DailyRoutines.Managers;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using Lumina.Excel.Sheets;
-using GameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -20,10 +18,6 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
         Description = GetLoc("AutoNotifySPPlayersDescription"),
         Category    = ModuleCategories.Notice,
     };
-
-    private static readonly CompSig                      IsReadyToDrawSig = new("E8 ?? ?? ?? ?? 84 C0 74 19 48 8B 17 ");
-    private delegate        bool                         IsReadyToDrawDelegate(GameObject* gameObj);
-    private static          Hook<IsReadyToDrawDelegate>? IsReadyToDrawHook;
 
     private static Config ModuleConfig = null!;
 
@@ -49,9 +43,11 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        IsReadyToDrawHook ??= IsReadyToDrawSig.GetHook<IsReadyToDrawDelegate>(IsReadyToDrawDetour);
-        IsReadyToDrawHook.Enable();
+        PlayersManager.ReceivePlayersAround += OnReceivePlayers;
     }
+
+    protected override void Uninit() => 
+        PlayersManager.ReceivePlayersAround -= OnReceivePlayers;
 
     protected override void ConfigUI()
     {
@@ -288,23 +284,22 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
         }
     }
 
-    private static bool IsReadyToDrawDetour(GameObject* gameObj)
+    private static void OnReceivePlayers(IReadOnlyList<IPlayerCharacter> characters)
     {
-        CheckGameObject(gameObj);
-        return IsReadyToDrawHook.Original(gameObj);
+        foreach (var character in characters)
+            CheckGameObject(character.ToStruct());
     }
 
-    private static void CheckGameObject(GameObject* obj)
+    private static void CheckGameObject(BattleChara* obj)
     {
-        if (ModuleConfig.NotifiedPlayer.Count == 0) return;
-
-        var localPlayer = DService.ObjectTable.LocalPlayer;
-        if (!DService.ClientState.IsLoggedIn || localPlayer == null) return;
-        if (obj == localPlayer.ToStruct()) return;
-
-        var chara = (Character*)obj;
-        if (chara == null || !chara->IsCharacter() || 
-            !ObjThrottler.Throttle(obj->GetGameObjectId(), 3_000)) return;
+        if (ModuleConfig.NotifiedPlayer.Count == 0) 
+            return;
+        if (!DService.ClientState.IsLoggedIn || DService.ObjectTable.LocalPlayer is not { } localPlayer) 
+            return;
+        if (obj == null || (nint)obj == localPlayer.Address || !obj->IsCharacter())
+            return;
+        if (!ObjThrottler.Throttle(obj->GetGameObjectId(), 3_000)) 
+            return;
 
         var currentTime = Environment.TickCount64;
         if (!NoticeTimeInfo.TryAdd(obj->GetGameObjectId(), currentTime))
@@ -345,7 +340,7 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
             }
 
             if (config.OnlineStatus.Count > 0)
-                checks[1] = config.OnlineStatus.Contains(chara->OnlineStatus);
+                checks[1] = config.OnlineStatus.Contains(obj->OnlineStatus);
 
             if (config.Zone.Count > 0) 
                 checks[2] = config.Zone.Contains(DService.ClientState.TerritoryType);

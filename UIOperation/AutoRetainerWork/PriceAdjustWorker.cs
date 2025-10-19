@@ -1448,12 +1448,12 @@ public unsafe partial class AutoRetainerWork
                         if (!PriceCacheManager.TryGetPriceCache(itemID, isItemHQ, out price)) 
                             price = 0;
                         EnqueuePriceAdjustSingleItem(slotIndex, price, forcePrice);
-                    }, "由单一物品改价接管后续逻辑", null, null, 2);
+                    }, "由单一物品改价接管后续逻辑", weight: 2);
                     return;
                 }
 
-                TaskHelper.Enqueue(() => EnqueuePriceAdjustSingleItem(slotIndex, price, forcePrice), "由单一物品改价接管后续逻辑", null, null, 2);
-            }, null, null, null, 1);
+                TaskHelper.Enqueue(() => EnqueuePriceAdjustSingleItem(slotIndex, price, forcePrice), "由单一物品改价接管后续逻辑", weight: 2);
+            }, weight: 1);
         }
 
         private static void EnqueuePriceAdjustSingleItem(ushort slot, uint marketPrice, uint forcePrice = 0)

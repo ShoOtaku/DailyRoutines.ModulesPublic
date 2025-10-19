@@ -51,11 +51,9 @@ public class AutoLockGameWindow : DailyModuleBase
     {
         DService.Condition.ConditionChange -= OnConditionChange;
         WindowLock.Cleanup();
-        
-        base.Uninit();
     }
     
-    private class WindowLock
+    private static class WindowLock
     {
         [DllImport("user32.dll", SetLastError = true)]
         private static extern nint SetWindowLongPtr(nint hWnd, int nIndex, nint newProc);

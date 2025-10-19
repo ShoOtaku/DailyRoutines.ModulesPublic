@@ -167,11 +167,8 @@ public unsafe class ScrollableTabs : DailyModuleBase
             SaveConfig(ModuleConfig);
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         FrameworkManager.Unreg(OnUpdate);
-        base.Uninit();
-    }
 
     private static void OnUpdate(IFramework _)
     {

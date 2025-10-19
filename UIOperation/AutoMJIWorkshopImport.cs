@@ -335,11 +335,8 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
             _                      => Overlay.IsOpen
         };
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.AddonLifecycle.UnregisterListener(OnAddon);
-        base.Uninit();
-    }
 
     private class Config : ModuleConfiguration
     {

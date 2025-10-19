@@ -90,7 +90,5 @@ public class SastashaHelper : DailyModuleBase
     {
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
         OnZoneChanged(0);
-        
-        base.Uninit();
     }
 }

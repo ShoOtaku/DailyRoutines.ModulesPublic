@@ -421,8 +421,6 @@ public class AutoMovePetPosition : DailyModuleBase
         DService.ClientState.TerritoryChanged -= OnTerritoryChanged;
         DService.DutyState.DutyRecommenced -= OnDutyRecommenced;
         DService.Condition.ConditionChange -= OnConditionChanged;
-        
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

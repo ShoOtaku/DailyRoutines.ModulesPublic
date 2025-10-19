@@ -143,8 +143,6 @@ public class AutoFateSync : DailyModuleBase
         CancelSource?.Cancel();
         CancelSource?.Dispose();
         CancelSource = null;
-        
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

@@ -418,8 +418,6 @@ public class AutoReplaceLocationAction : DailyModuleBase
     {
         UseActionManager.Unreg(OnPreUseActionLocation);
         ExecuteCommandManager.Unregister(OnPreExecuteCommandComplexLocation);
-
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

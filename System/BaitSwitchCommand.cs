@@ -1,15 +1,15 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using Lumina.Excel.Sheets;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using TinyPinyin;
 
-namespace DailyRoutines.Modules;
+namespace DailyRoutines.ModulesPublic;
 
 public class BaitSwitchCommand : DailyModuleBase
 {
@@ -19,26 +19,25 @@ public class BaitSwitchCommand : DailyModuleBase
         Description = GetLoc("BaitSwitchCommandDescription"),
         Category = ModuleCategories.System,
     };
-
-    private static readonly Dictionary<uint, (string NameLower, string NamePinyin)> Baits;
-    private static readonly Dictionary<uint, (string NameLower, string NamePinyin)> Fishes;
+    
     private const string Command = "bait";
 
-    static BaitSwitchCommand()
-    {
-        Baits = LuminaGetter.Get<Item>()
-                           .Where(x => x.FilterGroup is 17 && !string.IsNullOrWhiteSpace(x.Name.ExtractText()))
-                           .ToDictionary(x => x.RowId, x => (x.Name.ExtractText().ToLower(),
-                                                                PinyinHelper.GetPinyin(x.Name.ExtractText(), "")));
-
-        Fishes = LuminaGetter.Get<Item>()
-                            .Where(x => x.FilterGroup is 16 && !string.IsNullOrWhiteSpace(x.Name.ExtractText()))
-                            .ToDictionary(x => x.RowId, x => (x.Name.ExtractText().ToLower(),
-                                                                 PinyinHelper.GetPinyin(x.Name.ExtractText(), "")));
-    }
+    private static readonly Dictionary<uint, (string NameLower, string NamePinyin)> Baits = 
+        LuminaGetter.Get<Item>()
+                    .Where(x => x.FilterGroup == 17 && !string.IsNullOrWhiteSpace(x.Name.ExtractText()))
+                    .ToDictionary(x => x.RowId, x => (x.Name.ExtractText().ToLower(),
+                                                         PinyinHelper.GetPinyin(x.Name.ExtractText(), string.Empty)));
+    private static readonly Dictionary<uint, (string NameLower, string NamePinyin)> Fishes = 
+        LuminaGetter.Get<Item>()
+                    .Where(x => x.FilterGroup == 16 && !string.IsNullOrWhiteSpace(x.Name.ExtractText()))
+                    .ToDictionary(x => x.RowId, x => (x.Name.ExtractText().ToLower(),
+                                                         PinyinHelper.GetPinyin(x.Name.ExtractText(), string.Empty)));
 
     protected override void Init() => 
         CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("BaitSwitchCommand-CommandHelp") });
+    
+    protected override void Uninit() => 
+        CommandManager.RemoveSubCommand(Command);
 
     protected override void ConfigUI() => 
         ImGui.TextWrapped(GetLoc("BaitSwitchCommand-CommandHelpDetailed"));
@@ -157,7 +156,4 @@ public class BaitSwitchCommand : DailyModuleBase
 
         return [itemArray[0], itemArray[1], itemArray[2]];
     }
-
-    protected override void Uninit() => 
-        CommandManager.RemoveSubCommand(Command);
 }

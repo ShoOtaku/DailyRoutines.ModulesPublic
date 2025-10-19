@@ -324,7 +324,6 @@ public class PartyFinderFilter : DailyModuleBase
     {
         DService.AddonLifecycle.UnregisterListener(OnAddon);
         DService.PartyFinder.ReceiveListing -= OnReceiveListing;
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

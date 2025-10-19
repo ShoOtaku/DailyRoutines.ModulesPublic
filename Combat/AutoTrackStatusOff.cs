@@ -134,8 +134,6 @@ public unsafe class AutoTrackStatusOff : DailyModuleBase
         PlayerStatusManager.Unreg(OnLoseStatus);
 
         Records.Clear();
-        
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

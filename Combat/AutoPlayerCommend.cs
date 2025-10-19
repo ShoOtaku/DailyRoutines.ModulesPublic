@@ -266,8 +266,6 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
         DService.DutyState.DutyCompleted  -= OnDutyComplete;
 
         AssignedCommendationContentID = 0;
-        
-        base.Uninit();
     }
 
     private enum PlayerRole

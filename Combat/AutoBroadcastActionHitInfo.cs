@@ -1,14 +1,11 @@
+using System.Collections.Generic;
 using DailyRoutines.Abstracts;
 using Dalamud.Hooking;
-using Dalamud.Interface;
 using Dalamud.Interface.Components;
-using Dalamud.Interface.Utility.Raii;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using Action = Lumina.Excel.Sheets.Action;
 
-namespace DailyRoutines.Modules;
+namespace DailyRoutines.ModulesPublic;
 
 public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
 {
@@ -35,8 +32,7 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        ProcessPacketActionEffectHook ??=
-            ProcessPacketActionEffectSig.GetHook<ProcessPacketActionEffectDelegate>(ProcessPacketActionEffectDetour);
+        ProcessPacketActionEffectHook ??= ProcessPacketActionEffectSig.GetHook<ProcessPacketActionEffectDelegate>(ProcessPacketActionEffectDetour);
         ProcessPacketActionEffectHook.Enable();
     }
 
@@ -47,7 +43,7 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
-        ImGui.InputText("###DirectHitMessage", ref ModuleConfig.DirectHitPattern, 512);
+        ImGui.InputText("###DirectHitMessage", ref ModuleConfig.DirectHitPattern);
         if (ImGui.IsItemDeactivatedAfterEdit()) 
             SaveConfig(ModuleConfig);
 
@@ -56,7 +52,7 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
-        ImGui.InputText("###CriticalHitMessage", ref ModuleConfig.CriticalHitPattern, 512);
+        ImGui.InputText("###CriticalHitMessage", ref ModuleConfig.CriticalHitPattern);
         if (ImGui.IsItemDeactivatedAfterEdit()) 
             SaveConfig(ModuleConfig);
 
@@ -65,7 +61,7 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
-        ImGui.InputText("###DirectCriticalHitMessage", ref ModuleConfig.DirectCriticalHitPattern, 512);
+        ImGui.InputText("###DirectCriticalHitMessage", ref ModuleConfig.DirectCriticalHitPattern);
         if (ImGui.IsItemDeactivatedAfterEdit()) 
             SaveConfig(ModuleConfig);
         

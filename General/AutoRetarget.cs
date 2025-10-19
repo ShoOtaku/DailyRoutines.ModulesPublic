@@ -4,23 +4,21 @@ using System.Linq;
 using System.Numerics;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Helpers;
-using DailyRoutines.Managers;
-using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 
-namespace DailyRoutines.Modules;
+namespace DailyRoutines.ModulesPublic;
 
 public class AutoRetarget : DailyModuleBase
 {
     private static Config ModuleConfig = null!;
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title = GetLoc("AutoRetargetTitle"),
+        Title       = GetLoc("AutoRetargetTitle"),
         Description = GetLoc("AutoRetargetDescription"),
-        Category = ModuleCategories.General,
-        Author = ["KirisameVanilla"],
+        Category    = ModuleCategories.General,
+        Author      = ["KirisameVanilla"],
     };
 
     private class Config : ModuleConfiguration
@@ -63,11 +61,8 @@ public class AutoRetarget : DailyModuleBase
         FrameworkManager.Reg(OnUpdate, true, 1000);
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         FrameworkManager.Unreg(OnUpdate);
-        base.Uninit();
-    }
 
     private void OnUpdate(IFramework framework)
     {

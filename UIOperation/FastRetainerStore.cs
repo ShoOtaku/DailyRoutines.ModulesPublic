@@ -28,11 +28,8 @@ public unsafe class FastRetainerStore : DailyModuleBase
         DService.ContextMenu.OnMenuOpened += OnContextMenuOpened;
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.ContextMenu.OnMenuOpened -= OnContextMenuOpened;
-        base.Uninit();
-    }
 
     private void OnContextMenuOpened(IMenuOpenedArgs args)
     {

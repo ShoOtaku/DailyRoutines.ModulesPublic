@@ -359,8 +359,6 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         
         Entry?.Remove();
         Entry = null;
-        
-        base.Uninit();
     }
     
     public class Config : ModuleConfiguration

@@ -1,5 +1,5 @@
+using System.Collections.Generic;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
@@ -15,18 +15,30 @@ public unsafe class AutoEnableAttack : DailyModuleBase
         Category    = ModuleCategories.Combat,
     };
 
+    private static readonly HashSet<uint> InvalidActions = [7418, 23288, 23289, 34581, 23273];
+    
     protected override void Init() => 
         UseActionManager.RegUseAction(OnPostUseAction);
 
     private static void OnPostUseAction(
-        bool result, ActionType actionType, uint actionID, ulong targetID, uint extraParam,
-        ActionManager.UseActionMode queueState, uint comboRouteID)
+        bool                        result,
+        ActionType                  actionType,
+        uint                        actionID,
+        ulong                       targetID,
+        uint                        extraParam,
+        ActionManager.UseActionMode queueState,
+        uint                        comboRouteID)
     {
-        if (actionType is not ActionType.Action || targetID == 0xE000_0000) return;
-        if (DService.ClientState.IsPvP || !DService.Condition[ConditionFlag.InCombat] ||
-            DService.Condition[ConditionFlag.Casting]) return;
-        if (UIState.Instance()->WeaponState.AutoAttackState.IsAutoAttacking) return;
+        if (actionType != ActionType.Action || targetID == 0xE000_0000 || InvalidActions.Contains(actionID)) return;
+
+
+        if (GameState.IsInPVPArea                       ||
+            !DService.Condition[ConditionFlag.InCombat] ||
+            DService.Condition[ConditionFlag.Casting])
+            return;
         
+        if (UIState.Instance()->WeaponState.AutoAttackState.IsAutoAttacking) return;
+
         ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.AutoAttack, 1, (uint)targetID);
     }
 

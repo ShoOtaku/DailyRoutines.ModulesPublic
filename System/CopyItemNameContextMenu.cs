@@ -28,12 +28,8 @@ public class CopyItemNameContextMenu : DailyModuleBase
     protected override void Init() => 
         DService.ContextMenu.OnMenuOpened += OnContextMenuOpened;
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.ContextMenu.OnMenuOpened -= OnContextMenuOpened;
-
-        base.Uninit();
-    }
 
     private static unsafe void OnContextMenuOpened(IMenuOpenedArgs args)
     {

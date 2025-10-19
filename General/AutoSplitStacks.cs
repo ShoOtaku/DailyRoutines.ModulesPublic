@@ -360,7 +360,7 @@ public unsafe class AutoSplitStacks : DailyModuleBase
         {
             ClickContextMenu(LuminaGetter.GetRow<Addon>(92)!.Value.Text.ExtractText());
             return true;
-        }, null, null, null, 2);
+        }, weight: 2);
 
         TaskHelper.DelayNext(20, $"InputNumeric_{itemID}_{foundType}_{foundSlot}", false, 2);
         TaskHelper.Enqueue(() =>
@@ -369,7 +369,7 @@ public unsafe class AutoSplitStacks : DailyModuleBase
 
             Callback(InputNumeric, true, amount);
             return true;
-        }, null, null, null, 2);
+        }, weight: 2);
     }
 
     protected override void Uninit()
@@ -381,8 +381,6 @@ public unsafe class AutoSplitStacks : DailyModuleBase
 
         FastSplitItemID = 0;
         IsNeedToOpen    = false;
-
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

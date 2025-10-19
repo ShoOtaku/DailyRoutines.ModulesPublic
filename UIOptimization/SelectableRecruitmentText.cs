@@ -100,20 +100,15 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
         using var fontAfter = FontManager.UIFont.Push();
         ImGuiOm.TextSelectable(textNode->NodeText.ExtractText(), width - (2 * offsetSpacing.X), LinkTypes);
     }
-    
-    private void OnAddon(AddonEvent type, AddonArgs? args)
-    {
+
+    private void OnAddon(AddonEvent type, AddonArgs? args) =>
         Overlay.IsOpen = type switch
         {
             AddonEvent.PostSetup   => true,
             AddonEvent.PreFinalize => false,
             _                      => Overlay.IsOpen
         };
-    }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.AddonLifecycle.UnregisterListener(OnAddon);
-        base.Uninit();
-    }
 }

@@ -39,12 +39,8 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupCondition", OnLookingForGroupConditionAddon);
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.AddonLifecycle.UnregisterListener(OnLookingForGroupConditionAddon);
-
-        base.Uninit();
-    }
 
     protected override void OverlayUI()
     {

@@ -47,12 +47,8 @@ public unsafe class NoRenderWhenBackground : DailyModuleBase
             SaveConfig(ModuleConfig);
     }
 
-    protected override void Uninit()
-    {
-        base.Uninit();
-
+    protected override void Uninit() => 
         IsOnNoRender = false;
-    }
 
     private static void DeviceDX11PostTickDetour(nint instance)
     {

@@ -25,12 +25,8 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
             OnEnterFate(0);
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         GameState.EnterFate -= OnEnterFate;
-        
-        base.Uninit();
-    }
 
     private void OnEnterFate(uint _) => Overlay.IsOpen = true;
 

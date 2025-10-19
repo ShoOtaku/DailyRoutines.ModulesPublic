@@ -48,10 +48,6 @@ public unsafe class AutoInventoryTransfer : DailyModuleBase
                IsAddonAndNodesReady(InventoryRetainerLarge);
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.ContextMenu.OnMenuOpened -= OnContextMenuOpened;
-        
-        base.Uninit();
-    }
 }

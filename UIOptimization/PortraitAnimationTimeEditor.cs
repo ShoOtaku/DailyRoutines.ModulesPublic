@@ -1,14 +1,11 @@
 ﻿using System;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
-using DailyRoutines.Managers;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
-using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -30,23 +27,28 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
     private static AgentBannerEditorState* EditorState   => AgentBannerEditor.Instance()->EditorState;
     private static CharaViewPortrait*      CharaView     => EditorState != null ? EditorState->CharaView : null;
     private static Character*              PortraitChara => CharaView   != null ?  CharaView->GetCharacter() : null;
-
+    
     private static float Duration;
     private static int   FrameCount;
     private static float CurrentFrame;
 
+    private static Vector2 ComponentSize = new(100);
+
     protected override void Init()
     {
         Overlay       ??= new(this);
-        Overlay.Flags = ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize |
-                        ImGuiWindowFlags.NoMove     | ImGuiWindowFlags.AlwaysAutoResize;
-
+        Overlay.Flags = ImGuiWindowFlags.NoTitleBar  |
+                        ImGuiWindowFlags.NoResize    |
+                        ImGuiWindowFlags.NoMove      |
+                        ImGuiWindowFlags.NoScrollbar |
+                        ImGuiWindowFlags.NoScrollWithMouse;
+        
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "BannerEditor", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "BannerEditor", OnAddon);
         if (IsAddonAndNodesReady(BannerEditor)) 
             OnAddon(AddonEvent.PostSetup, null);
     }
-
+    
     protected override void OverlayUI()
     {
         var addon = BannerEditor;
@@ -66,8 +68,10 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
         using var font = FontManager.UIFont80.Push();
 
         ImGui.SetWindowPos(nodeState.Position with { Y = nodeState.Position.Y - ImGui.GetWindowSize().Y - (2f * GlobalFontScale) });
+        ImGui.SetWindowSize(nodeState.Size with { Y = (3f * ImGui.GetTextLineHeightWithSpacing()) - (1 * ImGui.GetStyle().ItemSpacing.Y) });
 
         var control = GetAnimationControl(PortraitChara);
+        ImGuiHelpers.CenterCursorFor(ComponentSize.X);
         using (ImRaii.Group())
         {
             if (ImGuiOm.ButtonIcon("###LastTenFrame", FontAwesomeIcon.Backward, "-10"))
@@ -115,8 +119,10 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
                 UpdatePortraitCurrentFrame(CurrentFrame);
             }
         }
+        
+        ComponentSize = ImGui.GetItemRectSize();
 
-        ImGui.SetNextItemWidth(MathF.Max(nodeState.Size.X - (4 * ImGui.GetStyle().ItemSpacing.X), 200f * GlobalFontScale));
+        ImGui.SetNextItemWidth(nodeState.Size.X - (4 * ImGui.GetStyle().ItemSpacing.X));
         if (ImGui.SliderFloat("###TimestampSlider", ref CurrentFrame, 0f, FrameCount,
                               FrameCount < 100 ? $"%.3f / {FrameCount}" : $"%.2f / {FrameCount}"))
             UpdatePortraitCurrentFrame(CurrentFrame);
@@ -125,11 +131,8 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
         UpdateDuration(PortraitChara);
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.AddonLifecycle.UnregisterListener(OnAddon);
-        base.Uninit();
-    }
 
     private void OnAddon(AddonEvent type, AddonArgs? args) =>
         Overlay.IsOpen = type switch
@@ -166,12 +169,7 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
         var baseTimeline = PortraitChara->Timeline.TimelineSequencer.GetSchedulerTimeline(0);
         if (baseTimeline == null)
             return;
-
-        var timelineKey = (nint)baseTimeline->ActionTimelineKey.Value;
-        var timelineStr = timelineKey != 0 ? Marshal.PtrToStringUTF8(timelineKey) : null;
-        if (timelineStr is "normal/idle")
-            return;
-
+        
         Duration   = animation->hkaAnimationControl.Binding.ptr->Animation.ptr->Duration - 0.5f;
         FrameCount = (int)Math.Round(30f * Duration);
     }
@@ -180,45 +178,20 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
     {
         if (charaActor == null) return null;
 
-        if (DService.ClientState.ClientLanguage == (ClientLanguage)4)
-        {
-            var actor = (ActorGlobal*)charaActor;
-            if (actor->Model                                                                                      == null ||
-                actor->Model->Skeleton                                                                            == null ||
-                actor->Model->Skeleton->PartialSkeletons                                                          == null ||
-                actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)                             == null ||
-                actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)->AnimationControls.Length   == 0    ||
-                actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)->AnimationControls[0].Value == null)
-                return null;
+        var actor = (Actor*)charaActor;
+        if (actor->Model                                                                                      == null ||
+            actor->Model->Skeleton                                                                            == null ||
+            actor->Model->Skeleton->PartialSkeletons                                                          == null ||
+            actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)                             == null ||
+            actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)->AnimationControls.Length   == 0    ||
+            actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)->AnimationControls[0].Value == null)
+            return null;
 
-            return actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)->AnimationControls[0];
-        }
-        else
-        {
-            var actor = (ActorGlobal*)charaActor;
-            if (actor->Model                                                                                      == null ||
-                actor->Model->Skeleton                                                                            == null ||
-                actor->Model->Skeleton->PartialSkeletons                                                          == null ||
-                actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)                             == null ||
-                actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)->AnimationControls.Length   == 0    ||
-                actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)->AnimationControls[0].Value == null)
-                return null;
-
-            return actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)->AnimationControls[0];
-        }
-    }
-
-    [StructLayout(LayoutKind.Explicit)]
-    private struct Actor : IActor
-    {
-        [FieldOffset(240)]
-        public ActorModel* model;
-
-        public ActorModel* Model => model;
+        return actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)->AnimationControls[0];
     }
     
     [StructLayout(LayoutKind.Explicit)]
-    private struct ActorGlobal
+    private struct Actor
     {
         [FieldOffset(256)]
         public ActorModel* Model;
@@ -229,10 +202,5 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
     {
         [FieldOffset(160)]
         public Skeleton* Skeleton;
-    }
-    
-    private interface IActor
-    {
-        public ActorModel* Model { get; }
     }
 }

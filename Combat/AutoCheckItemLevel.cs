@@ -184,10 +184,6 @@ public unsafe class AutoCheckItemLevel : DailyModuleBase
         Chat(ssb.Build());
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
-
-        base.Uninit();
-    }
 }

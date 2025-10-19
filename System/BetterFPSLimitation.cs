@@ -168,8 +168,6 @@ public class BetterFPSLimitation : DailyModuleBase
         
         Addon?.Dispose();
         Addon = null;
-        
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

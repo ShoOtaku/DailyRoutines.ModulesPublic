@@ -169,8 +169,6 @@ public class AutoShowDutyGuide : DailyModuleBase
         CancelSource?.Cancel();
         CancelSource?.Dispose();
         CancelSource = null;
-        
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

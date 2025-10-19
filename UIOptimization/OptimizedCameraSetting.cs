@@ -38,11 +38,8 @@ public unsafe class OptimizedCameraSetting : DailyModuleBase
             OnAddon(AddonEvent.PostSetup, null);
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.AddonLifecycle.UnregisterListener(OnAddon);
-        base.Uninit();
-    }
 
     protected override void OverlayUI()
     {

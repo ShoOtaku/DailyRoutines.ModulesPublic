@@ -77,13 +77,9 @@ public class AutoSortItems : DailyModuleBase
         DrawTableRow("背包分栏", GetLoc("AutoSortItems-Splited"), ref ModuleConfig.InventoryTab, tabOptions, GetLoc("AutoSortItems-InventoryTabDesc"));
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        TaskHelper?.Abort();
-        base.Uninit();
-    }
-    
+
     private void DrawTableRow(string id, string label, ref int value, string[] options, string note = "")
     {
         using var idPush = ImRaii.PushId($"{label}_{id}");

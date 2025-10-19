@@ -81,8 +81,6 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
         ContextTaskHelper?.Abort();
         ContextTaskHelper = null;
         
-        base.Uninit();
-        
         ResetAllExistedData();
     }
 
@@ -339,7 +337,7 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
                     EnqueueContentMenuClicks(SelectedMembers, LuminaGetter.GetRow<Addon>(2801)!.Value.Text.ExtractText(), "SelectYesno",
                                              () =>
                                              {
-                                                 ContextTaskHelper.Enqueue(() => ClickSelectYesnoYes(), null, null, null, 1);
+                                                 ContextTaskHelper.Enqueue(() => ClickSelectYesnoYes(), weight: 1);
                                                  return true;
                                              });
                 }
@@ -408,7 +406,7 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
                     $"{Lang.Get("FCMemberManagePanel-ContextMenuItemNoFound")}: {menuText}");
             }
             return true;
-        }, null, null, null, 2);
+        }, weight: 2);
     }
     
     private static void OpenContextMenuByIndex(int dataIndex) 

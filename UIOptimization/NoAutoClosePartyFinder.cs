@@ -60,9 +60,6 @@ public unsafe class NoAutoClosePartyFinder : DailyModuleBase
         LookingForGroupHideHook.Original(agent); 
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         LogMessageManager.Unregister(OnPreReceiveMessage);
-        base.Uninit();
-    }
 }

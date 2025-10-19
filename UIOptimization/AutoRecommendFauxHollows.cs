@@ -69,8 +69,6 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
     {
         DService.AddonLifecycle.UnregisterListener(OnWeeklyPuzzleEvent);
         FrameworkManager.Unreg(OnUpdate);
-
-        base.Uninit();
     }
     
     private void OnWeeklyPuzzleEvent(AddonEvent type, AddonArgs? args)

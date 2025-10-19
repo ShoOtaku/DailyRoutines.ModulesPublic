@@ -36,9 +36,9 @@ public unsafe class AutoDisableBattleBGM : DailyModuleBase
 
     private static byte IsInBattleStateDetour(BGMSystem* system, BGMSystem.Scene* scene)
     {
-        if (ModuleConfig.EnableInDuty && GameState.ContentFinderCondition > 0)
+        if (!ModuleConfig.EnableInDuty && GameState.ContentFinderCondition > 0)
             return IsInBattleStateHook.Original(system, scene);
-        
+
         return 0;
     }
 

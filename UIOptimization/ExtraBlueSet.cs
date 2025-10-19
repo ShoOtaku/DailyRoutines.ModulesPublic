@@ -215,8 +215,6 @@ public unsafe class ExtraBlueSet : DailyModuleBase
     {
         CommandManager.RemoveSubCommand(Command);
         DService.AddonLifecycle.UnregisterListener(OnAddon);
-        
-        base.Uninit();
     }
 
     public class BlueMagePresetEntry

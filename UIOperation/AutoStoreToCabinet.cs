@@ -159,7 +159,5 @@ public class AutoStoreToCabinet : DailyModuleBase
         CancelSource?.Cancel();
         CancelSource?.Dispose();
         CancelSource = null;
-
-        base.Uninit();
     }
 }

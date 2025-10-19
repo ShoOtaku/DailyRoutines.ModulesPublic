@@ -40,13 +40,9 @@ public unsafe class BlockInputWhenFishing : DailyModuleBase
             IsKeyDownHook.Disable();
     }
 
-    private static bool IsKeyDownDetour(UIInputData* data, int id) 
-        => IsConflictKeyPressed() && IsKeyDownHook.Original(data, id);
+    private static bool IsKeyDownDetour(UIInputData* data, int id) =>
+        IsConflictKeyPressed() && IsKeyDownHook.Original(data, id);
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.Condition.ConditionChange -= OnConditionChanged;
-
-        base.Uninit();
-    }
 }

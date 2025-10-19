@@ -140,9 +140,6 @@ public unsafe class MoreFlexibleMJIWorkdays : DailyModuleBase
         return restDays;
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         DService.AddonLifecycle.UnregisterListener(OnAddon);
-        base.Uninit();
-    }
 }

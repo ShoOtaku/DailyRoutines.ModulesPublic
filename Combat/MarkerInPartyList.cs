@@ -65,8 +65,6 @@ public unsafe class MarkerInPartyList : DailyModuleBase
 
         ResetPartyMemberList();
         ReleaseImageNodes();
-
-        base.Uninit();
     }
 
     protected override void ConfigUI()

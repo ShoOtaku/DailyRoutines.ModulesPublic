@@ -59,8 +59,6 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
 
         foreach (var worker in Workers)
             worker.Uninit();
-
-        base.Uninit();
     }
 
     #region 模块界面

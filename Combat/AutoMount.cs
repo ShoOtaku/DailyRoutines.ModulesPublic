@@ -154,8 +154,6 @@ public unsafe class AutoMount : DailyModuleBase
     {
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
         DService.Condition.ConditionChange -= OnConditionChanged;
-
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

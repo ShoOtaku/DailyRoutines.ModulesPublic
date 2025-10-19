@@ -53,10 +53,6 @@ public unsafe class AutoRefreshMarketSearchResult : DailyModuleBase
         return ProcessRequestResultHook.Original(info, entryCount, a3, a4);
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() => 
         WaitMessagePatch.Dispose();
-        
-        base.Uninit();
-    }
 }

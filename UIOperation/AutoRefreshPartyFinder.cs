@@ -211,8 +211,6 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
         PFRefreshTimer = null;
         
         CleanNodes();
-
-        base.Uninit();
     }
 
     private class Config : ModuleConfiguration

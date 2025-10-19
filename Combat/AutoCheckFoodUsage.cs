@@ -478,7 +478,6 @@ public class AutoCheckFoodUsage : DailyModuleBase
     {
         DService.Condition.ConditionChange -= OnConditionChanged;
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        base.Uninit();
     }
     
     private static unsafe bool IsValidState() =>
