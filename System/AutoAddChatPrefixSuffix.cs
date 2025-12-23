@@ -51,11 +51,11 @@ public class AutoAddChatPrefixSuffix : DailyModuleBase
                             ]
         };
 
-        ChatManager.RegPreExecuteCommandInnerEntry(OnPreProcessChatBoxEntry);
+        ChatManager.RegPreExecuteCommandInner(OnPreExecuteCommandInner);
     }
 
     protected override void Uninit() =>
-        ChatManager.Unreg(OnPreProcessChatBoxEntry);
+        ChatManager.Unreg(OnPreExecuteCommandInner);
 
     protected override void ConfigUI()
     {
@@ -134,7 +134,7 @@ public class AutoAddChatPrefixSuffix : DailyModuleBase
         }
     }
 
-    private static void OnPreProcessChatBoxEntry(ref bool isPrevented, ref ReadOnlySeString message)
+    private static void OnPreExecuteCommandInner(ref bool isPrevented, ref ReadOnlySeString message)
     {
         var messageText   = message.ToString();
         var isCommand     = messageText.StartsWith('/') || messageText.StartsWith('／');

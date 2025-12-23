@@ -80,7 +80,7 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
         LocalMessageDisplayHook ??= LocalMessageDisplaySig.GetHook<LocalMessageDisplayDelegate>(LocalMessageDisplayDetour);
         LocalMessageDisplayHook.Enable();
 
-        ChatManager.RegPreExecuteCommandInnerEntry(OnPreExecuteCommandInner);
+        ChatManager.RegPreExecuteCommandInner(OnPreExecuteCommandInner);
         
         PartyFinderMessageDisplayHook ??= PartyFinderMessageDisplaySig.GetHook<PartyFinderMessageDisplayDelegate>(PartyFinderMessageDisplayDetour);
         PartyFinderMessageDisplayHook.Enable();
