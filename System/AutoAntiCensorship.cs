@@ -48,11 +48,6 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
     private static readonly CompSig LocalMessageDisplaySig = new("40 53 48 83 EC ?? 48 8D 99 ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? 48 8B 0D");
     private delegate        nint LocalMessageDisplayDelegate(nint a1, Utf8String* source);
     private static          Hook<LocalMessageDisplayDelegate>? LocalMessageDisplayHook;
-    
-    private static readonly CompSig ProcessSendedChatSig =
-        new("E8 ?? ?? ?? ?? FE 87 ?? ?? ?? ?? C7 87 ?? ?? ?? ?? ?? ?? ?? ??");
-    private delegate void ProcessSendedChatDelegate(ShellCommandModule* commandModule, Utf8String* message, UIModule* module);
-    private static Hook<ProcessSendedChatDelegate>? ProcessSendedChatHook;
 
     private static readonly CompSig PartyFinderMessageDisplaySig =
         new("48 89 5C 24 ?? 57 48 83 EC ?? 48 8D 99 ?? ?? ?? ?? 48 8B F9 48 8B CB E8");
@@ -84,9 +79,8 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
         
         LocalMessageDisplayHook ??= LocalMessageDisplaySig.GetHook<LocalMessageDisplayDelegate>(LocalMessageDisplayDetour);
         LocalMessageDisplayHook.Enable();
-        
-        ProcessSendedChatHook ??= ProcessSendedChatSig.GetHook<ProcessSendedChatDelegate>(ProcessSendedChatDetour);
-        ProcessSendedChatHook.Enable();
+
+        ChatManager.RegPreExecuteCommandInnerEntry(OnPreExecuteCommandInner);
         
         PartyFinderMessageDisplayHook ??= PartyFinderMessageDisplaySig.GetHook<PartyFinderMessageDisplayDelegate>(PartyFinderMessageDisplayDetour);
         PartyFinderMessageDisplayHook.Enable();
@@ -95,6 +89,9 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
             LookingForGroupConditionReceiveEventSig.GetHook<LookingForGroupConditionReceiveEventDelegate>(LookingForGroupConditionReceiveEventDetour);
         LookingForGroupConditionReceiveEventHook.Enable();
     }
+
+    protected override void Uninit() => 
+        ChatManager.Unreg(OnPreExecuteCommandInner);
 
     protected override void ConfigUI()
     {
@@ -112,7 +109,7 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
         {
             var seperator = ModuleConfig.Seperator.ToString();
             ImGui.SetNextItemWidth(150f * GlobalFontScale);
-            if (ImGui.InputText("###SeperatorInput", ref seperator, 1))
+            if (ImGui.InputText("###SeperatorInput", ref seperator, 4))
             {
                 seperator = seperator.Trim();
                 
@@ -251,6 +248,31 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
         }
     }
     
+    // 消息发送
+    private static void OnPreExecuteCommandInner(ref bool isPrevented, ref ReadOnlySeString message)
+    {
+        var seString = message.ToDalamudString();
+        // 信息为空或者为指令
+        if (string.IsNullOrWhiteSpace(seString.TextValue) || seString.TextValue.StartsWith('/'))
+            return;
+        
+        var builder = new SeStringBuilder();
+        foreach (var payload in seString.Payloads)
+        {
+            // 不处理非文本
+            if (payload is not TextPayload textPayload)
+            {
+                builder.Add(payload);
+                continue;
+            }
+            
+            BypassCensorshipByTextPayload(ref textPayload);
+            builder.Add(textPayload);
+        }
+
+        message = new ReadOnlySeString(builder.Encode());
+    }
+    
     // 编辑招募
     private static byte LookingForGroupConditionReceiveEventDetour(nint a1, AtkValue* values)
     {
@@ -312,38 +334,6 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
         return InvokeOriginal();
         
         byte InvokeOriginal() => LookingForGroupConditionReceiveEventHook.Original(a1, values);
-    }
-
-    // 消息发送
-    private static void ProcessSendedChatDetour(ShellCommandModule* commandModule, Utf8String* message, UIModule* module)
-    {
-        var seString = SeString.Parse(*(byte**)message);
-        // 信息为空或者为指令
-        if (string.IsNullOrWhiteSpace(seString.TextValue) || seString.TextValue.StartsWith('/'))
-        {
-            InvokeOriginal();
-            return;
-        }
-        
-        var builder = new SeStringBuilder();
-        foreach (var payload in seString.Payloads)
-        {
-            // 不处理非文本
-            if (payload is not TextPayload textPayload)
-            {
-                builder.Add(payload);
-                continue;
-            }
-            
-            BypassCensorshipByTextPayload(ref textPayload);
-            builder.Add(textPayload);
-        }
-        
-        message->SetString(new ReadOnlySeStringSpan(builder.Build().Encode()));
-        InvokeOriginal();
-
-        void InvokeOriginal() => 
-            ProcessSendedChatHook.Original(commandModule, message, module);
     }
 
     // 聊天信息显示
