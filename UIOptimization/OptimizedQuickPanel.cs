@@ -94,7 +94,7 @@ public unsafe class OptimizedQuickPanel : DailyModuleBase
             case AddonEvent.PostDraw:
                 if (QuickPanel == null) return;
                 
-                if (ModuleConfig.IsLock)
+                if (ModuleConfig.IsLock && ModuleConfig.LastPosition != Vector2.Zero)
                     QuickPanel->SetPosition((short)ModuleConfig.LastPosition.X, (short)ModuleConfig.LastPosition.Y);
                 ModuleConfig.LastPosition = new(QuickPanel->RootNode->GetXFloat(), QuickPanel->RootNode->GetYFloat());
 
