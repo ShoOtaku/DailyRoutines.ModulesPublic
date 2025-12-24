@@ -186,7 +186,7 @@ public class FastWorldTravel : DailyModuleBase
         
         if (GameState.HomeWorld == 0 || GameState.CurrentWorld == 0) return;
         
-        var dataCenter = GameState.CurrentWorldData.DataCenter.RowId;
+        var dataCenter = GameState.CurrentDataCenter;
         if (dataCenter == 0) return;
         
         CurrentWorlds = PresetSheet.Worlds
@@ -563,7 +563,7 @@ public class FastWorldTravel : DailyModuleBase
         Addon = null;
 
         FrameworkManager.Unreg(OnUpdate);
-        DService.ClientState.Login -= OnLogin;
+        GameState.Login -= OnLogin;
         CommandManager.RemoveSubCommand(Command);
     }
 
