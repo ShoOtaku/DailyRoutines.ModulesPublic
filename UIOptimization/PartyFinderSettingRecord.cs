@@ -1,5 +1,3 @@
-// TODO: 会导致游戏崩溃, 临时屏蔽
-/*
 using System.Collections.Generic;
 using System.Numerics;
 using DailyRoutines.Abstracts;
@@ -21,9 +19,14 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
         Category    = ModuleCategories.UIOptimization,
         Author      = ["status102"]
     };
+    
+    private static readonly CompSig AddonFireCallBackSig = new("E8 ?? ?? ?? ?? 0F B6 E8 8B 44 24 20");
+    private delegate        void* AddonFireCallBackDelegate(AtkUnitBase* atkunitbase, int valuecount, AtkValue* atkvalues, byte updateVisibility);
+    private static          Hook<AddonFireCallBackDelegate>? AgentReceiveEventHook;
 
     private static Config? ModuleConfig;
-    private static bool    EditInited;
+
+    private static bool EditInited;
 
     protected override void Init()
     {
@@ -32,8 +35,7 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
         Overlay.Flags |=  ImGuiWindowFlags.NoMove;
         TaskHelper    ??= new();
 
-        AgentReceiveEventHook =
-            DService.Hook.HookFromSignature<AddonFireCallBackDelegate>(AddonFireCallBackSig.Get(), AddonFireCallBackDetour);
+        AgentReceiveEventHook = AddonFireCallBackSig.GetHook<AddonFireCallBackDelegate>(AddonFireCallBackDetour);
         AgentReceiveEventHook.Enable();
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroupCondition", OnLookingForGroupConditionAddon);
@@ -119,44 +121,43 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
         Callback(LookingForGroupCondition, true, 13, setting.Duty,            0);
         Callback(LookingForGroupCondition, true, 15, setting.Description,     0);
 
+        TaskHelper.DelayNext(100);
         TaskHelper.Enqueue(() => LookingForGroupCondition->Close(true));
         TaskHelper.Enqueue(() => Callback(LookingForGroup, true, 14));
     }
 
     #region Hook
-
-    // 偷的 Simple Tweaks 的 Debugger 的 Addon Callback
-    private static readonly CompSig AddonFireCallBackSig = new("E8 ?? ?? ?? ?? 0F B6 E8 8B 44 24 20");
-
-    private delegate void* AddonFireCallBackDelegate(
-        AtkUnitBase* atkunitbase, int valuecount, AtkValue* atkvalues, byte updateVisibility);
-
-    private static Hook<AddonFireCallBackDelegate>? AgentReceiveEventHook;
-
+    
     private void* AddonFireCallBackDetour(
-        AtkUnitBase* atkUnitBase, int valueCount, AtkValue* atkValues, byte updateVisibility)
+        AtkUnitBase* atkUnitBase,
+        int          valueCount,
+        AtkValue*    atkValues,
+        byte         updateVisibility)
     {
         if (!EditInited || atkUnitBase->NameString != "LookingForGroupCondition" || valueCount < 2)
             return AgentReceiveEventHook.Original(atkUnitBase, valueCount, atkValues, updateVisibility);
 
-        var eventCase = atkValues[0].Int;
-        switch (eventCase)
+        if (atkValues != null)
         {
-            case 11 when valueCount == 3:
-                var itemLevel  = atkValues[1].UInt;
-                var isEnableIL = atkValues[2].Bool;
-                ModuleConfig.Last.ItemLevel = new(itemLevel, isEnableIL);
-                break;
-            case 12:
-                ModuleConfig.Last.Category = atkValues[1].UInt;
-                ModuleConfig.Last.Duty     = 0;
-                break;
-            case 13:
-                ModuleConfig.Last.Duty = atkValues[1].UInt;
-                break;
-            case 15:
-                ModuleConfig.Last.Description = SeString.Parse(atkValues[1].String.Value).TextValue;
-                break;
+            var eventCase = atkValues[0].Int;
+            switch (eventCase)
+            {
+                case 11 when valueCount == 3:
+                    var itemLevel  = atkValues[1].UInt;
+                    var isEnableIL = atkValues[2].Bool;
+                    ModuleConfig.Last.ItemLevel = new(itemLevel, isEnableIL);
+                    break;
+                case 12:
+                    ModuleConfig.Last.Category = atkValues[1].UInt;
+                    ModuleConfig.Last.Duty     = 0;
+                    break;
+                case 13:
+                    ModuleConfig.Last.Duty = atkValues[1].UInt;
+                    break;
+                case 15:
+                    ModuleConfig.Last.Description = SeString.Parse(atkValues[1].String.Value).TextValue;
+                    break;
+            }
         }
 
         ModuleConfig.Save(this);
@@ -192,4 +193,3 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
 
     #endregion
 }
-*/
