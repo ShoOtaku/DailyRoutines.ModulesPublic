@@ -95,82 +95,75 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        using (ImRaii.Group())
-        {
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text("屏蔽词处理分隔符:");
-            
-            ImGui.AlignTextToFramePadding();
-            ImGui.Text("屏蔽词显示高亮颜色:");
-        }
+        DrawDisplayCensoredText();
         
-        ImGui.SameLine();
-        using (ImRaii.Group())
-        {
-            var seperator = ModuleConfig.Seperator.ToString();
-            ImGui.SetNextItemWidth(150f * GlobalFontScale);
-            if (ImGui.InputText("###SeperatorInput", ref seperator, 4))
-            {
-                seperator = seperator.Trim();
-                
-                // 我觉得真有人会输入 * 号来看看会发生什么
-                if (string.IsNullOrWhiteSpace(seperator) || seperator == "*")
-                    seperator = ".";
-                
-                ModuleConfig.Seperator = seperator[0];
-                ModuleConfig.Save(this);
-            }
+        ImGui.NewLine();
+
+        DrawHandleCensoredText();
+    }
+
+    private void DrawDisplayCensoredText()
+    {
+        if (ImGui.Checkbox("显示屏蔽文本", ref ModuleConfig.DisplayCensoredText))
+            SaveConfig(ModuleConfig);
+        ImGuiOm.HelpMarker("接收到含屏蔽词的文本时, 自动将其还原为原始文本, 并高亮显示其中包含的屏蔽文本");
+        
+        if (!ModuleConfig.DisplayCensoredText) return;
+        
+        using var indent = ImRaii.PushIndent();
             
-            if (!LuminaGetter.TryGetRow<UIColor>(ModuleConfig.HighlightColor, out var unitColorRow))
+        ImGui.SetNextItemWidth(150f * GlobalFontScale);
+        ImGui.InputInt("高亮颜色###HighlightColorInput", ref ModuleConfig.HighlightColor, 1, 1);
+        if (ImGui.IsItemDeactivatedAfterEdit())
+            SaveConfig(ModuleConfig);
+        ImGuiOm.TooltipHover("设置为 -1 以禁用高亮");
+        
+        if (ModuleConfig.HighlightColor >= 0)
+        {
+            if(!LuminaGetter.TryGetRow<UIColor>((uint)ModuleConfig.HighlightColor, out var unitColorRow))
             {
                 ModuleConfig.HighlightColor = 17;
                 ModuleConfig.Save(this);
                 return;
             }
             
-            ImGui.SetNextItemWidth(150f * GlobalFontScale);
-            if (ImGui.InputUInt("###HighlightColorInput", ref ModuleConfig.HighlightColor, 1, 1))
-                SaveConfig(ModuleConfig);
-            
             ImGui.SameLine();
             ImGui.ColorButton("###HighlightColorPreview", UIColorToVector4Color(unitColorRow.Dark));
         }
+
+        ImGui.SameLine(0, 8f * GlobalFontScale);
+        if (ImGui.Button($"{FontAwesomeIcon.Palette.ToIconChar()} 参考颜色表"))
+            ChatManager.SendCommand("/xldata uicolor");
+    }
+    
+    private void DrawHandleCensoredText()
+    {
+        if (ImGui.Checkbox("处理屏蔽文本", ref ModuleConfig.HandleCensoredText))
+            SaveConfig(ModuleConfig);
+        ImGuiOm.HelpMarker("在发送聊天消息 / 编辑招募留言时, 自动检测其中可能包含的屏蔽文本, 并将其自动处理为未被屏蔽的文本");
         
-        var sheet = LuminaGetter.Get<UIColor>();
-        using (var node = ImRaii.TreeNode("参考颜色表"))
+        if (!ModuleConfig.HandleCensoredText) return;
+        
+        using var indent = ImRaii.PushIndent();
+        
+        var seperator = ModuleConfig.Seperator.ToString();
+        ImGui.SetNextItemWidth(150f * GlobalFontScale);
+        if (ImGui.InputText($"分隔符###SeperatorInput", ref seperator, 4))
         {
-            if (node)
-            {
-                using var table = ImRaii.Table("###ColorTable", 6);
-                if (!table) return;
+            seperator = seperator.Trim();
                 
-                var counter = 0;
-                foreach (var row in sheet)
-                {
-                    if (row.RowId == 0) continue;
-                    if (row.Dark  == 0) continue;
-
-                    if (counter % 5 == 0) 
-                        ImGui.TableNextRow();
-                    ImGui.TableNextColumn();
-                            
-                    counter++;
-
-                    using (ImRaii.Group())
-                    {
-                        ImGui.ColorButton($"###ColorButtonTable{row.RowId}", UIColorToVector4Color(row.Dark));
-                                
-                        ImGui.SameLine();
-                        ImGui.Text($"{row.RowId}");
-                    }
-                }
-            }
+            // 我觉得真有人会输入 * 号来看看会发生什么
+            if (string.IsNullOrWhiteSpace(seperator) || seperator == "*")
+                seperator = ".";
+                
+            ModuleConfig.Seperator = seperator[0];
+            ModuleConfig.Save(this);
         }
         
         ImGui.NewLine();
         
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "自定义替换规则:");
+        ImGui.Text("自定义替换规则");
         
         ImGui.SameLine();
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加"))
@@ -186,10 +179,11 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
             using var table = ImRaii.Table("###CustomReplacementsTable", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg);
             if (table)
             {
-                ImGui.TableSetupColumn("原词",  ImGuiTableColumnFlags.WidthStretch, 0.3f);
-                ImGui.TableSetupColumn("替换词", ImGuiTableColumnFlags.WidthStretch, 0.3f);
-                ImGui.TableSetupColumn("状态",  ImGuiTableColumnFlags.WidthStretch, 0.2f);
-                ImGui.TableSetupColumn("操作",  ImGuiTableColumnFlags.WidthFixed,   80f * GlobalFontScale);
+                ImGui.TableSetupColumn("原始文本", ImGuiTableColumnFlags.WidthStretch, 0.3f);
+                ImGui.TableSetupColumn("替换文本", ImGuiTableColumnFlags.WidthStretch, 0.3f);
+                ImGui.TableSetupColumn("状态",   ImGuiTableColumnFlags.WidthStretch, 0.2f);
+                ImGui.TableSetupColumn("操作",   ImGuiTableColumnFlags.WidthFixed,   80f * GlobalFontScale);
+                
                 ImGui.TableHeadersRow();
 
                 var counter = 0;
@@ -229,7 +223,7 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
                             ImGui.TextColored(KnownColor.GreenYellow.ToVector4(), "有效");
                             break;
                         case false:
-                            ImGui.TextColored(KnownColor.Red.ToVector4(), "存在屏蔽词");
+                            ImGui.TextColored(KnownColor.Red.ToVector4(), "无效");
                             ImGuiOm.TooltipHover($"替换词包含屏蔽内容:\n{replacement}: {GetFilteredString(replacement)}");
                             break;
                         default:
@@ -251,6 +245,8 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
     // 消息发送
     private static void OnPreExecuteCommandInner(ref bool isPrevented, ref ReadOnlySeString message)
     {
+        if (!ModuleConfig.HandleCensoredText) return;
+        
         var seString = message.ToDalamudString();
         // 信息为空或者为指令
         if (string.IsNullOrWhiteSpace(seString.TextValue) || seString.TextValue.StartsWith('/'))
@@ -276,6 +272,9 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
     // 编辑招募
     private static byte LookingForGroupConditionReceiveEventDetour(nint a1, AtkValue* values)
     {
+        if (!ModuleConfig.HandleCensoredText) 
+            return InvokeOriginal();
+        
         try
         {
             if (values == null || values->Int != 15)
@@ -305,26 +304,31 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
 
             var handledText = builderHandled.Build();
 
-            if (handledText.TextValue != origText.TextValue)
+            if (handledText.TextValue == origText.TextValue)
+                return InvokeOriginal();
+            
+            var builderHighlight = new SeStringBuilder();
+            foreach (var payload in origText.Payloads)
             {
-                var builderHighlight = new SeStringBuilder();
-                foreach (var payload in origText.Payloads)
+                // 不处理非文本
+                if (payload is not TextPayload textPayload)
                 {
-                    // 不处理非文本
-                    if (payload is not TextPayload textPayload)
-                    {
-                        builderHighlight.Add(payload);
-                        continue;
-                    }
-
-                    builderHighlight.Append(HighlightCensorship(textPayload.Text));
+                    builderHighlight.Add(payload);
+                    continue;
                 }
 
-                var highlightedText = builderHighlight.Build();
-
-                values[1].SetString(*(byte**)Utf8String.FromSequence(handledText.Encode()));
-                Chat(new SeStringBuilder().Append("已对招募留言进行反屏蔽处理:\n").Append(highlightedText).Append("\n↓\n").Append(handledText).Build());
+                builderHighlight.Append(HighlightCensorship(textPayload.Text));
             }
+
+            var highlightedText = builderHighlight.Build();
+
+            values[1].SetManagedString(handledText.EncodeWithNullTerminator());
+
+            var textInputComponent = (AtkComponentTextInput*)LookingForGroupCondition->GetComponentByNodeId(22);
+            if (textInputComponent != null)
+                textInputComponent->SetText(handledText.EncodeWithNullTerminator());
+            
+            Chat(new SeStringBuilder().Append("已对招募留言进行反屏蔽处理:\n").Append(highlightedText).Append("\n↓\n").Append(handledText).Build());
         }
         catch
         {
@@ -339,6 +343,9 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
     // 聊天信息显示
     private static nint LocalMessageDisplayDetour(nint a1, Utf8String* source)
     {
+        if (!ModuleConfig.DisplayCensoredText) 
+            return LocalMessageDisplayHook.Original(a1, source);
+        
         var seString = SeString.Parse(source->AsSpan());
         var builder  = new SeStringBuilder();
         foreach (var payload in seString.Payloads)
@@ -361,6 +368,9 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
     // 招募信息显示
     private static nint PartyFinderMessageDisplayDetour(nint a1, Utf8String* source)
     {
+        if (!ModuleConfig.DisplayCensoredText) 
+            return PartyFinderMessageDisplayHook.Original(a1, source);
+        
         var seString = SeString.Parse(source->AsSpan());
         var builder  = new SeStringBuilder();
         foreach (var payload in seString.Payloads)
@@ -376,7 +386,7 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
             builder.Append(result);
         }
         
-        source->SetString(new ReadOnlySeStringSpan(builder.Build().Encode()));
+        source->SetString(builder.Build().EncodeWithNullTerminator());
         return Utf8StringCopy((Utf8String*)(a1 + PartyFinderOriginalMessageOffset), source);
     }
     
@@ -470,7 +480,10 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
     
     public static SeString HighlightCensorship(string originalText)
     {
-        if (string.IsNullOrEmpty(originalText)) return originalText;
+        if (ModuleConfig.HighlightColor < 0) 
+            return originalText;
+        if (string.IsNullOrEmpty(originalText)) 
+            return originalText;
 
         var filtered = GetFilteredString(originalText);
         
@@ -505,8 +518,6 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
                     result.Add(new UIForegroundPayload((ushort)ModuleConfig.HighlightColor));
                     insideCensored = true;
                 }
-                
-                result.Append(originalText[i].ToString());
             }
             else
             {
@@ -516,9 +527,9 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
                     result.Add(UIForegroundPayload.UIForegroundOff);
                     insideCensored = false;
                 }
-                
-                result.Append(originalText[i].ToString());
             }
+
+            result.Append(originalText[i].ToString());
         }
         
         // 字符串结束了仍然在屏蔽词里, 结束染色
@@ -569,8 +580,11 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
 
     private class Config : ModuleConfiguration
     {
+        public bool DisplayCensoredText = true;
+        public bool HandleCensoredText  = true;
+        
         public char Seperator = '.';
-        public uint HighlightColor   = 17;
+        public int HighlightColor   = 17;
         public Dictionary<string, string> CustomReplacements = new();
     }
 }
