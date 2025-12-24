@@ -74,8 +74,8 @@ public unsafe class OptimizedQuickPanel : DailyModuleBase
 
         using (ImRaii.PushIndent())
         {
-            ImGui.Text($"{QuickPanelLine.Command} {GetLoc("OptimizedQuickPanel-CommandArgs")} → {GetLoc("OptimizedQuickPanel-CommandArgs-Help")}");
-            ImGui.Text($"{QuickPanelLine.Alias} {GetLoc("OptimizedQuickPanel-CommandArgs")} → {GetLoc("OptimizedQuickPanel-CommandArgs-Help")}");
+            ImGui.Text($"{QuickPanelLine.Command} <{GetLoc("OptimizedQuickPanel-CommandArgs")} / close> → {GetLoc("OptimizedQuickPanel-CommandArgs-Help")} / {LuminaWrapper.GetAddonText(2366)}");
+            ImGui.Text($"{QuickPanelLine.Alias} <{GetLoc("OptimizedQuickPanel-CommandArgs")} / close> → {GetLoc("OptimizedQuickPanel-CommandArgs-Help")} / {LuminaWrapper.GetAddonText(2366)}");
         }
     }
 
