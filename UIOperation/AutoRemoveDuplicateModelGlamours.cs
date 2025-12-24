@@ -35,8 +35,8 @@ public class AutoRemoveDuplicateModelGlamours : DailyModuleBase
         var instance = MirageManager.Instance();
         if (instance == null) return;
 
-        List<uint>     itemIndexToRemove = [];
-        HashSet<uint>  itemIDHash        = [];
+        List<uint>      itemIndexToRemove = [];
+        HashSet<uint>   itemIDHash        = [];
         HashSet<string> itemModelHash     = [];
         for (var i = 0U; i < 800; i++)
         {
