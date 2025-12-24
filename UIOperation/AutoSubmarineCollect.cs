@@ -264,33 +264,36 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
         var maxCount      = packet->GetAvailableCount();
         var finishedCount = packet->GetFinishCount();
-        if ((ModuleConfig.NotifyWhenLogin && IsJustLogin) ||
-            (ModuleConfig.NotifyCount > 0 && finishedCount >= Math.Min(maxCount, ModuleConfig.NotifyCount)))
+        if (DService.ClientState.IsClientIdle())
         {
-            IsJustLogin = false;
+            if ((ModuleConfig.NotifyWhenLogin && IsJustLogin) ||
+                (ModuleConfig.NotifyCount > 0 && finishedCount >= Math.Min(maxCount, ModuleConfig.NotifyCount)))
+            {
+                IsJustLogin = false;
 
-            var messageBuilder = new SeStringBuilder();
-            messageBuilder.AddText(GetLoc("AutoSubmarineCollect-Notification-SubmarineInfo", maxCount - finishedCount, finishedCount));
+                var messageBuilder = new SeStringBuilder();
+                messageBuilder.AddText(GetLoc("AutoSubmarineCollect-Notification-SubmarineInfo", maxCount - finishedCount, finishedCount));
 
-            messageBuilder.Add(NewLinePayload.Payload)
-                          .AddText($"{GetLoc("AutoSubmarineCollect-Notification-LatestReturnTime")}: {packet->GetLatestReturnTime()}");
-            if (finishedCount == maxCount)
-                messageBuilder.AddText($" ({packet->GetLatestReturnTime().TimeAgo()})");
-
-            if (finishedCount > 0)
                 messageBuilder.Add(NewLinePayload.Payload)
-                              .Add(RawPayload.LinkTerminator)
-                              .Add(CollectSubmarinePayload)
-                              .AddText("[")
-                              .AddUiForeground(35)
-                              .AddText($"{GetLoc("AutoSubmarineCollect-Payload-TeleportAndCollect")}")
-                              .AddUiForegroundOff()
-                              .AddText("]")
-                              .Add(RawPayload.LinkTerminator);
-            
-            Chat(messageBuilder.Build());
+                              .AddText($"{GetLoc("AutoSubmarineCollect-Notification-LatestReturnTime")}: {packet->GetLatestReturnTime()}");
+                if (finishedCount == maxCount)
+                    messageBuilder.AddText($" ({packet->GetLatestReturnTime().TimeAgo()})");
+
+                if (finishedCount > 0)
+                    messageBuilder.Add(NewLinePayload.Payload)
+                                  .Add(RawPayload.LinkTerminator)
+                                  .Add(CollectSubmarinePayload)
+                                  .AddText("[")
+                                  .AddUiForeground(35)
+                                  .AddText($"{GetLoc("AutoSubmarineCollect-Payload-TeleportAndCollect")}")
+                                  .AddUiForegroundOff()
+                                  .AddText("]")
+                                  .Add(RawPayload.LinkTerminator);
+
+                Chat(messageBuilder.Build());
+            }
         }
-        
+
         if (ModuleConfig.AutoCollectCount > 0 && finishedCount >= Math.Min(maxCount, ModuleConfig.AutoCollectCount))
             ChatManager.SendMessage("/pdr submarine");
     }
