@@ -37,7 +37,7 @@ public class AutoRemoveDuplicateModelGlamours : DailyModuleBase
 
         List<uint>     itemIndexToRemove = [];
         HashSet<uint>  itemIDHash        = [];
-        HashSet<ulong> itemModelHash     = [];
+        HashSet<string> itemModelHash     = [];
         for (var i = 0U; i < 800; i++)
         {
             var item = instance->PrismBoxItemIds[(int)i];
@@ -45,8 +45,8 @@ public class AutoRemoveDuplicateModelGlamours : DailyModuleBase
 
             var itemID = item % 100_0000;
             if (!LuminaGetter.TryGetRow(itemID, out Item row)) continue;
-            
-            if (!itemIDHash.Add(itemID) || !itemModelHash.Add(row.ModelMain)) continue;
+
+            if (!itemIDHash.Add(itemID) || !itemModelHash.Add($"{row.ModelMain}_{row.EquipSlotCategory.RowId}"))
                 itemIndexToRemove.Add(i);
         }
 
