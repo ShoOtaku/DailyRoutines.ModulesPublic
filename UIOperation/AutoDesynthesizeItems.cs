@@ -103,7 +103,7 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
                 LayoutNode?.DetachNode();
                 LayoutNode = null;
                 
-                TaskHelper.Abort();
+                TaskHelper?.Abort();
                 break;
         }
     }
