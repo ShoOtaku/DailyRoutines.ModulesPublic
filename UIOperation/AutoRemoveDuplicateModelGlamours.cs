@@ -44,7 +44,11 @@ public class AutoRemoveDuplicateModelGlamours : DailyModuleBase
             if (item == 0) continue;
 
             var itemID = item % 100_0000;
-            if (!LuminaGetter.TryGetRow(itemID, out Item row)) continue;
+            if (!LuminaGetter.TryGetRow(itemID, out Item row) ||
+                !row.IsGlamorous                              ||
+                row.ModelMain               == 0              ||
+                row.EquipSlotCategory.RowId == 0)
+                continue;
 
             if (!itemIDHash.Add(itemID) || !itemModelHash.Add($"{row.ModelMain}_{row.EquipSlotCategory.RowId}"))
                 itemIndexToRemove.Add(i);
