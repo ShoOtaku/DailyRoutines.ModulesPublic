@@ -153,7 +153,7 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
             }
         }
         
-        ChatManager.SendMessage(message.Encode());
+        ChatManager.SendCommand(info.Message);
         
         if (info.Channel != -1                                                     && 
             ModuleConfig is { AutoSwitchChannel: true, AutoSwitchOrigChannel: true })
