@@ -128,6 +128,7 @@ public class BetterFPSLimitation : DailyModuleBase
         Entry.Text = text;
     }
 
+    // TODO: FFCS
     private static unsafe void Update()
     {
         *(int*)((nint)Device.Instance()   + 168) = ModuleConfig.IsEnabled ? 1 : 0;
