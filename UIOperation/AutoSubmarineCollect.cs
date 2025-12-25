@@ -87,7 +87,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         SubmarineReturnTimeHook ??= SubmarineReturnTimeSig.GetHook<SubmarineReturnTimeDelegate>(SubmarineReturnTimeDetour);
         SubmarineReturnTimeHook.Enable();
 
-        FrameworkManager.Reg(OnUpdate, throttleMS: 5 * 60 * 1_000);
+        FrameworkManager.Reg(OnUpdate, throttleMS: 10 * 60 * 1_000);
         GameState.Login += OnLogin;
     }
 
