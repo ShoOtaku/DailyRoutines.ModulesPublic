@@ -1068,8 +1068,7 @@ public unsafe class BetterTeleport : DailyModuleBase
             {
                 IsRefreshing = true;
 
-                var localPlayer = Control.GetLocalPlayer();
-                if (localPlayer == null || BetweenAreas) return false;
+                if (DService.ObjectTable.LocalPlayer is null || BetweenAreas) return false;
 
                 var instance = Telepo.Instance();
                 if (instance == null) return false;
@@ -1080,9 +1079,11 @@ public unsafe class BetterTeleport : DailyModuleBase
 
                 if (Records.Count == 0)
                 {
-                    foreach (var aetheryte in MovementManager.Aetherytes)
                     // 金碟
+                    foreach (var aetheryte in MovementManager.Aetherytes)
                     {
+                        if (!aetheryte.IsUnlocked()) continue;
+                        
                         if (aetheryte.Group == 5)
                         {
                             Records.TryAdd(otherName, []);
@@ -1109,7 +1110,11 @@ public unsafe class BetterTeleport : DailyModuleBase
                 }
 
                 RefreshFavoritesInfo();
-            } finally { IsRefreshing = false; }
+            }
+            finally
+            {
+                IsRefreshing = false;
+            }
 
             AllRecords.ForEach(x => TaskHelper.Enqueue(x.Update, $"更新 {x.Name} 信息", weight: -3));
 
