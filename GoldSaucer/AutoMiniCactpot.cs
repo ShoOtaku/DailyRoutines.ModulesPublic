@@ -9,6 +9,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace DailyRoutines.ModulesPublic;
 
+// TODO: 使用 AgentLotteryDaily
 public unsafe class AutoMiniCactpot : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
