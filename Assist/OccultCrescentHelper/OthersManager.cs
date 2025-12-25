@@ -153,12 +153,13 @@ public partial class OccultCrescentHelper
                                 }
                             }
 
+                            // TODO: 统一按如下模式重写所有的拖拽
                             using (var target = ImRaii.DragDropTarget())
                             {
                                 if (target)
                                 {
-                                    if (DragDropJobIndex                               >= 0 ||
-                                        ImGui.AcceptDragDropPayload("JobReorder").Data != null)
+                                    ImGui.AcceptDragDropPayload("JobReorder");
+                                    if (ImGui.IsMouseReleased(ImGuiMouseButton.Left) && DragDropJobIndex >= 0)
                                     {
                                         (ModuleConfig.AddonSupportJobOrder[DragDropJobIndex], ModuleConfig.AddonSupportJobOrder[i]) =
                                             (ModuleConfig.AddonSupportJobOrder[i], ModuleConfig.AddonSupportJobOrder[DragDropJobIndex]);
