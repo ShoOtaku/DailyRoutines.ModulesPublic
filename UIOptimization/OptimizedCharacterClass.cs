@@ -1,9 +1,14 @@
 using System.Collections.Generic;
+using System.Linq;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.Addon.Events;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Game.Text.SeStringHandling;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using Lumina.Excel.Sheets;
+using Lumina.Text.ReadOnly;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -19,7 +24,7 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
     
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
     
-    private static readonly List<IAddonEventHandle> EventHandles = [];
+    private static readonly List<AtkEventWrapper> Events = [];
     
     protected override void Init()
     {
@@ -45,21 +50,47 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
 
     private static void AddCollisionEvent(AtkUnitBase* addon, AtkComponentNode* componentNode, uint classJobID)
     {
+        if (!LuminaGetter.TryGetRow(classJobID, out ClassJob classJob)) return;
+        
         var colNode = (AtkCollisionNode*)componentNode->Component->UldManager.SearchSimpleNodeByType(NodeType.Collision);
         if (colNode == null) return;
-
-        var evt = colNode->AtkEventManager.Event;
-        while (evt != null)
+        
+        var iconNodes = componentNode->Component->UldManager.SearchSimpleNodesByType(NodeType.Image);
+        if (iconNodes is { Count: 0 }) return;
+        
+        colNode->AtkEventManager.ClearEvents();
+        
+        var iconNode = (AtkImageNode*)iconNodes.Last();
+        
+        var clickEvent = new AtkEventWrapper((_, _, _) =>
         {
-            if (evt->State.EventType is AtkEventType.MouseClick or AtkEventType.InputReceived)
-                colNode->RemoveEvent(evt->State.EventType, evt->Param, evt->Listener, false);
-
-            evt = evt->NextEvent;
-        }
-
-        if (DService.AddonEvent.AddEvent((nint)addon, (nint)colNode, AddonEventType.MouseClick,
-                                         (_, _) => LocalPlayerState.SwitchGearset(classJobID)) is { } clickHandler)
-            EventHandles.Add(clickHandler);
+            LocalPlayerState.SwitchGearset(classJobID);
+            UIGlobals.PlaySoundEffect(1);
+        });
+        clickEvent.Add(addon, (AtkResNode*)colNode, AtkEventType.MouseClick);
+        
+        var cursorOverEvent = new AtkEventWrapper((_, ownerAddon, _) =>
+        {
+            DService.AddonEvent.SetCursor(AddonCursorType.Clickable);
+            UIGlobals.PlaySoundEffect(0);
+            AtkStage.Instance()->TooltipManager.ShowTooltip(ownerAddon->Id,
+                                                            (AtkResNode*)iconNode,
+                                                            new ReadOnlySeString(new SeStringBuilder()
+                                                                                 .AddIcon(classJob.ToBitmapFontIcon())
+                                                                                 .AddText($" {classJob.Name}")
+                                                                                 .Build()
+                                                                                 .Encode()));
+        });
+        cursorOverEvent.Add(addon, (AtkResNode*)colNode, AtkEventType.MouseOver);
+        
+        var cursorOutEvent = new AtkEventWrapper((_, ownerAddon, _) =>
+        {
+            DService.AddonEvent.ResetCursor();
+            AtkStage.Instance()->TooltipManager.HideTooltip(ownerAddon->Id);
+        });
+        cursorOutEvent.Add(addon, (AtkResNode*)colNode, AtkEventType.MouseOut);
+        
+        Events.Add(clickEvent, cursorOverEvent, cursorOutEvent);
     }
 
     private static void OnAddon(AddonEvent type, AddonArgs args)
@@ -79,9 +110,7 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
 
                 break;
             case AddonEvent.PreFinalize:
-                foreach (var handle in EventHandles)
-                    DService.AddonEvent.RemoveEvent(handle);
-                EventHandles.Clear();
+                ClearEvents();
                 break;
         }
     }
@@ -103,11 +132,16 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
 
                 break;
             case AddonEvent.PreFinalize:
-                foreach (var handle in EventHandles)
-                    DService.AddonEvent.RemoveEvent(handle);
-                EventHandles.Clear();
+                ClearEvents();
                 break;
         }
+    }
+
+    private static void ClearEvents()
+    {
+        foreach (var atkEvent in Events)
+            atkEvent.Dispose();
+        Events.Clear();
     }
 
     private static readonly Dictionary<uint, uint> ClassJobComponentMap = new()
