@@ -580,6 +580,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                         
                         row.AddEvent(AtkEventType.MouseOver, () => row.ShowItemTooltip(itemID));
                         row.AddEvent(AtkEventType.MouseOut, () => row.HideTooltip());
+                        row.AddFlags(NodeFlags.HasCollision);
                         
                         ItemListLayout.AddNode(row);
                         ItemRenderers.Add(row);
