@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
@@ -19,12 +18,6 @@ public unsafe class AutoDismount : DailyModuleBase
     };
     
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
-    private static readonly HashSet<uint> TargetSelfOrAreaActions =
-        PresetSheet.PlayerActions
-                   .Where(x => x.Value.CanTargetSelf || x.Value.TargetArea)
-                   .Select(x => x.Key)
-                   .ToHashSet();
     
     private static readonly HashSet<ActionType> MustDismountActionTypes = [ActionType.Item, ActionType.Ornament];
 
@@ -74,7 +67,7 @@ public unsafe class AutoDismount : DailyModuleBase
         if (!actionManager->IsActionOffCooldown(actionType, actionID)) return false;
 
         // 可以自身或地面为目标的技能
-        if (TargetSelfOrAreaActions.Contains(actionID)) return true;
+        if (actionRow is { CanTargetSelf: true } or { TargetArea: true }) return true;
 
         var actionObject = DService.ObjectTable.SearchByID(actionTargetID);
         // 技能必须要有目标
