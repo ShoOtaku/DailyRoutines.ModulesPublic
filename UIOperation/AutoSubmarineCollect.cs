@@ -577,6 +577,10 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                             IsVisible = true,
                             Size      = new(width, 38)
                         };
+                        
+                        row.AddEvent(AtkEventType.MouseOver, () => row.ShowItemTooltip(itemID));
+                        row.AddEvent(AtkEventType.MouseOut, () => row.HideTooltip());
+                        
                         ItemListLayout.AddNode(row);
                         ItemRenderers.Add(row);
                     }
@@ -689,10 +693,12 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
             IconNode = new()
             {
-                Size      = new(32),
-                IsVisible = true,
-                IconId    = LuminaWrapper.GetItemIconID(ItemID),
+                Size       = new(32),
+                IsVisible  = true,
+                IconId     = LuminaWrapper.GetItemIconID(ItemID),
+                FitTexture = true,
             };
+            
             AddNode(IconNode);
             
             AddDummy(5);
@@ -706,6 +712,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                 TextOutlineColor = ColorHelper.GetColor(37),
                 SeString         = LuminaWrapper.GetItemName(ItemID),
             };
+            
             AddNode(NameNode);
             
             var itemCount   = LocalPlayerState.GetItemCount(ItemID);
