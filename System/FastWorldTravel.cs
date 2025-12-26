@@ -716,7 +716,7 @@ public class FastWorldTravel : DailyModuleBase
             foreach (var (worldID, node) in WorldToButtons)
             {
                 var time = GetDCTravelWaitTime.InvokeFunc(worldID);
-                if (time == -1) return;
+                if (time == -1) continue;
                 
                 var builder = new SeStringBuilder();
                 builder.AddText("超域传送状态:")
