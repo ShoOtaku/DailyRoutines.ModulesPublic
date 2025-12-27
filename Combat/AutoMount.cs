@@ -1,37 +1,37 @@
+using System;
+using System.Collections.Generic;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Fate;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
-using System;
-using System.Collections.Generic;
 
-namespace DailyRoutines.Modules;
+namespace DailyRoutines.ModulesPublic;
 
 public unsafe class AutoMount : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title = GetLoc("AutoMountTitle"),
+        Title       = GetLoc("AutoMountTitle"),
         Description = GetLoc("AutoMountDescription"),
-        Category = ModuleCategories.Combat,
+        Category    = ModuleCategories.Combat,
     };
 
     private static Config ModuleConfig = null!;
 
-    private static Mount? SelectedMountRow;
-    private static string MountSearchInput = string.Empty;
-    private static string ZoneSearchInput = string.Empty;
+    private static readonly MountSelectCombo MountSelectCombo = new("Mount");
+    private static readonly ZoneSelectCombo  ZoneSelectCombo  = new("Zone");
 
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        if (ModuleConfig.SelectedMount != 0)
-            SelectedMountRow = LuminaGetter.GetRow<Mount>(ModuleConfig.SelectedMount);
+        
+        MountSelectCombo.SelectedMountID = ModuleConfig.SelectedMount;
+        ZoneSelectCombo.SelectedZoneIDs  = ModuleConfig.BlacklistZones;
 
-        TaskHelper ??= new TaskHelper { AbortOnTimeout = true, TimeLimitMS = 20000, ShowDebug = false };
+        TaskHelper ??= new TaskHelper { TimeLimitMS = 20000 };
 
         DService.Condition.ConditionChange += OnConditionChanged;
         DService.ClientState.TerritoryChanged += OnZoneChanged;
@@ -39,50 +39,64 @@ public unsafe class AutoMount : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoMount-CurrentMount")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{LuminaWrapper.GetAddonText(4964)}");
 
-        ImGui.SameLine();
-        ImGui.Text(ModuleConfig.SelectedMount == 0
-                       ? GetLoc("AutoMount-RandomMount")
-                       : LuminaGetter.GetRow<Mount>(ModuleConfig.SelectedMount)!.Value.Singular.ExtractText());
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoMount-SelecteMount")}:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(250f * GlobalFontScale);
-        if (MountSelectCombo(ref SelectedMountRow, ref MountSearchInput))
+        using (ImRaii.PushIndent())
         {
-            ModuleConfig.SelectedMount = SelectedMountRow!.Value.RowId;
-            SaveConfig(ModuleConfig);
+            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            if (MountSelectCombo.DrawRadio())
+            {
+                ModuleConfig.SelectedMount = MountSelectCombo.SelectedMountID;
+                SaveConfig(ModuleConfig);
+            }
+            
+            ImGui.SameLine();
+            if (ImGui.Button($"{FontAwesomeIcon.Eraser.ToIconString()} {GetLoc("Clear")}"))
+            {
+                ModuleConfig.SelectedMount = 0;
+                SaveConfig(ModuleConfig);
+            }
+            
+            if (ModuleConfig.SelectedMount == 0 || !LuminaGetter.TryGetRow(ModuleConfig.SelectedMount, out Mount selectedMount))
+            {
+                if (ImageHelper.TryGetGameIcon(118, out var texture))
+                    ImGuiOm.TextImage(LuminaWrapper.GetGeneralActionName(9), texture.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
+            }
+            else
+            {
+                if (ImageHelper.TryGetGameIcon(selectedMount.Icon, out var texture))
+                    ImGuiOm.TextImage(selectedMount.Singular.ToString(), texture.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
+            }
         }
-
-        ImGui.SameLine();
-        if (ImGui.SmallButton(GetLoc("AutoMount-RandomMount")))
-        {
-            ModuleConfig.SelectedMount = 0;
-            SaveConfig(ModuleConfig);
-        }
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("BlacklistZones")}:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(250f * GlobalFontScale);
-        if (ZoneSelectCombo(ref ModuleConfig.BlacklistZones, ref ZoneSearchInput))
-            SaveConfig(ModuleConfig);
         
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Delay")}:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(200f * GlobalFontScale);
-        if (ImGui.InputInt("(ms)###AutoMount-Delay", ref ModuleConfig.Delay))
-            ModuleConfig.Delay = Math.Max(0, ModuleConfig.Delay);
-        if (ImGui.IsItemDeactivatedAfterEdit())
-            ModuleConfig.Save(this);
-
         ImGui.Spacing();
+        
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("BlacklistZones")}");
+
+        using (ImRaii.PushIndent())
+        {
+            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            if (ZoneSelectCombo.DrawCheckbox())
+            {
+                ModuleConfig.BlacklistZones = ZoneSelectCombo.SelectedZoneIDs;
+                SaveConfig(ModuleConfig);
+            }
+        }
+        
+        ImGui.Spacing();
+        
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Delay")}");
+
+        using (ImRaii.PushIndent())
+        {
+            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            if (ImGui.InputInt("ms###AutoMount-Delay", ref ModuleConfig.Delay))
+                ModuleConfig.Delay = Math.Max(0, ModuleConfig.Delay);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+                ModuleConfig.Save(this);
+        }
+
+        ImGui.NewLine();
 
         if (ImGui.Checkbox(GetLoc("AutoMount-MountWhenZoneChange"), ref ModuleConfig.MountWhenZoneChange))
             SaveConfig(ModuleConfig);
@@ -158,9 +172,10 @@ public unsafe class AutoMount : DailyModuleBase
 
     private class Config : ModuleConfiguration
     {
-        public bool          MountWhenCombatEnd  = true;
-        public bool          MountWhenGatherEnd  = true;
-        public bool          MountWhenZoneChange = true;
+        public bool MountWhenCombatEnd  = true;
+        public bool MountWhenGatherEnd  = true;
+        public bool MountWhenZoneChange = true;
+        
         public uint          SelectedMount;
         public HashSet<uint> BlacklistZones = [];
         public int           Delay = 1000;
