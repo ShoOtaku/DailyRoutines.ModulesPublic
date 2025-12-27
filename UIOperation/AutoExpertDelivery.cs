@@ -318,7 +318,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 }
             };
             
-            ControlTabLayout.AddNode(startNode, stopNode, exchangeShopNode, exchangeShopAndExchangeNode);
+            ControlTabLayout.AddNode([startNode, stopNode, exchangeShopNode, exchangeShopAndExchangeNode]);
             ControlTabLayout.AttachNode(this);
 
             SettingTabLayout = new()

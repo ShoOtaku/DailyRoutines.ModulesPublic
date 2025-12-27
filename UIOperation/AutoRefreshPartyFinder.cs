@@ -185,7 +185,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
             Position  = new(500, 630),
             Alignment = HorizontalListAnchor.Right
         };
-        LayoutNode.AddNode(OnlyInactiveNode, RefreshIntervalNode, LeftTimeNode);
+        LayoutNode.AddNode([OnlyInactiveNode, RefreshIntervalNode, LeftTimeNode]);
         
         LayoutNode.AttachNode(LookingForGroup->RootNode);
     }

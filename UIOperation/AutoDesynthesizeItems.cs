@@ -73,7 +73,7 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
                         Position  = new(-33, 10),
                         Alignment = HorizontalListAnchor.Right
                     };
-                    LayoutNode.AddNode(ButtonNode, CheckboxNode);
+                    LayoutNode.AddNode([ButtonNode, CheckboxNode]);
                     LayoutNode.AttachNode(SalvageItemSelector->RootNode);
                 }
 

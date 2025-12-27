@@ -769,7 +769,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
             };
             searchTypeLayoutNode.Height += remarkCheckboxNode.Height;
             
-            searchTypeLayoutNode.AddNode(nameCheckboxNode, nicknameCheckboxNode, remarkCheckboxNode);
+            searchTypeLayoutNode.AddNode([nameCheckboxNode, nicknameCheckboxNode, remarkCheckboxNode]);
             searchTypeLayoutNode.AttachNode(this);
             
             var searchGroupIgnoreTitleNode = new TextNode
