@@ -49,7 +49,8 @@ public unsafe class AutoMateriaTransmutation : DailyModuleBase
 
         using var indent = ImRaii.PushIndent();
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
-        if (MultiSelectCombo(PresetSheet.Materias, ref ModuleConfig.BlacklistedItems, ref ItemSearchInput,
+        if (MultiSelectCombo("MateriaSelectCombo",
+                             PresetSheet.Materias, ref ModuleConfig.BlacklistedItems, ref ItemSearchInput,
                              [
                                  ("物品", ImGuiTableColumnFlags.WidthStretch, 0)
                              ],

@@ -201,7 +201,10 @@ public class AutoCheckFoodUsage : DailyModuleBase
 
                     ImGui.SameLine();
                     ImGui.SetNextItemWidth(200f * GlobalFontScale);
-                    SingleSelectCombo(PresetSheet.Food, ref SelectedItem, ref SelectItemSearch,
+                    SingleSelectCombo("FoodSelectCombo",
+                                      PresetSheet.Food,
+                                      ref SelectedItem,
+                                      ref SelectItemSearch,
                                       x => $"{x.Name.ExtractText()} ({x.RowId})",
                                       [new("物品", ImGuiTableColumnFlags.WidthStretch, 0)],
                                       [
@@ -214,7 +217,9 @@ public class AutoCheckFoodUsage : DailyModuleBase
                                                                                   ImGuiSelectableFlags.DontClosePopups))
                                                   SelectedItem = SelectedItem == x.RowId ? 0 : x.RowId;
                                           }
-                                      ], [x => x.Name.ExtractText(), x => x.RowId.ToString()], true);
+                                      ],
+                                      [x => x.Name.ExtractText(), x => x.RowId.ToString()],
+                                      true);
 
                     ImGui.SameLine();
                     ImGui.Checkbox("HQ", ref SelectItemIsHQ);
@@ -302,7 +307,8 @@ public class AutoCheckFoodUsage : DailyModuleBase
             ImGui.SetNextItemWidth(-1f);
             using (ImRaii.PushId("ZonesSelectCombo"))
             {
-                if (MultiSelectCombo(PresetSheet.Zones, ref zones, ref ZoneSearch,
+                if (MultiSelectCombo("ZoneSelectCombo",
+                                     PresetSheet.Zones, ref zones, ref ZoneSearch,
                                      [
                                          new("区域", ImGuiTableColumnFlags.WidthStretch, 0),
                                          new("副本", ImGuiTableColumnFlags.WidthStretch, 0)

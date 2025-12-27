@@ -93,7 +93,10 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
 
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1f);
-                MultiSelectCombo(OnlineStatuses, ref SelectedOnlineStatus, ref OnlineStatusSearchInput,
+                MultiSelectCombo("OnlineStatusSelectCombo",
+                                 OnlineStatuses,
+                                 ref SelectedOnlineStatus,
+                                 ref OnlineStatusSearchInput,
                                  [new(GetLoc("OnlineStatus"), ImGuiTableColumnFlags.WidthStretch, 0)],
                                  [x => () =>
                                  {
@@ -108,7 +111,8 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
                                          if (!SelectedOnlineStatus.Remove(x.RowId))
                                              SelectedOnlineStatus.Add(x.RowId);
                                      }
-                                 }], [x => x.Name.ExtractText()]);
+                                 }], 
+                                 [x => x.Name.ExtractText()]);
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
