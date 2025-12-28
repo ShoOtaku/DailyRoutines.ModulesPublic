@@ -4,12 +4,13 @@ using System.Linq;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace DailyRoutines.ModulesPublic;
 
-// TODO: 使用 AgentLotteryDaily
 public unsafe class AutoMiniCactpot : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
@@ -23,8 +24,7 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
     private const  int TotalLanes   = PerfectCactpot.TotalLanes;
     private static int SelectedLineNumber3D4;
 
-    private static readonly PerfectCactpot perfectCactpot = new();
-    private static          int[]          gameState      = new int[TotalNumbers];
+    private static readonly PerfectCactpot Solver = new();
 
     protected override void Init()
     {
@@ -32,6 +32,8 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LotteryDaily", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LotteryDaily", OnAddon);
+        if (LotteryDaily != null)
+            OnAddon(AddonEvent.PostSetup, null);
     }
 
     private void OnAddon(AddonEvent type, AddonArgs args)
@@ -39,75 +41,69 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PostSetup:
-                DService.AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, "LotteryDaily", OnAddon);
                 TaskHelper.Abort();
-                OnAddon(AddonEvent.PostRefresh, args);
-                break;
-            case AddonEvent.PostRefresh:
-                TaskHelper.DelayNext(100);
-                TaskHelper.Enqueue(() => IsAddonAndNodesReady(LotteryDaily));
-                TaskHelper.Enqueue(() => GameUpdater((nint)LotteryDaily));
+                FrameworkManager.Reg(OnUpdate);
                 break;
             case AddonEvent.PreFinalize:
-                DService.AddonLifecycle.UnregisterListener(AddonEvent.PostRefresh, "LotteryDaily", OnAddon);
+                FrameworkManager.Unreg(OnUpdate);
                 TaskHelper.Enqueue(() => ClickSelectYesnoYes());
                 break;
         }
     }
 
-    private void GameUpdater(nint addonPtr)
+    private static void OnUpdate(IFramework framework)
     {
-        var addon = (AddonLotteryDaily*)addonPtr;
-        gameState = GetGameState(addon);
+        var addon = (AddonLotteryDaily*)LotteryDaily;
+        var agent = AgentLotteryDaily.Instance();
+        if (addon == null || agent == null) return;
 
-        // 游戏结束
-        if (!gameState.Contains(0))
+        switch (agent->Status)
         {
-            TaskHelper.Abort();
-            TaskHelper.Enqueue(ClickExit);
-        }
-        else
-        {
-            var solution = perfectCactpot.Solve(gameState);
-
-            if (solution.Length == 8)
-            {
-                solution =
-                [
-                    solution[6], // 左对角线
-                    solution[3], // 第一列
-                    solution[4], // 第二列
-                    solution[5], // 第三列
-                    solution[7], // 右对角线
-                    solution[0], // 第一行
-                    solution[1], // 第二行
-                    solution[2], // 第三行
-                ];
-
-                // 线
-                for (var i = 0; i < TotalLanes; i++)
-                {
-                    if (solution[i])
-                        ClickLaneNode(addon, i);
-                }
-            }
-            else
-            {
-                // 点
+            // 选数字
+            case 1:
+                var solutionNumber = Solver.Solve(GetGameState());
                 for (var i = 0; i < TotalNumbers; i++)
                 {
-                    if (solution[i])
+                    if (solutionNumber[i])
                     {
                         ClickGameNode(addon, i);
                         break;
                     }
                 }
-            }
+                break;
+
+            // 选线
+            case 2:
+                var solutionLine = Solver.Solve(GetGameState());
+                solutionLine =
+                [
+                    solutionLine[6], // 左对角线
+                    solutionLine[3], // 第一列
+                    solutionLine[4], // 第二列
+                    solutionLine[5], // 第三列
+                    solutionLine[7], // 右对角线
+                    solutionLine[0], // 第一行
+                    solutionLine[1], // 第二行
+                    solutionLine[2], // 第三行
+                ];
+
+                for (var i = 0; i < TotalLanes; i++)
+                {
+                    if (solutionLine[i])
+                        ClickLaneNode(addon, i);
+                }
+                break;
+            
+            // 完成
+            case 4:
+                ClickLotteryDaily.Using(LotteryDaily).Exit();
+                addon->Close(true);
+                break;
         }
     }
-
-    private static int[] GetGameState(AddonLotteryDaily* addon) => 
-        Enumerable.Range(0, TotalNumbers).Select(i => addon->GameNumbers[i]).ToArray();
+    
+    private static int[] GetGameState() => 
+        Enumerable.Range(0, TotalNumbers).Select(i => (int)AgentLotteryDaily.Instance()->Numbers[i]).ToArray();
 
     private static void ClickGameNode(AddonLotteryDaily* addon, int i)
     {
@@ -129,7 +125,8 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
         ClickConfirm();
     }
 
-    private static void ClickConfirm() => ClickLotteryDaily.Using(LotteryDaily).Confirm(SelectedLineNumber3D4);
+    private static void ClickConfirm() => 
+        ClickLotteryDaily.Using(LotteryDaily).Confirm(SelectedLineNumber3D4);
 
     private static void ClickExit()
     {
@@ -137,8 +134,11 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
         LotteryDaily->Close(true);
     }
 
-    protected override void Uninit() => 
+    protected override void Uninit()
+    {
         DService.AddonLifecycle.UnregisterListener(OnAddon);
+        FrameworkManager.Unreg(OnUpdate);
+    }
 
     private sealed class ClickLotteryDaily(AtkUnitBase* Addon)
     {
@@ -190,10 +190,7 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
 
         public void Exit() => Callback(Addon, true, -1);
     }
-
-    /// <summary>
-    ///     https://super-aardvark.github.io/yuryu/
-    /// </summary>
+    
     internal sealed class PerfectCactpot
     {
         public const int TotalNumbers = 9;
