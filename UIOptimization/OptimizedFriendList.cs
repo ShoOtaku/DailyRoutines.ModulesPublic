@@ -545,7 +545,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 {
                     NicknameInput = x.ExtractText();
 
-                    NicknameInputNode.Tooltip = NicknameInput;
+                    NicknameInputNode.TextTooltip = NicknameInput;
                     if (!string.IsNullOrWhiteSpace(NicknameInput))
                         NicknameInputNode.ShowTooltip();
                     else
@@ -585,7 +585,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 {
                     RemarkInput = x.ExtractText();
 
-                    RemarkInputNode.Tooltip = RemarkInput;
+                    RemarkInputNode.TextTooltip = RemarkInput;
                     if (!string.IsNullOrWhiteSpace(RemarkInput))
                         RemarkInputNode.ShowTooltip();
                     else

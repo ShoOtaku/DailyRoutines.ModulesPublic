@@ -200,7 +200,7 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
                     OpenButton.AttachNode(NaviMap->RootNode);
                 }
 
-                OpenButton.Tooltip = LuminaGetter.GetRowOrDefault<Weather>(GetDisplayWeather()).Name;
+                OpenButton.TextTooltip = LuminaGetter.GetRowOrDefault<Weather>(GetDisplayWeather()).Name;
                 break;
         }
     }
@@ -393,7 +393,7 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
                             foreach (var (id, (_, enabledIcon)) in WeatherButtons)
                                 enabledIcon.IsVisible = IsWeatherCustom() && GetDisplayWeather() == id;
                         },
-                        Tooltip = $"{weatherRow.Name}",
+                        TextTooltip = $"{weatherRow.Name}",
                     };
                     var enabledIconNode = new SimpleNineGridNode
                     {

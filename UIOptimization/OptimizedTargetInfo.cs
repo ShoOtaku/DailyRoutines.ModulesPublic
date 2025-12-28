@@ -589,12 +589,12 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                 {
                     ClearFocusButtonNode = new()
                     {
-                        IsVisible = true,
-                        Size      = new(32),
-                        Position  = new(-13, 12),
-                        SeString  = "\ue04c",
-                        Tooltip   = GetLoc("OptimizedTargetInfo-ClearFocusTarget"),
-                        OnClick   = () => SetFocusTargetByObjectID(TargetSystem.Instance(), 0xE0000000)
+                        IsVisible   = true,
+                        Size        = new(32),
+                        Position    = new(-13, 12),
+                        SeString    = "\ue04c",
+                        TextTooltip = GetLoc("OptimizedTargetInfo-ClearFocusTarget"),
+                        OnClick     = () => SetFocusTargetByObjectID(TargetSystem.Instance(), 0xE0000000)
                     };
                     ClearFocusButtonNode.BackgroundNode.IsVisible = false;
                     ClearFocusButtonNode.AttachNode(FocusTargetInfo->RootNode);

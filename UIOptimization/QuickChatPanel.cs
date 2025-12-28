@@ -484,12 +484,12 @@ public unsafe class QuickChatPanel : DailyModuleBase
                 {
                     ImageButton = new()
                     {
-                        Size      = new(textInputNode->Height),
-                        IsVisible = true,
-                        IsEnabled = true,
-                        IconId    = (uint)ModuleConfig.ButtonIcon,
-                        OnClick   = () => { Overlay.Toggle(); },
-                        Tooltip   = Info.Title,
+                        Size        = new(textInputNode->Height),
+                        IsVisible   = true,
+                        IsEnabled   = true,
+                        IconId      = (uint)ModuleConfig.ButtonIcon,
+                        OnClick     = () => { Overlay.Toggle(); },
+                        TextTooltip = Info.Title,
                         Position = new Vector2(textInputNode->Width - textInputNode->Height, 0) +
                                    ModuleConfig.ButtonOffset
                     };

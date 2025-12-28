@@ -38,13 +38,13 @@ public unsafe class AdventurerPlateThroughInspect : DailyModuleBase
                 {
                     OpenButton = new()
                     {
-                        Size      = new(36f),
-                        IsVisible = true,
-                        IsEnabled = true,
-                        IconId    = 66469,
-                        OnClick   = () => new CharaCardOpenPacket(AgentInspect.Instance()->CurrentEntityId).Send(),
-                        Tooltip   = LuminaWrapper.GetAddonText(15083),
-                        Position  = new(298, 86)
+                        Size        = new(36f),
+                        IsVisible   = true,
+                        IsEnabled   = true,
+                        IconId      = 66469,
+                        OnClick     = () => new CharaCardOpenPacket(AgentInspect.Instance()->CurrentEntityId).Send(),
+                        TextTooltip = LuminaWrapper.GetAddonText(15083),
+                        Position    = new(298, 86)
                     };
                     OpenButton.AttachNode(CharacterInspect->RootNode);
                 }

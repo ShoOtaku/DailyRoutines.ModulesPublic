@@ -574,12 +574,10 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                     {
                         var row = new ItemDisplayNode(itemID, width)
                         {
-                            IsVisible = true,
-                            Size      = new(width, 38)
+                            IsVisible   = true,
+                            Size        = new(width, 38),
+                            ItemTooltip = itemID,
                         };
-                        
-                        row.AddEvent(AtkEventType.MouseOver, () => row.ShowItemTooltip(itemID));
-                        row.AddEvent(AtkEventType.MouseOut, () => row.HideTooltip());
                         row.AddFlags(NodeFlags.HasCollision);
                         
                         ItemListLayout.AddNode(row);

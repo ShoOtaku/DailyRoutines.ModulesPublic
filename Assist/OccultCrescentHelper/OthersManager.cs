@@ -384,12 +384,12 @@ public partial class OccultCrescentHelper
                     {
                         BuffButton = new()
                         {
-                            Position  = new(-1f, 32f),
-                            Size      = new(48, 24),
-                            IsVisible = true,
-                            SeString  = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementalLevel).Build().Encode(),
-                            Tooltip   = GetLoc("OccultCrescentHelper-Command-PBuff-Help"),
-                            OnClick   = () => ChatManager.SendMessage("/pdr pbuff")
+                            Position    = new(-1f, 32f),
+                            Size        = new(48, 24),
+                            IsVisible   = true,
+                            SeString    = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementalLevel).Build().Encode(),
+                            TextTooltip = GetLoc("OccultCrescentHelper-Command-PBuff-Help"),
+                            OnClick     = () => ChatManager.SendMessage("/pdr pbuff")
                         };
 
                         BuffButton.AddColor      = new(0, 0.1254902f, 0.5019608f);
@@ -422,12 +422,12 @@ public partial class OccultCrescentHelper
                     {
                         SettingButton = new()
                         {
-                            Position  = new(41, 94),
-                            Size      = new(40f, 32f),
-                            IsVisible = true,
-                            SeString  = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle).Build().Encode(),
-                            Tooltip   = MainModule.Info.Title,
-                            OnClick   = () => MainModule.Overlay.IsOpen ^= true
+                            Position    = new(41, 94),
+                            Size        = new(40f, 32f),
+                            IsVisible   = true,
+                            SeString    = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle).Build().Encode(),
+                            TextTooltip = MainModule.Info.Title,
+                            OnClick     = () => MainModule.Overlay.IsOpen ^= true
                         };
 
                         SettingButton.AddColor                 = new(0, 0.1254902f, 0.5019608f);
@@ -441,11 +441,11 @@ public partial class OccultCrescentHelper
                     {
                         MapButton = new()
                         {
-                            Position  = new(40, 60),
-                            Size      = new(35f, 32f),
-                            IsVisible = true,
-                            IconId    = 60561,
-                            Tooltip   = LuminaWrapper.GetAddonText(8441),
+                            Position    = new(40, 60),
+                            Size        = new(35f, 32f),
+                            IsVisible   = true,
+                            IconId      = 60561,
+                            TextTooltip = LuminaWrapper.GetAddonText(8441),
                             OnClick = () =>
                             {
                                 var agent = AgentMap.Instance();
@@ -468,11 +468,11 @@ public partial class OccultCrescentHelper
                     {
                         SupportJobChangeButton = new()
                         {
-                            Position  = new(18, 4),
-                            Size      = new(200, 32f),
-                            IsVisible = true,
-                            Tooltip   = LuminaWrapper.GetAddonText(16647),
-                            OnClick   = () => SupportJobChangeAddon.Toggle()
+                            Position    = new(18, 4),
+                            Size        = new(200, 32f),
+                            IsVisible   = true,
+                            TextTooltip = LuminaWrapper.GetAddonText(16647),
+                            OnClick     = () => SupportJobChangeAddon.Toggle()
                         };
                         SupportJobChangeButton.BackgroundNode.IsVisible = false;
 
@@ -683,9 +683,9 @@ public partial class OccultCrescentHelper
                             presetJob.ChangeTo();
                             Close();
                         },
-                        Tooltip = !string.IsNullOrEmpty(unlockLink) && presetJob.CurrentLevel == 0
-                                      ? unlockLink
-                                      : LuminaWrapper.GetMKDSupportJobDescription(presetJob.DataID),
+                        TextTooltip = !string.IsNullOrEmpty(unlockLink) && presetJob.CurrentLevel == 0
+                                          ? unlockLink
+                                          : LuminaWrapper.GetMKDSupportJobDescription(presetJob.DataID),
                     };
                     SupportJobButtons[data.RowId] = iconButton;
 
@@ -1205,11 +1205,11 @@ public partial class OccultCrescentHelper
                         Position  = new(10, 10),
                         Size      = new(Width, 28),
                         SeString  = GetLoc("OccultCrescentHelper-OthersManager-DragRealActionIcon"),
-                        Tooltip = new SeStringBuilder()
-                                  .AddIcon(BitmapFontIcon.ExclamationRectangle)
-                                  .AddText($" {GetLoc("OccultCrescentHelper-OthersManager-DragRealActionIcon-Help")}")
-                                  .Build()
-                                  .Encode(),
+                        TextTooltip = new SeStringBuilder()
+                                      .AddIcon(BitmapFontIcon.ExclamationRectangle)
+                                      .AddText($" {GetLoc("OccultCrescentHelper-OthersManager-DragRealActionIcon-Help")}")
+                                      .Build()
+                                      .Encode(),
                         IsChecked = ModuleConfig.AddonIsDragRealAction,
                         IsEnabled = true,
                         OnClick = value =>

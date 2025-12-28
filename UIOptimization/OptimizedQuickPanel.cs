@@ -109,10 +109,10 @@ public unsafe class OptimizedQuickPanel : DailyModuleBase
                 {
                     LockCheckBoxNode = new()
                     {
-                        Position  = new(8, 34),
-                        Tooltip   = LuminaWrapper.GetAddonText(ModuleConfig.IsLock ? 3061U : 3060),
-                        Size      = new(20, 24),
-                        IsChecked = ModuleConfig.IsLock
+                        Position    = new(8, 34),
+                        TextTooltip = LuminaWrapper.GetAddonText(ModuleConfig.IsLock ? 3061U : 3060),
+                        Size        = new(20, 24),
+                        IsChecked   = ModuleConfig.IsLock
                     };
 
                     LockCheckBoxNode.OnClick = x =>
@@ -120,7 +120,7 @@ public unsafe class OptimizedQuickPanel : DailyModuleBase
                         ModuleConfig.IsLock = x;
                         ModuleConfig.Save(this);
 
-                        LockCheckBoxNode.Tooltip = LuminaWrapper.GetAddonText(ModuleConfig.IsLock ? 3061U : 3060);
+                        LockCheckBoxNode.TextTooltip = LuminaWrapper.GetAddonText(ModuleConfig.IsLock ? 3061U : 3060);
                         LockCheckBoxNode.ShowTooltip();
                         UpdateAddonFlags();
                     };

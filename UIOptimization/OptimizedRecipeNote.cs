@@ -431,10 +431,10 @@ public class OptimizedRecipeNote : DailyModuleBase
                 {
                     LevelRecipeButton = new()
                     {
-                        IsVisible = true,
-                        Position  = new(0, 32),
-                        Size      = new(58, 38),
-                        Tooltip = LuminaWrapper.GetAddonText(1710),
+                        IsVisible   = true,
+                        Position    = new(0, 32),
+                        Size        = new(58, 38),
+                        TextTooltip = LuminaWrapper.GetAddonText(1710),
                         OnClick = () =>
                         {
                             AgentRecipeNote.Instance()->SelectedRecipeCategoryPage = 2;
@@ -456,10 +456,10 @@ public class OptimizedRecipeNote : DailyModuleBase
                 {
                     SpecialRecipeButton = new()
                     {
-                        IsVisible = true,
-                        Position  = new(50, 32),
-                        Size      = new(58, 38),
-                        Tooltip   = LuminaWrapper.GetAddonText(1711),
+                        IsVisible   = true,
+                        Position    = new(50, 32),
+                        Size        = new(58, 38),
+                        TextTooltip = LuminaWrapper.GetAddonText(1711),
                         OnClick = () =>
                         {
                             AgentRecipeNote.Instance()->SelectedRecipeCategoryPage = 0;
@@ -481,10 +481,10 @@ public class OptimizedRecipeNote : DailyModuleBase
                 {
                     MasterRecipeButton = new()
                     {
-                        IsVisible = true,
-                        Position  = new(102, 32),
-                        Size      = new(58, 38),
-                        Tooltip   = LuminaWrapper.GetAddonText(14212),
+                        IsVisible   = true,
+                        Position    = new(102, 32),
+                        Size        = new(58, 38),
+                        TextTooltip = LuminaWrapper.GetAddonText(14212),
                         OnClick = () =>
                         {
                             AgentRecipeNote.Instance()->SelectedRecipeCategoryPage = 1;
@@ -622,8 +622,8 @@ public class OptimizedRecipeNote : DailyModuleBase
                 button.IsVisible = false;
             else
             {
-                button.IsVisible = true;
-                button.Tooltip   = sourceText;
+                button.IsVisible   = true;
+                button.TextTooltip = sourceText;
             }
         }
 
@@ -1094,12 +1094,12 @@ public class OptimizedRecipeNote : DailyModuleBase
             {
                 var marketButtonNode = new IconButtonNode
                 {
-                    IconId    = 60570,
-                    Tooltip   = LuminaWrapper.GetAddonText(548),
-                    Size      = new(32),
-                    Position  = itemInfoRow.Position + new Vector2(itemNameNode.GetTextDrawSize(itemNameNode.SeString).X + itemIconNode.Size.X + 15f, 2),
-                    IsVisible = true,
-                    OnClick   = () => ChatManager.SendMessage($"/pdr market {ShopInfo.GetItem().Name}")
+                    IconId      = 60570,
+                    TextTooltip = LuminaWrapper.GetAddonText(548),
+                    Size        = new(32),
+                    Position    = itemInfoRow.Position + new Vector2(itemNameNode.GetTextDrawSize(itemNameNode.SeString).X + itemIconNode.Size.X + 15f, 2),
+                    IsVisible   = true,
+                    OnClick     = () => ChatManager.SendMessage($"/pdr market {ShopInfo.GetItem().Name}")
                 };
                 marketButtonNode.AttachNode(this);
             }
@@ -1156,12 +1156,12 @@ public class OptimizedRecipeNote : DailyModuleBase
                 var locationName = npcInfo.Location.TerritoryID == 282 ? LuminaWrapper.GetAddonText(8495) : npcInfo.Location.GetTerritory().ExtractPlaceName();
                 var npcLocationNode = new TextButtonNode
                 {
-                    IsVisible = true,
-                    SeString  = locationName,
-                    Size      = new(locationColumnWidth, 28f),
-                    Position  = new(nameColumnWidth, 0),
-                    IsEnabled = npcInfo.Location.TerritoryID != 282,
-                    Tooltip   = $"{GetLoc("Mark")} / {LuminaWrapper.GetAddonText(168)} [{GetLoc("ConflictKey")}]",
+                    IsVisible   = true,
+                    SeString    = locationName,
+                    Size        = new(locationColumnWidth, 28f),
+                    Position    = new(nameColumnWidth, 0),
+                    IsEnabled   = npcInfo.Location.TerritoryID != 282,
+                    TextTooltip = $"{GetLoc("Mark")} / {LuminaWrapper.GetAddonText(168)} [{GetLoc("ConflictKey")}]",
                     OnClick = () =>
                     {
                         var pos = MapToWorld(new(npcInfo.Location.MapPosition.X, npcInfo.Location.MapPosition.Y), npcInfo.Location.GetMap()).ToVector3(0);
@@ -1193,11 +1193,11 @@ public class OptimizedRecipeNote : DailyModuleBase
                 {
                     var costIconNode = new IconImageNode
                     {
-                        IsVisible = true,
-                        Size      = new(28),
-                        IconId    = LuminaWrapper.GetItemIconID(costInfo.ItemID),
-                        Position  = new(-10, -4),
-                        Tooltip = $"{LuminaWrapper.GetItemName(costInfo.ItemID)}"
+                        IsVisible   = true,
+                        Size        = new(28),
+                        IconId      = LuminaWrapper.GetItemIconID(costInfo.ItemID),
+                        Position    = new(-10, -4),
+                        TextTooltip = $"{LuminaWrapper.GetItemName(costInfo.ItemID)}"
                     };
                     costInfoComponent.AddNode(costIconNode);
 

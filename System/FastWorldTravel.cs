@@ -739,7 +739,7 @@ public class FastWorldTravel : DailyModuleBase
                 }
                     
                     
-                node.Tooltip = builder.Build().Encode();
+                node.TextTooltip = builder.Build().Encode();
                 var baseColor = time switch
                 {
                     0    => KnownColor.DarkGreen.ToVector4().ToVector3(),

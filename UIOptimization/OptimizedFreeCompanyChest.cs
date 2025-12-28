@@ -122,10 +122,10 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
 
                             IsNeedToClose = false;
                         },
-                        Tooltip = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle)
-                                                       .Append($" {GetLoc("OptimizedFreeCompanyChest-FastMoveHelp")}")
-                                                       .Build()
-                                                       .Encode(),
+                        TextTooltip = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle)
+                                                           .Append($" {GetLoc("OptimizedFreeCompanyChest-FastMoveHelp")}")
+                                                           .Build()
+                                                           .Encode(),
                     };
                     FastMoveNode.AttachNode(FreeCompanyChest->GetNodeById(9));
                 }
@@ -156,23 +156,23 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                                     break;
                             }
 
-                            DefaultPageNode.Tooltip = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle)
-                                                                           .Append($" {GetLoc("OptimizedFreeCompanyChest-DefaultPageHelp")}")
-                                                                           .AddRange([NewLinePayload.Payload, NewLinePayload.Payload])
-                                                                           .Append(
-                                                                               $"{GetLoc("Current")}: {DefaultPages.GetValueOrDefault(ModuleConfig.DefaultPage, LuminaWrapper.GetAddonText(7))}")
-                                                                           .Build()
-                                                                           .Encode();
+                            DefaultPageNode.TextTooltip = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle)
+                                                                               .Append($" {GetLoc("OptimizedFreeCompanyChest-DefaultPageHelp")}")
+                                                                               .AddRange([NewLinePayload.Payload, NewLinePayload.Payload])
+                                                                               .Append(
+                                                                                   $"{GetLoc("Current")}: {DefaultPages.GetValueOrDefault(ModuleConfig.DefaultPage, LuminaWrapper.GetAddonText(7))}")
+                                                                               .Build()
+                                                                               .Encode();
                             DefaultPageNode.HideTooltip();
                             DefaultPageNode.ShowTooltip();
                         },
-                        Tooltip = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle)
-                                                       .Append($" {GetLoc("OptimizedFreeCompanyChest-DefaultPageHelp")}")
-                                                       .AddRange([NewLinePayload.Payload, NewLinePayload.Payload])
-                                                       .Append(
-                                                           $"{GetLoc("Current")}: {DefaultPages.GetValueOrDefault(ModuleConfig.DefaultPage, LuminaWrapper.GetAddonText(7))}")
-                                                       .Build()
-                                                       .Encode(),
+                        TextTooltip = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle)
+                                                           .Append($" {GetLoc("OptimizedFreeCompanyChest-DefaultPageHelp")}")
+                                                           .AddRange([NewLinePayload.Payload, NewLinePayload.Payload])
+                                                           .Append(
+                                                               $"{GetLoc("Current")}: {DefaultPages.GetValueOrDefault(ModuleConfig.DefaultPage, LuminaWrapper.GetAddonText(7))}")
+                                                           .Build()
+                                                           .Encode(),
                     };
                     DefaultPageNode.AttachNode(FreeCompanyChest->GetNodeById(9));
                 }

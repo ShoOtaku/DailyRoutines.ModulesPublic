@@ -92,7 +92,7 @@ public class AutoAethericMimicry : DailyModuleBase
                     Notify(chara);
                     Addon.Close();
                 },
-                Tooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1082)}",
+                TextTooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1082)}",
             };
             rowOneContainer.AddNode(TankButton);
             
@@ -110,7 +110,7 @@ public class AutoAethericMimicry : DailyModuleBase
                     Notify(chara);
                     Addon.Close();
                 },
-                Tooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1083)}",
+                TextTooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1083)}",
             };
             rowOneContainer.AddNode(HealerButton);
             
@@ -128,7 +128,7 @@ public class AutoAethericMimicry : DailyModuleBase
                     Notify(chara);
                     Addon.Close();
                 },
-                Tooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1084)}",
+                TextTooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1084)}",
             };
             rowOneContainer.AddNode(DPSButton);
             

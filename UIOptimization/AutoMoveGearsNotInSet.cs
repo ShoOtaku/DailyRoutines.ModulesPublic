@@ -76,13 +76,13 @@ public class AutoMoveGearsNotInSet : DailyModuleBase
                 {
                     Button = new TextButtonNode
                     {
-                        Size      = new(48),
-                        Position  = new(12, 500),
-                        IsVisible = true,
-                        SeString  = new SeStringBuilder().AddIcon(BitmapFontIcon.SwordSheathed).Build().Encode(),
-                        Tooltip   = GetLoc("AutoMoveGearsNotInSet-Button"),
-                        OnClick   = () => ChatManager.SendMessage($"/pdr {Command}"),
-                        IsEnabled = true,
+                        Size        = new(48),
+                        Position    = new(12, 500),
+                        IsVisible   = true,
+                        SeString    = new SeStringBuilder().AddIcon(BitmapFontIcon.SwordSheathed).Build().Encode(),
+                        TextTooltip = GetLoc("AutoMoveGearsNotInSet-Button"),
+                        OnClick     = () => ChatManager.SendMessage($"/pdr {Command}"),
+                        IsEnabled   = true,
                     };
 
                     var backgroundNode = (SimpleNineGridNode)Button.BackgroundNode;

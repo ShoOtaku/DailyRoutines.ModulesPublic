@@ -128,12 +128,12 @@ public unsafe class OptimizedFreeShop : DailyModuleBase
                         var icon = classJobData.RowId + 62100;
                         var button = new IconButtonNode
                         {
-                            Size      = new(36f),
-                            IsVisible = true,
-                            IsEnabled = true,
-                            IconId    = icon,
-                            OnClick   = () => BatchClaim(items),
-                            Tooltip   = $"{GetLoc("OptimizedFreeShop-BatchClaim")}: {classJobData.Name}",
+                            Size        = new(36f),
+                            IsVisible   = true,
+                            IsEnabled   = true,
+                            IconId      = icon,
+                            OnClick     = () => BatchClaim(items),
+                            TextTooltip = $"{GetLoc("OptimizedFreeShop-BatchClaim")}: {classJobData.Name}",
                         };
                         
                         BatchClaimContainerNode.AddNode(button);

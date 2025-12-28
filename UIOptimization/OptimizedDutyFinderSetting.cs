@@ -89,16 +89,16 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
 
                         var button = new IconButtonNode
                         {
-                            IsVisible = true,
-                            Size      = new(32),
-                            Position  = new(0, -5f),
-                            Tooltip   = LuminaWrapper.GetAddonText(settingDetail.GetTooltip()),
+                            IsVisible   = true,
+                            Size        = new(32),
+                            Position    = new(0, -5f),
+                            TextTooltip = LuminaWrapper.GetAddonText(settingDetail.GetTooltip()),
                         };
 
                         button.OnClick = () =>
                         {
                             ToggleSetting(settingDetail.Setting);
-                            button.Tooltip = LuminaWrapper.GetAddonText(settingDetail.GetTooltip());
+                            button.TextTooltip = LuminaWrapper.GetAddonText(settingDetail.GetTooltip());
                             button.HideTooltip();
                             button.ShowTooltip();
                         };
@@ -145,10 +145,10 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
 
                             var languageButton = new IconButtonNode
                             {
-                                IsVisible = true,
-                                Size      = new(28),
-                                Position  = new(origNode->X - 7, origNode->Y - 5),
-                                Tooltip   = LuminaWrapper.GetAddonText((uint)(4266 + i)),
+                                IsVisible   = true,
+                                Size        = new(28),
+                                Position    = new(origNode->X - 7, origNode->Y - 5),
+                                TextTooltip = LuminaWrapper.GetAddonText((uint)(4266 + i)),
                                 OnClick = () =>
                                 {
                                     if (!IsLangConfigReady()) return;
@@ -180,7 +180,7 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
                             imageNode.Color = buttonNode.Color.WithW(value != 0 ? 1 : 0.5f);
                     }
 
-                    buttonNode.Tooltip = LuminaWrapper.GetAddonText(settingDetail.GetTooltip());
+                    buttonNode.TextTooltip = LuminaWrapper.GetAddonText(settingDetail.GetTooltip());
                 }
 
                 break;
