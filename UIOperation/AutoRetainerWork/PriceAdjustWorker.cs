@@ -16,6 +16,7 @@ using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
 using Action = System.Action;
 
@@ -32,17 +33,6 @@ public unsafe partial class AutoRetainerWork
 
         public override string RunningMessage() => TaskHelper?.CurrentTaskName ?? string.Empty;
 
-        private delegate int MoveFromRetainerMarketToInventoryDelegate(InventoryManager* manager, InventoryType sourceType, ushort sourceSlot, uint quantity);
-
-        private static readonly CompSig MoveFromRetainerMarketToPlayerInventorySig =
-            new("E8 ?? ?? ?? ?? EB 49 84 C0");
-        private static readonly CompSig MoveFromRetainerMarketToRetainerInventorySig =
-            new("E8 ?? ?? ?? ?? B0 ?? C7 83 ?? ?? ?? ?? ?? ?? ?? ?? 48 83 C4 ?? 5B C3 E8");
-
-        private static MoveFromRetainerMarketToInventoryDelegate? MoveFromRetainerMarketToPlayerInventory;
-        private static MoveFromRetainerMarketToInventoryDelegate? MoveFromRetainerMarketToRetainerInventory;
-
-        private static readonly CompSig MoveToRetainerMarketSig = new("44 89 4C 24 ?? 66 44 89 44 24 ?? 53 56 57");
         private delegate void MoveToRetainerMarketDelegate(
             InventoryManager* manager,
             InventoryType     srcInv,
@@ -81,13 +71,13 @@ public unsafe partial class AutoRetainerWork
         private static ushort        SourceUpshelfSlot;
         private static uint          UpshelfUnitPriceInput;
         private static uint          UpshelfQuantityInput;
+        private static bool          IsDisplayingTooltip;
         
         public override void Init()
         {
-            MoveFromRetainerMarketToPlayerInventory   ??= MoveFromRetainerMarketToPlayerInventorySig.GetDelegate<MoveFromRetainerMarketToInventoryDelegate>();
-            MoveFromRetainerMarketToRetainerInventory ??= MoveFromRetainerMarketToRetainerInventorySig.GetDelegate<MoveFromRetainerMarketToInventoryDelegate>();
-
-            MoveToRetainerMarketHook ??= MoveToRetainerMarketSig.GetHook<MoveToRetainerMarketDelegate>(MoveToRetainerMarketDetour);
+            MoveToRetainerMarketHook ??= DService.Hook.HookFromAddress<MoveToRetainerMarketDelegate>(
+                GetMemberFuncByName(typeof(InventoryManager.MemberFunctionPointers), "MoveToRetainerMarket"),
+                MoveToRetainerMarketDetour);
             MoveToRetainerMarketHook.Enable();
 
             ItemSearcher ??= new(LuminaGetter.Get<Item>(), [x => x.Name.ExtractText(), x => x.RowId.ToString()], x => x.Name.ExtractText());
@@ -155,7 +145,7 @@ public unsafe partial class AutoRetainerWork
             var addon = RetainerSellList;
             if (addon == null) return;
 
-            var size = new Vector2(addon->GetScaledWidth(true), addon->GetScaledHeight(true));
+            var size      = new Vector2(addon->GetScaledWidth(true), addon->GetScaledHeight(true));
             var windowPos = default(Vector2);
 
             ImGui.SetNextWindowSize(size);
@@ -170,10 +160,6 @@ public unsafe partial class AutoRetainerWork
 
             if (addon->X != (short)windowPos.X || addon->Y != (short)windowPos.Y)
                 addon->SetPosition((short)windowPos.X, (short)windowPos.Y);
-
-            var node = addon->GetComponentListById(11);
-            if (node != null && node->OwnerNode->Alpha_2 != 255)
-                node->OwnerNode->SetAlpha(0);
 
             if (InfoProxyItemSearch.Instance()->SearchItemId == 0) return;
             
@@ -784,6 +770,8 @@ public unsafe partial class AutoRetainerWork
                              })
                              .ToArray();
 
+            var isTooltip     = false;
+            var tooltipItemID = 0U;
             foreach (var item in itemSource)
             {
                 var itemPrice = GetRetainerMarketPrice(item.Slot);
@@ -800,7 +788,7 @@ public unsafe partial class AutoRetainerWork
                 ImGui.TableNextColumn();
                 ImGui.Text($"{item.Slot + 1}");
 
-                DrawItemColumn(item.Slot, item.Inventory.ItemId, itemName, itemIcon);
+                DrawItemColumn(item.Slot, item.Inventory.ItemId, itemName, itemIcon, ref isTooltip, ref tooltipItemID);
 
                 DrawUnitPriceColumn(item.Slot, item.Inventory.ItemId, itemPrice, (uint)item.Inventory.Quantity, itemIcon, itemName);
 
@@ -810,14 +798,35 @@ public unsafe partial class AutoRetainerWork
                 ImGui.TableNextColumn();
                 ImGui.Text($"{FormatNumber((uint)(item.Inventory.Quantity * itemPrice))}");
             }
+
+            if (isTooltip)
+            {
+                AtkStage.Instance()->ShowItemTooltip(ScreenText->RootNode, tooltipItemID);
+                IsDisplayingTooltip = true;
+            }
+            else
+            {
+                if (IsDisplayingTooltip)
+                {
+                    IsDisplayingTooltip = false;
+                    AtkStage.Instance()->HideTooltip(ScreenText->Id);
+                }
+            }
         }
 
-        private static void DrawItemColumn(ushort slot, uint itemID, string itemName, IDalamudTextureWrap itemIcon)
+        private static void DrawItemColumn(ushort slot, uint itemID, string itemName, IDalamudTextureWrap itemIcon, ref bool isTooltip, ref uint tooltipItemID)
         {
-            using var id = ImRaii.PushId(slot);
+            using var id    = ImRaii.PushId(slot);
+            using var group = ImRaii.Group();
 
             ImGui.TableNextColumn();
             ImGuiOm.SelectableImageWithText(itemIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()), itemName, false);
+            
+            if (ImGui.IsItemHovered())
+            {
+                isTooltip     = true;
+                tooltipItemID = itemID;
+            }
 
             if (ImGui.IsItemHovered())
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
@@ -836,7 +845,8 @@ public unsafe partial class AutoRetainerWork
 
         private static void DrawUnitPriceColumn(ushort slot, uint itemID, uint price, uint quantity, IDalamudTextureWrap itemIcon, string itemName)
         {
-            using var id = ImRaii.PushId(slot);
+            using var id    = ImRaii.PushId(slot);
+            using var group = ImRaii.Group();
 
             ImGui.TableNextColumn();
             ImGui.Selectable($"{FormatNumber(price)}");
@@ -1276,14 +1286,37 @@ public unsafe partial class AutoRetainerWork
         // 出售品列表 (悬浮窗控制)
         private static void OnRetainerSellList(AddonEvent type, AddonArgs args)
         {
+            // 因为有模特存在
             if (!DService.Condition[ConditionFlag.OccupiedSummoningBell]) return;
-            
-            IsNeedToDrawMarketListWindow = type switch
+
+            switch (type)
             {
-                AddonEvent.PostDraw => true,
-                AddonEvent.PreFinalize => false,
-                _ => IsNeedToDrawMarketListWindow
-            };
+                case AddonEvent.PostDraw:
+                    IsNeedToDrawMarketListWindow = true;
+                    
+                    if (RetainerSellList != null)
+                    {
+                        var listComponent = RetainerSellList->GetComponentListById(11);
+                        if (listComponent != null)
+                        {
+                            for (var i = 0; i < listComponent->GetItemCount(); i++)
+                            {
+                                var item = listComponent->GetItemRenderer(i);
+                                if (item == null || !item->OwnerNode->IsVisible()) continue;
+                        
+                                item->OwnerNode->ToggleVisibility(false);
+                            }
+                        }
+                    }
+                    
+                    break;
+                case AddonEvent.PreFinalize:
+                    IsNeedToDrawMarketListWindow = false;
+                    
+                    IsDisplayingTooltip = false;
+                    AtkStage.Instance()->HideTooltip(ScreenText->Id);
+                    break;
+            }
         }
 
         // 出售界面
@@ -1580,9 +1613,9 @@ public unsafe partial class AutoRetainerWork
             if (inventoryItem == null || inventoryItem->ItemId == 0) return true;
 
             if (isInventory)
-                MoveFromRetainerMarketToPlayerInventory(manager, InventoryType.RetainerMarket, slot, (uint)inventoryItem->Quantity);
+                InventoryManager.Instance()->MoveFromRetainerMarketToPlayerInventory(InventoryType.RetainerMarket, slot, (uint)inventoryItem->Quantity);
             else
-                MoveFromRetainerMarketToRetainerInventory(manager, InventoryType.RetainerMarket, slot, (uint)inventoryItem->Quantity);
+                InventoryManager.Instance()->MoveFromRetainerMarketToRetainerInventory(InventoryType.RetainerMarket, slot, (uint)inventoryItem->Quantity);
             return false;
         }
 
