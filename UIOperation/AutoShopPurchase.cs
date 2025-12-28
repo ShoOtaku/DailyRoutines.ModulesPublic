@@ -18,9 +18,9 @@ public class AutoShopPurchase : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title = GetLoc("AutoShopPurchaseTitle"),
+        Title       = GetLoc("AutoShopPurchaseTitle"),
         Description = GetLoc("AutoShopPurchaseDescription"),
-        Category = ModuleCategories.UIOperation,
+        Category    = ModuleCategories.UIOperation,
     };
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
@@ -138,9 +138,15 @@ public class AutoShopPurchase : DailyModuleBase
         public KeyValuePair<uint, int> ClickRoute  { get; set; } // ListComponent Node ID - Index
         public KeyValuePair<bool, int> NumberRoute { get; set; } // IsNeedToSetNumber - Number
 
-        public AtkUnitBase* GetAddon() => GetAddonByName(AddonName);
-        public bool IsAddonValid() => IsAddonAndNodesReady(GetAddon());
-        public AtkComponentList* GetListNode() => !IsAddonValid() ? null : GetAddon()->GetComponentListById(ClickRoute.Key);
+        public AtkUnitBase* GetAddon() => 
+            GetAddonByName(AddonName);
+        
+        public bool IsAddonValid() => 
+            IsAddonAndNodesReady(GetAddon());
+        
+        public AtkComponentList* GetListNode() => 
+            !IsAddonValid() ? null : GetAddon()->GetComponentListById(ClickRoute.Key);
+        
         public AtkComponentNumericInput* GetNumberNode()
         {
             if (!NumberRoute.Key) return null;
@@ -154,10 +160,14 @@ public class AutoShopPurchase : DailyModuleBase
 
             return numberNode;
         }
-        public bool IsNodeValid() => GetListNode() != null && (!NumberRoute.Key || (NumberRoute.Key && GetNumberNode() != null));
-        public bool IsTargetValid() => string.IsNullOrWhiteSpace(TargetName) ||
-                                       (!string.IsNullOrWhiteSpace(TargetName) &&
-                                        (TargetManager.Target?.Name.TextValue ?? string.Empty) == TargetName);
+        
+        public bool IsNodeValid() => 
+            GetListNode() != null && (!NumberRoute.Key || (NumberRoute.Key && GetNumberNode() != null));
+
+        public bool IsTargetValid() =>
+            string.IsNullOrWhiteSpace(TargetName) ||
+            (!string.IsNullOrWhiteSpace(TargetName) &&
+             (TargetManager.Target?.Name.TextValue ?? string.Empty) == TargetName);
 
         public List<Func<bool?>> GetTasks()
         {
@@ -186,6 +196,7 @@ public class AutoShopPurchase : DailyModuleBase
                 {
                     var listNode = GetListNode();
                     if (listNode == null) return false;
+                    
                     listNode->DispatchItemEvent(ClickRoute.Value, AtkEventType.ListItemClick);
                     return true;
                 });
@@ -203,6 +214,7 @@ public class AutoShopPurchase : DailyModuleBase
         {
             if(ReferenceEquals(null, other)) return false;
             if(ReferenceEquals(this, other)) return true;
+            
             return AddonName == other.AddonName && ClickRoute.Equals(other.ClickRoute) && NumberRoute.Equals(other.NumberRoute);
         }
 
@@ -214,25 +226,27 @@ public class AutoShopPurchase : DailyModuleBase
             return Equals((ShopPurchasePreset)obj);
         }
 
-        public override int GetHashCode() => HashCode.Combine(AddonName, ClickRoute, NumberRoute);
+        public override int GetHashCode() => 
+            HashCode.Combine(AddonName, ClickRoute, NumberRoute);
 
-        public override string ToString() 
-            => $"{Name}_{AddonName}_Click:{ClickRoute.Key}-{ClickRoute.Value}_Number:{NumberRoute.Key}-{NumberRoute.Value}";
+        public override string ToString() => 
+            $"{Name}_{AddonName}_Click:{ClickRoute.Key}-{ClickRoute.Value}_Number:{NumberRoute.Key}-{NumberRoute.Value}";
     }
 
     public class ShopPresetDisplayTable : IDisposable
     {
-        private static unsafe AtkUnitList FocusedList => RaptureAtkUnitManager.Instance()->FocusedUnitsList;
+        private static unsafe AtkUnitList FocusedList => 
+            RaptureAtkUnitManager.Instance()->FocusedUnitsList;
 
         private bool IsAddNewPresetWindowOpen;
 
-        private static string NameInput = string.Empty;
+        private static string NameInput       = string.Empty;
         private static string TargetNameInput = GetLoc("AutoShopPurchase-UI-UnknownTarget");
-        private static string AddonNameInput = string.Empty;
-        private static uint ListComponentNodeIDInput;
-        private static int ClickIndexInput;
-        private static bool IsSetNumberInput;
-        private static int SetNumberInput;
+        private static string AddonNameInput  = string.Empty;
+        private static uint   ListComponentNodeIDInput;
+        private static int    ClickIndexInput;
+        private static bool   IsSetNumberInput;
+        private static int    SetNumberInput;
 
         public ShopPresetDisplayTable() => 
             WindowManager.Draw += WindowRenderAddNewPreset;
