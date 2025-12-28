@@ -2,15 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Action = System.Action;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
@@ -28,10 +24,6 @@ public unsafe class AutoGardensWork : DailyModuleBase
     };
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
-    [return: MarshalAs(UnmanagedType.U1)]
-    private delegate bool SetHardTargetDelegate(TargetSystem* system, GameObject* target, bool ignoreTargetModes, bool a4, int a5);
-    private static Hook<SetHardTargetDelegate>? SetHardTargetHook;
     
     private static Config ModuleConfig = null!;
 
@@ -46,16 +38,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "HousingGardening", OnAddon);
 
-        SetHardTargetHook = DService.Hook.HookFromAddress<SetHardTargetDelegate>(
-            GetMemberFuncByName(typeof(TargetSystem.MemberFunctionPointers), "SetHardTarget"),
-            SetHardTargetDetour);
-        SetHardTargetHook.Enable();
-    }
-
-    private bool SetHardTargetDetour(TargetSystem* system, GameObject* target, bool ignoreTargetModes, bool a4, int a5)
-    {
-        Debug($"测试设置目标： {target == null}");
-        return SetHardTargetHook.Original(system, target, ignoreTargetModes, a4, a5);
+        TargetManager.RegPostSetHardTarget(OnSetHardTarget);
     }
 
     protected override void ConfigUI()
@@ -236,6 +219,8 @@ public unsafe class AutoGardensWork : DailyModuleBase
             TaskHelper.Abort();
     }
 
+    #region 事件
+
     private void OnAddon(AddonEvent type, AddonArgs args)
     {
         if (ModuleConfig.SeedSelected == 0 || ModuleConfig.SoilSelected == 0) return;
@@ -267,6 +252,29 @@ public unsafe class AutoGardensWork : DailyModuleBase
 
         TaskHelper.Enqueue(() => ClickSelectYesnoYes(), weight: 2);
     }
+    
+    private void OnSetHardTarget(bool result, IGameObject? target, bool checkMode, bool a4, int a5)
+    {
+        var outdoorZone = HousingManager.Instance()->OutdoorTerritory;
+        if (outdoorZone == null) return;
+
+        switch (target)
+        {
+            case null when (OverlayConfig?.IsOpen ?? false):
+                ToggleOverlayConfig(false);
+                break;
+            
+            case { ObjectKind: ObjectKind.EventObj, DataID: 2003757 }:
+                ToggleOverlayConfig(true);
+                break;
+            
+            default:
+                ToggleOverlayConfig(false);
+                break;
+        }
+    }
+
+    #endregion
 
     #region 流程
 
@@ -422,8 +430,11 @@ public unsafe class AutoGardensWork : DailyModuleBase
 
     #endregion
 
-    protected override void Uninit() => 
+    protected override void Uninit()
+    {
         DService.AddonLifecycle.UnregisterListener(OnAddon);
+        TargetManager.Unreg(OnSetHardTarget);
+    }
 
     private class Config : ModuleConfiguration
     {
