@@ -24,9 +24,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
     private static Config ModuleConfig = null!;
-
-    private static string SearchFilterSeed = string.Empty;
-
+    
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
@@ -248,15 +246,15 @@ public unsafe class AutoGardensWork : DailyModuleBase
         }
     }
 
-    private void StartGather() => StartAction(LuminaGetter.GetRow<HousingGardeningPlant>(6)!.Value.Text.ExtractText());
+    private void StartGather() => StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(6).Text.ExtractText());
 
-    private void StartTend() => StartAction(LuminaGetter.GetRow<HousingGardeningPlant>(4)!.Value.Text.ExtractText());
+    private void StartTend() => StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(4).Text.ExtractText());
 
     private void StartPlant() =>
-        StartAction(LuminaGetter.GetRow<HousingGardeningPlant>(2)!.Value.Text.ExtractText(), () => TaskHelper.DelayNext(250));
+        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(2).Text.ExtractText(), () => TaskHelper.DelayNext(250));
 
     private void StartFertilize() =>
-        StartAction(LuminaGetter.GetRow<HousingGardeningPlant>(3)!.Value.Text.ExtractText(), () =>
+        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(3).Text.ExtractText(), () =>
         {
             TaskHelper.Enqueue(CheckFertilizerState);
             TaskHelper.Enqueue(ClickFertilizer);
@@ -272,13 +270,16 @@ public unsafe class AutoGardensWork : DailyModuleBase
         DService.ObjectTable
                 .Where(x => x is { ObjectKind: ObjectKind.EventObj, DataID: 2003757 } &&
                             Vector2.DistanceSquared(x.Position.ToVector2(), DService.ObjectTable.LocalPlayer.Position.ToVector2()) <= 100)
-                .Select(x => x.GameObjectID).ToList();
+                .Select(x => x.GameObjectID)
+                .ToList();
 
     private static bool? CheckFertilizerState()
     {
         if (SelectString != null) return false;
 
-        return Inventory->IsVisible || InventoryLarge->IsVisible || InventoryExpansion->IsVisible ||
+        return Inventory->IsVisible          ||
+               InventoryLarge->IsVisible     ||
+               InventoryExpansion->IsVisible ||
                !DService.Condition[ConditionFlag.OccupiedInQuestEvent];
     }
 
@@ -299,7 +300,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
                             0,
                             AgentModule.Instance()->GetAgentByInternalId(AgentId.Inventory)->AddonId);
 
-        TaskHelper.Enqueue(() => ClickContextMenuByText(LuminaGetter.GetRow<HousingGardeningPlant>(3)!.Value.Text.ExtractText()), weight: 2);
+        TaskHelper.Enqueue(() => ClickContextMenuByText(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(3).Text.ExtractText()), weight: 2);
         return true;
     }
 
@@ -324,19 +325,14 @@ public unsafe class AutoGardensWork : DailyModuleBase
         if (!IsAddonAndNodesReady(SelectString))
             return false;
 
-        if (!TryScanSelectStringText(SelectString, text,                                                                    out var index))
-            TryScanSelectStringText(SelectString,  LuminaGetter.GetRow<HousingGardeningPlant>(1)!.Value.Text.ExtractText(), out index);
+        if (!TryScanSelectStringText(SelectString, text,                                                                      out var index))
+            TryScanSelectStringText(SelectString,  LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(1).Text.ExtractText(), out index);
 
         return ClickSelectString(index);
     }
 
-    protected override void Uninit()
-    {
-        if (ModuleConfig != null)
-            SaveConfig(ModuleConfig);
-
+    protected override void Uninit() => 
         DService.AddonLifecycle.UnregisterListener(OnAddon);
-    }
 
     private class Config : ModuleConfiguration
     {
