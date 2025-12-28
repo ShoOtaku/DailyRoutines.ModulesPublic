@@ -522,17 +522,9 @@ public class AutoShopPurchase : DailyModuleBase
 
             public void Draw()
             {
-                ImGuiOm.DisableZoneWithHelp(DrawComponent,
-                                            [
-                                                new(ShopPresetExecutor.IsRunning,
-                                                    GetLoc("AutoShopPurchase-Tooltip-RunningPreset", ShopPresetExecutor.CurrentPresetName))
-                                            ], Lang.Get("DisableZoneHeader"));
+                using var disabled = ImRaii.Disabled(ShopPresetExecutor.IsRunning);
+                using var group    = ImRaii.Group();
                 
-            }
-
-            private void DrawComponent()
-            {
-                using var group = ImRaii.Group();
                 if (ImGuiOm.ButtonIcon($"RunPreset_{preset}", FontAwesomeIcon.Play, GetLoc("Run")))
                     DService.Framework.RunOnTick(async () => await ShopPresetExecutor.TryExecuteAsync(preset, TimesInput).ConfigureAwait(false));
 
