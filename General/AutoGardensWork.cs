@@ -24,6 +24,10 @@ public unsafe class AutoGardensWork : DailyModuleBase
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
     private static Config ModuleConfig = null!;
+
+    private static string SearchSeed      = string.Empty;
+    private static string SearchSoil      = string.Empty;
+    private static string SearchFertilize = string.Empty;
     
     protected override void Init()
     {
@@ -73,7 +77,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
         if (SingleSelectCombo("SeedSelectCombo",
                               PresetSheet.Seeds,
                               ref ModuleConfig.SeedSelected,
-                              ref SearchFilterSeed,
+                              ref SearchSeed,
                               x => $"{x.Name.ExtractText()} ({x.RowId})",
                               [new(LuminaWrapper.GetAddonText(6412), ImGuiTableColumnFlags.WidthStretch, 0)],
                               [
@@ -102,7 +106,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
             if (SingleSelectCombo("SoilSelectCombo",
                                   PresetSheet.Soils, 
                                   ref ModuleConfig.SoilSelected, 
-                                  ref SearchFilterSeed,
+                                  ref SearchSoil,
                                   x => $"{x.Name.ExtractText()} ({x.RowId})",
                                   [new(LuminaWrapper.GetAddonText(6411), ImGuiTableColumnFlags.WidthStretch, 0)],
                                   [
@@ -162,7 +166,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
         if (SingleSelectCombo("FertilizersSelectCombo",
                               PresetSheet.Fertilizers,
                               ref ModuleConfig.FertilizerSelected,
-                              ref SearchFilterSeed,
+                              ref SearchFertilize,
                               x => $"{x.Name.ExtractText()} ({x.RowId})",
                               [new(LuminaWrapper.GetAddonText(6417), ImGuiTableColumnFlags.WidthStretch, 0)],
                               [
