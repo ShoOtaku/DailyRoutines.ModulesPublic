@@ -1,10 +1,16 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Hooking;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Action = System.Action;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
@@ -23,6 +29,10 @@ public unsafe class AutoGardensWork : DailyModuleBase
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
+    [return: MarshalAs(UnmanagedType.U1)]
+    private delegate bool SetHardTargetDelegate(TargetSystem* system, GameObject* target, bool ignoreTargetModes, bool a4, int a5);
+    private static Hook<SetHardTargetDelegate>? SetHardTargetHook;
+    
     private static Config ModuleConfig = null!;
 
     private static string SearchSeed      = string.Empty;
@@ -35,12 +45,21 @@ public unsafe class AutoGardensWork : DailyModuleBase
         TaskHelper   ??= new() { TimeLimitMS = 10_000 };
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "HousingGardening", OnAddon);
+
+        SetHardTargetHook = DService.Hook.HookFromAddress<SetHardTargetDelegate>(
+            GetMemberFuncByName(typeof(TargetSystem.MemberFunctionPointers), "SetHardTarget"),
+            SetHardTargetDetour);
+        SetHardTargetHook.Enable();
+    }
+
+    private bool SetHardTargetDetour(TargetSystem* system, GameObject* target, bool ignoreTargetModes, bool a4, int a5)
+    {
+        Debug($"测试设置目标： {target == null}");
+        return SetHardTargetHook.Original(system, target, ignoreTargetModes, a4, a5);
     }
 
     protected override void ConfigUI()
     {
-        using var disabled = ImRaii.Disabled(TaskHelper?.IsBusy ?? true);
-
         DrawAutoPlant();
 
         ImGui.NewLine();
@@ -64,9 +83,12 @@ public unsafe class AutoGardensWork : DailyModuleBase
 
         using var indent = ImRaii.PushIndent();
 
-        if (ImGui.Button($"{FontAwesomeIcon.Play.ToIconString()} {GetLoc("Start")}"))
-            StartPlant();
-        
+        using (ImRaii.Disabled(TaskHelper?.IsBusy ?? true))
+        {
+            if (ImGui.Button($"{FontAwesomeIcon.Play.ToIconString()} {GetLoc("Start")}"))
+                StartPlant();
+        }
+
         ImGui.SameLine();
         if (ImGui.Button($"{FontAwesomeIcon.Stop.ToIconString()} {GetLoc("Stop")}"))
             TaskHelper.Abort();
@@ -137,8 +159,11 @@ public unsafe class AutoGardensWork : DailyModuleBase
 
         using var indent = ImRaii.PushIndent();
 
-        if (ImGui.Button($"{FontAwesomeIcon.Play.ToIconString()} {GetLoc("Start")}"))
-            StartGather();
+        using (ImRaii.Disabled(TaskHelper?.IsBusy ?? true))
+        {
+            if (ImGui.Button($"{FontAwesomeIcon.Play.ToIconString()} {GetLoc("Start")}"))
+                StartGather();
+        }
         
         ImGui.SameLine();
         if (ImGui.Button($"{FontAwesomeIcon.Stop.ToIconString()} {GetLoc("Stop")}"))
@@ -153,8 +178,11 @@ public unsafe class AutoGardensWork : DailyModuleBase
 
         using var indent = ImRaii.PushIndent();
 
-        if (ImGui.Button($"{FontAwesomeIcon.Play.ToIconString()} {GetLoc("Start")}"))
-            StartFertilize();
+        using (ImRaii.Disabled(TaskHelper?.IsBusy ?? true))
+        {
+            if (ImGui.Button($"{FontAwesomeIcon.Play.ToIconString()} {GetLoc("Start")}"))
+                StartFertilize();
+        }
         
         ImGui.SameLine();
         if (ImGui.Button($"{FontAwesomeIcon.Stop.ToIconString()} {GetLoc("Stop")}"))
@@ -197,8 +225,11 @@ public unsafe class AutoGardensWork : DailyModuleBase
 
         using var indent = ImRaii.PushIndent();
 
-        if (ImGui.Button($"{FontAwesomeIcon.Play.ToIconString()} {GetLoc("Start")}"))
-            StartTend();
+        using (ImRaii.Disabled(TaskHelper?.IsBusy ?? true))
+        {
+            if (ImGui.Button($"{FontAwesomeIcon.Play.ToIconString()} {GetLoc("Start")}"))
+                StartTend();
+        }
         
         ImGui.SameLine();
         if (ImGui.Button($"{FontAwesomeIcon.Stop.ToIconString()} {GetLoc("Stop")}"))
@@ -237,22 +268,26 @@ public unsafe class AutoGardensWork : DailyModuleBase
         TaskHelper.Enqueue(() => ClickSelectYesnoYes(), weight: 2);
     }
 
+    #region 流程
+
     private void StartAction(string entryKeyword, Action extraAction = null)
     {
-        if (DService.ObjectTable.LocalPlayer == null) return;
+        if (!IsEnvironmentValid(out var objectIDs)) return;
 
-        foreach (var garden in ObtainGardensAround())
+        foreach (var garden in objectIDs)
         {
             TaskHelper.Enqueue(() => new EventStartPackt(garden, 721047).Send(), $"交互园圃: {garden}");
-            TaskHelper.Enqueue(() => ClickEntryByText(entryKeyword),      "点击");
+            TaskHelper.Enqueue(() => ClickGardenEntryByText(entryKeyword),       "点击");
             extraAction?.Invoke();
             TaskHelper.Enqueue(() => !DService.Condition[ConditionFlag.OccupiedInQuestEvent], "等待退出交互状态");
         }
     }
 
-    private void StartGather() => StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(6).Text.ExtractText());
+    private void StartGather() => 
+        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(6).Text.ExtractText());
 
-    private void StartTend() => StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(4).Text.ExtractText());
+    private void StartTend() => 
+        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(4).Text.ExtractText());
 
     private void StartPlant() =>
         StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(2).Text.ExtractText(), () => TaskHelper.DelayNext(250));
@@ -265,17 +300,83 @@ public unsafe class AutoGardensWork : DailyModuleBase
             TaskHelper.Enqueue(() => !DService.Condition[ConditionFlag.OccupiedInQuestEvent]);
         });
 
+    #endregion
 
-    /// <summary>
-    ///     获取距离为 10 以内的园圃
-    /// </summary>
-    /// <returns>有效园圃的 Object ID</returns>
-    private static List<ulong> ObtainGardensAround() =>
-        DService.ObjectTable
-                .Where(x => x is { ObjectKind: ObjectKind.EventObj, DataID: 2003757 } &&
-                            Vector2.DistanceSquared(x.Position.ToVector2(), DService.ObjectTable.LocalPlayer.Position.ToVector2()) <= 100)
-                .Select(x => x.GameObjectID)
-                .ToList();
+    #region 工具
+
+    private static bool IsEnvironmentValid(out List<ulong> objectIDs)
+    {
+        objectIDs = [];
+        
+        if (DService.ObjectTable.LocalPlayer == null) return false;
+
+        var manager = HousingManager.Instance();
+        if (manager == null) return false;
+        
+        // 不在房区里
+        var outdoorZone = manager->OutdoorTerritory;
+        if (outdoorZone == null) return false;
+
+        var houseID = (ulong)manager->GetCurrentHouseId();
+        if (houseID == 0)  return false;
+        
+        // 在自己有权限的房子院子里
+        // 具体怎么个有权限法不想测了
+        foreach (var type in Enum.GetValues<EstateType>())
+        {
+            if (type == EstateType.SharedEstate)
+            {
+                for (var i = 0; i < 2; i++)
+                {
+                    var typeHouseID = HousingManager.GetOwnedHouseId(type, i);
+                    if (typeHouseID == houseID)
+                        goto Out;
+                }
+            }
+            else
+            {
+                var typeHouseID = HousingManager.GetOwnedHouseId(type);
+                if (typeHouseID == houseID)
+                    goto Out;
+            }
+        }
+        
+        return false;
+
+        Out: ;
+        
+        // 找一下有没有园圃
+        return TryObtainGardensAround(out objectIDs);
+    }
+    
+    private static bool TryObtainGardensAround(out List<ulong> objectIDs)
+    {
+        objectIDs = [];
+        
+        var outdoorZone = HousingManager.Instance()->OutdoorTerritory;
+        if (outdoorZone == null) return false;
+        
+        // 找一下有没有园圃
+        List<(ulong GameObjectID, Vector3 Position)> gardenCenters = [];
+        foreach (var housingObj in outdoorZone->FurnitureStruct.ObjectManager.ObjectArray.Objects)
+        {
+            if (housingObj == null || housingObj.Value == null) continue;
+            if (housingObj.Value->ObjectKind != FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectKind.HousingEventObject) continue;
+            if (housingObj.Value->BaseId     != 131128) continue;
+            if (LocalPlayerState.DistanceTo3D(housingObj.Value->Position) > 10) continue;
+            
+            gardenCenters.Add(new(housingObj.Value->GetGameObjectId(), housingObj.Value->Position));
+        }
+        if (gardenCenters.Count == 0) return false;
+        
+        // 园圃家具周围绕一圈的那个实际可交互的坑位
+        objectIDs = DService.ObjectTable
+                            .Where(x => x is { ObjectKind: ObjectKind.EventObj, DataID: 2003757 } &&
+                                        gardenCenters.Any(g => Vector3.DistanceSquared(x.Position, g.Position) <= 25))
+                            .Select(x => x.GameObjectID)
+                            .ToList();
+        return objectIDs.Count > 0;
+    }
 
     private static bool? CheckFertilizerState()
     {
@@ -304,27 +405,11 @@ public unsafe class AutoGardensWork : DailyModuleBase
                             0,
                             AgentModule.Instance()->GetAgentByInternalId(AgentId.Inventory)->AddonId);
 
-        TaskHelper.Enqueue(() => ClickContextMenuByText(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(3).Text.ExtractText()), weight: 2);
+        TaskHelper.Enqueue(() => ClickContextMenu(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(3).Text.ExtractText()), weight: 2);
         return true;
     }
 
-    private static bool? ClickContextMenuByText(string text)
-    {
-        if (!DService.Condition[ConditionFlag.OccupiedInQuestEvent]) return true;
-
-        if (!IsAddonAndNodesReady(ContextMenuXIV)) return false;
-        if (!TryScanContextMenuText(ContextMenuXIV, text, out var index))
-        {
-            ContextMenuXIV->FireCloseCallback();
-            ContextMenuXIV->Close(true);
-            return true;
-        }
-
-        Callback(ContextMenuXIV, true, 0, index, 0U, 0, 0);
-        return false;
-    }
-
-    private static bool? ClickEntryByText(string text)
+    private static bool? ClickGardenEntryByText(string text)
     {
         if (!IsAddonAndNodesReady(SelectString))
             return false;
@@ -334,6 +419,8 @@ public unsafe class AutoGardensWork : DailyModuleBase
 
         return ClickSelectString(index);
     }
+
+    #endregion
 
     protected override void Uninit() => 
         DService.AddonLifecycle.UnregisterListener(OnAddon);
