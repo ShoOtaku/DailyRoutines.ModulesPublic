@@ -55,7 +55,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        TargetInfoPreviewUI(DService.Targets.Target);
+        TargetInfoPreviewUI(TargetManager.Target);
 
         var       tableSize = (ImGui.GetContentRegionAvail() - ScaledVector2(100f)) with { Y = 0 };
         using var table     = ImRaii.Table("###ConfigTable", 7, ImGuiTableFlags.BordersInner, tableSize);

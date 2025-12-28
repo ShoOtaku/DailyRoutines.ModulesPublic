@@ -83,7 +83,7 @@ public unsafe class AutoDismount : DailyModuleBase
                 // 无法对目标使用技能
                 if (!ActionManager.CanUseActionOnTarget(actionID, actionObject.ToStruct())) return false;
             }
-            else if (DService.Targets.Target == null) return false;
+            else if (TargetManager.Target == null) return false;
         }
 
         return true;

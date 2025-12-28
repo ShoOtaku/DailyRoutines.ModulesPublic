@@ -65,7 +65,7 @@ public class AutoUfoCatcher : DailyModuleBase
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         if (OccupiedInEvent) return false;
         
-        var machineTarget = DService.Targets.PreviousTarget;
+        var machineTarget = TargetManager.PreviousTarget;
         var machine = machineTarget.Name.TextValue.Contains(LuminaGetter.GetRow<EObjName>(2005036)!.Value.Singular.ExtractText(),
                                                             StringComparison.OrdinalIgnoreCase)
                           ? (GameObject*)machineTarget.Address

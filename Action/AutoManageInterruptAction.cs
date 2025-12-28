@@ -29,7 +29,7 @@ public class AutoManageInterruptAction : DailyModuleBase
         ref uint                        comboRouteID)
     {
         if (actionType != ActionType.Action || !InterruptActions.Contains(actionID)) return;
-        if (DService.Targets.Target is IBattleChara { IsCasting: true, IsCastInterruptible: true }) return;
+        if (TargetManager.Target is IBattleChara { IsCasting: true, IsCastInterruptible: true }) return;
 
         isPrevented = true;
     }

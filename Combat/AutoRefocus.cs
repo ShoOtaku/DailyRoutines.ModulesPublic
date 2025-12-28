@@ -44,7 +44,7 @@ public unsafe class AutoRefocus : DailyModuleBase
     {
         if (!IsNeedToRefocus || FocusTarget == 0 || FocusTarget == 0xE000_0000) return;
 
-        if (DService.Targets.FocusTarget == null)
+        if (TargetManager.FocusTarget == null)
             SetFocusTargetByObjectIDHook.Original(TargetSystem.Instance(), FocusTarget);
     }
 

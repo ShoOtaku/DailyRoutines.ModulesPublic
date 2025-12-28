@@ -64,7 +64,7 @@ public class AutoHummer : DailyModuleBase
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         if (OccupiedInEvent) return false;
         
-        var machineTarget = DService.Targets.PreviousTarget;
+        var machineTarget = TargetManager.PreviousTarget;
         var machine =
             machineTarget.Name.TextValue.Contains(LuminaGetter.GetRow<EObjName>(2005035)!.Value.Singular.ExtractText(),
                                                       StringComparison.OrdinalIgnoreCase)

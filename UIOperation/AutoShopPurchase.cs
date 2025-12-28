@@ -157,7 +157,7 @@ public class AutoShopPurchase : DailyModuleBase
         public bool IsNodeValid() => GetListNode() != null && (!NumberRoute.Key || (NumberRoute.Key && GetNumberNode() != null));
         public bool IsTargetValid() => string.IsNullOrWhiteSpace(TargetName) ||
                                        (!string.IsNullOrWhiteSpace(TargetName) &&
-                                        (DService.Targets.Target?.Name.TextValue ?? string.Empty) == TargetName);
+                                        (TargetManager.Target?.Name.TextValue ?? string.Empty) == TargetName);
 
         public List<Func<bool?>> GetTasks()
         {
@@ -371,7 +371,7 @@ public class AutoShopPurchase : DailyModuleBase
                     ScannedData.Add(x);
             });
 
-            if (!string.IsNullOrWhiteSpace(TargetNameInput) && DService.Targets.Target is { } target)
+            if (!string.IsNullOrWhiteSpace(TargetNameInput) && TargetManager.Target is { } target)
                 TargetNameInput = target.Name.TextValue;
         }
 

@@ -163,7 +163,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
                 break;
             
             case "_TargetInfoMainTarget" or "_TargetInfo":
-                if (DService.Targets.Target is not { } target) return;
+                if (TargetManager.Target is not { } target) return;
 
                 var id = target.DataID;
                 if (id == 0) return;
@@ -280,10 +280,10 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
         var map = new Dictionary<uint, uint>();
 
-        if (DService.Targets.Target is { } target && target.Address != localPlayer.Address)
+        if (TargetManager.Target is { } target && target.Address != localPlayer.Address)
             AddStatuses(target.ToBCStruct()->StatusManager);
 
-        if (DService.Targets.FocusTarget is { } focus)
+        if (TargetManager.FocusTarget is { } focus)
             AddStatuses(focus.ToBCStruct()->StatusManager);
 
         foreach (var member in AgentHUD.Instance()->PartyMembers.ToArray().Where(m => m.Index != 0))

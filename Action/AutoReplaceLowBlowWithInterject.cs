@@ -58,5 +58,5 @@ public unsafe class AutoReplaceLowBlowWithInterject : DailyModuleBase
     
     private static bool IsReplaceNeeded() =>
         ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, 7538) &&
-        DService.Targets.Target is IBattleChara { IsCastInterruptible: true };
+        TargetManager.Target is IBattleChara { IsCastInterruptible: true };
 }

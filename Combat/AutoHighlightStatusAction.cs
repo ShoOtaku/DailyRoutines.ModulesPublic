@@ -213,7 +213,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         }
 
         // status on current target
-        var currentTarget = DService.Targets.Target;
+        var currentTarget = TargetManager.Target;
         if (currentTarget is IBattleNPC { IsDead: false } battleNpc)
         {
             foreach (var status in battleNpc.ToBCStruct()->StatusManager.Status)

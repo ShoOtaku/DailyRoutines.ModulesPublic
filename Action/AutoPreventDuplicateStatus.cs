@@ -250,7 +250,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
                 case DetectType.Self:
                     return HasStatus(&Control.GetLocalPlayer()->StatusManager);
                 case DetectType.Target:
-                    if (DService.Targets.Target is not IBattleChara chara) return false;
+                    if (TargetManager.Target is not IBattleChara chara) return false;
                     return HasStatus(&chara.ToStruct()->StatusManager);
                 case DetectType.Member:
                     if (DService.PartyList.Length <= 0) return false;

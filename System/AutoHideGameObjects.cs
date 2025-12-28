@@ -98,7 +98,7 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
         }
 
         var playerCount   = 0;
-        var targetAddress = DService.Targets.Target?.Address ?? nint.Zero;
+        var targetAddress = TargetManager.Target?.Address ?? nint.Zero;
         foreach (var entry in manager->Objects.IndexSorted)
         {
             if (GameState.TerritoryIntendedUse == TerritoryIntendedUse.OccultCrescent)

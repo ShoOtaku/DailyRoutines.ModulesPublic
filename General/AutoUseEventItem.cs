@@ -71,8 +71,8 @@ public unsafe class AutoUseEventItem : DailyModuleBase
         if (IsCasting || Request != null || !IsAnyQuestNearby(out var questRowID)) return;
 
         IGameObject gameObj;
-        if (DService.Targets.Target != null) 
-            gameObj = DService.Targets.Target;
+        if (TargetManager.Target != null) 
+            gameObj = TargetManager.Target;
         else 
             IsAnyMTQNearby(out gameObj);
         

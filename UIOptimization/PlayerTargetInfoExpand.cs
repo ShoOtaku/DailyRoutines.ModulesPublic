@@ -141,13 +141,13 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
         if (addon == null || !addon->IsVisible) return;
 
         // 目标
-        var target = DService.Targets.Target;
+        var target = TargetManager.Target;
         var node0 = addon->GetTextNodeById(16);
         if (node0 != null && target is ICharacter { ObjectKind: ObjectKind.Player } chara0)
             node0->SetText(ReplacePatterns(ModuleConfig.TargetPattern, Payloads, chara0));
 
         // 目标的目标
-        var targetsTarget = DService.Targets.Target?.TargetObject;
+        var targetsTarget = TargetManager.Target?.TargetObject;
         var node1 = addon->GetTextNodeById(7);
         if (node1 != null && targetsTarget is ICharacter { ObjectKind: ObjectKind.Player } chara1)
             node1->SetText(ReplacePatterns(ModuleConfig.TargetsTargetPattern, Payloads, chara1));
@@ -159,13 +159,13 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
         if (addon == null || !addon->IsVisible) return;
 
         // 目标
-        var target = DService.Targets.Target;
+        var target = TargetManager.Target;
         var node0 = addon->GetTextNodeById(10);
         if (node0 != null && target is ICharacter { ObjectKind: ObjectKind.Player } chara0)
             node0->SetText(ReplacePatterns(ModuleConfig.TargetPattern, Payloads, chara0));
 
         // 目标的目标
-        var targetsTarget = DService.Targets.Target?.TargetObject;
+        var targetsTarget = TargetManager.Target?.TargetObject;
         var node1 = addon->GetTextNodeById(7);
         if (node1 != null && targetsTarget is ICharacter { ObjectKind: ObjectKind.Player } chara1)
             node1->SetText(ReplacePatterns(ModuleConfig.TargetsTargetPattern, Payloads, chara1));
@@ -177,7 +177,7 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
         if (addon == null || !addon->IsVisible) return;
 
         // 焦点目标
-        var target = DService.Targets.FocusTarget;
+        var target = TargetManager.FocusTarget;
         var node0 = addon->GetTextNodeById(10);
         if (node0 != null && target is ICharacter { ObjectKind: ObjectKind.Player } chara0)
             node0->SetText(ReplacePatterns(ModuleConfig.FocusTargetPattern, Payloads, chara0));

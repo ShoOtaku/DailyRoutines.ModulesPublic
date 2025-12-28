@@ -147,7 +147,7 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
         if (addon == null) return;
         
         if (HousingManager.Instance()->WorkshopTerritory == null) return;
-        if (DService.Targets.Target is not { ObjectKind: ObjectKind.EventObj, DataID: 2011588 }) return;
+        if (TargetManager.Target is not { ObjectKind: ObjectKind.EventObj, DataID: 2011588 }) return;
         if (InterruptByConflictKey(TaskHelper, this)) return;
         
         TaskHelper.RemoveAllTasks(0);
@@ -158,15 +158,15 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
         {
             if (InterruptByConflictKey(TaskHelper, this)) return true;
             if (DService.UIBuilder.CutsceneActive || !IsScreenReady()) return false;
-            if (DService.Targets.Target is not { ObjectKind: ObjectKind.EventObj, DataID: 2011588 })
+            if (TargetManager.Target is not { ObjectKind: ObjectKind.EventObj, DataID: 2011588 })
             {
                 var target =
                     DService.ObjectTable.FindNearest(DService.ObjectTable.LocalPlayer.Position,
                         x => x is { ObjectKind: ObjectKind.EventObj, DataID: 2011588 });
-                DService.Targets.Target = target;
+                TargetManager.Target = target;
             }
 
-            DService.Targets.Target.Interact();
+            TargetManager.Target.Interact();
             return IsAddonAndNodesReady(SubmarinePartsMenu) || IsAddonAndNodesReady(SelectString);
         }, "尝试再次交互合建设备", null, null, 1);
     }

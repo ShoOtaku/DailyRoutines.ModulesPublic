@@ -184,7 +184,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
             {
                 TaskHelper.Enqueue(() =>
                 {
-                    if (DService.Targets.Target is not { } target) return false;
+                    if (TargetManager.Target is not { } target) return false;
                     if (ActionManager.Instance()->GetActionStatus(ActionType.Action, ninJiTsu) != 0) return false;
                     UseActionManager.UseActionLocation(ActionType.Action, ninJiTsu, target.EntityID);
                     return true;
@@ -243,7 +243,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
                 {
                     var finalActionID = !isKassatsu || !isNeedTransformed ? actionID : kassatsu;
                     return UseActionManager.UseActionLocation(ActionType.Action, finalActionID,
-                                                              row.CanTargetHostile && DService.Targets.Target is { } target
+                                                              row.CanTargetHostile && TargetManager.Target is { } target
                                                                   ? target.EntityID
                                                                   : localPlayer->EntityId);
                 });

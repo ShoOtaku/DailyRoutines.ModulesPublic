@@ -281,7 +281,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             
             targetNameTextNode->GetTextDrawSize(castWidth, castHeight);
 
-            var isCasting = bc.IsCasting || (isTargetCasting && bc.Address == (DService.Targets.Target?.Address ?? nint.Zero));
+            var isCasting = bc.IsCasting || (isTargetCasting && bc.Address == (TargetManager.Target?.Address ?? nint.Zero));
             if (isCasting)
             {
                 origCastBarNode->SetAlpha(0);

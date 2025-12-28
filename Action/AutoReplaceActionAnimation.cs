@@ -298,7 +298,7 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
         };
         if (!shouldReplace) return;
 
-        if (isSelf && DService.Targets.Target is { } target &&
+        if (isSelf && TargetManager.Target is { } target &&
             ActionManager.CanUseActionOnTarget(config.ReplacementActionID, target.ToStruct()))
             animationTargetID = target.GameObjectID;
 

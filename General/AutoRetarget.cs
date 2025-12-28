@@ -34,11 +34,11 @@ public class AutoRetarget : DailyModuleBase
             ModuleConfig.Save(this);
 
         ImGui.InputText(GetLoc("Target"), ref ModuleConfig.DisplayName, 64);
-        if (ImGui.Button(GetLoc("AutoRetarget-SetToTarget")) && DService.Targets.Target is not null)
+        if (ImGui.Button(GetLoc("AutoRetarget-SetToTarget")) && TargetManager.Target is not null)
         {
-            ModuleConfig.DisplayName = DService.Targets.Target is IPlayerCharacter ipc
-                                           ? $"{DService.Targets.Target?.Name}@{((IPlayerCharacter)DService.Targets.Target).HomeWorld.ValueNullable?.Name}"
-                                           : $"{DService.Targets.Target?.Name}";
+            ModuleConfig.DisplayName = TargetManager.Target is IPlayerCharacter ipc
+                                           ? $"{TargetManager.Target?.Name}@{((IPlayerCharacter)TargetManager.Target).HomeWorld.ValueNullable?.Name}"
+                                           : $"{TargetManager.Target?.Name}";
             ModuleConfig.Save(this);
         }
         
@@ -93,9 +93,9 @@ public class AutoRetarget : DailyModuleBase
         {
             var igo = found.First();
             if (igo is IBattleNPC ibn && (ibn.NameID == 6737 || ibn.NameID == 6738)) 
-                DService.Targets.Target = igo;
+                TargetManager.Target = igo;
             else 
-                DService.Targets.Target ??= igo;
+                TargetManager.Target ??= igo;
 
             if (ModuleConfig.MarkerTrack)
                 EnqueuePlaceFieldMarkers(igo.Position);

@@ -415,7 +415,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                                    ModuleConfig.FontSize,
                                    ModuleConfig.CustomColor,
                                    ModuleConfig.OutlineColor,
-                                   () => (DService.Targets.SoftTarget ?? DService.Targets.Target) as IBattleChara,
+                                   () => (TargetManager.SoftTarget ?? TargetManager.Target) as IBattleChara,
                                    (width, height) => new Vector2(width - 5, height + 2));
         
         HandleAddonEventCastBar(type,
@@ -429,7 +429,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                                 ModuleConfig.CastBarFontSize,
                                 ModuleConfig.CastBarCustomColor,
                                 ModuleConfig.CastBarOutlineColor,
-                                () => (DService.Targets.SoftTarget ?? DService.Targets.Target) as IBattleChara,
+                                () => (TargetManager.SoftTarget ?? TargetManager.Target) as IBattleChara,
                                 (width, height) => new Vector2(width - 5, height));
         
         switch (type)
@@ -462,7 +462,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                 if (!Throttler.Throttle("OptimizedTargetInfo-Status", 100) ||
                     !ModuleConfig.StatusIsEnabled                          ||
                     TargetInfo == null                                     ||
-                    DService.Targets.Target is not IBattleChara target)
+                    TargetManager.Target is not IBattleChara target)
                     return;
                 
                 var playerStatusCount = 0;
@@ -537,7 +537,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                                    ModuleConfig.FontSize,
                                    ModuleConfig.CustomColor,
                                    ModuleConfig.OutlineColor,
-                                   () => (DService.Targets.SoftTarget ?? DService.Targets.Target) as IBattleChara,
+                                   () => (TargetManager.SoftTarget ?? TargetManager.Target) as IBattleChara,
                                    (width, height) => new Vector2(width - 5, height + 2));
     }
 
@@ -559,7 +559,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                                    ModuleConfig.FocusFontSize,
                                    ModuleConfig.FocusCustomColor,
                                    ModuleConfig.FocusOutlineColor,
-                                   () => DService.Targets.FocusTarget as IBattleChara,
+                                   () => TargetManager.FocusTarget as IBattleChara,
                                    (width, height) => new Vector2(width - 5, height + 2));
         
         HandleAddonEventCastBar(type,
@@ -573,7 +573,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                                 ModuleConfig.FocusCastBarFontSize,
                                 ModuleConfig.FocusCastBarCustomColor,
                                 ModuleConfig.FocusCastBarOutlineColor,
-                                () => DService.Targets.FocusTarget as IBattleChara,
+                                () => TargetManager.FocusTarget as IBattleChara,
                                 (width, height) => new Vector2(width - 5, height));
 
         switch (type)
@@ -625,7 +625,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                                 ModuleConfig.CastBarFontSize,
                                 ModuleConfig.CastBarCustomColor,
                                 ModuleConfig.CastBarOutlineColor,
-                                () => (DService.Targets.SoftTarget ?? DService.Targets.Target) as IBattleChara,
+                                () => (TargetManager.SoftTarget ?? TargetManager.Target) as IBattleChara,
                                 (width, height) => new Vector2(width - 5, height));
     }
 
@@ -663,7 +663,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                 if (!Throttler.Throttle("OptimizedTargetInfo-Status", 100) ||
                     !ModuleConfig.StatusIsEnabled                          ||
                     TargetInfoBuffDebuff == null                           ||
-                    DService.Targets.Target is not IBattleChara target)
+                    TargetManager.Target is not IBattleChara target)
                     return;
                 
                 var playerStatusCount = 0;

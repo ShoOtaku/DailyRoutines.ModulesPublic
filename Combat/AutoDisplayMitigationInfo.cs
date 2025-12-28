@@ -741,7 +741,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
             }
 
             // battle npc
-            var currentTarget = DService.Targets.Target;
+            var currentTarget = TargetManager.Target;
             if (currentTarget is IBattleNPC battleNpc)
             {
                 var statusList = battleNpc.ToBCStruct()->StatusManager.Status;
