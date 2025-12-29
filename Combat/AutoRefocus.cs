@@ -1,12 +1,11 @@
+using System.Collections.Generic;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
-using Dalamud.Hooking;
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoRefocus : DailyModuleBase
+public class AutoRefocus : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
@@ -15,45 +14,33 @@ public unsafe class AutoRefocus : DailyModuleBase
         Category    = ModuleCategories.Combat,
     };
 
-    private static readonly CompSig                                 SetFocusTargetByObjectIDSig = new("E8 ?? ?? ?? ?? BA 0C 00 00 00 48 8D 0D");
-    private delegate        void                                    SetFocusTargetByObjectIDDelegate(TargetSystem* targetSystem, ulong objectID);
-    private static          Hook<SetFocusTargetByObjectIDDelegate>? SetFocusTargetByObjectIDHook;
-
-    private static ulong FocusTarget;
-    private static bool  IsNeedToRefocus;
+    private static ulong FocusTarget = 0xE000_0000;
 
     protected override void Init()
     {
-        SetFocusTargetByObjectIDHook ??= SetFocusTargetByObjectIDSig.GetHook<SetFocusTargetByObjectIDDelegate>(SetFocusTargetByObjectIDDetour);
-        SetFocusTargetByObjectIDHook.Enable();
-
-        if (BoundByDuty) 
-            OnZoneChange(DService.ClientState.TerritoryType);
-        DService.ClientState.TerritoryChanged += OnZoneChange;
+        FocusTarget = 0xE000_0000;
         
-        FrameworkManager.Reg(OnUpdate, throttleMS: 1000);
+        TargetManager.RegPostSetFocusTarget(OnSetFocusTarget);
+        DService.ClientState.TerritoryChanged += OnZoneChange;
+        PlayersManager.ReceivePlayersAround   += OnReceivePlayerAround;
     }
 
-    private static void OnZoneChange(ushort territory)
+    private static void OnReceivePlayerAround(IReadOnlyList<IPlayerCharacter> characters)
     {
-        FocusTarget = 0;
-        IsNeedToRefocus = GameState.ContentFinderCondition > 0;
+        if (GameState.ContentFinderCondition == 0 || FocusTarget == 0xE000_0000 || TargetManager.FocusTarget != null) return;
+        TargetManager.SetFocusTargetCallDetour(FocusTarget);
     }
 
-    private static void OnUpdate(IFramework framework)
+    private static void OnSetFocusTarget(GameObjectId gameObjectID) => 
+        FocusTarget = gameObjectID;
+
+    private static void OnZoneChange(ushort zone) =>
+        FocusTarget = 0xE000_0000;
+
+    protected override void Uninit()
     {
-        if (!IsNeedToRefocus || FocusTarget == 0 || FocusTarget == 0xE000_0000) return;
-
-        if (TargetManager.FocusTarget == null)
-            SetFocusTargetByObjectIDHook.Original(TargetSystem.Instance(), FocusTarget);
-    }
-
-    private static void SetFocusTargetByObjectIDDetour(TargetSystem* targetSystem, ulong objectID)
-    {
-        FocusTarget = objectID;
-        SetFocusTargetByObjectIDHook.Original(targetSystem, objectID);
-    }
-
-    protected override void Uninit() => 
+        PlayersManager.ReceivePlayersAround -= OnReceivePlayerAround;
         DService.ClientState.TerritoryChanged -= OnZoneChange;
+        TargetManager.Unreg(OnSetFocusTarget);
+    }
 }
