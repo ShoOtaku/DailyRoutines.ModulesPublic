@@ -415,6 +415,10 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             MovementManager.TPSmart_InZone(workshopInfo.Position);
             return false;
         }
+        
+        var entryPos = entryObject.Position;
+        if (MovementManager.TryDetectGroundDownwards(entryPos - new Vector3(0, 1, 0), out var hitInfo) ?? false)
+            entryPos = hitInfo.Point;
 
         // 在坐骑上
         if (IsOnMount)
@@ -431,9 +435,9 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         }
         
         // 距离房屋入口有点远
-        if (LocalPlayerState.DistanceTo3D(entryObject.Position) > 2)
+        if (LocalPlayerState.DistanceTo3D(entryPos) > 2)
         {
-            MovementManager.TPSmart_InZone(entryObject.Position);
+            MovementManager.TPSmart_InZone(entryPos);
             return false;
         }
 
