@@ -1,55 +1,54 @@
-using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
-using DailyRoutines.Managers;
-using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Interface;
-using Dalamud.Interface.Utility.Raii;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using DailyRoutines.Abstracts;
+using DailyRoutines.Managers;
+using DailyRoutines.Widgets;
+using Dalamud.Game.ClientState.Conditions;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using Lumina.Excel.Sheets;
 
-namespace DailyRoutines.Modules;
+namespace DailyRoutines.ModulesPublic;
 
 public class AutoMovePetPosition : DailyModuleBase
 {
-    private static Config                          ModuleConfig       = null!;
-    private        DateTime                        BattleStartTime    = DateTime.MinValue;
-    private static string                          ContentSearchInput = string.Empty;
-    private        bool                            IsPicking;
-    private        (uint territoryKey, int index)? currentPickingRow;
-
-    private static readonly Dictionary<uint, ContentFinderCondition> ValidContents;
-
-    private static readonly HashSet<uint> ValidJobs = [26, 27, 28];
-
-    static AutoMovePetPosition()
-    {
-        ValidContents = PresetSheet.Contents
-                                  .Where(pair => pair.Value.ContentMemberType.RowId == 3) // 只要 8 人本
-                                  .ToDictionary(pair => pair.Key, pair => pair.Value);
-    }
-
     public override ModuleInfo Info { get; } = new()
     {
-        Author = ["Wotou"],
-        Title = GetLoc("AutoMovePetPositionTitle"),
+        Title       = GetLoc("AutoMovePetPositionTitle"),
         Description = GetLoc("AutoMovePetPositionDescription"),
-        Category = ModuleCategories.Combat
+        Category    = ModuleCategories.Combat,
+        Author      = ["Wotou"],
     };
+
+    private static Config ModuleConfig = null!;
+    
+    private static readonly HashSet<uint> ValidJobs = [26, 27, 28];
+    
+    private static readonly ContentSelectCombo ContentSelectCombo = new("Content");
+
+    private static DateTime BattleStartTime = DateTime.MinValue;
+    
+    private static bool                            IsPicking;
+    private static (uint territoryKey, int index)? CurrentPickingRow;
 
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        TaskHelper ??= new TaskHelper { TimeLimitMS = 30_000 };
-
-        DService.ClientState.TerritoryChanged += OnTerritoryChanged;
-        DService.DutyState.DutyRecommenced += OnDutyRecommenced;
-        DService.Condition.ConditionChange += OnConditionChanged;
+        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        
+        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
+        DService.Condition.ConditionChange    += OnConditionChanged;
 
         TaskHelper.Enqueue(SchedulePetMovements);
+    }
+    
+    protected override void Uninit()
+    {
+        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.DutyState.DutyRecommenced    -= OnDutyRecommenced;
+        DService.Condition.ConditionChange    -= OnConditionChanged;
     }
 
     protected override void ConfigUI()
@@ -67,20 +66,18 @@ public class AutoMovePetPosition : DailyModuleBase
         ImGui.TableSetupColumn("操作", ImGuiTableColumnFlags.WidthStretch, 15);
 
         ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
-
-        // (1) 第一列：添加
+        
         ImGui.TableNextColumn();
         if (ImGuiOm.ButtonIconSelectable("AddNewPreset", FontAwesomeIcon.Plus))
         {
-            // 添加新 TerritoryId (默认等于 1)
             if (!ModuleConfig.PositionSchedules.ContainsKey(1))
-                ModuleConfig.PositionSchedules[1] = new List<PositionSchedule>();
+                ModuleConfig.PositionSchedules[1] = [];
 
-            ModuleConfig.PositionSchedules[1].Add(new PositionSchedule(Guid.NewGuid().ToString())
+            ModuleConfig.PositionSchedules[1].Add(new(Guid.NewGuid().ToString())
             {
-                Enabled = true,
-                ZoneID = 1,
-                DelayS = 0,
+                Enabled  = true,
+                ZoneID   = 1,
+                DelayS   = 0,
                 Position = default
             });
             SaveConfig(ModuleConfig);
@@ -88,37 +85,35 @@ public class AutoMovePetPosition : DailyModuleBase
             TaskHelper.Abort();
             TaskHelper.Enqueue(SchedulePetMovements);
         }
-
-        // (2) 其余表头
-        ImGui.TableNextColumn();
-        ImGui.TextUnformatted(GetLoc("Zone"));
         
         ImGui.TableNextColumn();
-        ImGui.TextUnformatted(GetLoc("Note"));
+        ImGui.Text(GetLoc("Zone"));
         
         ImGui.TableNextColumn();
-        ImGui.TextUnformatted(FontAwesomeIcon.Clock.ToIconString());
+        ImGui.Text(GetLoc("Note"));
+        
+        ImGui.TableNextColumn();
+        ImGui.Text(FontAwesomeIcon.Clock.ToIconString());
         ImGuiOm.TooltipHover($"{GetLoc("AutoMovePetPosition-Delay")} (s)");
         
         ImGui.TableNextColumn();
-        ImGui.TextUnformatted(GetLoc("Position"));
+        ImGui.Text(GetLoc("Position"));
         
         ImGui.TableNextColumn();
-        ImGui.TextUnformatted(GetLoc("Operation"));
+        ImGui.Text(GetLoc("Operation"));
 
         foreach (var (zoneID, scheduleList) in ModuleConfig.PositionSchedules.ToArray())
         {
-            // 如果当前列表为空，就跳过
             if (scheduleList.Count == 0) continue;
 
             for (var i = 0; i < scheduleList.Count; i++)
             {
                 var schedule = scheduleList[i];
-
+                
                 using var id = ImRaii.PushId(schedule.Guid);
+                
                 ImGui.TableNextRow();
-
-                // 0) 启用 CheckBox
+                
                 var enabled = schedule.Enabled;
                 ImGui.TableNextColumn();
                 if (ImGui.Checkbox("##启用", ref enabled))
@@ -129,24 +124,23 @@ public class AutoMovePetPosition : DailyModuleBase
                     TaskHelper.Abort();
                     TaskHelper.Enqueue(SchedulePetMovements);
                 }
-
-                // 1) ZoneID (区域ID)
+                
                 var editingZoneID  = schedule.ZoneID;
                 if (!LuminaGetter.TryGetRow<TerritoryType>(editingZoneID, out var zone)) continue;
-                var editingContent = zone.ContentFinderCondition.ValueNullable;
 
+                ContentSelectCombo.SelectedContentID = zone.ContentFinderCondition.RowId;
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                if (ContentSelectCombo(ref editingContent, ref ContentSearchInput, ValidContents))
+                if (ContentSelectCombo.DrawRadio())
                 {
-                    editingZoneID = editingContent!.Value.TerritoryType.RowId;
+                    editingZoneID = ContentSelectCombo.SelectedContent.TerritoryType.RowId;
 
                     var scheduleCopy = schedule.Copy();
                     scheduleCopy.ZoneID = editingZoneID;
 
                     scheduleList.Remove(schedule);
 
-                    ModuleConfig.PositionSchedules.TryAdd(editingZoneID, new());
+                    ModuleConfig.PositionSchedules.TryAdd(editingZoneID, []);
                     ModuleConfig.PositionSchedules[editingZoneID].Add(scheduleCopy);
                     SaveConfig(ModuleConfig);
 
@@ -155,7 +149,6 @@ public class AutoMovePetPosition : DailyModuleBase
                     continue;
                 }
 
-                // 2) 备注
                 ImGui.TableNextColumn();
                 var remark = schedule.Note;
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
@@ -170,8 +163,7 @@ public class AutoMovePetPosition : DailyModuleBase
                         TaskHelper.Enqueue(SchedulePetMovements);
                     }
                 }
-
-                // 3) TimeInSeconds
+                
                 ImGui.TableNextColumn();
                 var timeInSeconds = schedule.DelayS;
                 ImGui.SetNextItemWidth(50f * GlobalFontScale);
@@ -187,8 +179,7 @@ public class AutoMovePetPosition : DailyModuleBase
                         TaskHelper.Enqueue(SchedulePetMovements);
                     }
                 }
-
-                // 4) 坐标
+                
                 var pos = schedule.Position;
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(125f * GlobalFontScale);
@@ -215,16 +206,14 @@ public class AutoMovePetPosition : DailyModuleBase
                         TaskHelper.Enqueue(SchedulePetMovements);
                     }
                 }
-
-                // 按钮：取鼠标
+                
                 ImGui.SameLine();
                 if (!IsPicking)
                 {
-                    if (ImGuiOm.ButtonIcon("鼠标位置", FontAwesomeIcon.MousePointer,
-                                           GetLoc("AutoMovePetPosition-GetMouseHelp")))
+                    if (ImGuiOm.ButtonIcon("鼠标位置", FontAwesomeIcon.MousePointer, GetLoc("AutoMovePetPosition-GetMouseHelp")))
                     {
                         IsPicking         = true;
-                        currentPickingRow = (zoneID, i);
+                        CurrentPickingRow = (zoneID, i);
                     }
                 }
                 else
@@ -232,7 +221,7 @@ public class AutoMovePetPosition : DailyModuleBase
                     if (ImGuiOm.ButtonIcon("取消鼠标位置读取", FontAwesomeIcon.Times, GetLoc("Cancel")))
                     {
                         IsPicking         = false;
-                        currentPickingRow = null;
+                        CurrentPickingRow = null;
                     }
                 }
 
@@ -243,8 +232,8 @@ public class AutoMovePetPosition : DailyModuleBase
                     {
                         if (DService.Gui.ScreenToWorld(ImGui.GetMousePos(), out var worldPos))
                         {
-                            var currentPickingZone  = currentPickingRow?.territoryKey ?? 0;
-                            var currentPickingIndex = currentPickingRow?.index        ?? -1;
+                            var currentPickingZone  = CurrentPickingRow?.territoryKey ?? 0;
+                            var currentPickingIndex = CurrentPickingRow?.index        ?? -1;
                             if (currentPickingZone == 0 || currentPickingIndex == -1) continue;
 
                             ModuleConfig.PositionSchedules
@@ -255,13 +244,11 @@ public class AutoMovePetPosition : DailyModuleBase
                             TaskHelper.Enqueue(SchedulePetMovements);
 
                             IsPicking         = false;
-                            currentPickingRow = null;
+                            CurrentPickingRow = null;
                         }
                     }
                 }
-
-
-                // 5) 操作（删除）
+                
                 ImGui.TableNextColumn();
                 if (ImGuiOm.ButtonIcon("删除", FontAwesomeIcon.TrashAlt, $"{GetLoc("Delete")} (Ctrl)"))
                 {
@@ -303,7 +290,7 @@ public class AutoMovePetPosition : DailyModuleBase
         }
     }
 
-    private void OnTerritoryChanged(ushort zone)
+    private void OnZoneChanged(ushort zone)
     {
         ResetBattleTimer();
         
@@ -331,21 +318,16 @@ public class AutoMovePetPosition : DailyModuleBase
         }
     }
 
-    private void StartBattleTimer()
-    {
+    private static void StartBattleTimer() => 
         BattleStartTime = DateTime.Now;
-    }
 
-    private void ResetBattleTimer()
-    {
+    private static void ResetBattleTimer() => 
         BattleStartTime = DateTime.MinValue;
-    }
 
     private void SchedulePetMovements()
     {
         if (!CheckIsEightPlayerDuty()) return;
-
-        // 获取当前区域
+        
         var zoneID = DService.ClientState.TerritoryType;
         if (!ModuleConfig.PositionSchedules.TryGetValue(zoneID, out var schedulesForThisDuty)) return;
 
@@ -353,13 +335,11 @@ public class AutoMovePetPosition : DailyModuleBase
         {
             if (!ValidJobs.Contains(localPlayer.ClassJob.RowId)) return;
             
-            // 只选启用的
             var enabledSchedules     = schedulesForThisDuty.Where(x => x.Enabled).ToList();
             var elapsedTimeInSeconds = (DateTime.Now - BattleStartTime).TotalSeconds;
 
             if (DService.Condition[ConditionFlag.InCombat])
             {
-                // 在所有 TimeInSeconds <= 已过战斗时间中，找最大
                 var bestSchedule = enabledSchedules
                                    .Where(x => x.DelayS <= elapsedTimeInSeconds)
                                    .OrderByDescending(x => x.DelayS)
@@ -370,7 +350,6 @@ public class AutoMovePetPosition : DailyModuleBase
             }
             else
             {
-                // 没在战斗，如果有 TimeInSeconds == 0 的，就执行第一条
                 var scheduleForZero = enabledSchedules
                     .FirstOrDefault(x => x.DelayS == 0);
 
@@ -379,7 +358,7 @@ public class AutoMovePetPosition : DailyModuleBase
             }
         }
 
-        // 循环执行
+
         TaskHelper.DelayNext(1_000);
         TaskHelper.Enqueue(SchedulePetMovements);
     }
@@ -401,7 +380,7 @@ public class AutoMovePetPosition : DailyModuleBase
         TaskHelper.Enqueue(() => ExecuteCommandManager.ExecuteCommandComplexLocation(ExecuteCommandComplexFlag.PetAction, location, 3));
     }
 
-    private bool CheckIsEightPlayerDuty()
+    private static bool CheckIsEightPlayerDuty()
     {
         var zoneID = DService.ClientState.TerritoryType;
         if (zoneID == 0) return false;
@@ -415,30 +394,20 @@ public class AutoMovePetPosition : DailyModuleBase
 
         return contentData.ContentMemberType.RowId == 3;
     }
-
-    protected override void Uninit()
-    {
-        DService.ClientState.TerritoryChanged -= OnTerritoryChanged;
-        DService.DutyState.DutyRecommenced -= OnDutyRecommenced;
-        DService.Condition.ConditionChange -= OnConditionChanged;
-    }
-
+    
     private class Config : ModuleConfiguration
     {
-        // Zone → Schedules
         public Dictionary<uint, List<PositionSchedule>> PositionSchedules = new();
     }
 
-    public class PositionSchedule : IEquatable<PositionSchedule>
+    public class PositionSchedule(string guid) : IEquatable<PositionSchedule>
     {
-        public bool    Enabled  { get; set; } = true;         // 是否启用
-        public uint    ZoneID   { get; set; }                 // 区域 ID
-        public string  Note     { get; set; } = string.Empty; // 备注
-        public int     DelayS   { get; set; }                 // 战斗开始后的时间点 (秒)
-        public Vector2 Position { get; set; }                 // 坐标
-        public string  Guid     { get; set; }
-        
-        public PositionSchedule(string guid) => Guid = guid;
+        public bool    Enabled  { get; set; } = true;
+        public uint    ZoneID   { get; set; }
+        public string  Note     { get; set; } = string.Empty;
+        public int     DelayS   { get; set; }
+        public Vector2 Position { get; set; }
+        public string  Guid     { get; set; } = guid;
 
         public PositionSchedule Copy() =>
             new(Guid)
@@ -457,7 +426,8 @@ public class AutoMovePetPosition : DailyModuleBase
             return Guid == other.Guid;
         }
 
-        public override string ToString() => Guid;
+        public override string ToString() => 
+            Guid;
 
         public override bool Equals(object? obj)
         {
@@ -465,10 +435,13 @@ public class AutoMovePetPosition : DailyModuleBase
             return Equals(other);
         }
 
-        public override int GetHashCode() => Guid.GetHashCode();
+        public override int GetHashCode() => 
+            Guid.GetHashCode();
 
-        public static bool operator ==(PositionSchedule? left, PositionSchedule? right) => Equals(left, right);
+        public static bool operator ==(PositionSchedule? left, PositionSchedule? right) => 
+            Equals(left, right);
 
-        public static bool operator !=(PositionSchedule? left, PositionSchedule? right) => !Equals(left, right);
+        public static bool operator !=(PositionSchedule? left, PositionSchedule? right) => 
+            !Equals(left, right);
     }
 }

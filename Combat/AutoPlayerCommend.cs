@@ -43,7 +43,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
         ModuleConfig = LoadConfig<Config>() ?? new();
         TaskHelper ??= new() { TimeLimitMS = 10_000 };
 
-        ContentSelectCombo.SelectedContentIDs = ModuleConfig.BlacklistContentZones;
+        ContentSelectCombo.SelectedContentIDs = ModuleConfig.BlacklistContents;
         
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.ContextMenu.OnMenuOpened     += OnMenuOpen;
@@ -59,7 +59,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
             ImGui.SetNextItemWidth(300f * GlobalFontScale);
             if (ContentSelectCombo.DrawCheckbox())
             {
-                ModuleConfig.BlacklistContentZones = ContentSelectCombo.SelectedContentIDs.ToHashSet();
+                ModuleConfig.BlacklistContents = ContentSelectCombo.SelectedContentIDs.ToHashSet();
                 SaveConfig(ModuleConfig);
             }
         }
@@ -82,7 +82,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
     private void OnDutyComplete(object? sender, ushort dutyZoneID)
     {
         if (InterruptByConflictKey(TaskHelper, this)) return;
-        if (ModuleConfig.BlacklistContentZones.Contains(dutyZoneID)) return;
+        if (ModuleConfig.BlacklistContents.Contains(GameState.ContentFinderCondition)) return;
         if (DService.PartyList.Length <= 1) return;
 
         var orig = MIPDisplayType;
@@ -295,7 +295,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
 
     private class Config : ModuleConfiguration
     {
-        public HashSet<uint> BlacklistContentZones = [];
+        public HashSet<uint> BlacklistContents = [];
 
         public bool AutoIgnoreBlacklistPlayers = true;
     }

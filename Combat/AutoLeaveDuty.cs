@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DailyRoutines.Abstracts;
+using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Conditions;
 using Lumina.Excel.Sheets;
 
@@ -18,12 +19,14 @@ public class AutoLeaveDuty : DailyModuleBase
 
     private static Config ModuleConfig = null!;
     
-    private static string ContentSearchInput = string.Empty;
+    private static readonly ContentSelectCombo ContentSelectCombo = new("Blacklist");
 
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         TaskHelper ??= new();
+
+        ContentSelectCombo.SelectedContentIDs = ModuleConfig.BlacklistContent;
         
         LogMessageManager.Register(OnPreReceiveLogmessage);
 
@@ -37,7 +40,7 @@ public class AutoLeaveDuty : DailyModuleBase
             SaveConfig(ModuleConfig);
         
         ImGui.SetNextItemWidth(100f * GlobalFontScale);
-        if (ImGui.InputInt($"{GetLoc("Delay")}###DelayInput", ref ModuleConfig.Delay))
+        if (ImGui.InputInt($"{GetLoc("Delay")} (ms)###DelayInput", ref ModuleConfig.Delay))
             ModuleConfig.Delay = Math.Max(0, ModuleConfig.Delay);
         if (ImGui.IsItemDeactivatedAfterEdit())
             SaveConfig(ModuleConfig);
@@ -45,13 +48,16 @@ public class AutoLeaveDuty : DailyModuleBase
         ImGui.NewLine();
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoLeaveDuty-BlacklistContents")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoLeaveDuty-BlacklistContents")}");
 
         using (ImRaii.PushIndent())
         {
             ImGui.SetNextItemWidth(250f * GlobalFontScale);
-            if (ContentSelectCombo(ref ModuleConfig.BlacklistContents, ref ContentSearchInput))
+            if (ContentSelectCombo.DrawCheckbox())
+            {
+                ModuleConfig.BlacklistContent = ContentSelectCombo.SelectedContentIDs;
                 SaveConfig(ModuleConfig);
+            }
             
             if (ImGui.Checkbox($"{GetLoc("AutoLeaveDuty-NoLeaveHighEndDuties")}###NoLeaveHighEndDuties", ref ModuleConfig.NoLeaveHighEndDuties))
                 SaveConfig(ModuleConfig);
@@ -61,7 +67,7 @@ public class AutoLeaveDuty : DailyModuleBase
 
     private void OnDutyComplete(object? sender, ushort zone)
     {
-        if (ModuleConfig.BlacklistContents.Contains(zone)) 
+        if (ModuleConfig.BlacklistContent.Contains(GameState.ContentFinderCondition)) 
             return;
         
         if (ModuleConfig.NoLeaveHighEndDuties &&
@@ -101,9 +107,10 @@ public class AutoLeaveDuty : DailyModuleBase
 
     private class Config : ModuleConfiguration
     {
-        public HashSet<uint> BlacklistContents    = [];
-        public bool          NoLeaveHighEndDuties = true;
-        public bool          ForceToLeave;
-        public int           Delay;
+        public HashSet<uint> BlacklistContent = [];
+        
+        public bool NoLeaveHighEndDuties = true;
+        public bool ForceToLeave;
+        public int  Delay;
     }
 }
