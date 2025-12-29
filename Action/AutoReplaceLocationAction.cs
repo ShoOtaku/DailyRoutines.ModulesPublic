@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Widgets;
 using Dalamud.Hooking;
 using Dalamud.Memory;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -33,9 +33,10 @@ public class AutoReplaceLocationAction : DailyModuleBase
     // MapID - Markers
     private static readonly Dictionary<uint, Dictionary<MapMarker, Vector2>> ZoneMapMarkers = [];
 
-    private static bool   IsNeedToReplace;
-    private static string ContentSearchInput = string.Empty;
+    private static bool IsNeedToReplace;
 
+    private static readonly ContentSelectCombo ContentSelectCombo = new("Blakclist");
+    
     static AutoReplaceLocationAction()
     {
         LuminaGetter.Get<Map>()
@@ -58,6 +59,8 @@ public class AutoReplaceLocationAction : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
+        ContentSelectCombo.SelectedContentIDs = ModuleConfig.BlacklistContents;
+
         UseActionManager.RegPreUseActionLocation(OnPreUseActionLocation);
         ExecuteCommandManager.RegPreComplextLocation(OnPreExecuteCommandComplexLocation);
 
@@ -71,59 +74,68 @@ public class AutoReplaceLocationAction : DailyModuleBase
 
         DrawConfigCustom();
 
-        ImGui.Spacing();
+        ImGui.NewLine();
+        
         DrawConfigBothers();
 
-        ImGui.Spacing();
+        ImGui.NewLine();
+        
         DrawConfigActions();
     }
 
     private void DrawConfigBothers()
     {
         ImGui.TextColored(KnownColor.LightSteelBlue.ToVector4(), $"{GetLoc("Settings")}");
+        
         using var indent = ImRaii.PushIndent();
 
         // 通知发送
         if (ImGui.Checkbox(GetLoc("SendChat"), ref ModuleConfig.SendChat))
             SaveConfig(ModuleConfig);
 
-        ImGui.SameLine();
         if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
             SaveConfig(ModuleConfig);
-
+        
         // 启用 <center> 命令参数
-        ImGui.SameLine();
         if (ImGui.Checkbox(GetLoc("AutoReplaceLocationAction-EnableCenterArg"), ref ModuleConfig.EnableCenterArgument))
             SaveConfig(ModuleConfig);
         ImGuiOm.HelpMarker(GetLoc("AutoReplaceLocationAction-EnableCenterArgHelp"), 20f * GlobalFontScale);
 
+        ImGui.Spacing();
+        ImGui.Spacing();
+        
         // 重定向距离
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoReplaceLocationAction-AdjustDistance")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoReplaceLocationAction-AdjustDistance")}");
 
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(80f * GlobalFontScale);
-        ImGui.InputFloat("###AdjustDistanceInput", ref ModuleConfig.AdjustDistance, 0, 0, "%.1f");
-        if (ImGui.IsItemDeactivatedAfterEdit())
-            SaveConfig(ModuleConfig);
-        ImGuiOm.HelpMarker(GetLoc("AutoReplaceLocationAction-AdjustDistanceHelp"));
-
-        ImGui.SameLine();
-        ImGui.TextDisabled("|");
+        using (ImRaii.PushIndent())
+        {
+            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            ImGui.InputFloat("###AdjustDistanceInput", ref ModuleConfig.AdjustDistance, 0, 0, "%.1f");
+            if (ImGui.IsItemDeactivatedAfterEdit())
+                SaveConfig(ModuleConfig);
+            ImGuiOm.HelpMarker(GetLoc("AutoReplaceLocationAction-AdjustDistanceHelp"));
+        }
+        
+        ImGui.Spacing();
 
         // 黑名单副本
-        ImGui.SameLine();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoReplaceLocationAction-BlacklistContents")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoReplaceLocationAction-BlacklistContents")}");
 
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
-        if (ContentSelectCombo(ref ModuleConfig.BlacklistContent, ref ContentSearchInput))
-            SaveConfig(ModuleConfig);
+        using (ImRaii.PushIndent())
+        {
+            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            if (ContentSelectCombo.DrawCheckbox())
+            {
+                ModuleConfig.BlacklistContents = ContentSelectCombo.SelectedContentIDs.ToHashSet();
+                SaveConfig(ModuleConfig);
+            }
+        }
     }
 
     private void DrawConfigActions()
     {
         ImGui.TextColored(KnownColor.LightSteelBlue.ToVector4(), $"{GetLoc("Action")}");
+        
         using var indent = ImRaii.PushIndent();
 
         // 技能启用情况
@@ -164,73 +176,75 @@ public class AutoReplaceLocationAction : DailyModuleBase
         if (agent == null) return;
 
         ImGui.TextColored(KnownColor.LightSteelBlue.ToVector4(), $"{GetLoc("AutoReplaceLocationAction-CenterPointData")}");
+        
         using var indent = ImRaii.PushIndent();
 
-        var isMapValid = LuminaGetter.TryGetRow<Map>(DService.ClientState.MapId, out var currentMapData) && 
-                         currentMapData.TerritoryType is { RowId: > 0, Value.ContentFinderCondition.RowId: > 0 };
-        var currentMapPlaceName = isMapValid ? currentMapData.PlaceName.Value.Name.ExtractText() : "";
-        var currentMapPlaceNameSub = isMapValid ? currentMapData.PlaceNameSub.Value.Name.ExtractText() : "";
-        using var disabled = ImRaii.Disabled(!isMapValid);
+        var       isMapValid             = GameState.TerritoryTypeData is { RowId: > 0, ContentFinderCondition.RowId: > 0 };
+        var       currentMapPlaceName    = isMapValid ? GameState.MapData.PlaceName.Value.Name.ExtractText() : string.Empty;
+        var       currentMapPlaceNameSub = isMapValid ? GameState.MapData.PlaceNameSub.Value.Name.ExtractText() : string.Empty;
+        using var disabled               = ImRaii.Disabled(!isMapValid);
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("CurrentMap")}:");
-
-        ImGui.SameLine();
-        ImGui.Text($"{currentMapPlaceName} / {currentMapPlaceNameSub}");
-
-        ImGui.SameLine();
-        ImGui.TextDisabled("|");
-
-        ImGui.SameLine();
-        if (ImGui.Button($"{GetLoc("OpenMap")}"))
+        
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("CurrentMap")}");
+        
+        using (ImRaii.PushIndent())
         {
-            agent->OpenMap(currentMapData.RowId, currentMapData.TerritoryType.RowId, null, MapType.Teleport);
-            MarkCenterPoint();
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button($"{GetLoc("AutoReplaceLocationAction-ClearMarks")}"))
-            ClearCenterPoint();
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoReplaceLocationAction-CustomCenterPoint")}:");
-
-        using (ImRaii.Disabled(agent->FlagMarkerCount == 0 || agent->FlagMapMarkers[0].MapId != DService.ClientState.MapId))
-        {
-            ImGui.SameLine();
-            if (ImGui.Button(GetLoc("AutoReplaceLocationAction-AddFlagMarker")))
+            ImGui.Text($"{currentMapPlaceName}" + (string.IsNullOrEmpty(currentMapPlaceNameSub) ? string.Empty : $" / {currentMapPlaceNameSub}"));
+            
+            if (ImGui.Button($"{GetLoc("OpenMap")}"))
             {
-                ModuleConfig.CustomMarkers.TryAdd(DService.ClientState.MapId, []);
-                ModuleConfig.CustomMarkers[DService.ClientState.MapId].Add(new(agent->FlagMapMarkers[0].XFloat, agent->FlagMapMarkers[0].YFloat));
-                SaveConfig(ModuleConfig);
-
-                agent->FlagMarkerCount = 0;
+                agent->OpenMap(GameState.Map, GameState.TerritoryType, null, MapType.Teleport);
                 MarkCenterPoint();
             }
-        }
 
-        var localPlayer = DService.ObjectTable.LocalPlayer;
-        using (ImRaii.Disabled(localPlayer == null))
-        {
             ImGui.SameLine();
-            if (ImGui.Button(GetLoc("AutoReplaceLocationAction-AddPlayerPosition")))
+            if (ImGui.Button($"{GetLoc("AutoReplaceLocationAction-ClearMarks")}"))
+                ClearCenterPoint();
+        }
+        
+        ImGui.Spacing();
+
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoReplaceLocationAction-CustomCenterPoint")}");
+
+        using (ImRaii.PushIndent())
+        {
+            using (ImRaii.Disabled(agent->FlagMarkerCount == 0 || agent->FlagMapMarkers[0].MapId != GameState.Map))
             {
-                ModuleConfig.CustomMarkers.TryAdd(DService.ClientState.MapId, []);
-                ModuleConfig.CustomMarkers[DService.ClientState.MapId].Add(localPlayer.Position.ToVector2());
+                if (ImGui.Button(GetLoc("AutoReplaceLocationAction-AddFlagMarker")))
+                {
+                    ModuleConfig.CustomMarkers.TryAdd(GameState.Map, []);
+                    ModuleConfig.CustomMarkers[GameState.Map].Add(new(agent->FlagMapMarkers[0].XFloat, agent->FlagMapMarkers[0].YFloat));
+                    SaveConfig(ModuleConfig);
+
+                    agent->FlagMarkerCount = 0;
+                    MarkCenterPoint();
+                }
+            }
+
+            var localPlayer = DService.ObjectTable.LocalPlayer;
+            using (ImRaii.Disabled(localPlayer == null))
+            {
+                ImGui.SameLine();
+                if (ImGui.Button(GetLoc("AutoReplaceLocationAction-AddPlayerPosition")))
+                {
+                    ModuleConfig.CustomMarkers.TryAdd(GameState.Map, []);
+                    ModuleConfig.CustomMarkers[GameState.Map].Add(localPlayer.Position.ToVector2());
+                    SaveConfig(ModuleConfig);
+
+                    MarkCenterPoint();
+                }
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button(GetLoc("DeleteAll")))
+            {
+                ModuleConfig.CustomMarkers.TryAdd(GameState.Map, []);
+                ModuleConfig.CustomMarkers[GameState.Map].Clear();
                 SaveConfig(ModuleConfig);
 
                 MarkCenterPoint();
             }
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button(GetLoc("DeleteAll")))
-        {
-            ModuleConfig.CustomMarkers.TryAdd(DService.ClientState.MapId, []);
-            ModuleConfig.CustomMarkers[DService.ClientState.MapId].Clear();
-            SaveConfig(ModuleConfig);
-
-            MarkCenterPoint();
         }
 
         return;
@@ -240,36 +254,36 @@ public class AutoReplaceLocationAction : DailyModuleBase
             ClearCenterPoint();
 
             // 地图数据
-            if (ZoneMapMarkers.TryGetValue(currentMapData.RowId, out var markers))
+            if (ZoneMapMarkers.TryGetValue(GameState.Map, out var markers))
             {
                 markers.ForEach(x =>
                 {
                     var mapPosition = x.Value.ToVector3(0);
-                    mapPosition.X += currentMapData.OffsetX;
-                    mapPosition.Z += currentMapData.OffsetY;
+                    mapPosition.X += GameState.MapData.OffsetX;
+                    mapPosition.Z += GameState.MapData.OffsetY;
                     agent->AddMapMarker(mapPosition, 60931);
                 });
             }
 
             // 自动居中
-            var mapAutoCenter = MapToWorld(new Vector2(6.125f), currentMapData).ToVector3(0);
-            mapAutoCenter.X += currentMapData.OffsetX;
-            mapAutoCenter.Z += currentMapData.OffsetY;
+            var mapAutoCenter = MapToWorld(new(6.125f), GameState.MapData).ToVector3(0);
+            mapAutoCenter.X += GameState.MapData.OffsetX;
+            mapAutoCenter.Z += GameState.MapData.OffsetY;
             agent->AddMapMarker(mapAutoCenter, 60932);
 
             // 自定义
-            if (ModuleConfig.CustomMarkers.TryGetValue(currentMapData.RowId, out var cMarkers))
+            if (ModuleConfig.CustomMarkers.TryGetValue(GameState.MapData.RowId, out var cMarkers))
             {
                 cMarkers.ForEach(x =>
                 {
                     var mapPosition = x.ToVector3(0);
-                    mapPosition.X += currentMapData.OffsetX;
-                    mapPosition.Z += currentMapData.OffsetY;
+                    mapPosition.X += GameState.MapData.OffsetX;
+                    mapPosition.Z += GameState.MapData.OffsetY;
                     agent->AddMapMarker(mapPosition, 60933);
                 });
             }
 
-            agent->OpenMap(currentMapData.RowId, currentMapData.TerritoryType.RowId, null, MapType.Teleport);
+            agent->OpenMap(GameState.Map, GameState.TerritoryType, null, MapType.Teleport);
         }
 
         void ClearCenterPoint()
@@ -297,8 +311,8 @@ public class AutoReplaceLocationAction : DailyModuleBase
 
         IsNeedToReplace = false;
 
-        if (ModuleConfig.BlacklistContent.Contains(DService.ClientState.TerritoryType)) return;
-        if (!ZoneMapMarkers.TryGetValue(DService.ClientState.MapId, out var markers))
+        if (ModuleConfig.BlacklistContents.Contains(GameState.ContentFinderCondition)) return;
+        if (!ZoneMapMarkers.TryGetValue(GameState.Map, out var markers))
             markers = [];
 
         var modifiedLocation = location;
@@ -324,8 +338,8 @@ public class AutoReplaceLocationAction : DailyModuleBase
 
         IsNeedToReplace = false;
 
-        if (ModuleConfig.BlacklistContent.Contains(DService.ClientState.TerritoryType)) return;
-        if (!ZoneMapMarkers.TryGetValue(DService.ClientState.MapId, out var markers))
+        if (ModuleConfig.BlacklistContents.Contains(GameState.ContentFinderCondition)) return;
+        if (!ZoneMapMarkers.TryGetValue(GameState.Map, out var markers))
             markers = [];
 
         var modifiedLocation = location;
@@ -345,7 +359,7 @@ public class AutoReplaceLocationAction : DailyModuleBase
     {
         var original = ParseActionCommandArgHook.Original(a1, arg, a3, a4);
         if (!ModuleConfig.EnableCenterArgument ||
-            ModuleConfig.BlacklistContent.Contains(DService.ClientState.TerritoryType)) return original;
+            ModuleConfig.BlacklistContents.Contains(GameState.ContentFinderCondition)) return original;
 
         var parsedArg = MemoryHelper.ReadSeStringNullTerminated(arg).TextValue;
         if (!parsedArg.Equals("<center>")) return original;
@@ -357,7 +371,7 @@ public class AutoReplaceLocationAction : DailyModuleBase
     // 自定义中心点场中
     private static bool HandleCustomLocation(ref Vector3 sourceLocation)
     {
-        if (!ModuleConfig.CustomMarkers.TryGetValue(DService.ClientState.MapId, out var markers)) return false;
+        if (!ModuleConfig.CustomMarkers.TryGetValue(GameState.Map, out var markers)) return false;
 
         var modifiedLocation = markers
                                .MinBy(x => Vector2.DistanceSquared(
@@ -388,7 +402,7 @@ public class AutoReplaceLocationAction : DailyModuleBase
         if (!LuminaGetter.TryGetRow<ContentFinderCondition>
                 (GameMain.Instance()->CurrentContentFinderConditionId, out var content) ||
             content.ContentType.RowId is not (4 or 5)                                     ||
-            !LuminaGetter.TryGetRow<Map>(DService.ClientState.MapId, out var map))
+            !LuminaGetter.TryGetRow<Map>(GameState.Map, out var map))
             return false;
         
         var modifiedLocation = TextureToWorld(new(1024f), map).ToVector3();
@@ -424,15 +438,15 @@ public class AutoReplaceLocationAction : DailyModuleBase
     {
         public Dictionary<uint, bool> EnabledActions = new()
         {
-            { 7439, true },  // 地星
-            { 25862, true }, // 礼仪之铃
-            { 3569, true },  // 庇护所
-            { 188, true },   // 野战治疗阵
+            [7439]  = true, // 地星
+            [25862] = true, // 礼仪之铃
+            [3569]  = true, // 庇护所
+            [188]   = true, // 野战治疗阵
         };
 
         public Dictionary<uint, bool> EnabledPetActions = new()
         {
-            { 3, true }, // 移动
+            [3] = true, // 移动
         };
 
         public Dictionary<uint, List<Vector2>> CustomMarkers = [];
@@ -440,8 +454,8 @@ public class AutoReplaceLocationAction : DailyModuleBase
         public bool SendChat         = true;
         public bool SendNotification = true;
 
-        public float AdjustDistance = 15;
-        public HashSet<uint> BlacklistContent = [];
-        public bool EnableCenterArgument = true;
+        public float         AdjustDistance       = 15;
+        public HashSet<uint> BlacklistContents    = [];
+        public bool          EnableCenterArgument = true;
     }
 }
