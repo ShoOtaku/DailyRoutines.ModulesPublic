@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
+using DailyRoutines.Widgets;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Text.SeStringHandling;
@@ -35,8 +36,8 @@ public unsafe class AutoLogin : DailyModuleBase
 
     private static Config ModuleConfig = null!;
 
-    private static World? SelectedWorld;
-    private static string WorldSearchInput = string.Empty;
+    private static readonly WorldSelectCombo WorldSelectCombo = new("World");
+    
     private static int    SelectedCharaIndex;
     private static int    DropIndex = -1;
 
@@ -60,166 +61,171 @@ public unsafe class AutoLogin : DailyModuleBase
 
     protected override void ConfigUI()
     {
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}");
+
+        using (ImRaii.PushIndent())
+            ImGui.Text(GetLoc("AutoLogin-AddCommandHelp", Command, Command));
+        
+        ImGui.NewLine();
+        
         ConflictKeyText();
 
-        ImGui.Spacing();
+        ImGui.NewLine();
 
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("AutoLogin-LoginInfos")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoLogin-LoginInfos")}");
 
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(200f * GlobalFontScale);
-        using (var combo = ImRaii.Combo("###LoginInfosCombo",
-                                        GetLoc("AutoLogin-SavedLoginInfosAmount", ModuleConfig.LoginInfos.Count),
-                                        ImGuiComboFlags.HeightLarge))
+        using (ImRaii.PushIndent())
         {
-            if (combo)
+            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            using (var combo = ImRaii.Combo("###LoginInfosCombo",
+                                            GetLoc("AutoLogin-SavedLoginInfosAmount", ModuleConfig.LoginInfos.Count),
+                                            ImGuiComboFlags.HeightLarge))
             {
-                using (ImRaii.Group())
+                if (combo)
                 {
-                    // 服务器选择
-                    ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"{LuminaWrapper.GetAddonText(15834)}:");
-
-                    ImGui.SameLine();
-                    ImGui.SetNextItemWidth(120f * GlobalFontScale);
-                    WorldSelectCombo(ref SelectedWorld, ref WorldSearchInput);
-
-                    // 选择当前服务器
-                    ImGui.SameLine();
-                    if (ImGui.SmallButton(GetLoc("AutoLogin-CurrentWorld")))
+                    using (ImRaii.Group())
                     {
-                        if (PresetSheet.Worlds.TryGetValue(GameState.CurrentWorld, out var world))
-                            SelectedWorld = world;
-                    }
+                        // 服务器选择
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text($"{LuminaWrapper.GetAddonText(15834)}:");
 
-                    // 角色登录索引选择
-                    ImGui.Text($"{GetLoc("AutoLogin-CharacterIndex")}:");
+                        ImGui.SameLine();
+                        ImGui.SetNextItemWidth(200f * GlobalFontScale);
+                        WorldSelectCombo.DrawRadio();
 
-                    ImGui.SameLine();
-                    ImGui.SetNextItemWidth(120f * GlobalFontScale);
-                    if (ImGui.InputInt("##AutoLogin-EnterCharaIndex", ref SelectedCharaIndex, flags: ImGuiInputTextFlags.EnterReturnsTrue))
-                        SelectedCharaIndex = Math.Clamp(SelectedCharaIndex, 0, 8);
-                    ImGuiOm.TooltipHover(GetLoc("AutoLogin-CharaIndexInputTooltip"));
-                }
-
-                ImGui.SameLine();
-                ImGui.Dummy(new(12));
-
-                ImGui.SameLine();
-                if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Plus, GetLoc("Add")))
-                {
-                    if (SelectedCharaIndex is < 0 or > 7 || SelectedWorld == null) return;
-                    var info = new LoginInfo(SelectedWorld.Value.RowId, SelectedCharaIndex);
-                    if (!ModuleConfig.LoginInfos.Contains(info))
-                    {
-                        ModuleConfig.LoginInfos.Add(info);
-                        SaveConfig(ModuleConfig);
-                    }
-                }
-
-                ImGuiOm.TooltipHover(GetLoc("AutoLogin-LoginInfoOrderHelp"));
-
-                ImGui.Separator();
-                ImGui.Separator();
-
-                for (var i = 0; i < ModuleConfig.LoginInfos.Count; i++)
-                {
-                    var info          = ModuleConfig.LoginInfos[i];
-                    var worldNullable = LuminaGetter.GetRow<World>(info.WorldID);
-                    if (worldNullable == null) continue;
-                    var world = worldNullable.Value;
-                    using (ImRaii.PushColor(ImGuiCol.Text, i % 2 == 0 ? ImGuiColors.TankBlue : ImGuiColors.DalamudWhite))
-                        ImGui.Selectable(
-                            $"{i + 1}. {GetLoc("AutoLogin-LoginInfoDisplayText", world.Name.ExtractText(), world.DataCenter.Value.Name.ExtractText(), info.CharaIndex)}");
-
-                    using (var source = ImRaii.DragDropSource())
-                    {
-                        if (source)
+                        // 选择当前服务器
+                        ImGui.SameLine();
+                        if (ImGui.SmallButton(GetLoc("AutoLogin-CurrentWorld")))
                         {
-                            if (ImGui.SetDragDropPayload("LoginInfoReorder", []))
-                                DropIndex = i;
+                            if (PresetSheet.Worlds.TryGetValue(GameState.CurrentWorld, out var world))
+                                WorldSelectCombo.SelectedWorldID = world.RowId;
+                        }
 
-                            ImGui.TextColored(ImGuiColors.DalamudYellow,
-                                              GetLoc("AutoLogin-LoginInfoDisplayText",
-                                                     world.Name.ExtractText(),
-                                                     world.DataCenter.Value.Name.ExtractText(),
-                                                     info.CharaIndex));
+                        // 角色登录索引选择
+                        ImGui.AlignTextToFramePadding();
+                        ImGui.Text($"{GetLoc("AutoLogin-CharacterIndex")}:");
+
+                        ImGui.SameLine();
+                        ImGui.SetNextItemWidth(200f * GlobalFontScale);
+                        if (ImGui.InputInt("##AutoLogin-EnterCharaIndex", ref SelectedCharaIndex, flags: ImGuiInputTextFlags.EnterReturnsTrue))
+                            SelectedCharaIndex = Math.Clamp(SelectedCharaIndex, 0, 8);
+                        ImGuiOm.TooltipHover(GetLoc("AutoLogin-CharaIndexInputTooltip"));
+                    }
+
+                    ImGui.SameLine();
+                    ImGui.Dummy(new(12));
+
+                    ImGui.SameLine();
+                    if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Plus, GetLoc("Add")))
+                    {
+                        if (SelectedCharaIndex is < 0 or > 7 || WorldSelectCombo.SelectedWorldID == 0) return;
+                        var info = new LoginInfo(WorldSelectCombo.SelectedWorldID, SelectedCharaIndex);
+                        if (!ModuleConfig.LoginInfos.Contains(info))
+                        {
+                            ModuleConfig.LoginInfos.Add(info);
+                            SaveConfig(ModuleConfig);
                         }
                     }
 
-                    using (var target = ImRaii.DragDropTarget())
+                    ImGuiOm.TooltipHover(GetLoc("AutoLogin-LoginInfoOrderHelp"));
+
+                    ImGui.Separator();
+                    ImGui.Separator();
+
+                    for (var i = 0; i < ModuleConfig.LoginInfos.Count; i++)
                     {
-                        if (target)
+                        var info          = ModuleConfig.LoginInfos[i];
+                        var worldNullable = LuminaGetter.GetRow<World>(info.WorldID);
+                        if (worldNullable == null) continue;
+                        var world = worldNullable.Value;
+                        using (ImRaii.PushColor(ImGuiCol.Text, i % 2 == 0 ? ImGuiColors.TankBlue : ImGuiColors.DalamudWhite))
+                            ImGui.Selectable(
+                                $"{i + 1}. {GetLoc("AutoLogin-LoginInfoDisplayText", world.Name.ExtractText(), world.DataCenter.Value.Name.ExtractText(), info.CharaIndex)}");
+
+                        using (var source = ImRaii.DragDropSource())
                         {
-                            if (ImGui.AcceptDragDropPayload("LoginInfoReorder").Handle != null)
+                            if (source)
                             {
-                                Swap(DropIndex, i);
-                                DropIndex = -1;
+                                if (ImGui.SetDragDropPayload("LoginInfoReorder", []))
+                                    DropIndex = i;
+
+                                ImGui.TextColored(ImGuiColors.DalamudYellow,
+                                                  GetLoc("AutoLogin-LoginInfoDisplayText",
+                                                         world.Name.ExtractText(),
+                                                         world.DataCenter.Value.Name.ExtractText(),
+                                                         info.CharaIndex));
                             }
                         }
-                    }
 
-                    using (var context = ImRaii.ContextPopupItem($"ContextMenu_{i}"))
-                    {
-                        if (context)
+                        using (var target = ImRaii.DragDropTarget())
                         {
-                            if (ImGui.Selectable(GetLoc("Delete")))
+                            if (target)
                             {
-                                ModuleConfig.LoginInfos.Remove(info);
-                                SaveConfig(ModuleConfig);
+                                if (ImGui.AcceptDragDropPayload("LoginInfoReorder").Handle != null)
+                                {
+                                    Swap(DropIndex, i);
+                                    DropIndex = -1;
+                                }
                             }
                         }
-                    }
 
-                    if (i != ModuleConfig.LoginInfos.Count - 1)
-                        ImGui.Separator();
-                }
-            }
-        }
+                        using (var context = ImRaii.ContextPopupItem($"ContextMenu_{i}"))
+                        {
+                            if (context)
+                            {
+                                if (ImGui.Selectable(GetLoc("Delete")))
+                                {
+                                    ModuleConfig.LoginInfos.Remove(info);
+                                    SaveConfig(ModuleConfig);
+                                }
+                            }
+                        }
 
-        ImGui.SameLine();
-        ImGui.Text($"{GetLoc("AutoLogin-BehaviourMode")}:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(100f * GlobalFontScale);
-        using (var combo = ImRaii.Combo("###BehaviourModeCombo", BehaviourModeLoc[ModuleConfig.Mode]))
-        {
-            if (combo)
-            {
-                foreach (var mode in BehaviourModeLoc)
-                {
-                    if (ImGui.Selectable(mode.Value, mode.Key == ModuleConfig.Mode))
-                    {
-                        ModuleConfig.Mode = mode.Key;
-                        SaveConfig(ModuleConfig);
+                        if (i != ModuleConfig.LoginInfos.Count - 1)
+                            ImGui.Separator();
                     }
                 }
             }
         }
 
-        if (ModuleConfig.Mode == BehaviourMode.Once)
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoLogin-BehaviourMode")}");
+
+        ImGui.SetNextItemWidth(300f * GlobalFontScale);
+        using (ImRaii.PushIndent())
         {
-            ImGui.SameLine();
-            ImGui.Text($"{GetLoc("AutoLogin-LoginState")}:");
+            using (var combo = ImRaii.Combo("###BehaviourModeCombo", BehaviourModeLoc[ModuleConfig.Mode]))
+            {
+                if (combo)
+                {
+                    foreach (var mode in BehaviourModeLoc)
+                    {
+                        if (ImGui.Selectable(mode.Value, mode.Key == ModuleConfig.Mode))
+                        {
+                            ModuleConfig.Mode = mode.Key;
+                            SaveConfig(ModuleConfig);
+                        }
+                    }
+                }
+            }
 
-            ImGui.SameLine();
-            ImGui.TextColored(HasLoginOnce ? ImGuiColors.HealerGreen : ImGuiColors.DPSRed,
-                              HasLoginOnce
-                                  ? GetLoc("AutoLogin-LoginOnce")
-                                  : GetLoc("AutoLogin-HaveNotLogin"));
+            if (ModuleConfig.Mode == BehaviourMode.Once)
+            {
+                ImGui.Spacing();
+                
+                ImGui.Text($"{GetLoc("State")}:");
 
-            ImGui.SameLine();
-            if (ImGui.SmallButton(GetLoc("Refresh"))) 
-                HasLoginOnce = false;
+                ImGui.SameLine();
+                ImGui.TextColored(HasLoginOnce ? KnownColor.LawnGreen.ToVector4() : KnownColor.OrangeRed.ToVector4(),
+                                  HasLoginOnce
+                                      ? GetLoc("AutoLogin-LoginOnce")
+                                      : GetLoc("AutoLogin-HaveNotLogin"));
+
+                ImGui.SameLine(0, 8f * GlobalFontScale);
+                if (ImGui.SmallButton(GetLoc("Clear")))
+                    HasLoginOnce = false;
+            }
         }
-
-        ImGui.Spacing();
-
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
-
-        ImGui.SameLine();
-        ImGui.Text(GetLoc("AutoLogin-AddCommandHelp", Command, Command));
     }
     
     private void OnLogin() => 
