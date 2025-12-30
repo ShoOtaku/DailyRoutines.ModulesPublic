@@ -16,16 +16,16 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
     {
         Title               = GetLoc("FastContentsFinderRegisterTitle"),
         Description         = GetLoc("FastContentsFinderRegisterDescription"),
-        Category            = ModuleCategories.UIOptimization,
+        Category            = ModuleCategories.Recruitment,
         ModulesPrerequisite = ["ContentFinderCommand"]
     };
     
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private const ImGuiWindowFlags WindowFlags = ImGuiWindowFlags.NoDecoration    | ImGuiWindowFlags.AlwaysAutoResize   |
-                                                 ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoMove             |
-                                                 ImGuiWindowFlags.NoDocking       | ImGuiWindowFlags.NoFocusOnAppearing |
-                                                 ImGuiWindowFlags.NoNav           | ImGuiWindowFlags.NoBackground;
+    private const ImGuiWindowFlags WINDOW_FLAGS = ImGuiWindowFlags.NoDecoration    | ImGuiWindowFlags.AlwaysAutoResize   |
+                                                  ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoMove             |
+                                                  ImGuiWindowFlags.NoDocking       | ImGuiWindowFlags.NoFocusOnAppearing |
+                                                  ImGuiWindowFlags.NoNav           | ImGuiWindowFlags.NoBackground;
 
     protected override void Init()
     {
@@ -63,7 +63,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
         foreach (var item in cachedData.Items)
         {
             ImGui.SetNextWindowPos(item.Position);
-            if (ImGui.Begin($"FastContentsFinderRouletteOverlay-{item.NodeID}", WindowFlags))
+            if (ImGui.Begin($"FastContentsFinderRouletteOverlay-{item.NodeID}", WINDOW_FLAGS))
             {
                 if (cachedData.InDutyQueue)
                 {

@@ -11,7 +11,7 @@ public unsafe class NoAutoClosePartyFinder : DailyModuleBase
     {
         Title       = GetLoc("NoAutoClosePartyFinderTitle"),
         Description = GetLoc("NoAutoClosePartyFinderDescription"),
-        Category    = ModuleCategories.UIOptimization,
+        Category    = ModuleCategories.Recruitment,
         Author      = ["Nyy", "YLCHEN"]
     };
     

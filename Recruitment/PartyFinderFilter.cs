@@ -19,7 +19,7 @@ public class PartyFinderFilter : DailyModuleBase
     {
         Title       = GetLoc("PartyFinderFilterTitle"),
         Description = GetLoc("PartyFinderFilterDescription"),
-        Category    = ModuleCategories.UIOptimization,
+        Category    = ModuleCategories.Recruitment,
         Author      = ["status102"]
     };
     

@@ -28,8 +28,8 @@ public class CrossDCPartyFinder : DailyModuleBase
     public override ModuleInfo Info { get; } = new()
     {
         Title       = "跨大区队员招募",
-        Description = "允许在游戏原生的 队员招募 界面内选择并查看由众包网站提供的其他大区的招募信息",
-        Category    = ModuleCategories.UIOptimization
+        Description = "为队员招募界面新增大区切换按钮, 以选择并查看由众包网站提供的其他大区的招募信息",
+        Category    = ModuleCategories.Recruitment
     };
 
     public override ModulePermission Permission { get; } = new() { CNOnly = true, CNDefaultEnabled = true };

@@ -11,7 +11,7 @@ public class PFPageSizeCustomize : DailyModuleBase
     {
         Title       = GetLoc("PFPageSizeCustomizeTitle"),
         Description = GetLoc("PFPageSizeCustomizeDescription"),
-        Category    = ModuleCategories.UIOptimization,
+        Category    = ModuleCategories.Recruitment,
         Author      = ["逆光"]
     };
     

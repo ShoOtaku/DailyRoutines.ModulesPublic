@@ -13,7 +13,7 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
     {
         Title       = GetLoc("FastJoinAnotherPartyRecruitmentTitle"),
         Description = GetLoc("FastJoinAnotherPartyRecruitmentDescription"),
-        Category    = ModuleCategories.UIOptimization
+        Category    = ModuleCategories.Recruitment
     };
     
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };

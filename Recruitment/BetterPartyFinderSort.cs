@@ -11,7 +11,7 @@ public unsafe class BetterPartyFinderSort: DailyModuleBase
     {
         Title       = GetLoc("BetterPartyFinderSortTitle"),
         Description = GetLoc("BetterPartyFinderSortDescription"),
-        Category    = ModuleCategories.UIOptimization,
+        Category    = ModuleCategories.Recruitment,
         Author      = ["decorwdyun"]
     };
     

@@ -17,7 +17,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
     {
         Title       = GetLoc("AutoRefreshPartyFinderTitle"),
         Description = GetLoc("AutoRefreshPartyFinderDescription"),
-        Category    = ModuleCategories.UIOperation,
+        Category    = ModuleCategories.Recruitment,
     };
 
     private static Config ModuleConfig = null!;

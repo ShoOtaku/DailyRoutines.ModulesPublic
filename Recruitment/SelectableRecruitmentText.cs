@@ -15,7 +15,7 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
     {
         Title       = GetLoc("SelectableRecruitmentTextTitle"),
         Description = GetLoc("SelectableRecruitmentTextDescription"),
-        Category    = ModuleCategories.UIOptimization
+        Category    = ModuleCategories.Recruitment
     };
 
     private static readonly List<TextSelectableLinkTypeInfo> LinkTypes =

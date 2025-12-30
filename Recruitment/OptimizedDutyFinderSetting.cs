@@ -17,7 +17,7 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
     {
         Title       = GetLoc("OptimizedDutyFinderSettingTitle"),
         Description = GetLoc("OptimizedDutyFinderSettingDescription"),
-        Category    = ModuleCategories.UIOptimization,
+        Category    = ModuleCategories.Recruitment,
         Author      = ["Mizami", "Cyf5119"]
     };
     

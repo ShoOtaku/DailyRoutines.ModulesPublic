@@ -16,7 +16,7 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
     {
         Title       = GetLoc("PartyFinderSettingRecordTitle"),
         Description = GetLoc("PartyFinderSettingRecordDescription"),
-        Category    = ModuleCategories.UIOptimization,
+        Category    = ModuleCategories.Recruitment,
         Author      = ["status102"]
     };
     
