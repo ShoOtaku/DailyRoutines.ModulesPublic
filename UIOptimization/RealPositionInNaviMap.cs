@@ -58,6 +58,9 @@ public class RealPositionInNaviMap : DailyModuleBase
 
                 if (PositionButton == null)
                 {
+                    var origTextNode = NaviMap->GetTextNodeById(6);
+                    if (origTextNode == null) return;
+                    
                     PositionButton = new()
                     {
                         Position  = new(0),
@@ -89,12 +92,12 @@ public class RealPositionInNaviMap : DailyModuleBase
                     PositionButton.BackgroundNode.IsVisible = false;
 
                     PositionButton.LabelNode.TextFlags        = TextFlags.Glare;
-                    PositionButton.LabelNode.TextColor        = ColorHelper.GetColor(8);
-                    PositionButton.LabelNode.TextOutlineColor = new(0, 0, 0, 1);
+                    PositionButton.LabelNode.TextColor        = origTextNode->Color.ToVector4();
+                    PositionButton.LabelNode.TextOutlineColor = origTextNode->EdgeColor.ToVector4();
 
                     PositionButton.AttachNode(NaviMap->GetNodeById(5));
 
-                    NaviMap->GetTextNodeById(6)->ToggleVisibility(false);
+                    origTextNode->ToggleVisibility(false);
                 }
 
             {
