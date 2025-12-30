@@ -5,12 +5,13 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 
 namespace DailyRoutines.ModulesPublic;
 
+// 移除, 调整为可以自定义
 public unsafe class OptimizedLongCastTimeAction : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
         Title       = GetLoc("OptimizedLongCastTimeActionTitle"),
-        Description = GetLoc("OptimizedLongCastTimeActionDescription", CastTimeReduction),
+        Description = GetLoc("OptimizedLongCastTimeActionDescription", CAST_TIME_REDUCTION),
         Category    = ModuleCategories.Action,
     };
 
@@ -29,7 +30,7 @@ public unsafe class OptimizedLongCastTimeAction : DailyModuleBase
         new("F3 44 0F 2C C0 BA ?? ?? ?? ?? 48 8B CB E8 ?? ?? ?? ?? F3 44 0F 10 1D");
     private static float* CastTimeCurrent;
 
-    private const float CastTimeReduction = 0.4f;
+    private const float CAST_TIME_REDUCTION = 0.4f;
 
     protected override void Init()
     {
@@ -48,7 +49,7 @@ public unsafe class OptimizedLongCastTimeAction : DailyModuleBase
 
         var recastTime = ActionManager.GetAdjustedRecastTime(actionType, actionID);
         // 咏唱大于复唱
-        if (recastTime <= orig) return orig - (int)(CastTimeReduction * 1000);
+        if (recastTime <= orig) return orig - (int)(CAST_TIME_REDUCTION * 1000);
         
         return orig;
     }
@@ -63,7 +64,7 @@ public unsafe class OptimizedLongCastTimeAction : DailyModuleBase
             var recastTime = ActionManager.GetAdjustedRecastTime(actionType, actionID);
             if (recastTime <= processTotal * 1000)
             {
-                processTotal     = Math.Max(processTotal - CastTimeReduction, 0);
+                processTotal     = Math.Max(processTotal - CAST_TIME_REDUCTION, 0);
                 *CastTimeCurrent = processTotal;
             }
         }

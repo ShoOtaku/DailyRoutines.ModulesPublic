@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using DailyRoutines.Abstracts;
+using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
@@ -30,9 +31,9 @@ public class CustomActionQueueTime : DailyModuleBase
     
     private static Config ModuleConfig = null!;
 
-    private static Action? SelectedAction;
-    private static string  SelectedActionSearchInput = string.Empty;
-    private static float   QueueTimeMSInput          = 500;
+    private static readonly ActionSelectCombo ActionSelectCombo = new("Action");
+
+    private static float QueueTimeMSInput = 500;
 
     protected override void Init()
     {
@@ -157,14 +158,14 @@ public class CustomActionQueueTime : DailyModuleBase
         
         ImGui.TextColored(KnownColor.RoyalBlue.ToVector4(), GetLoc("CustomActionQueueTime-CustomDefaultQueueTime"));
 
-        using (ImRaii.Disabled((SelectedAction?.RowId ?? 0) == 0 || 
-                               ModuleConfig.QueueTime.ContainsKey(SelectedAction?.RowId ?? 0)))
+        using (ImRaii.Disabled((ActionSelectCombo.SelectedActionID) == 0 || 
+                               ModuleConfig.QueueTime.ContainsKey(ActionSelectCombo.SelectedActionID)))
         {
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, GetLoc("Add")))
             {
-                if (SelectedAction != null)
+                if (ActionSelectCombo.SelectedActionID != 0)
                 {
-                    ModuleConfig.QueueTime.TryAdd(SelectedAction?.RowId ?? 0, 500f);
+                    ModuleConfig.QueueTime.TryAdd(ActionSelectCombo.SelectedActionID, 500f);
                     SaveConfig(ModuleConfig);
                 }
             }
@@ -172,7 +173,8 @@ public class CustomActionQueueTime : DailyModuleBase
         
         ImGui.SameLine();
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
-        ActionSelectCombo(ref SelectedAction, ref SelectedActionSearchInput);
+
+        ActionSelectCombo.DrawRadio();
         
         if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
 

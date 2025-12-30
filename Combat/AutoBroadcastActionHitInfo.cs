@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using DailyRoutines.Abstracts;
+using DailyRoutines.Widgets;
 using Dalamud.Hooking;
 using Dalamud.Interface.Components;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
@@ -17,20 +18,28 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
         Author      = ["Xww"]
     };
     
-    private static Config ModuleConfig = null!;
-
     private static readonly CompSig ProcessPacketActionEffectSig = new("E8 ?? ?? ?? ?? 48 8B 8D F0 03 00 00");
     private delegate void ProcessPacketActionEffectDelegate(
-        uint sourceID, nint sourceCharacter, nint pos, ActionEffectHandler.Header* effectHeader, ActionEffectHandler.Effect* effectArray,
-        ulong* effectTrail);
+        uint                        sourceID,
+        nint                        sourceCharacter,
+        nint                        pos,
+        ActionEffectHandler.Header* effectHeader,
+        ActionEffectHandler.Effect* effectArray,
+        ulong*                      effectTrail);
     private static Hook<ProcessPacketActionEffectDelegate> ProcessPacketActionEffectHook;
+    
+    private static Config ModuleConfig = null!;
 
-    private static Action? SelectedCustomAction;
-    private static string  ActionSearchInput = string.Empty;
+    private static readonly ActionSelectCombo WhitelistCombo = new("Whitelist");
+    private static readonly ActionSelectCombo BlacklistCombo = new("Blacklist");
+    private static readonly ActionSelectCombo SelectedCombo  = new("Selected");
 
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
+
+        WhitelistCombo.SelectedActionIDs = ModuleConfig.WhitelistActions;
+        BlacklistCombo.SelectedActionIDs = ModuleConfig.BlacklistActions;
 
         ProcessPacketActionEffectHook ??= ProcessPacketActionEffectSig.GetHook<ProcessPacketActionEffectDelegate>(ProcessPacketActionEffectDetour);
         ProcessPacketActionEffectHook.Enable();
@@ -92,9 +101,14 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
         ImGui.SameLine();
         ImGui.SetNextItemWidth(200f * GlobalFontScale);
         if (ModuleConfig.WorkMode
-                ? ActionSelectCombo(ref ModuleConfig.WhitelistActions, ref ActionSearchInput)
-                : ActionSelectCombo(ref ModuleConfig.BlacklistActions, ref ActionSearchInput))
+                ? WhitelistCombo.DrawCheckbox()
+                : BlacklistCombo.DrawCheckbox())
+        {
+            ModuleConfig.BlacklistActions = BlacklistCombo.SelectedActionIDs;
+            ModuleConfig.WhitelistActions = BlacklistCombo.SelectedActionIDs;
+            
             SaveConfig(ModuleConfig);
+        }
 
         ScaledDummy(5f);
 
@@ -104,17 +118,17 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
         ImGui.SameLine();
         ImGui.SetNextItemWidth(250f * GlobalFontScale);
         using (ImRaii.PushId("AddCustomActionSelect"))
-            ActionSelectCombo(ref SelectedCustomAction, ref ActionSearchInput);
+            SelectedCombo.DrawRadio();
 
         ImGui.SameLine();
-        using (ImRaii.Disabled(SelectedCustomAction == null ||
-                               ModuleConfig.CustomActionName.ContainsKey(SelectedCustomAction.Value.RowId)))
+        using (ImRaii.Disabled(SelectedCombo.SelectedActionID == 0 ||
+                               ModuleConfig.CustomActionName.ContainsKey(SelectedCombo.SelectedActionID)))
         {
             if (ImGuiOm.ButtonIcon("##新增", FontAwesomeIcon.Plus))
             {
-                if (SelectedCustomAction != null)
+                if (SelectedCombo.SelectedActionID != 0)
                 {
-                    ModuleConfig.CustomActionName.TryAdd(SelectedCustomAction.Value.RowId, string.Empty);
+                    ModuleConfig.CustomActionName.TryAdd(SelectedCombo.SelectedActionID, string.Empty);
                     ModuleConfig.Save(this);
                 }
             }
