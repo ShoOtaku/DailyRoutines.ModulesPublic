@@ -179,7 +179,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                 
                 var gilRadioButton = FreeCompanyChest->GetNodeById(16);
                 if (gilRadioButton != null)
-                    gilRadioButton->SetPositionFloat(0, 180);
+                    gilRadioButton->SetPositionFloat(0, 185);
                 
                 if (Throttler.Throttle("OptimizedFreeCompanyChest-OnUpdateDefaultPage", 100))
                     DefaultPageNode.IsChecked = TryGetCurrentFCPage(out var currentPage) && ModuleConfig.DefaultPage == currentPage;
@@ -195,10 +195,11 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
 
                     GilIconNode = new()
                     {
-                        IsVisible = true,
-                        IconId    = 65002,
-                        Size      = new(32),
-                        Position = new(345, 34)
+                        IsVisible  = true,
+                        IconId     = 65002,
+                        Size       = new(32),
+                        Position   = new(345, 34),
+                        FitTexture = true
                     };
 
                     GilItemsValueNode = new()
