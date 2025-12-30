@@ -602,6 +602,8 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
                         if (node->Height == 231)
                             node->SetHeight(231 + 40);
+                        if (node->Height == 215)
+                            node->SetHeight(215 + 40);
                     }
 
                     var listNode = SelectString->GetComponentListById(3);
