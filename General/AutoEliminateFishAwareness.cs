@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
+using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
@@ -21,7 +22,7 @@ public class AutoEliminateFishAwareness : DailyModuleBase
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
-    private const uint TargetContent = 195;
+    private const uint TARGET_CONTENT = 195;
 
     private static readonly HashSet<string> ValidChatMessages = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -31,13 +32,15 @@ public class AutoEliminateFishAwareness : DailyModuleBase
     };
 
     private static Config ModuleConfig = null!;
-    
-    private static string ZoneSearchInput = string.Empty;
 
+    private static readonly ZoneSelectCombo ZoneSelectCombo = new("BlacklistZone");
+    
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
         TaskHelper   ??= new() { TimeLimitMS = 30_000, ShowDebug = true };
+        
+        ZoneSelectCombo.SelectedZoneIDs = ModuleConfig.BlacklistZones;
 
         DService.Chat.ChatMessage += OnChatMessage;
     }
@@ -49,8 +52,11 @@ public class AutoEliminateFishAwareness : DailyModuleBase
         using (ImRaii.PushIndent())
         {
             ImGui.SetNextItemWidth(300f * GlobalFontScale);
-            if (ZoneSelectCombo(ref ModuleConfig.BlacklistZones, ref ZoneSearchInput))
+            if (ZoneSelectCombo.DrawCheckbox())
+            {
+                ModuleConfig.BlacklistZones = ZoneSelectCombo.SelectedZoneIDs;
                 SaveConfig(ModuleConfig);
+            }
         }
         
         ImGui.NewLine();
@@ -107,8 +113,8 @@ public class AutoEliminateFishAwareness : DailyModuleBase
             TaskHelper.Enqueue(ExitFishing, "离开钓鱼状态");
             TaskHelper.DelayNext(5_000);
             TaskHelper.Enqueue(() => !OccupiedInEvent, "等待离开忙碌状态");
-            TaskHelper.Enqueue(() => RequestDutyNormal(TargetContent, new() { Config817to820 = true }), "申请目标副本");
-            TaskHelper.Enqueue(() => ExitDuty(TargetContent), "离开目标副本");
+            TaskHelper.Enqueue(() => RequestDutyNormal(TARGET_CONTENT, new() { Config817to820 = true }), "申请目标副本");
+            TaskHelper.Enqueue(() => ExitDuty(TARGET_CONTENT), "离开目标副本");
         }
         else
             return;

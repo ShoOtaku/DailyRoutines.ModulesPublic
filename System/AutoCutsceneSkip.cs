@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using DailyRoutines.Abstracts;
+using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using Dalamud.Interface.Components;
@@ -50,11 +51,15 @@ public unsafe class AutoCutsceneSkip : DailyModuleBase
 
     private static Config ModuleConfig = null!;
 
-    private static string ZoneSearchInput = string.Empty;
-
+    private static readonly ZoneSelectCombo WhitelistZoneCombo = new("Whitelist");
+    private static readonly ZoneSelectCombo BlacklistZoneCombo = new("Blacklist");
+    
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
+
+        WhitelistZoneCombo.SelectedZoneIDs = ModuleConfig.WhitelistZones;
+        BlacklistZoneCombo.SelectedZoneIDs = ModuleConfig.BlacklistZones;
 
         CutsceneUnskippablePatch.Set(true);
 
@@ -87,13 +92,19 @@ public unsafe class AutoCutsceneSkip : DailyModuleBase
         ImGui.SetNextItemWidth(200f * GlobalFontScale);
         if (ModuleConfig.WorkMode)
         {
-            if (ZoneSelectCombo(ref ModuleConfig.WhitelistZones, ref ZoneSearchInput))
+            if (WhitelistZoneCombo.DrawCheckbox())
+            {
+                ModuleConfig.WhitelistZones = WhitelistZoneCombo.SelectedZoneIDs;
                 ModuleConfig.Save(this);
+            }
         }
         else
         {
-            if (ZoneSelectCombo(ref ModuleConfig.BlacklistZones, ref ZoneSearchInput))
+            if (BlacklistZoneCombo.DrawCheckbox())
+            {
+                ModuleConfig.BlacklistZones = BlacklistZoneCombo.SelectedZoneIDs;
                 ModuleConfig.Save(this);
+            }
         }
     }
 

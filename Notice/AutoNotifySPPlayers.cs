@@ -5,12 +5,13 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using DailyRoutines.Widgets;
+using Dalamud.Game.ClientState.Objects.Enums;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoNotifySPPlayers : DailyModuleBase
+public class AutoNotifySPPlayers : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
@@ -29,9 +30,9 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
     private static readonly Throttler<ulong> ObjThrottler = new();
 
     private static HashSet<uint> SelectedOnlineStatus = [];
-    private static HashSet<uint> SelectedZone         = [];
 
-    private static string ZoneSearchInput         = string.Empty;
+    private static readonly ZoneSelectCombo ZoneSelectCombo = new("New");
+    
     private static string OnlineStatusSearchInput = string.Empty;
 
     private static string SelectName    = string.Empty;
@@ -51,17 +52,18 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("WorkTheory")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("WorkTheory")}");
 
-        ImGui.SameLine();
-        ImGui.Text(GetLoc("AutoNotifySPPlayers-WorkTheoryHelp"));
+        using (ImRaii.PushIndent())
+            ImGui.Text(GetLoc("AutoNotifySPPlayers-WorkTheoryHelp"));
 
-        ImGui.Spacing();
+        ImGui.NewLine();
 
         RenderTableAddNewPreset();
 
         if (ModuleConfig.NotifiedPlayer.Count == 0) return;
 
+        ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
 
@@ -120,7 +122,7 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
 
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1f);
-                ZoneSelectCombo(ref SelectedZone, ref ZoneSearchInput);
+                ZoneSelectCombo.DrawCheckbox();
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -149,15 +151,17 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
         var buttonSize = new Vector2(ImGui.CalcTextSize(GetLoc("Add")).X * 3, ImGui.GetItemRectSize().Y);
         if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Plus, Lang.Get("Add"), buttonSize))
         {
-            if (string.IsNullOrWhiteSpace(SelectName) && 
-                SelectedOnlineStatus.Count == 0 && SelectedZone.Count == 0) return;
+            if (string.IsNullOrWhiteSpace(SelectName)      &&
+                SelectedOnlineStatus.Count            == 0 &&
+                ZoneSelectCombo.SelectedZoneIDs.Count == 0)
+                return;
 
             var preset = new NotifiedPlayers
             {
-                Name = SelectName,
+                Name         = SelectName,
                 OnlineStatus = [..SelectedOnlineStatus], // 不这样就有引用关系了
-                Zone = [..SelectedZone],
-                Command = SelectCommand,
+                Zone         = [..ZoneSelectCombo.SelectedZoneIDs],
+                Command      = SelectCommand,
             };
 
             if (!ModuleConfig.NotifiedPlayer.Any(x => x.Equals(preset) || x.ToString() == preset.ToString()))
@@ -251,10 +255,10 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
             ImGui.SameLine();
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.PenAlt, GetLoc("Edit")))
             {
-                SelectName = preset.Name;
-                SelectedOnlineStatus = [.. preset.OnlineStatus];
-                SelectedZone = [.. preset.Zone];
-                SelectCommand = preset.Command;
+                SelectName                      = preset.Name;
+                SelectedOnlineStatus            = [.. preset.OnlineStatus];
+                ZoneSelectCombo.SelectedZoneIDs = [.. preset.Zone];
+                SelectCommand                   = preset.Command;
 
                 ModuleConfig.NotifiedPlayer.Remove(preset);
                 ModuleConfig.Save(this);
@@ -269,7 +273,7 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
             using var group = ImRaii.Group();
             foreach (var status in onlineStatus)
             {
-                if (LuminaGetter.TryGetRow<OnlineStatus>(status, out var row)) continue;
+                if (!LuminaGetter.TryGetRow<OnlineStatus>(status, out var row)) continue;
                 if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var texture)) continue;
 
                 using (ImRaii.Group())
@@ -291,24 +295,24 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
     private static void OnReceivePlayers(IReadOnlyList<IPlayerCharacter> characters)
     {
         foreach (var character in characters)
-            CheckGameObject(character.ToStruct());
+            CheckGameObject(character);
     }
 
-    private static void CheckGameObject(BattleChara* obj)
+    private static void CheckGameObject(IPlayerCharacter? obj)
     {
         if (ModuleConfig.NotifiedPlayer.Count == 0) 
             return;
         if (!DService.ClientState.IsLoggedIn || DService.ObjectTable.LocalPlayer is not { } localPlayer) 
             return;
-        if (obj == null || (nint)obj == localPlayer.Address || !obj->IsCharacter())
+        if (obj == null || obj.Address == localPlayer.Address || obj.ObjectKind != ObjectKind.Player)
             return;
-        if (!ObjThrottler.Throttle(obj->GetGameObjectId(), 3_000)) 
+        if (!ObjThrottler.Throttle(obj.GameObjectID, 3_000)) 
             return;
 
         var currentTime = Environment.TickCount64;
-        if (!NoticeTimeInfo.TryAdd(obj->GetGameObjectId(), currentTime))
+        if (!NoticeTimeInfo.TryAdd(obj.GameObjectID, currentTime))
         {
-            if (NoticeTimeInfo.TryGetValue(obj->GetGameObjectId(), out var lastNoticeTime))
+            if (NoticeTimeInfo.TryGetValue(obj.GameObjectID, out var lastNoticeTime))
             {
                 var timeDifference = currentTime - lastNoticeTime;
                 switch (timeDifference)
@@ -316,7 +320,7 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
                     case < 15_000:
                         break;
                     case > 300_000:
-                        NoticeTimeInfo[obj->GetGameObjectId()] = currentTime;
+                        NoticeTimeInfo[obj.GameObjectID] = currentTime;
                         break;
                     default:
                         return;
@@ -327,7 +331,7 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
         foreach (var config in ModuleConfig.NotifiedPlayer)
         {
             bool[] checks = [true, true, true];
-            var playerName = obj->NameString;
+            var playerName = obj.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(config.Name))
             {
@@ -344,7 +348,7 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
             }
 
             if (config.OnlineStatus.Count > 0)
-                checks[1] = config.OnlineStatus.Contains(obj->OnlineStatus);
+                checks[1] = config.OnlineStatus.Contains(obj.OnlineStatus.RowId);
 
             if (config.Zone.Count > 0) 
                 checks[2] = config.Zone.Contains(DService.ClientState.TerritoryType);
@@ -388,10 +392,11 @@ public unsafe class AutoNotifySPPlayers : DailyModuleBase
             return Equals((NotifiedPlayers)obj);
         }
 
-        public override int GetHashCode() => HashCode.Combine(Name, Command, Zone, OnlineStatus);
+        public override int GetHashCode() => 
+            HashCode.Combine(Name, Command, Zone, OnlineStatus);
 
-        public override string ToString() 
-            => $"NotifiedPlayers_{Name}_{Command}_Zone{string.Join('.', Zone)}_OnlineStatus{string.Join('.', OnlineStatus)}";
+        public override string ToString() => 
+            $"NotifiedPlayers_{Name}_{Command}_Zone{string.Join('.', Zone)}_OnlineStatus{string.Join('.', OnlineStatus)}";
     }
 
     private class Config : ModuleConfiguration
