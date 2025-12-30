@@ -129,28 +129,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
     private static void CreateRefreshIntervalNode()
     {
         if (LookingForGroup == null) return;
-        
-        RefreshIntervalNode ??= new() 
-        {
-            Size      = new(150.0f, 28f),
-            IsVisible = true,
-            Min       = 5,
-            Max       = 10000,
-            Step      = 5,
-            OnValueUpdate = newValue =>
-            {
-                ModuleConfig.RefreshInterval = newValue;
-                ModuleConfig.Save(ModuleManager.GetModule<AutoRefreshPartyFinder>());
-                
-                Cooldown = ModuleConfig.RefreshInterval;
-                PFRefreshTimer.Restart();
-            },
-            Value   = ModuleConfig.RefreshInterval
-        };
 
-        RefreshIntervalNode.Value = ModuleConfig.RefreshInterval;
-        RefreshIntervalNode.ValueTextNode.SetNumber(ModuleConfig.RefreshInterval);
-        
         OnlyInactiveNode ??= new()
         {
             Size      = new(150f, 28f),
@@ -165,15 +144,37 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
             },
             Position = new(0, 1)
         };
+        
+        RefreshIntervalNode ??= new()
+        {
+            Size      = new(150f, 28f),
+            Position  = new(0, 2),
+            IsVisible = true,
+            Min       = 5,
+            Max       = 10000,
+            Step      = 5,
+            OnValueUpdate = newValue =>
+            {
+                ModuleConfig.RefreshInterval = newValue;
+                ModuleConfig.Save(ModuleManager.GetModule<AutoRefreshPartyFinder>());
 
-        LeftTimeNode ??= new TextNode()
+                Cooldown = ModuleConfig.RefreshInterval;
+                PFRefreshTimer.Restart();
+            },
+            Value = ModuleConfig.RefreshInterval
+        };
+
+        RefreshIntervalNode.Value = ModuleConfig.RefreshInterval;
+        RefreshIntervalNode.ValueTextNode.SetNumber(ModuleConfig.RefreshInterval);
+
+        LeftTimeNode ??= new TextNode
         {
             SeString         = $"({ModuleConfig.RefreshInterval})  ",
             FontSize         = 12,
             IsVisible        = true,
             Size             = new(0, 28f),
             AlignmentType    = AlignmentType.Right,
-            Position         = new(10, 0),
+            Position         = new(10, 2),
             TextColor        = ColorHelper.GetColor(8),
             TextOutlineColor = ColorHelper.GetColor(7),
         };
