@@ -10,7 +10,6 @@ using KamiToolKit.Nodes;
 
 namespace DailyRoutines.ModulesPublic;
 
-// TODO: 调回原版浅蓝界面修改未完全覆盖问题
 public unsafe class AutoSellCards : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
@@ -113,6 +112,8 @@ public unsafe class AutoSellCards : DailyModuleBase
 
                         if (node->Height == 486)
                             node->SetHeight(486 + 60);
+                        if (node->Height == 470)
+                            node->SetHeight(470 + 60);
                     }
                 }
 
