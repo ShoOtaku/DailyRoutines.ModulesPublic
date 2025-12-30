@@ -68,7 +68,7 @@ public unsafe class QuickChatPanel : DailyModuleBase
                 ModuleConfig.SoundEffectNotes[i] = $"<se.{i}>";
         }
         
-        Searcher ??= new(LuminaGetter.Get<Item>(), [x => x.Name.ExtractText(), x => x.RowId.ToString()], x => x.Name.ExtractText());
+        Searcher ??= new(LuminaGetter.Get<Item>(), [x => x.Name.ExtractText(), x => x.RowId.ToString()]);
         
         // 初始化 Panel Tabs
         PanelTabs =

@@ -80,7 +80,7 @@ public unsafe partial class AutoRetainerWork
                 MoveToRetainerMarketDetour);
             MoveToRetainerMarketHook.Enable();
 
-            ItemSearcher ??= new(LuminaGetter.Get<Item>(), [x => x.Name.ExtractText(), x => x.RowId.ToString()], x => x.Name.ExtractText());
+            ItemSearcher ??= new(LuminaGetter.Get<Item>(), [x => x.Name.ExtractText(), x => x.RowId.ToString()]);
 
             TaskHelper ??= new() { TimeLimitMS = 30_000 };
 

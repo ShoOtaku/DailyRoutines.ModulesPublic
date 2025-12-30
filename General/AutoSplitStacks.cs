@@ -51,7 +51,7 @@ public unsafe class AutoSplitStacks : DailyModuleBase
                                                     !string.IsNullOrEmpty(x.Name.ExtractText()))
                                         .GroupBy(x => x.Name.ExtractText())
                                         .Select(x => x.First()),
-                             [x => x.Name.ExtractText(), x => x.RowId.ToString()], x => x.Name.ExtractText());
+                             [x => x.Name.ExtractText(), x => x.RowId.ToString()]);
 
         CommandManager.AddCommand(Command, new(OnCommand) { HelpMessage = GetLoc("AutoSplitStacks-CommandHelp") });
         DService.ContextMenu.OnMenuOpened += OnMenuOpened;

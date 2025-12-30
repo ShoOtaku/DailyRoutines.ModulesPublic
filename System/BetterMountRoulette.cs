@@ -224,8 +224,7 @@ public class BetterMountRoulette : DailyModuleBase
             unlockedMounts,
             [
                 x => x.Singular.ExtractText()
-            ],
-            x => x.Singular.ExtractText()
+            ]
         );
 
         NormalMounts = new(MasterMountsSearcher, ModuleConfig.NormalRouletteMounts);

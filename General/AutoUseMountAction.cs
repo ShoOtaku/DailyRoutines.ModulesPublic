@@ -40,8 +40,7 @@ public unsafe class AutoUseMountAction : DailyModuleBase
                                           .Where(x => !string.IsNullOrEmpty(x.Singular.ExtractText()))
                                           .GroupBy(x => x.Singular.ExtractText())
                                           .Select(x => x.First()),
-                              [x => x.Singular.ExtractText()],
-                              x => x.Singular.ExtractText());
+                              [x => x.Singular.ExtractText()]);
         
         DService.Condition.ConditionChange += OnConditionChanged;
         if (DService.Condition[ConditionFlag.Mounted])

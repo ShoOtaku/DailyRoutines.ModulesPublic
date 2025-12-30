@@ -63,7 +63,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                                  .GroupBy(x => x.Name.ExtractText())
                                  .Select(x => x.First())
                                  .ToList();
-        ItemSearcher ??= new(itemNames, [x => x.Name.ExtractText(), x => x.RowId.ToString()], x => x.Name.ExtractText());
+        ItemSearcher ??= new(itemNames, [x => x.Name.ExtractText(), x => x.RowId.ToString()]);
         
         CommandManager.AddCommand(ModuleCommand, new(OnCommand) { HelpMessage = GetLoc("AutoDiscard-CommandHelp") });
         
