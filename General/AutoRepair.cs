@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
-using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -37,34 +37,35 @@ public unsafe class AutoRepair : DailyModuleBase
     private static Config ModuleConfig = null!;
 
     // 修理装备
-    private static readonly CompSig                   RepairItemSig = new("48 89 6C 24 ?? 48 89 74 24 ?? 41 54 41 56 41 57 48 83 EC ?? 48 8D 0D");
-    private delegate        void                      RepairItemDelegate(nint repairController, InventoryType inventory, short slot, bool isNPC);
+    [return: MarshalAs(UnmanagedType.U1)]
+    private delegate        bool                      RepairItemDelegate(RepairManager* manager, InventoryType inventory, ushort slot, bool isNPC);
     private static          Hook<RepairItemDelegate>? RepairItemHook;
 
     // 批量修理已装备装备
     // unknownBool => *(bool*)((nint)AgentRepair + 49 * sizeof(long)) == 0
-    private static readonly CompSig                            RepairEquippedItemsSig = new("E8 ?? ?? ?? ?? EB ?? 83 F8 ?? 7D");
-    private delegate        void                               RepairEquippedItemsDelegate(nint repairController, InventoryType inventory, bool isNPC);
-    private static          Hook<RepairEquippedItemsDelegate>? RepairEquippedItemsHook;
+    [return: MarshalAs(UnmanagedType.U1)]
+    private delegate bool                               RepairEquippedItemsDelegate(RepairManager* manager, InventoryType inventory, bool isNPC);
+    private static   Hook<RepairEquippedItemsDelegate>? RepairEquippedItemsHook;
 
-    private static readonly CompSig                       RepairAllItemsSig = new("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 56 41 57 48 83 EC ?? 41 0F B6 E9 45 8B F0 0F B6 F2");
-    private delegate        void                          RepairAllItemsDelegate(nint repairController, bool isNPC, int category, int a4);
-    private static          Hook<RepairAllItemsDelegate>? RepairAllItemsHook;
+    [return: MarshalAs(UnmanagedType.U1)]
+    private delegate bool                          RepairAllItemsDelegate(RepairManager* manager, bool isNPC, int invenoryIndex, byte arg0);
+    private static   Hook<RepairAllItemsDelegate>? RepairAllItemsHook;
 
     protected override void Init()
     {
         ModuleConfig ??= LoadConfig<Config>() ?? new();
         TaskHelper ??= new TaskHelper { TimeLimitMS = 10_000 };
-
-        RepairItemHook ??= RepairItemSig.GetHook<RepairItemDelegate>(RepairItemDetour);
+        
+        RepairItemHook ??= DService.Hook.HookFromMemberFunction<RepairItemDelegate>(typeof(RepairManager.MemberFunctionPointers), "RepairItem", RepairItemDetour);
         RepairItemHook.Enable();
 
-        RepairEquippedItemsHook ??= RepairEquippedItemsSig.GetHook<RepairEquippedItemsDelegate>(RepairEquippedItemsDetour);
+        RepairEquippedItemsHook ??= DService.Hook.HookFromMemberFunction<RepairEquippedItemsDelegate>(typeof(RepairManager.MemberFunctionPointers), "RepairEquipped", RepairEquippedItemsDetour);
         RepairEquippedItemsHook.Enable();
 
-        RepairAllItemsHook ??= RepairAllItemsSig.GetHook<RepairAllItemsDelegate>(RepairAllItemsDetour);
+        RepairAllItemsHook ??=
+            DService.Hook.HookFromMemberFunction<RepairAllItemsDelegate>(typeof(RepairManager.MemberFunctionPointers), "RepairAllItems", RepairAllItemsDetour);
         RepairAllItemsHook.Enable();
-
+        
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.Condition.ConditionChange    += OnConditionChanged;
         DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
@@ -172,7 +173,7 @@ public unsafe class AutoRepair : DailyModuleBase
                 itemsSelfRepair.RemoveAll(x => itemsUnableToRepair.Contains(x.ItemId));
                 foreach (var item in itemsSelfRepair)
                 {
-                    TaskHelper.Enqueue(() => RepairItemDetour(nint.Zero, item.Container, item.Slot, false));
+                    TaskHelper.Enqueue(() => RepairItemDetour(RepairManager.Instance(), item.Container, (ushort)item.Slot, false));
                     TaskHelper.DelayNext(3_000);
                 }
             }
@@ -203,73 +204,63 @@ public unsafe class AutoRepair : DailyModuleBase
 
     #region Hooks
 
-    private static void RepairItemDetour(nint a1, InventoryType inventory, short slot, bool isNPC)
+    [return: MarshalAs(UnmanagedType.U1)]
+    private static bool RepairItemDetour(RepairManager* manager, InventoryType inventory, ushort slot, bool isNPC)
     {
         var slotData = InventoryManager.Instance()->GetInventorySlot(inventory, slot);
-        if (slotData == null) return;
+        if (slotData == null) return false;
         
         // NPC
-        if (IsCurrentOnNPCRepair())
+        if (isNPC)
         {
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairItemNPC, (uint)inventory, (uint)slot, slotData->ItemId);
+            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairItemNPC, (uint)inventory, slot, slotData->ItemId);
             ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
-            return;
+            return true;
         }
         
         // 自己修理
-        RepairItemHook.Original(a1, inventory, slot, false);
+        return RepairItemHook.Original(manager, inventory, slot, false);
     }
 
-    private static void RepairEquippedItemsDetour(nint a1, InventoryType inventory, bool isNPC)
+    [return: MarshalAs(UnmanagedType.U1)]
+    private static bool RepairEquippedItemsDetour(RepairManager* manager, InventoryType inventory, bool isNPC)
     {
         // NPC
-        if (IsCurrentOnNPCRepair())
+        if (isNPC)
         {
             ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, (uint)inventory);
             ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
-            return;
+            return true;
         }
         
         // 自己修理
-        RepairEquippedItemsHook.Original(a1, inventory, false);
+        return RepairEquippedItemsHook.Original(manager, inventory, isNPC);
     }
     
-    private static void RepairAllItemsDetour(nint repairController, bool isNPC, int category, int a4)
+    [return: MarshalAs(UnmanagedType.U1)]
+    private static bool RepairAllItemsDetour(RepairManager* manager, bool isNPC, int invenoryIndex, byte arg0)
     {
         // NPC
-        if (IsCurrentOnNPCRepair())
+        if (isNPC)
         {
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairAllItemsNPC, (uint)category);
+            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairAllItemsNPC, (uint)invenoryIndex);
             ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
-            return;
+            return true;
         }
 
         // 自己修理
-        RepairAllItemsHook.Original(repairController, false, category, a4);
+        return RepairAllItemsHook.Original(manager, false, invenoryIndex, arg0);
     }
 
     #endregion
 
-    private static bool IsCurrentOnNPCRepair()
-    {
-        if (IsAddonAndNodesReady(Repair))
-        {
-            var atkValueCost = Repair->AtkValues[424].String;
-            
-            // 没有修理价格
-            if (!atkValueCost.HasValue || string.IsNullOrWhiteSpace(atkValueCost.ExtractText()))
-                return false;
-            
-            return true;
-        }
-        
-        // 没有界面, 就用 Condition 凑合判断一下
-        return DService.Condition[ConditionFlag.OccupiedInQuestEvent];
-    }
-
     private static bool IsAbleToRepair() =>
-        IsScreenReady() && !OccupiedInEvent && !DService.ClientState.IsPvPExcludingDen &&
-        !IsOnMount      && !IsCasting       && ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 6) == 0;
+        IsScreenReady()           &&
+        !OccupiedInEvent          &&
+        GameState.IsInPVPInstance &&
+        !IsOnMount                &&
+        !IsCasting                &&
+        ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 6) == 0;
     
     #region 事件
 
