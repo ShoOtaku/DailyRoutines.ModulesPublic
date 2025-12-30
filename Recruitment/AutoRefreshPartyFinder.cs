@@ -147,7 +147,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
         
         RefreshIntervalNode ??= new()
         {
-            Size      = new(150f, 28f),
+            Size      = new(150f, 30f),
             Position  = new(0, 2),
             IsVisible = true,
             Min       = 5,
@@ -184,7 +184,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
             Width     = 270,
             IsVisible = true,
             Position  = new(500, 630),
-            Alignment = HorizontalListAnchor.Right
+            Alignment = HorizontalListAnchor.Right,
         };
         LayoutNode.AddNode([OnlyInactiveNode, RefreshIntervalNode, LeftTimeNode]);
         
