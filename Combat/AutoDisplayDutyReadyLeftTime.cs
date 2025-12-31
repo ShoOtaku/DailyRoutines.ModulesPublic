@@ -10,7 +10,8 @@ public unsafe class AutoDisplayDutyReadyLeftTime : DailyModuleBase
     {
         Title       = GetLoc("AutoDisplayDutyReadyLeftTimeTitle"),
         Description = GetLoc("AutoDisplayDutyReadyLeftTimeDescription"),
-        Category    = ModuleCategories.Combat
+        Category    = ModuleCategories.Combat,
+        PreviewImageURL = ["https://gh.atmoomen.top/raw.githubusercontent.com/AtmoOmen/StaticAssets/main/DailyRoutines/image/AutoDisplayDutyReadyLeftTime-UI.png"]
     };
     
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
