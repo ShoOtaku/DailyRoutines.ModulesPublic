@@ -32,42 +32,42 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
     };
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
-    private static Config ModuleConfig = null!;
-
-    private static readonly CompSig                 SetDataSig = new("E8 ?? ?? ?? ?? 48 8B 53 ?? 8B 86");
-    private delegate        MapMarkerData*          SetDataDelegate(
+    
+    private static readonly CompSig SetDataSig = new("E8 ?? ?? ?? ?? 48 8B 53 ?? 8B 86");
+    private delegate MapMarkerData* SetDataDelegate(
         MapMarkerData* self,
-
-        uint levelID,
-        Utf8String* tooltipString,
-        uint iconID,
-        float x,
-        float y,
-        float z,
-        float radius,
-        ushort territoryTypeID,
-        uint mapID,
-        uint placeNameZoneID,
-        uint placeNameID,
-        ushort recommendedLevel,
-        sbyte eventState);
-    private static          Hook<SetDataDelegate>?  SetDataHook;
+        uint           levelID,
+        Utf8String*    tooltipString,
+        uint           iconID,
+        float          x,
+        float          y,
+        float          z,
+        float          radius,
+        ushort         territoryTypeID,
+        uint           mapID,
+        uint           placeNameZoneID,
+        uint           placeNameID,
+        ushort         recommendedLevel,
+        sbyte          eventState);
+    private static Hook<SetDataDelegate>? SetDataHook;
+    
+    private static Config ModuleConfig = null!;
 
     #region 地图标记数据
 
-    private static readonly Vector2[]                                  MapPosSize              = new Vector2[2];
-    private static readonly Dictionary<Vector3, MapMarkerInfo>         MapMarkers              = [];
-    private static readonly Dictionary<Vector3, ControlPointState>     ControlPointStates      = [];
-    private static readonly HashSet<Vector3>                           VisibleMarkerPositions  = [];
+    private static readonly Vector2[]                              MapPosSize             = new Vector2[2];
+    private static readonly Dictionary<Vector3, MapMarkerInfo>     MapMarkers             = [];
+    private static readonly Dictionary<Vector3, ControlPointState> ControlPointStates     = [];
+    private static readonly HashSet<Vector3>                       VisibleMarkerPositions = [];
 
     #endregion
 
     #region 玩家雷达数据
 
-    private static readonly List<PlayerRadarInfo>                      PlayerList              = [];
-    private static readonly Dictionary<PlayerIconType, float>          CachedDotIconSizes      = [];
-    private static readonly List<ClassJob>                             CachedJobs              =
+    private static readonly List<PlayerRadarInfo>             PlayerList         = [];
+    private static readonly Dictionary<PlayerIconType, float> CachedDotIconSizes = [];
+
+    private static readonly List<ClassJob> CachedJobs =
         LuminaGetter.Get<ClassJob>()
                     .Where(x => x is { IsLimitedJob: false, DohDolJobIndex: -1, ItemSoulCrystal.RowId: > 0 })
                     .OrderBy(x => x.Role switch
@@ -88,12 +88,12 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
     private static Vector2? MapOrigin;
     private static float    GlobalUIScale = 1f;
 
-    private static float    MapScale
+    private static float MapScale
     {
         get
         {
             var addon = AreaMap;
-            return addon is not null ? *(float*)((byte*)addon + 980) : 1f;
+            return addon != null ? *(float*)((byte*)addon + 980) : 1f;
         }
     }
 
@@ -104,19 +104,19 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
         ModuleConfig = LoadConfig<Config>() ?? new();
         RefreshCachedIconSizes();
 
-        SetDataHook ??= SetDataSig.GetHook<SetDataDelegate>(SetDataDetour);
+        SetDataHook = SetDataSig.GetHook<SetDataDelegate>(SetDataDetour);
         SetDataHook?.Enable();
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
-        PlayersManager.ReceivePlayersAround += OnPlayersAroundUpdate;
-        FrameworkManager.Reg(OnFrameworkUpdate);
+        PlayersManager.ReceivePlayersAround   += OnPlayersAroundUpdate;
+        FrameworkManager.Reg(OnFrameworkUpdate, throttleMS: 100);
         WindowManager.Draw += DrawOverlay;
     }
 
     protected override void Uninit()
     {
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        PlayersManager.ReceivePlayersAround -= OnPlayersAroundUpdate;
+        PlayersManager.ReceivePlayersAround   -= OnPlayersAroundUpdate;
         FrameworkManager.Unreg(OnFrameworkUpdate);
         WindowManager.Draw -= DrawOverlay;
 
@@ -166,8 +166,8 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
         if (ImGui.IsItemDeactivatedAfterEdit())
             configChanged = true;
 
-        configChanged |= ImGui.Checkbox(GetLoc("FrontlineMapRadar-ShowCountdown"), ref ModuleConfig.ShowCountdown);
-        configChanged |= ImGui.Checkbox(GetLoc("FrontlineMapRadar-ShowHealthPercent"), ref ModuleConfig.ShowHealthPercent);
+        configChanged |= ImGui.Checkbox(GetLoc("FrontlineMapRadar-ShowCountdown"),         ref ModuleConfig.ShowCountdown);
+        configChanged |= ImGui.Checkbox(GetLoc("FrontlineMapRadar-ShowHealthPercent"),     ref ModuleConfig.ShowHealthPercent);
         configChanged |= ImGui.Checkbox(GetLoc("FrontlineMapRadar-ShowControlPointScore"), ref ModuleConfig.ShowControlPointScore);
 
         if (configChanged)
@@ -224,46 +224,69 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
         }
 
         DrawPlayerCategorySettings(
-            PlayerIconType.Friend, LuminaWrapper.GetAddonText(2941), KnownColor.Orange,
-            ref ModuleConfig.ShowFriendDots, ref ModuleConfig.ShowFriendNames, ref ModuleConfig.ShowFriendJobIcons);
+            PlayerIconType.Friend,
+            LuminaWrapper.GetAddonText(2941),
+            KnownColor.Orange,
+            ref ModuleConfig.ShowFriendDots,
+            ref ModuleConfig.ShowFriendNames,
+            ref ModuleConfig.ShowFriendJobIcons);
 
         DrawPlayerCategorySettings(
-            PlayerIconType.Party, LuminaWrapper.GetAddonText(654), KnownColor.Cyan,
-            ref ModuleConfig.ShowPartyDots, ref ModuleConfig.ShowPartyNames, ref ModuleConfig.ShowPartyJobIcons);
+            PlayerIconType.Party,
+            LuminaWrapper.GetAddonText(654),
+            KnownColor.Cyan,
+            ref ModuleConfig.ShowPartyDots,
+            ref ModuleConfig.ShowPartyNames,
+            ref ModuleConfig.ShowPartyJobIcons);
 
         DrawPlayerCategorySettings(
-            PlayerIconType.Alliance, LuminaWrapper.GetAddonText(648), KnownColor.Green,
-            ref ModuleConfig.ShowAllianceDots, ref ModuleConfig.ShowAllianceNames, ref ModuleConfig.ShowAllianceJobIcons);
+            PlayerIconType.Alliance,
+            LuminaWrapper.GetAddonText(648),
+            KnownColor.Green,
+            ref ModuleConfig.ShowAllianceDots,
+            ref ModuleConfig.ShowAllianceNames,
+            ref ModuleConfig.ShowAllianceJobIcons);
 
         DrawPlayerCategorySettings(
-            PlayerIconType.Other, LuminaWrapper.GetAddonText(832), KnownColor.White,
-            ref ModuleConfig.ShowOtherDots, ref ModuleConfig.ShowOtherNames, ref ModuleConfig.ShowOtherJobIcons);
+            PlayerIconType.Other,
+            LuminaWrapper.GetAddonText(832),
+            KnownColor.White,
+            ref ModuleConfig.ShowOtherDots,
+            ref ModuleConfig.ShowOtherNames,
+            ref ModuleConfig.ShowOtherJobIcons);
     }
 
     private void DrawPlayerCategorySettings(
-        PlayerIconType iconType, string categoryText, KnownColor color,
-        ref bool showDotIcons, ref bool showNames, ref bool showJobIcons)
+        PlayerIconType iconType,
+        string         categoryText,
+        KnownColor     color,
+        ref bool       showDotIcons,
+        ref bool       showNames,
+        ref bool       showJobIcons)
     {
         ImGui.TextColored(color.ToVector4(), categoryText);
-        using (ImRaii.PushIndent())
-        {
-            var dotsChanged = ImGui.Checkbox($"{LuminaWrapper.GetAddonText(12425)}##{iconType}Dots", ref showDotIcons);
-            ImGui.SameLine();
-            var namesChanged = ImGui.Checkbox($"{LuminaWrapper.GetAddonText(293)}##{iconType}Names", ref showNames);
-            ImGui.SameLine();
-            var iconsChanged = ImGui.Checkbox($"{GetLoc("FrontlineMapRadar-ShowJobIcons")}##{iconType}JobIcons", ref showJobIcons);
 
-            if (dotsChanged || namesChanged || iconsChanged)
-            {
-                PlayerList.Clear();
-                SaveConfig(ModuleConfig);
-            }
+        using var indent = ImRaii.PushIndent();
+
+        var dotsChanged = ImGui.Checkbox($"{LuminaWrapper.GetAddonText(12425)}##{iconType}Dots", ref showDotIcons);
+            
+        ImGui.SameLine();
+        var namesChanged = ImGui.Checkbox($"{LuminaWrapper.GetAddonText(293)}##{iconType}Names", ref showNames);
+            
+        ImGui.SameLine();
+        var iconsChanged = ImGui.Checkbox($"{GetLoc("FrontlineMapRadar-ShowJobIcons")}##{iconType}JobIcons", ref showJobIcons);
+
+        if (dotsChanged || namesChanged || iconsChanged)
+        {
+            PlayerList.Clear();
+            SaveConfig(ModuleConfig);
         }
     }
 
     private void DrawJobSelectionTable()
     {
         const int columns = 4;
+
         using var table = ImRaii.Table("JobsTable", columns, ImGuiTableFlags.SizingFixedFit);
         if (!table) return;
 
@@ -276,7 +299,7 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
 
             ImGui.TableNextColumn();
 
-            var jobID = job.RowId;
+            var jobID     = job.RowId;
             var isChecked = ModuleConfig.HighlightedJobs.Contains(jobID);
 
             if (DService.Texture.TryGetFromGameIcon(new(GetJobIconBaseID() + jobID), out var jobIcon))
@@ -346,26 +369,50 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
 
     private static MapMarkerData* SetDataDetour(
         MapMarkerData* self,
-        uint levelID,
-        Utf8String* tooltipString,
-        uint iconID,
-        float x, float y, float z,
-        float radius,
-        ushort territoryTypeID,
-        uint mapID,
-        uint placeNameZoneID,
-        uint placeNameID,
-        ushort recommendedLevel,
-        sbyte eventState)
+        uint           levelID,
+        Utf8String*    tooltipString,
+        uint           iconID,
+        float          x, float y, float z,
+        float          radius,
+        ushort         territoryTypeID,
+        uint           mapID,
+        uint           placeNameZoneID,
+        uint           placeNameID,
+        ushort         recommendedLevel,
+        sbyte          eventState)
     {
         if (!IsFrontlineTerritory())
         {
-            return SetDataHook!.Original(self, levelID, tooltipString, iconID, x, y, z, radius,
-                territoryTypeID, mapID, placeNameZoneID, placeNameID, recommendedLevel, eventState);
+            return SetDataHook.Original(self,
+                                        levelID,
+                                        tooltipString,
+                                        iconID,
+                                        x,
+                                        y,
+                                        z,
+                                        radius,
+                                        territoryTypeID,
+                                        mapID,
+                                        placeNameZoneID,
+                                        placeNameID,
+                                        recommendedLevel,
+                                        eventState);
         }
 
-        var result = SetDataHook!.Original(self, levelID, tooltipString, iconID, x, y, z, radius,
-            territoryTypeID, mapID, placeNameZoneID, placeNameID, recommendedLevel, eventState);
+        var result = SetDataHook.Original(self,
+                                          levelID,
+                                          tooltipString,
+                                          iconID,
+                                          x,
+                                          y,
+                                          z,
+                                          radius,
+                                          territoryTypeID,
+                                          mapID,
+                                          placeNameZoneID,
+                                          placeNameID,
+                                          recommendedLevel,
+                                          eventState);
 
         var position = new Vector3(x, y, z);
 
@@ -391,21 +438,30 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
                 return result;
 
             var tooltipText = tooltipString->ToString();
-            var suffix = ExtractSuffixForParsing(tooltipText);
+            var suffix      = ExtractSuffixForParsing(tooltipText);
 
             var displayText = string.Empty;
+            var textColor   = 0U;
 
             if (CountdownIconIDs.Contains(iconID))
+            {
                 displayText = ParseCountdownText(suffix);
+                textColor   = KnownColor.Goldenrod.ToUInt();
+            }
             else if (HealthIconIDs.Contains(iconID))
+            {
                 displayText = ParsePercentText(suffix);
+                textColor   = KnownColor.Crimson.ToUInt();
+            }
             else if (ControlPointIconIDs.Contains(iconID))
             {
                 displayText = ParsePercentText(suffix);
+                textColor   = KnownColor.DeepSkyBlue.ToUInt();
+                
                 UpdateControlPointStateFromHook(iconID, position, tooltipText);
             }
 
-            MapMarkers[position] = new MapMarkerInfo(iconID, position, displayText);
+            MapMarkers[position] = new(iconID, position, displayText, textColor);
         }
         catch
         {
@@ -423,8 +479,8 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string ExtractSuffixForParsing(string text) =>
-        string.IsNullOrEmpty(text) ? string.Empty :
-        text.Length > CacheSuffixLength ? text[^CacheSuffixLength..] : text;
+        string.IsNullOrEmpty(text)      ? string.Empty :
+        text.Length > CACHE_SUFFIX_LENGTH ? text[^CACHE_SUFFIX_LENGTH..] : text;
 
     private static string ParseCountdownText(string tooltipText)
     {
@@ -433,16 +489,16 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
 
         return int.TryParse(match.Groups[1].ValueSpan, out var minutes) &&
                int.TryParse(match.Groups[2].ValueSpan, out var seconds)
-            ? minutes < 1 ? seconds.ToString() : $"{minutes}:{seconds:D2}"
-            : string.Empty;
+                   ? minutes < 1 ? seconds.ToString() : $"{minutes}:{seconds:D2}"
+                   : string.Empty;
     }
 
     private static string ParsePercentText(string tooltipText)
     {
         var match = PercentRegex().Match(tooltipText);
         return match.Success && int.TryParse(match.Groups[1].ValueSpan, out var percent)
-            ? $"{percent}%"
-            : string.Empty;
+                   ? $"{percent}%"
+                   : string.Empty;
     }
 
     private static void UpdateControlPointStateFromHook(uint iconID, Vector3 position, string tooltipText)
@@ -465,7 +521,7 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
             return;
 
         var lastDigit = percentInt % 10;
-        var percent = lastDigit is 7 or 2 ? percentInt + 0.5 : percentInt;
+        var percent   = lastDigit is 7 or 2 ? percentInt + 0.5 : percentInt;
 
         if (!SealRockControlPointScores.TryGetValue(iconID, out var initialScore))
             return;
@@ -481,7 +537,7 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
             }
         }
 
-        ControlPointStates[position] = new ControlPointState(iconID, null, initialScore)
+        ControlPointStates[position] = new(iconID, null, initialScore)
         {
             CurrentPercent = percent
         };
@@ -502,10 +558,7 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
                 return;
         }
 
-        ControlPointStates[position] = new ControlPointState(
-            iconID,
-            isNeutral ? null : DateTime.Now,
-            initialScore)
+        ControlPointStates[position] = new(iconID, isNeutral ? null : DateTime.Now, initialScore)
         {
             CurrentScore = initialScore
         };
@@ -522,7 +575,7 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
                 return;
 
             var eventMarkers = agentMap->EventMarkers;
-            var count = eventMarkers.Count;
+            var count        = eventMarkers.Count;
 
             for (var i = 0; i < count; i++)
             {
@@ -541,7 +594,7 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
         if (GameState.TerritoryType is not (888 or 1313))
             return;
 
-        var now = DateTime.Now;
+        var            now      = DateTime.Now;
         List<Vector3>? toRemove = null;
 
         foreach (var (position, state) in ControlPointStates)
@@ -549,11 +602,11 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
             if (!state.ControlStartTime.HasValue)
                 continue;
 
-            var elapsed = (now - state.ControlStartTime.Value).TotalSeconds;
-            var intervals = (int)(elapsed / ControlPointDecreaseIntervalSeconds);
+            var elapsed   = (now - state.ControlStartTime.Value).TotalSeconds;
+            var intervals = (int)(elapsed / CONTROL_POINT_DECREASE_INTERVAL_SECONDS);
 
-            var deductionPerInterval = (int)(state.InitialScore * ControlPointDecreaseFactor);
-            var totalDeduction = intervals * deductionPerInterval;
+            var deductionPerInterval = (int)(state.InitialScore * CONTROL_POINT_DECREASE_FACTOR);
+            var totalDeduction       = intervals * deductionPerInterval;
 
             state.CurrentScore = Math.Max(0, state.InitialScore - totalDeduction);
 
@@ -562,7 +615,7 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
 
             if (!state.ReachedZeroTime.HasValue)
                 state.ReachedZeroTime = now;
-            else if ((now - state.ReachedZeroTime.Value).TotalSeconds >= ZeroScoreDisplayDuration)
+            else if ((now - state.ReachedZeroTime.Value).TotalSeconds >= ZERO_SCORE_DISPLAY_DURATION)
             {
                 toRemove ??= [];
                 toRemove.Add(position);
@@ -591,105 +644,108 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
     private static void RefreshPlayers(IReadOnlyList<IPlayerCharacter> players, bool isInSupportedTerritory)
     {
         PlayerList.Clear();
-
-        var localPlayerAddress = DService.ObjectTable.LocalPlayer?.Address ?? nint.Zero;
-
+        
         foreach (var player in players)
         {
-            if (player.Address == localPlayerAddress ||
+            if (player.Address == (DService.ObjectTable.LocalPlayer?.Address ?? nint.Zero) ||
                 string.IsNullOrEmpty(player.Name.TextValue))
                 continue;
 
-            try
-            {
-                var character = (Character*)player.ToStruct();
-                var jobID = character->CharacterData.ClassJob;
-
-                if (isInSupportedTerritory)
-                    ProcessPvPPlayer(player, character, jobID);
-                else
-                    ProcessNonPvPPlayer(player, jobID);
-            }
-            catch
-            {
-                // ignored
-            }
+            var character = (Character*)player.ToStruct();
+            if (isInSupportedTerritory)
+                ProcessPvPPlayer(player, character, player.ClassJob.RowId);
+            else
+                ProcessNonPvPPlayer(player, player.ClassJob.RowId);
         }
     }
 
     private static void ProcessPvPPlayer(IPlayerCharacter player, Character* character, uint jobID)
     {
         if (ModuleConfig.HideFriendlyInPVP &&
-            ((player.StatusFlags & StatusFlags.PartyMember) != 0 ||
+            ((player.StatusFlags & StatusFlags.PartyMember)    != 0 ||
              (player.StatusFlags & StatusFlags.AllianceMember) != 0))
             return;
 
         var dotIconType = GetPvPIconType(character->CharacterData.Battalion, player.IsDead);
         var showJobIcon = ModuleConfig.HighlightedJobs.Contains(jobID);
 
-        PlayerList.Add(new PlayerRadarInfo(
-            player.Address, false, "", KnownColor.White.ToVector4().ToUInt(),
-            showJobIcon, jobID, true, dotIconType, true));
+        PlayerList.Add(new(player.Address,
+                           false,
+                           string.Empty,
+                           KnownColor.White.ToUInt(),
+                           showJobIcon,
+                           jobID,
+                           true,
+                           dotIconType,
+                           true));
     }
 
     private static PlayerIconType GetPvPIconType(byte battalion, bool isDead) =>
-        isDead ? PlayerIconType.PvPDead : battalion switch
-        {
-            0 => PlayerIconType.PvPMaelstrom,
-            1 => PlayerIconType.PvPTwinAdder,
-            2 => PlayerIconType.PvPImmortalFlames,
-            _ => PlayerIconType.PvPDead
-        };
+        isDead
+            ? PlayerIconType.PvPDead
+            : battalion switch
+            {
+                0 => PlayerIconType.PvPMaelstrom,
+                1 => PlayerIconType.PvPTwinAdder,
+                2 => PlayerIconType.PvPImmortalFlames,
+                _ => PlayerIconType.PvPDead
+            };
 
     private static void ProcessNonPvPPlayer(IPlayerCharacter player, uint jobID)
     {
-        var isFriend = (player.StatusFlags & StatusFlags.Friend) != 0;
-        var isParty = (player.StatusFlags & StatusFlags.PartyMember) != 0;
+        var isFriend   = (player.StatusFlags & StatusFlags.Friend)         != 0;
+        var isParty    = (player.StatusFlags & StatusFlags.PartyMember)    != 0;
         var isAlliance = (player.StatusFlags & StatusFlags.AllianceMember) != 0;
 
-        bool showDot, showJobIcon, showName;
+        bool           showDot, showJobIcon, showName;
         PlayerIconType iconType;
-        KnownColor nameColor;
+        KnownColor     nameColor;
 
         if (isFriend)
         {
-            showDot = ModuleConfig.ShowFriendDots;
+            showDot     = ModuleConfig.ShowFriendDots;
             showJobIcon = ModuleConfig.ShowFriendJobIcons;
-            showName = ModuleConfig.ShowFriendNames;
-            iconType = PlayerIconType.Friend;
-            nameColor = KnownColor.Orange;
+            showName    = ModuleConfig.ShowFriendNames;
+            iconType    = PlayerIconType.Friend;
+            nameColor   = KnownColor.Orange;
         }
         else if (isParty)
         {
-            showDot = ModuleConfig.ShowPartyDots;
+            showDot     = ModuleConfig.ShowPartyDots;
             showJobIcon = ModuleConfig.ShowPartyJobIcons;
-            showName = ModuleConfig.ShowPartyNames;
-            iconType = PlayerIconType.Party;
-            nameColor = KnownColor.Cyan;
+            showName    = ModuleConfig.ShowPartyNames;
+            iconType    = PlayerIconType.Party;
+            nameColor   = KnownColor.Cyan;
         }
         else if (isAlliance)
         {
-            showDot = ModuleConfig.ShowAllianceDots;
+            showDot     = ModuleConfig.ShowAllianceDots;
             showJobIcon = ModuleConfig.ShowAllianceJobIcons;
-            showName = ModuleConfig.ShowAllianceNames;
-            iconType = PlayerIconType.Alliance;
-            nameColor = KnownColor.Green;
+            showName    = ModuleConfig.ShowAllianceNames;
+            iconType    = PlayerIconType.Alliance;
+            nameColor   = KnownColor.Green;
         }
         else
         {
-            showDot = ModuleConfig.ShowOtherDots;
+            showDot     = ModuleConfig.ShowOtherDots;
             showJobIcon = ModuleConfig.ShowOtherJobIcons;
-            showName = ModuleConfig.ShowOtherNames;
-            iconType = PlayerIconType.Other;
-            nameColor = KnownColor.White;
+            showName    = ModuleConfig.ShowOtherNames;
+            iconType    = PlayerIconType.Other;
+            nameColor   = KnownColor.White;
         }
 
         if (!showDot && !showJobIcon && !showName)
             return;
 
-        PlayerList.Add(new PlayerRadarInfo(
-            player.Address, showName, player.Name.TextValue, nameColor.ToVector4().ToUInt(),
-            showJobIcon, jobID, showDot, iconType, false));
+        PlayerList.Add(new(player.Address,
+                           showName,
+                           player.Name.TextValue,
+                           nameColor.ToUInt(),
+                           showJobIcon,
+                           jobID,
+                           showDot,
+                           iconType,
+                           false));
     }
 
     #endregion
@@ -705,10 +761,9 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
             return;
 
         var isInSupportedTerritory = IsFrontlineTerritory();
-        var shouldDrawMarkers = isInSupportedTerritory;
-        var shouldDrawRadar = ModuleConfig.ShowOutsideFrontline || isInSupportedTerritory;
+        var shouldDrawRadar        = ModuleConfig.ShowOutsideFrontline || isInSupportedTerritory;
 
-        if (!shouldDrawMarkers && !shouldDrawRadar)
+        if (!isInSupportedTerritory && !shouldDrawRadar)
             return;
 
         RefreshMapOrigin();
@@ -716,12 +771,12 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
         if (MapOrigin is not { } origin || origin == Vector2.Zero)
             return;
 
-        var map = GameState.MapData;
+        var map      = GameState.MapData;
         var drawList = ImGui.GetBackgroundDrawList();
 
         drawList.PushClipRect(MapPosSize[0], MapPosSize[1]);
 
-        if (shouldDrawMarkers)
+        if (isInSupportedTerritory)
             DrawMapMarkers(drawList, origin, map);
 
         if (shouldDrawRadar)
@@ -735,9 +790,9 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
         if (MapMarkers.Count == 0)
             return;
 
-        var localPlayerPos = DService.ObjectTable.LocalPlayer?.Position ?? Vector3.Zero;
+        var localPlayerPos        = DService.ObjectTable.LocalPlayer?.Position ?? Vector3.Zero;
         var localPlayerTexturePos = WorldToTexture(localPlayerPos, map);
-        var scale = MapScale * GlobalUIScale;
+        var scale                 = MapScale * GlobalUIScale;
 
         foreach (var marker in MapMarkers.Values)
         {
@@ -745,8 +800,8 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
                 continue;
 
             var markerTexturePos = WorldToTexture(marker.Position, map);
-            var textureOffset = (markerTexturePos - localPlayerTexturePos) * scale;
-            var pos = origin + textureOffset;
+            var textureOffset    = (markerTexturePos - localPlayerTexturePos) * scale;
+            var pos              = origin + textureOffset;
 
             DrawMarker(drawList, pos, marker);
         }
@@ -754,19 +809,16 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
 
     private static void DrawMarker(ImDrawListPtr drawList, Vector2 pos, MapMarkerInfo marker)
     {
-        var whiteColor = KnownColor.White.ToVector4().ToUInt();
+        var whiteColor    = KnownColor.White.ToUInt();
         var posWithOffset = pos + new Vector2(0, ModuleConfig.TextOffsetY);
 
         if (!string.IsNullOrEmpty(marker.DisplayText))
         {
             var isCountdown = CountdownIconIDs.Contains(marker.IconID) && !marker.DisplayText.Contains('%');
-            var isHealth = HealthIconIDs.Contains(marker.IconID) && marker.DisplayText.Contains('%');
+            var isHealth    = HealthIconIDs.Contains(marker.IconID)    && marker.DisplayText.Contains('%');
 
             if ((isCountdown && ModuleConfig.ShowCountdown) || (isHealth && ModuleConfig.ShowHealthPercent))
-            {
-                var fontSize = ImGui.GetFontSize() * ModuleConfig.TextScale;
-                DrawTextWithStroke(drawList, posWithOffset, marker.DisplayText, whiteColor, fontSize);
-            }
+                ImGuiOm.TextOutlined(posWithOffset, whiteColor, marker.DisplayText, marker.TextColor, drawList: drawList);
         }
 
         if (ControlPointIconIDs.Contains(marker.IconID) && ModuleConfig.ShowControlPointScore)
@@ -778,9 +830,7 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
                 if (displayScore > 0 || (state.ControlStartTime.HasValue && displayScore == 0))
                 {
                     var scoreText = ((int)Math.Round(displayScore)).ToString();
-                    var fontSize = ImGui.GetFontSize() * ModuleConfig.TextScale;
-
-                    DrawTextWithStroke(drawList, posWithOffset, scoreText, whiteColor, fontSize);
+                    ImGuiOm.TextOutlined(posWithOffset, whiteColor, scoreText, marker.TextColor, drawList: drawList);
                 }
             }
         }
@@ -790,19 +840,19 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
     {
         if (PlayerList.Count > 0)
         {
-            var localPlayerPos = DService.ObjectTable.LocalPlayer?.Position ?? Vector3.Zero;
+            var localPlayerPos        = DService.ObjectTable.LocalPlayer?.Position ?? Vector3.Zero;
             var localPlayerTexturePos = WorldToTexture(localPlayerPos, map);
-            var scale = MapScale * GlobalUIScale;
+            var scale                 = MapScale * GlobalUIScale;
 
             foreach (var item in PlayerList)
             {
                 if (DService.ObjectTable.CreateObjectReference(item.Address) is not IPlayerCharacter player || !player.IsValid())
                     continue;
 
-                var worldPos = player.Position;
+                var worldPos       = player.Position;
                 var itemTexturePos = WorldToTexture(worldPos, map);
-                var textureOffset = (itemTexturePos - localPlayerTexturePos) * scale;
-                var pos = origin + textureOffset;
+                var textureOffset  = (itemTexturePos - localPlayerTexturePos) * scale;
+                var pos            = origin + textureOffset;
 
                 DrawPlayerInfo(drawList, pos, item);
             }
@@ -811,14 +861,14 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
         if (isInSupportedTerritory && !ModuleConfig.HideLoadingRangeInPVP && DService.ObjectTable.LocalPlayer is not null)
         {
             var localPlayerPos = DService.ObjectTable.LocalPlayer.Position;
-            var radiusWorldPos = new Vector3(localPlayerPos.X + PvPLoadingRadius, localPlayerPos.Y, localPlayerPos.Z);
+            var radiusWorldPos = localPlayerPos with { X = localPlayerPos.X + PVP_LOADING_RADIUS };
 
             var centerTexturePos = WorldToTexture(localPlayerPos, map);
             var radiusTexturePos = WorldToTexture(radiusWorldPos, map);
 
             var assistRadius = Vector2.Distance(centerTexturePos, radiusTexturePos) * MapScale * GlobalUIScale;
 
-            drawList.AddCircle(origin, assistRadius, KnownColor.Gray.ToVector4().ToUInt(), 0, 2f);
+            drawList.AddCircle(origin, assistRadius, KnownColor.Gray.ToUInt(), 0, 2f);
         }
     }
 
@@ -832,11 +882,15 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
                 var iconSize = ModuleConfig.JobIconSize * ImGui.GetTextLineHeightWithSpacing();
 
                 var iconPos = info.IsPvP
-                    ? pos - new Vector2(iconSize / 2f)
-                    : pos - new Vector2(iconSize / 2f, iconSize / 1.2f);
+                                  ? pos - new Vector2(iconSize / 2f)
+                                  : pos - new Vector2(iconSize / 2f, iconSize / 1.2f);
 
-                drawList.AddImage(jobIcon.GetWrapOrEmpty().Handle, iconPos, iconPos + new Vector2(iconSize),
-                    Vector2.Zero, Vector2.One, KnownColor.White.ToVector4().ToUInt());
+                drawList.AddImage(jobIcon.GetWrapOrEmpty().Handle,
+                                  iconPos,
+                                  iconPos + new Vector2(iconSize),
+                                  Vector2.Zero,
+                                  Vector2.One,
+                                  KnownColor.White.ToUInt());
             }
         }
 
@@ -846,36 +900,14 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
             if (DService.Texture.TryGetFromGameIcon(new(dotIconID), out var icon))
             {
                 var iconSize = CachedDotIconSizes[info.DotIconType];
-                var iconPos = pos - new Vector2(iconSize / 2f);
+                var iconPos  = pos - new Vector2(iconSize / 2f);
                 drawList.AddImage(icon.GetWrapOrEmpty().Handle, iconPos, iconPos + new Vector2(iconSize),
-                    Vector2.Zero, Vector2.One, KnownColor.White.ToVector4().ToUInt());
+                                  Vector2.Zero, Vector2.One, KnownColor.White.ToUInt());
             }
         }
 
         if (info.ShowName && !string.IsNullOrWhiteSpace(info.Name))
             DrawText(drawList, pos, info.Name, info.NameColor, true);
-    }
-
-    private static void DrawTextWithStroke(
-        ImDrawListPtr drawList, Vector2 pos, string text, uint color, float fontSize,
-        bool centerAlignX = true, bool centerAlignY = true)
-    {
-        var textSize = ImGui.CalcTextSize(text) * (fontSize / ImGui.GetFontSize());
-        var textPos = pos;
-
-        if (centerAlignX)
-            textPos -= new Vector2(textSize.X / 2f, 0f);
-        if (centerAlignY)
-            textPos -= new Vector2(0f, textSize.Y / 2f);
-
-        var strokeColor = KnownColor.Black.ToVector4().ToUInt();
-        var font = ImGui.GetFont();
-
-        drawList.AddText(font, fontSize, textPos + new Vector2(-1f, -1f), strokeColor, text);
-        drawList.AddText(font, fontSize, textPos + new Vector2(-1f, 1f), strokeColor, text);
-        drawList.AddText(font, fontSize, textPos + new Vector2(1f, -1f), strokeColor, text);
-        drawList.AddText(font, fontSize, textPos + new Vector2(1f, 1f), strokeColor, text);
-        drawList.AddText(font, fontSize, textPos, color, text);
     }
 
     private static void DrawText(ImDrawListPtr drawList, Vector2 pos, string text, uint col, bool stroke, bool centerAlignX = true)
@@ -885,11 +917,11 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
 
         if (stroke)
         {
-            var strokeCol = KnownColor.Black.ToVector4().ToUInt();
+            var strokeCol = KnownColor.Black.ToUInt();
             drawList.AddText(pos + new Vector2(-1f, -1f), strokeCol, text);
-            drawList.AddText(pos + new Vector2(-1f, 1f), strokeCol, text);
-            drawList.AddText(pos + new Vector2(1f, -1f), strokeCol, text);
-            drawList.AddText(pos + new Vector2(1f, 1f), strokeCol, text);
+            drawList.AddText(pos + new Vector2(-1f, 1f),  strokeCol, text);
+            drawList.AddText(pos + new Vector2(1f,  -1f), strokeCol, text);
+            drawList.AddText(pos + new Vector2(1f,  1f),  strokeCol, text);
         }
 
         drawList.AddText(pos, col, text);
@@ -926,10 +958,10 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
                 continue;
 
             var innerComponentNode = (AtkComponentNode*)node;
-            var imageNode = (AtkImageNode*)innerComponentNode->Component->UldManager.NodeList[4];
+            var imageNode          = (AtkImageNode*)innerComponentNode->Component->UldManager.NodeList[4];
 
             var foundIconID = TryGetIconID(imageNode);
-            if (foundIconID == LocalPlayerIconID)
+            if (foundIconID == LOCAL_PLAYER_ICON_ID)
             {
                 result = innerComponentNode;
                 return true;
@@ -944,10 +976,10 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
         if (imageNode->PartsList is null || imageNode->PartId >= imageNode->PartsList->PartCount)
             return null;
 
-        var part = imageNode->PartsList->Parts[imageNode->PartId];
+        var part     = imageNode->PartsList->Parts[imageNode->PartId];
         var uldAsset = part.UldAsset;
 
-        if (uldAsset is null ||
+        if (uldAsset is null                                         ||
             uldAsset->AtkTexture.TextureType != TextureType.Resource ||
             uldAsset->AtkTexture.Resource is null)
             return null;
@@ -956,22 +988,22 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
     }
 
     private static void CalculateMapOriginAndSize(
-        AtkUnitBase* areaMapAddon,
-        AtkResNode baseNode,
+        AtkUnitBase*      areaMapAddon,
+        AtkResNode        baseNode,
         AtkComponentNode* innerComponentNode)
     {
         var innerNode = innerComponentNode->AtkResNode;
-        var viewport = ImGui.GetMainViewport();
-        var addonPos = new Vector2(areaMapAddon->X, areaMapAddon->Y);
+        var viewport  = ImGui.GetMainViewport();
+        var addonPos  = new Vector2(areaMapAddon->X, areaMapAddon->Y);
 
         MapOrigin = viewport.Pos + addonPos +
-                    ((new Vector2(baseNode.X, baseNode.Y) +
-                      new Vector2(innerNode.X, innerNode.Y) +
+                    ((new Vector2(baseNode.X,        baseNode.Y)  +
+                      new Vector2(innerNode.X,       innerNode.Y) +
                       new Vector2(innerNode.OriginX, innerNode.OriginY)) * GlobalUIScale);
 
         MapPosSize[0] = viewport.Pos + addonPos + (new Vector2(baseNode.X, baseNode.Y) * GlobalUIScale);
         MapPosSize[1] = viewport.Pos + addonPos + (new Vector2(baseNode.X, baseNode.Y) +
-                        (new Vector2(baseNode.Width, baseNode.Height) * GlobalUIScale));
+                                                   (new Vector2(baseNode.Width, baseNode.Height) * GlobalUIScale));
     }
 
     #endregion
@@ -985,22 +1017,27 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
     private static bool IsFrontlineTerritory() =>
         GameState.TerritoryIntendedUse == TerritoryIntendedUse.Frontline;
 
-    private static uint GetJobIconBaseID() => JobIconBaseIDs[Math.Clamp(ModuleConfig.JobIconStyle, 1, 4) - 1];
+    private static uint GetJobIconBaseID() => 
+        JobIconBaseIDs[Math.Clamp(ModuleConfig.JobIconStyle, 1, 4) - 1];
 
     #endregion
 
     #region 数据结构
 
-    private readonly record struct MapMarkerInfo(uint IconID, Vector3 Position, string DisplayText);
+    private readonly record struct MapMarkerInfo(
+        uint    IconID,
+        Vector3 Position,
+        string  DisplayText,
+        uint    TextColor);
 
     private record ControlPointState(
-        uint IconID,
+        uint      IconID,
         DateTime? ControlStartTime,
-        int InitialScore)
+        int       InitialScore)
     {
-        public int?       CurrentScore      { get; set; }
-        public double?    CurrentPercent    { get; set; }
-        public DateTime?  ReachedZeroTime   { get; set; }
+        public int?      CurrentScore    { get; set; }
+        public double?   CurrentPercent  { get; set; }
+        public DateTime? ReachedZeroTime { get; set; }
 
         public double DisplayScore =>
             CurrentPercent.HasValue
@@ -1009,8 +1046,15 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
     }
 
     private readonly record struct PlayerRadarInfo(
-        nint Address, bool ShowName, string Name, uint NameColor,
-        bool ShowJobIcon, uint JobID, bool ShowDotIcon, PlayerIconType DotIconType, bool IsPvP);
+        nint           Address,
+        bool           ShowName,
+        string         Name,
+        uint           NameColor,
+        bool           ShowJobIcon,
+        uint           JobID,
+        bool           ShowDotIcon,
+        PlayerIconType DotIconType,
+        bool           IsPvP);
 
     private enum PlayerIconType
     {
@@ -1028,30 +1072,30 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
 
     #region 常量数据
 
-    private const uint   LocalPlayerIconID                   = 60443;
-    private const int    CacheSuffixLength                   = 5;
-    private const int    ControlPointDecreaseIntervalSeconds = 3;
-    private const double ControlPointDecreaseFactor          = 0.1;
-    private const double ZeroScoreDisplayDuration            = 1.0;
-    private const float  PvPLoadingRadius                    = 125f;
+    private const uint   LOCAL_PLAYER_ICON_ID                    = 60443;
+    private const int    CACHE_SUFFIX_LENGTH                     = 5;
+    private const int    CONTROL_POINT_DECREASE_INTERVAL_SECONDS = 3;
+    private const double CONTROL_POINT_DECREASE_FACTOR           = 0.1;
+    private const double ZERO_SCORE_DISPLAY_DURATION             = 1.0;
+    private const float  PVP_LOADING_RADIUS                      = 125f;
 
     private static readonly uint[] JobIconBaseIDs = [62000, 62100, 62225, 62800];
 
     private static readonly HashSet<uint> CountdownIconIDs =
     [
-        60628, 60629, 60630,        // B
-        60624, 60625, 60626,        // A
-        60620, 60621, 60622,        // S
-        60989, 60990,               // 大冰, 小冰
-        63987, 63979,               // 截击指挥系统
-        63986, 60992,               // 截击无人机
-        63985, 60991                // 截击系统
+        60628, 60629, 60630, // B
+        60624, 60625, 60626, // A
+        60620, 60621, 60622, // S
+        60989, 60990,        // 大冰, 小冰
+        63987, 63979,        // 截击指挥系统
+        63986, 60992,        // 截击无人机
+        63985, 60991         // 截击系统
     ];
 
     private static readonly HashSet<uint> HealthIconIDs =
     [
-        60902, 60904,               // 大冰, 小冰
-        60999, 60998                // 截击无人机, 截击系统
+        60902, 60904, // 大冰, 小冰
+        60999, 60998  // 截击无人机, 截击系统
     ];
 
     private static readonly HashSet<uint> ControlPointIconIDs =
@@ -1073,35 +1117,35 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
 
     private static readonly HashSet<uint> AllTrackedIconIDs =
     [
-        .. CountdownIconIDs,
-        .. HealthIconIDs,
-        .. ControlPointIconIDs
+        ..CountdownIconIDs,
+        ..HealthIconIDs,
+        ..ControlPointIconIDs
     ];
 
     private static readonly Dictionary<uint, int> SealRockControlPointScores = new()
     {
-        [60585] = 80,  [60586] = 80,  [60587] = 80,  [60588] = 80,
+        [60585] = 80, [60586]  = 80, [60587]  = 80, [60588]  = 80,
         [60589] = 120, [60590] = 120, [60591] = 120, [60592] = 120,
         [60593] = 160, [60594] = 160, [60595] = 160, [60596] = 160
     };
 
     private static readonly Dictionary<uint, int> AzimSteppeControlPointScores = new()
     {
-        [60585] = 50,  [60586] = 50,  [60587] = 50,  [60588] = 50,
+        [60585] = 50, [60586]  = 50, [60587]  = 50, [60588]  = 50,
         [60589] = 100, [60590] = 100, [60591] = 100, [60592] = 100,
         [60593] = 200, [60594] = 200, [60595] = 200, [60596] = 200
     };
 
     private static readonly Dictionary<PlayerIconType, (uint IconID, float FixedScale)> PlayerIcons = new()
     {
-        [PlayerIconType.Friend]             = (60424, 1.8f),
-        [PlayerIconType.Party]              = (60421, 1.0f),
-        [PlayerIconType.Alliance]           = (60403, 1.0f),
-        [PlayerIconType.Other]              = (60909, 1.2f),
-        [PlayerIconType.PvPDead]            = (60909, 1.2f),
-        [PlayerIconType.PvPMaelstrom]       = (60359, 1.0f),
-        [PlayerIconType.PvPTwinAdder]       = (60360, 1.0f),
-        [PlayerIconType.PvPImmortalFlames]  = (60361, 1.0f)
+        [PlayerIconType.Friend]            = (60424, 1.8f),
+        [PlayerIconType.Party]             = (60421, 1.0f),
+        [PlayerIconType.Alliance]          = (60403, 1.0f),
+        [PlayerIconType.Other]             = (60909, 1.2f),
+        [PlayerIconType.PvPDead]           = (60909, 1.2f),
+        [PlayerIconType.PvPMaelstrom]      = (60359, 1.0f),
+        [PlayerIconType.PvPTwinAdder]      = (60360, 1.0f),
+        [PlayerIconType.PvPImmortalFlames] = (60361, 1.0f)
     };
 
     [GeneratedRegex(@"(\d+):(\d+)")]
@@ -1115,36 +1159,36 @@ public unsafe partial class FrontlineMapRadar : DailyModuleBase
     private class Config : ModuleConfiguration
     {
         // PVP 地图标记设置
-        public float TextScale             = 1.5f;
+        public float TextScale = 1.5f;
         public int   TextOffsetY;
         public bool  ShowCountdown         = true;
         public bool  ShowHealthPercent     = true;
         public bool  ShowControlPointScore = true;
 
         // PVP 玩家雷达设置
-        public float            DotRadius               = 1.0f;
-        public float            JobIconSize             = 1.4f;
-        public int              JobIconStyle            = 1;
-        public bool             HideLoadingRangeInPVP;
-        public bool             HideFriendlyInPVP       = true;
-        public HashSet<uint>    HighlightedJobs         = [];
+        public float         DotRadius    = 1.0f;
+        public float         JobIconSize  = 1.4f;
+        public int           JobIconStyle = 1;
+        public bool          HideLoadingRangeInPVP;
+        public bool          HideFriendlyInPVP = true;
+        public HashSet<uint> HighlightedJobs   = [];
 
         // 非 PVP 玩家雷达设置
         public bool ShowOutsideFrontline;
 
         public bool ShowFriendDots;
-        public bool ShowFriendNames      = true;
-        public bool ShowFriendJobIcons   = true;
+        public bool ShowFriendNames    = true;
+        public bool ShowFriendJobIcons = true;
 
         public bool ShowPartyDots;
-        public bool ShowPartyNames       = true;
-        public bool ShowPartyJobIcons    = true;
+        public bool ShowPartyNames    = true;
+        public bool ShowPartyJobIcons = true;
 
-        public bool ShowAllianceDots     = true;
+        public bool ShowAllianceDots = true;
         public bool ShowAllianceNames;
         public bool ShowAllianceJobIcons;
 
-        public bool ShowOtherDots        = true;
+        public bool ShowOtherDots = true;
         public bool ShowOtherNames;
         public bool ShowOtherJobIcons;
     }
