@@ -44,7 +44,7 @@ public unsafe class AutoRepair : DailyModuleBase
     // 批量修理已装备装备
     // unknownBool => *(bool*)((nint)AgentRepair + 49 * sizeof(long)) == 0
     [return: MarshalAs(UnmanagedType.U1)]
-    private delegate bool                               RepairEquippedItemsDelegate(RepairManager* manager, InventoryType inventory, bool isNPC);
+    private delegate bool                               RepairEquippedItemsDelegate(RepairManager* manager, int inventoryIndex, bool isNPC, byte arg0);
     private static   Hook<RepairEquippedItemsDelegate>? RepairEquippedItemsHook;
 
     [return: MarshalAs(UnmanagedType.U1)]
@@ -61,7 +61,7 @@ public unsafe class AutoRepair : DailyModuleBase
 
         RepairEquippedItemsHook ??= DService.Hook.HookFromMemberFunction<RepairEquippedItemsDelegate>(typeof(RepairManager.MemberFunctionPointers), "RepairEquipped", RepairEquippedItemsDetour);
         RepairEquippedItemsHook.Enable();
-
+        
         RepairAllItemsHook ??=
             DService.Hook.HookFromMemberFunction<RepairAllItemsDelegate>(typeof(RepairManager.MemberFunctionPointers), "RepairAllItems", RepairAllItemsDetour);
         RepairAllItemsHook.Enable();
@@ -223,33 +223,35 @@ public unsafe class AutoRepair : DailyModuleBase
     }
 
     [return: MarshalAs(UnmanagedType.U1)]
-    private static bool RepairEquippedItemsDetour(RepairManager* manager, InventoryType inventory, bool isNPC)
+    private static bool RepairEquippedItemsDetour(RepairManager* manager, int inventoryIndex, bool isNPC, byte arg0)
     {
+        isNPC = DService.Condition[ConditionFlag.OccupiedInQuestEvent];
+        
         // NPC
         if (isNPC)
         {
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, (uint)inventory);
+            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, (uint)inventoryIndex);
             ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
             return true;
         }
         
         // 自己修理
-        return RepairEquippedItemsHook.Original(manager, inventory, isNPC);
+        return RepairEquippedItemsHook.Original(manager, inventoryIndex, isNPC, arg0);
     }
     
     [return: MarshalAs(UnmanagedType.U1)]
-    private static bool RepairAllItemsDetour(RepairManager* manager, bool isNPC, int invenoryIndex, byte arg0)
+    private static bool RepairAllItemsDetour(RepairManager* manager, bool isNPC, int inventoryIndex, byte arg0)
     {
         // NPC
         if (isNPC)
         {
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairAllItemsNPC, (uint)invenoryIndex);
+            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairAllItemsNPC, (uint)inventoryIndex);
             ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
             return true;
         }
 
         // 自己修理
-        return RepairAllItemsHook.Original(manager, false, invenoryIndex, arg0);
+        return RepairAllItemsHook.Original(manager, isNPC, inventoryIndex, arg0);
     }
 
     #endregion
