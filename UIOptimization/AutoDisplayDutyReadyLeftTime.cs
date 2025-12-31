@@ -1,10 +1,6 @@
-﻿using System;
-using System.Threading;
-using System.Timers;
-using DailyRoutines.Abstracts;
-using Dalamud.Game.Addon.Lifecycle;
+﻿using DailyRoutines.Abstracts;
 using Dalamud.Game.ClientState.Conditions;
-using Timer = System.Timers.Timer;
+using Dalamud.Game.Text.SeStringHandling;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -14,16 +10,17 @@ public unsafe class AutoDisplayDutyReadyLeftTime : DailyModuleBase
     {
         Title       = GetLoc("AutoDisplayDutyReadyLeftTimeTitle"),
         Description = GetLoc("AutoDisplayDutyReadyLeftTimeDescription"),
-        Category    = ModuleCategories.UIOptimization
+        Category    = ModuleCategories.Combat
     };
     
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     private static CountdownTimer? Timer;
 
-    protected override void Init() => DService.Condition.ConditionChange += OnConditionChanged;
+    protected override void Init() =>
+        DService.Condition.ConditionChange += OnConditionChanged;
 
-    private void OnConditionChanged(ConditionFlag flag, bool value)
+    private static void OnConditionChanged(ConditionFlag flag, bool value)
     {
         if (flag != ConditionFlag.WaitingForDuty) return;
         
@@ -47,8 +44,14 @@ public unsafe class AutoDisplayDutyReadyLeftTime : DailyModuleBase
         
         var textNode = ContentsFinderReady->GetTextNodeById(3);
         if (textNode == null) return;
+
+        var builder = new SeStringBuilder();
+        builder.AddText($"{LuminaWrapper.GetAddonText(2780)} ")
+               .AddUiForeground(32)
+               .AddText($"[{DService.SeStringEvaluator.EvaluateFromAddon(9169, [second])}]")
+               .AddUiForegroundOff();
         
-        textNode->SetText($"{LuminaWrapper.GetAddonText(2780)} ({second})");
+        textNode->SetText(builder.Build().EncodeWithNullTerminator());
     }
 
     protected override void Uninit()
