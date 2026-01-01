@@ -56,14 +56,7 @@ public unsafe class AutoRepair : DailyModuleBase
         DService.Condition.ConditionChange    += OnConditionChanged;
         DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
     }
-
-    private static void OnExecuteCommand(ExecuteCommandFlag command, uint param1, uint param2, uint param3, uint param4)
-    {
-        if (!ValidRepairFlags.Contains(command)) return;
-        
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
-    }
-
+    
     protected override void ConfigUI()
     {
         ImGui.SetNextItemWidth(100f * GlobalFontScale);
@@ -214,6 +207,13 @@ public unsafe class AutoRepair : DailyModuleBase
     }
 
     private void OnZoneChanged(ushort zoneID) => EnqueueRepair();
+    
+    private static void OnExecuteCommand(ExecuteCommandFlag command, uint param1, uint param2, uint param3, uint param4)
+    {
+        if (!ValidRepairFlags.Contains(command)) return;
+        
+        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
+    }
 
     #endregion
 
