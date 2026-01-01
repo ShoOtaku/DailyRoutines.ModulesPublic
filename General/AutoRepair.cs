@@ -5,7 +5,6 @@ using DailyRoutines.Abstracts;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -64,6 +63,8 @@ public unsafe class AutoRepair : DailyModuleBase
         if (ImGui.IsItemDeactivatedAfterEdit())
             SaveConfig(ModuleConfig);
         
+        ImGui.NewLine();
+        
         if (ImGui.Checkbox(GetLoc("AutoRepair-AllowNPCRepair"), ref ModuleConfig.AllowNPCRepair))
             SaveConfig(ModuleConfig);
         ImGuiOm.HelpMarker(GetLoc("AutoRepair-AllowNPCRepairHelp"), 100f * GlobalFontScale);
@@ -92,7 +93,7 @@ public unsafe class AutoRepair : DailyModuleBase
         if (!TryGetInventoryItems([InventoryType.EquippedItems],
                                  x => x.Condition < ModuleConfig.RepairThreshold * 300f, out var items))
             return;
-        
+
         // 优先委托 NPC 修理
         if (ModuleConfig is { AllowNPCRepair: true, PrioritizeNPCRepair: true } && IsEventIDNearby(720915))
         {
@@ -139,36 +140,29 @@ public unsafe class AutoRepair : DailyModuleBase
             
             itemsUnableToRepair.Add(itemToRepair.ItemId);
         }
-        
+
         TaskHelper.Abort();
         
         // 还是有能自己修的装备的
         if (items.Count > itemsUnableToRepair.Count)
         {
-            TaskHelper.Enqueue(() => IsAbleToRepair());
-            TaskHelper.Enqueue(() => NotificationInfo(GetLoc("AutoRepair-RepairNotice"), GetLoc("AutoRepairTitle")));
-            TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.GeneralAction, 6));
-            TaskHelper.Enqueue(() => IsAddonAndNodesReady(Repair));
+            TaskHelper.Enqueue(() => IsAbleToRepair(), "等待可以维修状态");
+            TaskHelper.Enqueue(() => NotificationInfo(GetLoc("AutoRepair-RepairNotice"), GetLoc("AutoRepairTitle")), "发送开始维修通知");
             
             // 没有暗物质不足的情况
             if (!isDMInsufficient)
-                TaskHelper.Enqueue(() => SendEvent(AgentId.Repair, 2, 0));
+                TaskHelper.Enqueue(() => RepairManager.Instance()->RepairEquipped(false), "发送一键全修");
             else
             {
                 var itemsSelfRepair = items.ToList();
                 itemsSelfRepair.RemoveAll(x => itemsUnableToRepair.Contains(x.ItemId));
                 foreach (var item in itemsSelfRepair)
                 {
-                    TaskHelper.Enqueue(() => RepairManager.Instance()->RepairItem(item.Container, (ushort)item.Slot, false));
+                    TaskHelper.Enqueue(() => RepairManager.Instance()->RepairItem(item.Container, (ushort)item.Slot, false), $"修理: {LuminaWrapper.GetItemName(item.ItemId)}");
                     TaskHelper.DelayNext(3_000);
                 }
             }
-            
-            TaskHelper.Enqueue(() =>
-            {
-                if (!IsAddonAndNodesReady(Repair)) return;
-                Repair->Close(true);
-            });
+
             TaskHelper.DelayNext(5_00);
         }
 
@@ -189,16 +183,17 @@ public unsafe class AutoRepair : DailyModuleBase
     }
 
     private static bool IsAbleToRepair() =>
-        IsScreenReady()           &&
-        !OccupiedInEvent          &&
-        GameState.IsInPVPInstance &&
-        !IsOnMount                &&
-        !IsCasting                &&
+        IsScreenReady()            &&
+        !OccupiedInEvent           &&
+        !GameState.IsInPVPInstance &&
+        !IsOnMount                 &&
+        !IsCasting                 &&
         ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 6) == 0;
     
     #region 事件
 
-    private void OnDutyRecommenced(object? sender, ushort e) => EnqueueRepair();
+    private void OnDutyRecommenced(object? sender, ushort e) =>
+        EnqueueRepair();
 
     private void OnConditionChanged(ConditionFlag flag, bool value)
     {
@@ -206,7 +201,8 @@ public unsafe class AutoRepair : DailyModuleBase
         EnqueueRepair();
     }
 
-    private void OnZoneChanged(ushort zoneID) => EnqueueRepair();
+    private void OnZoneChanged(ushort zoneID) =>
+        EnqueueRepair();
     
     private static void OnExecuteCommand(ExecuteCommandFlag command, uint param1, uint param2, uint param3, uint param4)
     {
