@@ -44,11 +44,14 @@ public unsafe class FastMinimizeWindow : DailyModuleBase
         CommandManager.RemoveSubCommand(CommandMini);
         CommandManager.RemoveSubCommand(CommandTray);
         
-        var hwnd = Framework.Instance()->GameWindow->WindowHandle;
-        if (hwnd != nint.Zero && !IsWindowVisible(hwnd))
+        if (Initialized)
         {
-            ShowWindow(hwnd, SwShow);
-            SetForegroundWindow(hwnd);
+            var hwnd = Framework.Instance()->GameWindow->WindowHandle;
+            if (hwnd != nint.Zero && !IsWindowVisible(hwnd))
+            {
+                ShowWindow(hwnd, SwShow);
+                SetForegroundWindow(hwnd);
+            }
         }
         
         DisposeTrayIcon();
