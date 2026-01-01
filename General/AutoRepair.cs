@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -34,41 +32,36 @@ public unsafe class AutoRepair : DailyModuleBase
         ConditionFlag.Crafting
     ];
 
+    private static readonly HashSet<ExecuteCommandFlag> ValidRepairFlags =
+    [
+        ExecuteCommandFlag.RepairItemNPC,
+        ExecuteCommandFlag.RepairAllItemsNPC,
+        ExecuteCommandFlag.RepairEquippedItemsNPC,
+        
+        ExecuteCommandFlag.RepairItem,
+        ExecuteCommandFlag.RepairAllItems,
+        ExecuteCommandFlag.RepairEquippedItems
+    ];
+
     private static Config ModuleConfig = null!;
-
-    // 修理装备
-    [return: MarshalAs(UnmanagedType.U1)]
-    private delegate        bool                      RepairItemDelegate(RepairManager* manager, InventoryType inventory, ushort slot, bool isNPC);
-    private static          Hook<RepairItemDelegate>? RepairItemHook;
-
-    // 批量修理已装备装备
-    // unknownBool => *(bool*)((nint)AgentRepair + 49 * sizeof(long)) == 0
-    [return: MarshalAs(UnmanagedType.U1)]
-    private delegate bool                               RepairEquippedItemsDelegate(RepairManager* manager, int inventoryIndex, bool isNPC, byte arg0);
-    private static   Hook<RepairEquippedItemsDelegate>? RepairEquippedItemsHook;
-
-    [return: MarshalAs(UnmanagedType.U1)]
-    private delegate bool                          RepairAllItemsDelegate(RepairManager* manager, bool isNPC, int invenoryIndex, byte arg0);
-    private static   Hook<RepairAllItemsDelegate>? RepairAllItemsHook;
 
     protected override void Init()
     {
         ModuleConfig ??= LoadConfig<Config>() ?? new();
-        TaskHelper ??= new TaskHelper { TimeLimitMS = 10_000 };
-        
-        RepairItemHook ??= DService.Hook.HookFromMemberFunction<RepairItemDelegate>(typeof(RepairManager.MemberFunctionPointers), "RepairItem", RepairItemDetour);
-        RepairItemHook.Enable();
+        TaskHelper ??= new();
 
-        RepairEquippedItemsHook ??= DService.Hook.HookFromMemberFunction<RepairEquippedItemsDelegate>(typeof(RepairManager.MemberFunctionPointers), "RepairEquipped", RepairEquippedItemsDetour);
-        RepairEquippedItemsHook.Enable();
-        
-        RepairAllItemsHook ??=
-            DService.Hook.HookFromMemberFunction<RepairAllItemsDelegate>(typeof(RepairManager.MemberFunctionPointers), "RepairAllItems", RepairAllItemsDetour);
-        RepairAllItemsHook.Enable();
+        ExecuteCommandManager.RegPost(OnExecuteCommand);
         
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.Condition.ConditionChange    += OnConditionChanged;
         DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
+    }
+
+    private static void OnExecuteCommand(ExecuteCommandFlag command, uint param1, uint param2, uint param3, uint param4)
+    {
+        if (!ValidRepairFlags.Contains(command)) return;
+        
+        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
     }
 
     protected override void ConfigUI()
@@ -173,7 +166,7 @@ public unsafe class AutoRepair : DailyModuleBase
                 itemsSelfRepair.RemoveAll(x => itemsUnableToRepair.Contains(x.ItemId));
                 foreach (var item in itemsSelfRepair)
                 {
-                    TaskHelper.Enqueue(() => RepairItemDetour(RepairManager.Instance(), item.Container, (ushort)item.Slot, false));
+                    TaskHelper.Enqueue(() => RepairManager.Instance()->RepairItem(item.Container, (ushort)item.Slot, false));
                     TaskHelper.DelayNext(3_000);
                 }
             }
@@ -202,60 +195,6 @@ public unsafe class AutoRepair : DailyModuleBase
         }
     }
 
-    #region Hooks
-
-    [return: MarshalAs(UnmanagedType.U1)]
-    private static bool RepairItemDetour(RepairManager* manager, InventoryType inventory, ushort slot, bool isNPC)
-    {
-        var slotData = InventoryManager.Instance()->GetInventorySlot(inventory, slot);
-        if (slotData == null) return false;
-        
-        // NPC
-        if (isNPC)
-        {
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairItemNPC, (uint)inventory, slot, slotData->ItemId);
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
-            return true;
-        }
-        
-        // 自己修理
-        return RepairItemHook.Original(manager, inventory, slot, false);
-    }
-
-    [return: MarshalAs(UnmanagedType.U1)]
-    private static bool RepairEquippedItemsDetour(RepairManager* manager, int inventoryIndex, bool isNPC, byte arg0)
-    {
-        isNPC = DService.Condition[ConditionFlag.OccupiedInQuestEvent];
-        
-        // NPC
-        if (isNPC)
-        {
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, (uint)inventoryIndex);
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
-            return true;
-        }
-        
-        // 自己修理
-        return RepairEquippedItemsHook.Original(manager, inventoryIndex, isNPC, arg0);
-    }
-    
-    [return: MarshalAs(UnmanagedType.U1)]
-    private static bool RepairAllItemsDetour(RepairManager* manager, bool isNPC, int inventoryIndex, byte arg0)
-    {
-        // NPC
-        if (isNPC)
-        {
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairAllItemsNPC, (uint)inventoryIndex);
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
-            return true;
-        }
-
-        // 自己修理
-        return RepairAllItemsHook.Original(manager, isNPC, inventoryIndex, arg0);
-    }
-
-    #endregion
-
     private static bool IsAbleToRepair() =>
         IsScreenReady()           &&
         !OccupiedInEvent          &&
@@ -280,6 +219,7 @@ public unsafe class AutoRepair : DailyModuleBase
 
     protected override void Uninit()
     {
+        ExecuteCommandManager.Unreg(OnExecuteCommand);
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
         DService.Condition.ConditionChange -= OnConditionChanged;
         DService.DutyState.DutyRecommenced -= OnDutyRecommenced;
