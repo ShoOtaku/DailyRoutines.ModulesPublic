@@ -524,25 +524,27 @@ public partial class OccultCrescentHelper
 
             private SimpleNineGridNode MoonPatternNode;
             private SimpleNineGridNode PatternLeftNode;
+            private SimpleNineGridNode PatternLeftCornerNode;
             private SimpleNineGridNode PatternRightNode;
+            private SimpleNineGridNode HeaderBackgroundNode;
+            private SimpleNineGridNode HeaderBorderNode;
 
             private TextureButtonNode CloseButtonNode;
 
             public bool PressedButtonOnce { get; set; }
-
+            
             protected override void OnSetup(AtkUnitBase* addon)
             {
                 PressedButtonOnce = false;
-
                 RootNode.Size += new Vector2(200, 0);
-
-                var windowNode = (WindowNode)WindowNode;
                 
+                var windowNode = (WindowNode)WindowNode;
+
                 windowNode.CloseButtonNode.IsVisible = false;
                 windowNode.BackgroundNode.IsVisible  = false;
                 windowNode.BorderNode.Alpha          = 0f;
                 windowNode.TitleNode.IsVisible       = false;
-
+                
                 JobActionsContainer.Clear();
 
                 CreateWindowStyle();
@@ -560,7 +562,11 @@ public partial class OccultCrescentHelper
                     return;
                 }
 
-                IsFocused = ((WindowNode)WindowNode).BorderNode.IsVisible;
+                var windowNode = (WindowNode)WindowNode;
+                
+                IsFocused                               = windowNode.BorderNode.IsVisible;
+                windowNode.BackgroundImageNode.Position = new(0);
+                windowNode.BackgroundImageNode.Size     = new(windowNode.Width - 2f, windowNode.Height - 12f);
 
                 if (!Throttler.Throttle("OccultCrescentHelper-OthersManager-UpdateAddon", 10)) return;
 
@@ -576,7 +582,7 @@ public partial class OccultCrescentHelper
 
                     if (node.BackgroundNode != null)
                     {
-                        var targetAlpha = IsFocused ? 0.9f : 0.6f;
+                        var targetAlpha = IsFocused ? 0.9f : 0.7f;
                         node.BackgroundNode.Alpha = float.Lerp(node.BackgroundNode.Alpha / 255f, targetAlpha, LerpSpeed);
                     }
                 }
@@ -589,13 +595,13 @@ public partial class OccultCrescentHelper
 
                 if (BackgroundNode != null)
                 {
-                    var targetAlpha = IsFocused ? 0.9f : 0.6f;
+                    var targetAlpha = IsFocused ? 0.9f : 0.7f;
                     BackgroundNode.Alpha = float.Lerp(BackgroundNode.Alpha / 255f, targetAlpha, LerpSpeed);
                 }
 
                 if (MoonPatternNode != null)
                 {
-                    var targetAlpha = IsFocused ? 0.9f : 0.6f;
+                    var targetAlpha = IsFocused ? 0.9f : 0.7f;
                     MoonPatternNode.Alpha = float.Lerp(MoonPatternNode.Alpha / 255f, targetAlpha, LerpSpeed);
                 }
 
@@ -603,6 +609,12 @@ public partial class OccultCrescentHelper
                 {
                     var targetAlpha = IsFocused ? 0.3f : 0.2f;
                     PatternLeftNode.Alpha = float.Lerp(PatternLeftNode.Alpha / 255f, targetAlpha, LerpSpeed);
+                }
+                
+                if (PatternLeftCornerNode != null)
+                {
+                    var targetAlpha = IsFocused ? 0.3f : 0.2f;
+                    PatternLeftCornerNode.Alpha = float.Lerp(PatternLeftCornerNode.Alpha / 255f, targetAlpha, LerpSpeed);
                 }
 
                 if (PatternRightNode != null)
@@ -878,6 +890,31 @@ public partial class OccultCrescentHelper
                 };
                 BackgroundNode.AttachNode(this);
 
+                HeaderBackgroundNode = new()
+                {
+                    TextureCoordinates = new(110, 0),
+                    TextureSize        = new(9, 41),
+                    TexturePath        = "ui/uld/MKDWindow_hr1.tex",
+                    IsVisible          = true,
+                    Size               = new(505, 40),
+                    Position           = new(-2),
+                    Alpha              = 1f,
+                };
+                HeaderBackgroundNode.AttachNode(this);
+
+                HeaderBorderNode = new()
+                {
+                    TextureCoordinates = new(63, 55),
+                    TextureSize        = new(47, 6),
+                    TexturePath        = "ui/uld/MKDWindow_hr1.tex",
+                    IsVisible          = true,
+                    Size               = new(520, 6),
+                    Position           = new(0, 36),
+                    Alpha              = 1f,
+                    AddColor           = new(-0.196078f)
+                };
+                HeaderBorderNode.AttachNode(this);
+                
                 MoonPatternNode = new SimpleNineGridNode
                 {
                     TextureCoordinates = new(0),
@@ -885,12 +922,12 @@ public partial class OccultCrescentHelper
                     TexturePath        = "ui/uld/MKDWallMoon_hr1.tex",
                     IsVisible          = true,
                     Size               = new(190),
-                    Position           = new(310, 183),
+                    Position           = new(310, 285),
                     Alpha              = 0.9f,
                 };
                 MoonPatternNode.AttachNode(this);
 
-                PatternLeftNode = new SimpleNineGridNode
+                PatternLeftNode = new()
                 {
                     TextureCoordinates = new(349, 140),
                     TextureSize        = new(98, 132),
@@ -901,6 +938,18 @@ public partial class OccultCrescentHelper
                     Alpha              = 0.3f,
                 };
                 PatternLeftNode.AttachNode(this);
+                
+                PatternLeftCornerNode = new()
+                {
+                    TextureCoordinates = new(0, 174),
+                    TextureSize        = new(140, 146),
+                    TexturePath        = "ui/uld/MKDWindowPattern_hr1.tex",
+                    IsVisible          = true,
+                    Size               = new(128, 132),
+                    Position           = new(0, 300),
+                    Alpha              = 0.3f,
+                };
+                PatternLeftCornerNode.AttachNode(this);
 
                 PatternRightNode = new SimpleNineGridNode
                 {
@@ -949,12 +998,12 @@ public partial class OccultCrescentHelper
             {
                 CloseButtonNode = new TextureButtonNode
                 {
-                    Size               = new(28.0f, 28.0f),
-                    Position           = new(458.0f, 6.0f),
+                    Size               = new(28f),
+                    Position           = new(458f, 8f),
                     IsVisible          = true,
                     TexturePath        = "ui/uld/WindowA_Button_hr1.tex",
-                    TextureCoordinates = new(0.0f, 0.0f),
-                    TextureSize        = new(28.0f, 28.0f),
+                    TextureCoordinates = new(0),
+                    TextureSize        = new(28f),
                     OnClick            = Close
                 };
 
@@ -984,13 +1033,15 @@ public partial class OccultCrescentHelper
 
             private class SupportJobActionListNode : SimpleComponentNode
             {
-                public SimpleNineGridNode      BackgroundNode      { get; private set; }
-                public SimpleNineGridNode      BorderNode          { get; private set; }
-                public VerticalListNode        ActionListNode      { get; private set; }
-                public TextureButtonNode       CloseButtonNode     { get; private set; }
-                public TextureButtonNode       SettingButtonNode   { get; private set; }
-                public CheckboxNode            IsRealActionNode    { get; private set; }
-                public List<SupportActionNode> ActionDragDropNodes { get; private set; } = [];
+                public SimpleNineGridNode      BackgroundNode       { get; private set; }
+                public SimpleNineGridNode      BorderNode           { get; private set; }
+                public SimpleNineGridNode      HeaderBackgroundNode { get; private set; }
+                public SimpleNineGridNode      HeaderBorderNode     { get; private set; }
+                public VerticalListNode        ActionListNode       { get; private set; }
+                public TextureButtonNode       CloseButtonNode      { get; private set; }
+                public TextureButtonNode       SettingButtonNode    { get; private set; }
+                public CheckboxNode            IsRealActionNode     { get; private set; }
+                public List<SupportActionNode> ActionDragDropNodes  { get; private set; } = [];
 
                 public void LoadNodes(CrescentSupportJob presetJob, bool isCurrentFoucused)
                 {
@@ -1005,6 +1056,31 @@ public partial class OccultCrescentHelper
                         Alpha              = isCurrentFoucused ? 0.9f : 0.6f,
                     };
                     BackgroundNode.AttachNode(this);
+                    
+                    HeaderBackgroundNode = new()
+                    {
+                        TextureCoordinates = new(110, 0),
+                        TextureSize        = new(9, 41),
+                        TexturePath        = "ui/uld/MKDWindow_hr1.tex",
+                        IsVisible          = true,
+                        Size               = Size with { Y = 40 } + new Vector2(54, 0),
+                        Position           = new(-2),
+                        Alpha              = 1f,
+                    };
+                    HeaderBackgroundNode.AttachNode(this);
+
+                    HeaderBorderNode = new()
+                    {
+                        TextureCoordinates = new(63, 55),
+                        TextureSize        = new(47, 6),
+                        TexturePath        = "ui/uld/MKDWindow_hr1.tex",
+                        IsVisible          = true,
+                        Size               = Size with { Y = 6 } + new Vector2(58, 0),
+                        Position           = new(0, 36),
+                        Alpha              = 1f,
+                        AddColor           = new(-0.196078f)
+                    };
+                    HeaderBorderNode.AttachNode(this);
 
                     BorderNode = new SimpleNineGridNode
                     {
@@ -1013,7 +1089,7 @@ public partial class OccultCrescentHelper
                         TexturePath        = "ui/uld/MKDWindow_hr1.tex",
                         IsVisible          = true,
                         Size               = this.Size + new Vector2(64, 14),
-                        Position           = new(-8, -5),
+                        Position           = new(-8.5f, -5),
                         Alpha              = 0.9f,
                         Offsets            = new(24),
                         AddColor           = isCurrentFoucused ? new(0.19607843f) : new(-0.19607843f)
@@ -1024,7 +1100,7 @@ public partial class OccultCrescentHelper
                     {
                         Size      = this.Size + new Vector2(50, 0),
                         IsVisible = true,
-                        Position  = new(10)
+                        Position  = new(10, 30)
                     };
                     ActionListNode.AttachNode(this);
 
@@ -1127,7 +1203,7 @@ public partial class OccultCrescentHelper
                     CloseButtonNode = new TextureButtonNode
                     {
                         Size               = new(28),
-                        Position           = new(220, 6),
+                        Position           = new(210, 8),
                         IsVisible          = true,
                         TexturePath        = "ui/uld/WindowA_Button_hr1.tex",
                         TextureCoordinates = new(0),
@@ -1141,9 +1217,9 @@ public partial class OccultCrescentHelper
                             SupportJobChangeAddon.WindowNode.Size = SupportJobChangeAddon.WindowNode.Size with { X = 500 };
                         }
                     };
-
-                    CloseButtonNode.ImageNode.AddColor = new();
-
+                    
+                    CloseButtonNode.ImageNode.AddColor = new(-0.19607843f);
+                    
                     CloseButtonNode.AddTimeline(new TimelineBuilder()
                                                 .BeginFrameSet(1, 20)
                                                 .AddLabel(1,  1, AtkTimelineJumpBehavior.Start,    0)
@@ -1168,7 +1244,7 @@ public partial class OccultCrescentHelper
                     SettingButtonNode = new TextureButtonNode
                     {
                         Size               = new(16),
-                        Position           = new(202, 12f),
+                        Position           = new(192, 14),
                         IsVisible          = true,
                         TexturePath        = "ui/uld/WindowA_Button_hr1.tex",
                         TextureCoordinates = new(44, 0),
@@ -1176,7 +1252,7 @@ public partial class OccultCrescentHelper
                         OnClick            = () => AgentModule.Instance()->GetAgentByInternalId(AgentId.MKDSettings)->Show()
                     };
 
-                    SettingButtonNode.ImageNode.AddColor = new(-0.19607843f);
+                    SettingButtonNode.ImageNode.AddColor = new(1);
 
                     SettingButtonNode.AddTimeline(new TimelineBuilder()
                                                   .BeginFrameSet(1, 20)
@@ -1189,12 +1265,12 @@ public partial class OccultCrescentHelper
 
                     SettingButtonNode.ImageNode.AddTimeline(new TimelineBuilder()
                                                             .BeginFrameSet(1, 10)
-                                                            .AddFrame(1, addColor: new(0))
-                                                            .AddFrame(4, addColor: new(-50))
+                                                            .AddFrame(1, addColor: new(200))
+                                                            .AddFrame(4, addColor: new(100))
                                                             .EndFrameSet()
                                                             .BeginFrameSet(11, 20)
-                                                            .AddFrame(11, addColor: new(0))
-                                                            .AddFrame(14, addColor: new(150))
+                                                            .AddFrame(11, addColor: new(100))
+                                                            .AddFrame(14, addColor: new(200))
                                                             .EndFrameSet()
                                                             .Build());
                     SettingButtonNode.AttachNode(this);
@@ -1202,7 +1278,7 @@ public partial class OccultCrescentHelper
                     IsRealActionNode = new()
                     {
                         IsVisible = true,
-                        Position  = new(10, 10),
+                        Position  = new(10, 8),
                         Size      = new(Width, 28),
                         SeString  = GetLoc("OccultCrescentHelper-OthersManager-DragRealActionIcon"),
                         TextTooltip = new SeStringBuilder()
@@ -1220,6 +1296,11 @@ public partial class OccultCrescentHelper
                             ActionDragDropNodes.ForEach(x => x.Toggle(value));
                         }
                     };
+
+                    IsRealActionNode.Label.TextFlags        |= TextFlags.Edge | TextFlags.Emboss;
+                    IsRealActionNode.Label.TextColor        =  ColorHelper.GetColor(50);
+                    IsRealActionNode.Label.TextOutlineColor =  ColorHelper.GetColor(502);
+                    
                     IsRealActionNode.AttachNode(this);
                 }
 
