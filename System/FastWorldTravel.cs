@@ -73,7 +73,8 @@ public class FastWorldTravel : DailyModuleBase
         if (GameState.IsCN)
             WorldStatusMonitor = new(CheckCNDataCenterStatus);
         
-        Addon ??= new(TaskHelper)
+        Addon?.Dispose();
+        Addon = new(TaskHelper)
         {
             InternalName = "DRFastWorldTravel",
             Title        = GameState.IsCN ? $"Daily Routines {Info.Title}" : LuminaWrapper.GetAddonText(12510),
@@ -141,11 +142,11 @@ public class FastWorldTravel : DailyModuleBase
                     Entry = null;
                 }
                 
-                Entry         ??= DService.DtrBar.Get("DailyRoutines-FastWorldTravel");
-                Entry.OnClick +=  _ => Addon.Toggle();
-                Entry.Shown   =   true;
-                Entry.Tooltip =   GetLoc("FastWorldTravel-DtrEntryTooltip");
-                Entry.Text    =   LuminaWrapper.GetAddonText(12510);
+                Entry         =  DService.DtrBar.Get("DailyRoutines-FastWorldTravel");
+                Entry.OnClick += _ => Addon.Toggle();
+                Entry.Shown   =  true;
+                Entry.Tooltip =  GetLoc("FastWorldTravel-DtrEntryTooltip");
+                Entry.Text    =  LuminaWrapper.GetAddonText(12510);
                 return;
             case false when Entry != null:
                 Entry.Remove();
