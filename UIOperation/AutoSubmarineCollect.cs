@@ -38,7 +38,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
     
-    private const string Command = "submarine";
+    private const string COMMAND = "submarine";
 
     // 桶装青磷水和魔导机械修理材料
     private static readonly uint[] SubmarineItems = [10155, 10373];
@@ -80,7 +80,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "SelectString", OnAddonSelectString);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SelectString", OnAddonSelectString);
 
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("AutoSubmarineCollect-CommandHelp") });
+        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("AutoSubmarineCollect-CommandHelp") });
         
         LogMessageManager.Register(OnPreSendLogMessage);
 
@@ -95,7 +95,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
         using (ImRaii.PushIndent())
-            ImGui.TextUnformatted($"/pdr {Command} → {GetLoc("AutoSubmarineCollect-CommandHelp")}");
+            ImGui.TextUnformatted($"/pdr {COMMAND} → {GetLoc("AutoSubmarineCollect-CommandHelp")}");
         
         ImGui.NewLine();
         
@@ -310,25 +310,6 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RefreshSubmarineInfo, 1);
     }
     
-    #region Utilities
-
-    private static bool TargetSystem_IsObjectInViewRange(nint targetSystem, nint targetGameObject)
-    {
-        if (targetGameObject == nint.Zero) return false;
-
-        var objectCount = *(int*)(targetSystem + 328);
-        if (objectCount <= 0) return false;
-
-        var i = (nint*)(targetSystem + 336);
-        for (var index = 0; index < objectCount; index++, i++)
-        {
-            if (*i == targetGameObject)
-                return true;
-        }
-
-        return false;
-    }
-
     private static string SantisizeText(string text)
     {
         char[] charsToReplace = ['(', '.', ')', ']', ':', '/'];
@@ -336,9 +317,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             text = text.Replace(c, ' ');
         return text.Trim();
     }
-
-    #endregion
-
+    
     #region Teleport
 
     // 传送
@@ -660,7 +639,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     protected override void Uninit()
     {
         LogMessageManager.Unregister(OnPreSendLogMessage);
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.RemoveSubCommand(COMMAND);
 
         DService.AddonLifecycle.UnregisterListener(OnExplorationResult);
         DService.AddonLifecycle.UnregisterListener(OnAddonSelectYesno);
@@ -710,12 +689,11 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
             NameNode = new()
             {
-                IsVisible        = true,
-                Position         = new(0, 6),
-                TextFlags        = TextFlags.AutoAdjustNodeSize | TextFlags.Edge,
-                FontSize         = 14,
-                TextOutlineColor = ColorHelper.GetColor(37),
-                SeString         = LuminaWrapper.GetItemName(ItemID),
+                IsVisible = true,
+                Position  = new(0, 6),
+                TextFlags = TextFlags.AutoAdjustNodeSize,
+                FontSize  = 14,
+                SeString  = LuminaWrapper.GetItemName(ItemID),
             };
             
             AddNode(NameNode);
