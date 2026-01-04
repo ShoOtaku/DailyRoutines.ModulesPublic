@@ -151,7 +151,7 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
                     continue;
             }
 
-            SendEvent(AgentId.Salvage, 0, 12, i);
+            AgentId.Salvage.SendEvent(0, 12, i);
             TaskHelper.Enqueue(StartDesynthesize);
             return true;
         }

@@ -125,8 +125,8 @@ public class OptimizedLetter : DailyModuleBase
                                 Size       = new(300, 192),
                                 OnOptionSelected = option =>
                                 {
-                                    SendEvent(AgentId.LetterEdit, 8, 2, 1, option);
-                                    SendEvent(AgentId.LetterEdit, 8, -1);
+                                    AgentId.LetterEdit.SendEvent(8, 2, 1, option);
+                                    AgentId.LetterEdit.SendEvent(8, -1);
 
                                     if (LetterEditor != null)
                                         LetterEditor->GetComponentButtonById(3)->SetText(option);
@@ -181,7 +181,7 @@ public class OptimizedLetter : DailyModuleBase
                         var buttonNode = LetterList->GetComponentButtonById(4);
                         if (buttonNode != null)
                         {
-                            SendEvent(AgentId.LetterList, 9, 0);
+                            AgentId.LetterList.SendEvent(9, 0);
                             buttonNode->SetEnabledState(false);
                             
                             TaskHelper.Abort();
@@ -218,8 +218,8 @@ public class OptimizedLetter : DailyModuleBase
                     if (!TryFindLetters(_ => true, out var letters)) return;
                     foreach (var (index, _) in letters)
                     {
-                        SendEvent(AgentId.LetterList, 0, 0, index, 0, 1);
-                        SendEvent(AgentId.LetterList, 4, 0);
+                        AgentId.LetterList.SendEvent(0, 0, index, 0, 1);
+                        AgentId.LetterList.SendEvent(4, 0);
                     }
                 }
             };
@@ -237,8 +237,8 @@ public class OptimizedLetter : DailyModuleBase
                     if (!TryFindLetters(x => x.SenderContentId < 100000000000, out var letters)) return;
                     foreach (var (index, _) in letters)
                     {
-                        SendEvent(AgentId.LetterList, 0, 0, index, 0, 1);
-                        SendEvent(AgentId.LetterList, 4, 0);
+                        AgentId.LetterList.SendEvent(0, 0, index, 0, 1);
+                        AgentId.LetterList.SendEvent(4, 0);
                     }
                 }
             };
@@ -258,15 +258,15 @@ public class OptimizedLetter : DailyModuleBase
                     if (!TryFindLetters(x => x.Attachments.ToArray().Any(d => d.Count > 0), out var letters)) return;
                     foreach (var (index, _) in letters)
                     {
-                        TaskHelper.Enqueue(() => SendEvent(AgentId.LetterList, 0, 0, index, 0, 1));
-                        TaskHelper.Enqueue(() => SendEvent(AgentId.LetterList, 1, 0, 0, 0U, 0, 0));
+                        TaskHelper.Enqueue(() => AgentId.LetterList.SendEvent(0, 0, index, 0,  1));
+                        TaskHelper.Enqueue(() => AgentId.LetterList.SendEvent(1, 0, 0,     0U, 0, 0));
                         TaskHelper.Enqueue(() => IsAddonAndNodesReady(LetterViewer));
-                        TaskHelper.Enqueue(() => SendEvent(AgentId.LetterView, 0, 1));
+                        TaskHelper.Enqueue(() => AgentId.LetterView.SendEvent(0, 1));
                         TaskHelper.Enqueue(() => AtkStage.Instance()->GetNumberArrayData(NumberArrayType.Letter)->IntArray[136] == 0);
                         TaskHelper.Enqueue(() =>
                         {
                             LetterViewer->Close(true);
-                            SendEvent(AgentId.LetterView, 0, -1);
+                            AgentId.LetterView.SendEvent(0, -1);
                         });
                     }
                 }

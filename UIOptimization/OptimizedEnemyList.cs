@@ -306,7 +306,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
                 castBarNode.Progress  = 0f;
             }
 
-            var targetName = SanitizeSeIcon(targetNameTextNode->NodeText.ExtractText());
+            var targetName = SanitizeSEIcon(targetNameTextNode->NodeText.ExtractText());
             
             textNode.TextColor = ModuleConfig.UseCustomizeTextColor
                                       ? ModuleConfig.TextColor

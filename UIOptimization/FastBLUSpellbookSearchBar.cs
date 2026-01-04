@@ -104,7 +104,7 @@ public unsafe class FastBLUSpellbookSearchBar : DailyModuleBase
                 return true;
             }
             
-            SendEvent(AgentId.AozNotebook, 2, 0, 0U, input);
+            AgentId.AozNotebook.SendEvent(2, 0, 0U, input);
             return true;
         });
     }

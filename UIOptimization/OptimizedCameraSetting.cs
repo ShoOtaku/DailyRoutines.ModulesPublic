@@ -90,7 +90,7 @@ public unsafe class OptimizedCameraSetting : DailyModuleBase
                 var original = values[1].UInt;
                 var adjusted = MathF.Max(0, original - ModuleConfig.AngleofViewStepSize);
 
-                SendEvent(AgentId.CameraSetting, 1, 89, (uint)adjusted, values[2], values[3], values[4]);
+                AgentId.CameraSetting.SendEvent(1, 89, (uint)adjusted, values[2], values[3], values[4]);
                 return 0;
             }
             // 镜头远近增加
@@ -99,7 +99,7 @@ public unsafe class OptimizedCameraSetting : DailyModuleBase
                 var original     = values[1].UInt;
                 var adjusted = MathF.Min(200, original + ModuleConfig.AngleofViewStepSize);
                 
-                SendEvent(AgentId.CameraSetting, 1, 89, (uint)adjusted, values[2], values[3], values[4]);
+                AgentId.CameraSetting.SendEvent(1, 89, (uint)adjusted, values[2], values[3], values[4]);
                 return 0;
             }
             // 镜头旋转减少
@@ -108,7 +108,7 @@ public unsafe class OptimizedCameraSetting : DailyModuleBase
                 var original = values[1].Int;
                 var adjusted = MathF.Max(-180, original - ModuleConfig.RollAngleStepSize);
 
-                SendEvent(AgentId.CameraSetting, 1, 92, (int)adjusted, values[2], values[3], values[4]);
+                AgentId.CameraSetting.SendEvent(1, 92, (int)adjusted, values[2], values[3], values[4]);
                 return 0;
             }
             // 镜头旋转减少
@@ -117,7 +117,7 @@ public unsafe class OptimizedCameraSetting : DailyModuleBase
                 var original = values[1].Int;
                 var adjusted = MathF.Min(180, original + ModuleConfig.RollAngleStepSize);
 
-                SendEvent(AgentId.CameraSetting, 1, 92, (int)adjusted, values[2], values[3], values[4]);
+                AgentId.CameraSetting.SendEvent(1, 92, (int)adjusted, values[2], values[3], values[4]);
                 return 0;
             }
         }

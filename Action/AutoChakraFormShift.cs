@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.JobGauge.Types;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -20,8 +19,8 @@ public class AutoChakraFormShift : DailyModuleBase
     
     private static readonly HashSet<uint> InvalidContentTypes = [16, 17, 18, 19, 31, 32, 34, 35];
     
-    private const uint SteeledMeditation = 36940;
-    private const uint FormShift         = 4262;
+    private const uint STEELED_MEDITATION = 36940;
+    private const uint FORM_SHIFT         = 4262;
 
     protected override void Init()
     {
@@ -56,12 +55,13 @@ public class AutoChakraFormShift : DailyModuleBase
 
         var action = 0U;
         // 铁山斗气
-        if (IsActionUnlocked(SteeledMeditation) && gauge.Chakra != 5)
-            action = SteeledMeditation;
+        if (ActionManager.IsActionUnlocked(STEELED_MEDITATION) && 
+            gauge.Chakra != 5)
+            action = STEELED_MEDITATION;
         // 演武
-        else if (IsActionUnlocked(FormShift)   &&
-                 !statusManager.HasStatus(110) &&
-                 (!statusManager.HasStatus(2513) || statusManager.GetRemainingTime(statusManager.GetStatusIndex(2513)) <= 27))
+        else if (ActionManager.IsActionUnlocked(FORM_SHIFT) &&
+                 !LocalPlayerState.HasStatus(110, out _)               &&
+                 (!LocalPlayerState.HasStatus(2513, out var statusIndex) || statusManager.GetRemainingTime(statusIndex) <= 27))
             action = 4262;
 
         if (action == 0)

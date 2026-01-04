@@ -116,7 +116,7 @@ public unsafe class ShopDisplayRealItemIcon : DailyModuleBase
             var nameNode = (AtkTextNode*)listItemComponent->Component->UldManager.SearchNodeById(4);
             if (nameNode == null) return;
             
-            var name = SanitizeSeIcon(SeString.Parse(nameNode->NodeText).TextValue);
+            var name = SanitizeSEIcon(SeString.Parse(nameNode->NodeText).TextValue);
             var data = CollectablesShopItemDatas.FirstOrDefault(
                 x => x.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
             if (data == default) continue;

@@ -85,7 +85,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         var proxy = (InfoProxy24*)InfoModule.Instance()->GetInfoProxyById((InfoProxyId)24);
         if (proxy == null) return;
 
-        SendEvent(AgentId.ContentMemberList, 0, 1);
+        AgentId.ContentMemberList.SendEvent(0, 1);
     }
 
     protected override void ConfigUI()

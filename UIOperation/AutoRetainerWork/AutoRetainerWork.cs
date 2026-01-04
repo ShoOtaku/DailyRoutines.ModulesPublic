@@ -171,7 +171,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         if (addon2 != null) 
             Callback(addon2, true, -1);
 
-        SendEvent(AgentId.Retainer, 0, -1);
+        AgentId.Retainer.SendEvent(0, -1);
         return true;
     }
 
@@ -634,7 +634,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
 
                     var agent = AgentModule.Instance()->GetAgentByInternalId(AgentId.Retainer);
                     if (agent == null || !agent->IsAgentActive()) return false;
-                    SendEvent(AgentId.Retainer, 0, 0);
+                    AgentId.Retainer.SendEvent(0, 0);
                     return true;
                 }, "选择同类道具合并提交");
                 TaskHelper.DelayNext(500, "等待同类道具合并提交开始");

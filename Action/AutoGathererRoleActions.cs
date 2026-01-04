@@ -66,7 +66,7 @@ public class AutoGathererRoleActions : DailyModuleBase
                         return true;
                     }
                     
-                    if (localPlayer->StatusManager.HasStatus(status) || !IsActionUnlocked(action)) return true;
+                    if (localPlayer->StatusManager.HasStatus(status) || !ActionManager.IsActionUnlocked(action)) return true;
                     
                     UseActionManager.UseActionLocation(ActionType.Action, action);
                     return localPlayer->StatusManager.HasStatus(status);

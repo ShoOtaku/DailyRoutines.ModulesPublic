@@ -84,10 +84,10 @@ public unsafe class AutoReplaceActionLowLevel : DailyModuleBase
         while (true)
         {
             adjustedActionID = 0;
-            if (IsActionUnlocked(actionID)) return false;
+            if (ActionManager.IsActionUnlocked(actionID)) return false;
             if (!ActionReplacements.TryGetValue(actionID, out var info)) return false;
 
-            if (IsActionUnlocked(info))
+            if (ActionManager.IsActionUnlocked(info))
             {
                 adjustedActionID = info;
                 return true;

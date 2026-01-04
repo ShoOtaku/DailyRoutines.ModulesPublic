@@ -103,14 +103,14 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
             // 数据没好, 先请求加载
             if (!IsAddonAndNodesReady(ContextIconMenu))
             {
-                SendEvent(AgentId.NpcTrade, 0, 2, i, 0, 0);
+                AgentId.NpcTrade.SendEvent(0, 2, i, 0, 0);
                 return;
             }
             
             var firstItem = agent->SelectedTurnInSlotItemOptionValues[0].Value;
             if (firstItem == null || firstItem->ItemId == 0) return;
             
-            SendEvent(AgentId.NpcTrade, 1, 0, 0, firstItem->GetItemId(), 0U, 0);
+            AgentId.NpcTrade.SendEvent(1, 0, 0, firstItem->GetItemId(), 0U, 0);
             return;
         }
     }

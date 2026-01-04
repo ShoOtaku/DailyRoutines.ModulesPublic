@@ -278,7 +278,7 @@ public unsafe class AutoLogin : DailyModuleBase
             if (IsAddonAndNodesReady(CharaSelectListMenu)) return true;
             if (!IsAddonAndNodesReady(TitleMenu)) return false;
 
-            SendEvent(AgentId.Lobby, 0, 4);
+            AgentId.Lobby.SendEvent(0, 4);
             return true;
         });
         

@@ -93,7 +93,7 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
                                        Type = (ValueType)(item.ItemID % 500000), 
                                        Int64 = SetHighDword((int)item.ItemCount)
                                    };
-                                   SendEvent(AgentId.CompanyCraftMaterial, 0, 0, item.Index, item.ItemCount, atkValue);
+                                   AgentId.CompanyCraftMaterial.SendEvent(0, 0, item.Index, item.ItemCount, atkValue);
                                }, $"交纳物品 {item.ItemID}x{item.ItemCount}");
             TaskHelper.DelayNext(5_00, "等待 Request");
             TaskHelper.Enqueue(() =>

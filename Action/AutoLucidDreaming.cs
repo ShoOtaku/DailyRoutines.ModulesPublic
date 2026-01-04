@@ -94,8 +94,9 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
             return;
         }
 
-        if (!DService.Condition[ConditionFlag.InCombat] || !ValidClassJobs.Contains(LocalPlayerState.ClassJob) ||
-            !IsActionUnlocked(LucidDreamingID))
+        if (!DService.Condition[ConditionFlag.InCombat]         ||
+            !ValidClassJobs.Contains(LocalPlayerState.ClassJob) ||
+            !ActionManager.IsActionUnlocked(LucidDreamingID))
             return;
 
         TaskHelper.Enqueue(PreventAbilityUse, "PreventAbilityUse", 5_000, true, 1);

@@ -163,7 +163,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
             AgentGrandCompanySupply.Instance()->ItemArray == null)
             return false;
 
-        SendEvent(AgentId.GrandCompanySupply, 0, 0, 2);
+        AgentId.GrandCompanySupply.SendEvent(0, 0, 2);
         return true;
     }
 

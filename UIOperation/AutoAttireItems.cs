@@ -177,7 +177,7 @@ public unsafe class AutoAttireItems : DailyModuleBase
         }
         
         TaskHelper.DelayNext(100);
-        TaskHelper.Enqueue(() => SendEvent(AgentId.MiragePrismPrismSetConvert, 1, 14));
+        TaskHelper.Enqueue(() => AgentId.MiragePrismPrismSetConvert.SendEvent(1, 14));
     }
     
 

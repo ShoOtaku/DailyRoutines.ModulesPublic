@@ -946,8 +946,8 @@ public unsafe class BetterTeleport : DailyModuleBase
             var agent = AgentTelepotTown.Instance();
             if (agent == null || !agent->IsAgentActive()) return false;
 
-            SendEvent(AgentId.TelepotTown, 1, 11, (uint)aetheryte.SubIndex);
-            SendEvent(AgentId.TelepotTown, 1, 11, (uint)aetheryte.SubIndex);
+            AgentId.TelepotTown.SendEvent(1, 11, (uint)aetheryte.SubIndex);
+            AgentId.TelepotTown.SendEvent(1, 11, (uint)aetheryte.SubIndex);
             return true;
         });
 

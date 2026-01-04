@@ -169,7 +169,7 @@ public unsafe class OptimizedFreeShop : DailyModuleBase
 
                 anythingNotInBag = true;
                                     
-                TaskHelper.Enqueue(() => SendEvent(AgentId.FreeShop, 0, 0, index));
+                TaskHelper.Enqueue(() => AgentId.FreeShop.SendEvent(0, 0, index));
                 TaskHelper.DelayNext(10);
             }
 

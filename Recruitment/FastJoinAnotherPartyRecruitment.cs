@@ -30,7 +30,7 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
             OnAddon(AddonEvent.PostDraw, null);
         
         if (IsAddonAndNodesReady(LookingForGroup)) 
-            SendEvent(AgentId.LookingForGroup, 1, 17);
+            AgentId.LookingForGroup.SendEvent(1, 17);
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddonYesno);
     }
@@ -110,7 +110,7 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
                 
                 ChatManager.SendMessage("/leave");
                 ChatManager.SendMessage("/pcmd breakup");
-                SendEvent(AgentId.PartyMember, 0, 2, 3);
+                AgentId.PartyMember.SendEvent(0, 2, 3);
                 
                 return !IsInAnyParty();
             });

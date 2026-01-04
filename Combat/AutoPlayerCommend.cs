@@ -227,7 +227,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
             if (!TryFindPlayerIndex(memberInfo.Name, memberInfo.ClassJob, out var playerIndex)) continue;
             if (!LuminaGetter.TryGetRow<ClassJob>(memberInfo.ClassJob, out var job)) continue;
             
-            SendEvent(AgentId.ContentsMvp, 0, 0, playerIndex);
+            AgentId.ContentsMvp.SendEvent(0, 0, playerIndex);
             Chat(GetSLoc("AutoPlayerCommend-NoticeMessage",
                          new PlayerPayload(memberInfo.Name, memberInfo.HomeWorld),
                          job.ToBitmapFontIcon(),

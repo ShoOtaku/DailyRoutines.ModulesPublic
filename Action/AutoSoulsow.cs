@@ -66,12 +66,12 @@ public class AutoSoulsow : DailyModuleBase
         return true;
     }
     
-    private bool? UseRelatedActions()
+    private unsafe bool? UseRelatedActions()
     {
         if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
 
         // 播魂种
-        if (localPlayer.StatusList.HasStatus(2594) || !IsActionUnlocked(24387))
+        if (localPlayer.StatusList.HasStatus(2594) || !ActionManager.IsActionUnlocked(24387))
         {
             TaskHelper.Abort();
             return true;

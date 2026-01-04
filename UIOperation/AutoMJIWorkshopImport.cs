@@ -317,7 +317,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
     {
         var agent = AgentMJICraftSchedule.Instance();
         agent->Data->NewRestCycles = mask;
-        SendEvent(&agent->AgentInterface, 5, 0);
+        agent->AgentInterface.SendEvent(5, 0);
     }
 
     public static void ResetCurrentCycleToRefreshUI()

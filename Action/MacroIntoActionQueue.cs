@@ -34,7 +34,7 @@ public unsafe class MacroIntoActionQueue : DailyModuleBase
         if (actionType == ActionType.GeneralAction && actionID == 4)
         {
             actionType = ActionType.Action;
-            actionID   = GetAdjustSprintActionID();
+            actionID   = ActionManager.GetAdjustSprintActionID();
             targetID   = 0xE0000000;
         }
     }

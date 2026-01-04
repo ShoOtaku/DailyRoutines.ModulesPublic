@@ -164,7 +164,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
                     var name     = MemoryHelper.ReadSeStringNullTerminated((nint)atkValue.String.Value);
                     if (string.IsNullOrWhiteSpace(name.ExtractText()) || name.ExtractText() != result.Item.Value.Name.ExtractText()) continue;
 
-                    SendEvent(AgentId.GrandCompanyExchange, 0, 0, i, exchangeCount, 0, true, false);
+                    AgentId.GrandCompanyExchange.SendEvent(0, 0, i, exchangeCount, 0, true, false);
                     
                     if (itemCount == -1)
                         TaskHelper.Enqueue(() => EnqueueByName(itemName, itemCount));

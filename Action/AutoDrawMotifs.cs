@@ -82,7 +82,7 @@ public class AutoDrawMotifs : DailyModuleBase
         return true;
     }
 
-    private bool? DrawNeededMotif()
+    private unsafe bool? DrawNeededMotif()
     {
         var gauge = DService.JobGauges.Get<PCTGauge>();
 
@@ -95,11 +95,11 @@ public class AutoDrawMotifs : DailyModuleBase
         }
         
         var motifAction = 0U;
-        if (!gauge.CreatureMotifDrawn && IsActionUnlocked(34689))
+        if (!gauge.CreatureMotifDrawn && ActionManager.IsActionUnlocked(34689))
             motifAction = 34689;
-        else if (!gauge.WeaponMotifDrawn && IsActionUnlocked(34690) && !LocalPlayerState.HasStatus(3680, out _))
+        else if (!gauge.WeaponMotifDrawn && ActionManager.IsActionUnlocked(34690) && !LocalPlayerState.HasStatus(3680, out _))
             motifAction = 34690;
-        else if (!gauge.LandscapeMotifDrawn && IsActionUnlocked(34691))
+        else if (!gauge.LandscapeMotifDrawn && ActionManager.IsActionUnlocked(34691))
             motifAction = 34691;
 
         if (motifAction == 0)
@@ -113,12 +113,11 @@ public class AutoDrawMotifs : DailyModuleBase
         TaskHelper.Enqueue(DrawNeededMotif, "DrawNeededMotif", 5_000, true, 1);
         return true;
     }
-    
-    private static bool IsValidPVEDuty()
-    {
-        var isPVP = GameState.IsInPVPArea;
-        return !isPVP && (GameState.ContentFinderConditionData.RowId == 0 || !InvalidContentTypes.Contains(GameState.ContentFinderConditionData.ContentType.RowId));
-    }
+
+    private static bool IsValidPVEDuty() =>
+        !GameState.IsInPVPArea &&
+        (GameState.ContentFinderConditionData.RowId == 0 ||
+         !InvalidContentTypes.Contains(GameState.ContentFinderConditionData.ContentType.RowId));
 
     protected override void Uninit()
     {

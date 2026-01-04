@@ -70,7 +70,7 @@ public unsafe class AutoPeloton : DailyModuleBase
             return;
         if (!ValidClassJobs.Contains(localPlayer.ClassJob.RowId))
             return;
-        if (!IsActionUnlocked(PELOTONING_ACTION_ID))
+        if (!ActionManager.IsActionUnlocked(PELOTONING_ACTION_ID))
             return;
         if (ModuleConfig.DisableInWalk && LocalPlayerState.IsWalking)
             return;

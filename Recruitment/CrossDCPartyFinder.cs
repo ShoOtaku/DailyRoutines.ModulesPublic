@@ -498,7 +498,7 @@ public class CrossDCPartyFinder : DailyModuleBase
 
                             if (LocatedDataCenter == dataCenter)
                             {
-                                SendEvent(AgentId.LookingForGroup, 1, 17);
+                                AgentId.LookingForGroup.SendEvent(1, 17);
                                 return;
                             }
 
