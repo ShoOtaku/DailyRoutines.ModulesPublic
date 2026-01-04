@@ -474,7 +474,6 @@ public class FastWorldTravel : DailyModuleBase
                 }
 
                 await Task.Delay(100);
-                TaskHelper.DelayNext(2000, "等待插件那边结束");
             }
         }
         catch (Exception ex)
@@ -482,57 +481,7 @@ public class FastWorldTravel : DailyModuleBase
             Debug($"超域旅行失败: {ex.Message}", ex);
         }
     }
-
-    private unsafe void EnqueueLogin(Travel traveldata)
-    {
-        TaskHelper.Enqueue(() => CharaSelect != null || CharaSelectListMenu != null, "等待角色选择界面可用", weight: 1);
-
-        TaskHelper.Enqueue(() =>
-        {
-            var worldName = LuminaWrapper.GetWorldName(traveldata.TargetWorldID);
-            if (traveldata.IsBack && traveldata.HomeWorldID != 0)
-                worldName = LuminaWrapper.GetWorldName(traveldata.HomeWorldID);
-
-            var stringArray = AtkStage.Instance()->GetStringArrayData(StringArrayType.CharaSelect)->StringArray;
-            for (var i = 0; i < 8; i++)
-            {
-                try
-                {
-                    var worldString = SeString.Parse(stringArray[i].Value).ExtractText();
-                    if (!worldString.Contains(worldName, StringComparison.OrdinalIgnoreCase)) continue;
-
-                    SendEvent(AgentId.Lobby, 0, 25, 0, i);
-
-                    var agent = AgentLobby.Instance();
-                    if (agent == null) return;
-
-                    var addon = CharaSelectListMenu;
-                    if (addon == null) return;
-
-                    var index = 0;
-                    foreach (var vEntry in agent->LobbyData.CharaSelectEntries)
-                    {
-                        if (vEntry.Value->ContentId == traveldata.ContentID)
-                        {
-                            Callback(addon, true, 21, index);
-                            Callback(addon, true, 29, 0, index);
-                            Callback(addon, true, 21, index);
-
-                            TaskHelper.Enqueue(() => ClickSelectYesnoYes(), "点击确认登录", weight: 1);
-                            return;
-                        }
-
-                        index++;
-                    }
-                }
-                catch
-                {
-                    // ignored
-                }
-            }
-        }, "尝试登录", weight: 1);
-    }
-
+    
     #endregion
 
     #region 工具
