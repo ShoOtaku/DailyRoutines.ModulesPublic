@@ -92,7 +92,7 @@ public unsafe class AutoCheckItemLevel : DailyModuleBase
             TaskHelper.Enqueue(() =>
             {
                 if (member.Object == null) return false;
-                if (!TryGetInventoryItems([InventoryType.Examine], _ => true, out var list)) return false;
+                if (!InventoryType.Examine.TryGetItems(_ => true, out var list)) return false;
 
                 while (list.Count < 13)
                     list.Add(new());

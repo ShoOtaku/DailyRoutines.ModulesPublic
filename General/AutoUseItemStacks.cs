@@ -44,7 +44,7 @@ public unsafe class AutoUseItemStacks : DailyModuleBase
     public void EnqueueOpenAllCoffers(uint itemID)
     {
         if (InterruptByConflictKey(TaskHelper, this)) return;
-        if (!TryGetFirstInventoryItem(PlayerInventories, x => x.ItemId == itemID, out _)) return;
+        if (!PlayerInventories.TryGetFirstItem(x => x.ItemId == itemID, out _)) return;
 
         TaskHelper.Enqueue(() => AgentInventoryContext.Instance()->UseItem(itemID));
         TaskHelper.DelayNext(500);

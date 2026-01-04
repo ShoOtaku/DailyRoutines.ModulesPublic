@@ -128,7 +128,7 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
         if (!IsAddonAndNodesReady(SalvageItemSelector)) return false;
 
         // 背包满了
-        if (IsInventoryFull(PlayerInventories, 3))
+        if (PlayerInventories.IsFull(3))
         {
             RaptureLogModule.Instance()->ShowLogMessage(3974);
             TaskHelper.Abort();

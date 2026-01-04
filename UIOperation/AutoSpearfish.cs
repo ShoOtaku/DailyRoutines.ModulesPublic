@@ -466,7 +466,7 @@ public unsafe class AutoSpearfish : DailyModuleBase
         foreach (var (cordial, baseGP) in CordialItems)
         {
             if (!ActionManager.Instance()->IsActionOffCooldown(ActionType.Item, cordial)) continue;
-            if (TryGetInventoryItems(PlayerInventories, x => x.ItemId % 100_0000 == cordial, out var validItems))
+            if (PlayerInventories.TryGetItems(x => x.ItemId % 100_0000 == cordial, out var validItems))
             {
                 validItems = validItems
                              .OrderByDescending(x => x.Flags.HasFlag(InventoryItem.ItemFlags.HighQuality))

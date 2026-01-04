@@ -225,8 +225,8 @@ public unsafe class AutoGardensWork : DailyModuleBase
     {
         if (ModuleConfig.SeedSelected == 0 || ModuleConfig.SoilSelected == 0) return;
 
-        if (!TryGetFirstInventoryItem(PlayerInventories, x => x.ItemId == ModuleConfig.SeedSelected, out var seedItem) ||
-            !TryGetFirstInventoryItem(PlayerInventories, x => x.ItemId == ModuleConfig.SoilSelected, out var soilItem))
+        if (!PlayerInventories.TryGetFirstItem(x => x.ItemId == ModuleConfig.SeedSelected, out var seedItem) ||
+            !PlayerInventories.TryGetFirstItem(x => x.ItemId == ModuleConfig.SoilSelected, out var soilItem))
             return;
 
         TaskHelper.Enqueue(() =>
@@ -401,7 +401,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
         if (SelectString != null) return false;
         if (!DService.Condition[ConditionFlag.OccupiedInQuestEvent]) return true;
         if (ModuleConfig.FertilizerSelected == 0 ||
-            !TryGetFirstInventoryItem(PlayerInventories, x => x.ItemId == ModuleConfig.FertilizerSelected, out var fertilizerItem))
+            !PlayerInventories.TryGetFirstItem(x => x.ItemId == ModuleConfig.FertilizerSelected, out var fertilizerItem))
         {
             TaskHelper.Abort();
             return true;

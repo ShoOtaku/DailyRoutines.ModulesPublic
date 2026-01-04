@@ -135,7 +135,7 @@ public class AutoMoveGearsNotInSet : DailyModuleBase
                     itemID += 100_0000;
                 if (gearsetItemIDs.Contains(itemID)) continue;
                 
-                if (!TryGetFirstInventoryItem(PlayerInventories, x => x.ItemId == 0, out var emptySlot)) goto Out;
+                if (!PlayerInventories.TryGetFirstItem(x => x.ItemId == 0, out var emptySlot)) goto Out;
                 
                 manager->MoveItemSlot(type, (ushort)i, emptySlot->Container, (ushort)emptySlot->Slot, true);
                 counter++;

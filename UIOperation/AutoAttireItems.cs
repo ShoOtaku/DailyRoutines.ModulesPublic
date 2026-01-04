@@ -111,11 +111,7 @@ public unsafe class AutoAttireItems : DailyModuleBase
             {
                 TaskHelper.Enqueue(() =>
                 {
-                    if (!IsInventoryFull([
-                            InventoryType.Inventory1, InventoryType.Inventory2,
-                            InventoryType.Inventory3, InventoryType.Inventory4
-                        ]))
-                        return;
+                    if (!PlayerInventories.IsFull()) return;
                     TaskHelper.Abort();
                 });
                 TaskHelper.Enqueue(() => MirageManager.Instance()->RestorePrismBoxItem((uint)index));

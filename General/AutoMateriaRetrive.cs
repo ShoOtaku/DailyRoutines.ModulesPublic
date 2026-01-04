@@ -159,8 +159,7 @@ public unsafe class AutoMateriaRetrive : DailyModuleBase
 
         TaskHelper.Enqueue(() =>
         {
-            if (InterruptByConflictKey(TaskHelper, this) || 
-                IsInventoryFull([InventoryType.Inventory1, InventoryType.Inventory2, InventoryType.Inventory3, InventoryType.Inventory4]))
+            if (InterruptByConflictKey(TaskHelper, this) || PlayerInventories.IsFull())
             {
                 TaskHelper.Abort();
                 return;

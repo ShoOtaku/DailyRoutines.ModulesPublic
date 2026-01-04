@@ -101,7 +101,7 @@ public unsafe class AutoMaterialize : DailyModuleBase
 
     private bool IsEnvironmentValid()
     {
-        if (IsInventoryFull(PlayerInventories))
+        if (PlayerInventories.IsFull())
         {
             TaskHelper.Abort();
             return false;

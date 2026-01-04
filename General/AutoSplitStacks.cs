@@ -305,7 +305,7 @@ public unsafe class AutoSplitStacks : DailyModuleBase
             return false;
         }
 
-        if (IsInventoryFull(PlayerInventories))
+        if (PlayerInventories.IsFull())
         {
             TaskHelper.Abort();
             NotificationWarning(Lang.Get("AutoSplitStacks-Notification-FullInventory"));

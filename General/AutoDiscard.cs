@@ -656,12 +656,12 @@ public unsafe class AutoDiscard : DailyModuleBase
                     isAny = true;
                     if (Behaviour == DiscardBehaviour.Discard)
                     {
-                        taskHelper.Enqueue(() => AgentInventoryContext.Instance()->DiscardItem(itemInventory, type, slot, GetActiveInventoryAddonID()));
+                        taskHelper.Enqueue(() => AgentInventoryContext.Instance()->DiscardItem(itemInventory, type, slot, AgentInventory.GetActiveAddonID()));
                         taskHelper.Enqueue(() => { ClickSelectYesnoYes(); });
                     }
                     else
                     {
-                        taskHelper.Enqueue(() => OpenInventoryItemContext(fItem));
+                        taskHelper.Enqueue(() => fItem.OpenContext());
                         taskHelper.Enqueue(() => ClickDiscardContextMenu(taskHelper));
                     }
                 }

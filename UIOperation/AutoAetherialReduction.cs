@@ -146,9 +146,8 @@ public unsafe class AutoAetherialReduction : DailyModuleBase
     
     private bool IsCurrentEnvironmentInvalid()
     {
-        if (IsInventoryFull(PlayerInventories)        ||
-            DService.Condition[ConditionFlag.Mounted] ||
-            DService.Condition[ConditionFlag.InCombat])
+        if (PlayerInventories.IsFull() ||
+            DService.Condition.Any(ConditionFlag.Mounted, ConditionFlag.InCombat))
         {
             TaskHelper.Abort();
             return true;

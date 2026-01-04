@@ -90,8 +90,7 @@ public unsafe class AutoRepair : DailyModuleBase
         if (playerState == null || inventoryManager == null) return;
         
         // 没有需要修理的装备
-        if (!TryGetInventoryItems([InventoryType.EquippedItems],
-                                 x => x.Condition < ModuleConfig.RepairThreshold * 300f, out var items))
+        if (!InventoryType.EquippedItems.TryGetItems(x => x.Condition < ModuleConfig.RepairThreshold * 300f, out var items))
             return;
 
         // 优先委托 NPC 修理
@@ -232,8 +231,8 @@ public unsafe class AutoRepair : DailyModuleBase
     public bool IsBusyIPC => IsBusy;
     
     [IPCProvider("DailyRoutines.Modules.AutoRepair.IsNeedToRepair")]
-    public bool IsNeedToRepairIPC => TryGetInventoryItems([InventoryType.EquippedItems],
-                                                       x => x.Condition < ModuleConfig.RepairThreshold * 300f, out _);
+    public bool IsNeedToRepairIPC => 
+        InventoryType.EquippedItems.TryGetItems(x => x.Condition < ModuleConfig.RepairThreshold * 300f, out _);
     
     [IPCProvider("DailyRoutines.Modules.AutoRepair.IsAbleToRepair")]
     public bool IsAbleToRepairIPC => IsAbleToRepair();

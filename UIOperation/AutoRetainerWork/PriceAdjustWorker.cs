@@ -747,7 +747,7 @@ public unsafe partial class AutoRetainerWork
 
             ImGui.TableHeadersRow();
 
-            if (!TryGetInventoryItems([InventoryType.RetainerMarket], x => x.ItemId != 0, out var validItems)) return;
+            if (!InventoryType.RetainerMarket.TryGetItems(x => x.ItemId != 0, out var validItems)) return;
 
             var itemSource = validItems
                              .Select(x => new
@@ -1576,9 +1576,9 @@ public unsafe partial class AutoRetainerWork
                                 return false;
 
                             var foundItem = foundItems.FirstOrDefault();
-                            return OpenInventoryItemContext(foundItem);
+                            return foundItem.OpenContext();
                         }, "找到物品并打开其右键菜单", weight: 3);
-                        TaskHelper.Enqueue(() => IsAddonAndNodesReady(InfosOm.ContextMenuXIV),          "等待右键菜单出现", weight: 3);
+                        TaskHelper.Enqueue(() => IsAddonAndNodesReady(InfosOm.ContextMenuXIV),       "等待右键菜单出现",  weight: 3);
                         TaskHelper.Enqueue(() => ClickContextMenu(LuminaWrapper.GetAddonText(5480)), "出售物品至系统商店", weight: 3);
                         break;
                 }
