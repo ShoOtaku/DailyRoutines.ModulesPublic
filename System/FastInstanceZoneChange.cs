@@ -113,6 +113,8 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         var count = InstancesManager.GetInstancesCount();
         for (uint i = 1; i <= count; i++)
         {
+            if (i == InstancesManager.CurrentInstance) continue;
+            
             if (ImGui.Button($"{GetLoc("FastInstanceZoneChange-SwitchInstance", i.ToSEChar())}") |
                 DService.KeyState[(VirtualKey)(48 + i)])
             {
@@ -128,25 +130,11 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
     {
         if (!ModuleConfig.AddDtrEntry || Entry == null || BetweenAreas) return;
         
+        Entry.Text = !InstancesManager.IsInstancedArea
+                         ? string.Empty
+                         : GetLoc("AutoMarksFinder-RelayInstanceDisplay", InstancesManager.CurrentInstance.ToSEChar());
         Entry.Shown   = InstancesManager.IsInstancedArea;
         Entry.Tooltip = ValidUses.Contains(GameState.TerritoryIntendedUse) ? GetLoc("FastInstanceZoneChange-DtrEntryTooltip") : string.Empty;
-    }
-
-    private static void OnTerritoryChanged(ushort zone = 0)
-    {
-        try
-        {
-            if (!ModuleConfig.AddDtrEntry || Entry == null) return;
-        
-            Entry.Text = !InstancesManager.IsInstancedArea
-                             ? string.Empty
-                             : GetLoc("AutoMarksFinder-RelayInstanceDisplay", InstancesManager.CurrentInstance.ToSEChar());
-            Entry.Shown = InstancesManager.IsInstancedArea;
-        }
-        catch
-        {
-            // ignored
-        }
     }
     
     private void HandleDtrEntry(bool isAdd)
@@ -157,9 +145,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
             Entry.OnClick +=  _ => Overlay.IsOpen ^= true;
             Entry.Shown   =   false;
             Entry.Tooltip =   GetLoc("FastInstanceZoneChange-DtrEntryTooltip");
-            
-            DService.ClientState.TerritoryChanged += OnTerritoryChanged;
-            OnTerritoryChanged();
+
             FrameworkManager.Reg(OnUpdate, throttleMS: 5_000);
             return;
         }
@@ -170,7 +156,6 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
             Entry = null;
             
             FrameworkManager.Unreg(OnUpdate);
-            DService.ClientState.TerritoryChanged -= OnTerritoryChanged;
         }
     }
 
@@ -259,13 +244,21 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         else
             TaskHelper.Enqueue(() => ChangeInstanceZone(targetInstance), "切换副本区", weight: 2);
 
+        TaskHelper.Enqueue(() =>
+        {
+            if (InstancesManager.CurrentInstance != targetInstance ||
+                BetweenAreas)
+                return false;
+            
+            OnUpdate(DService.Framework);
+            return true;
+        }, "等待切换完毕, 更新副本区信息");
+        
         if (ModuleConfig.MountAfterChange)
         {
             TaskHelper.Enqueue(() =>
             {
-                if (InstancesManager.CurrentInstance != targetInstance ||
-                    BetweenAreas                                       ||
-                    !IsScreenReady())
+                if (!IsScreenReady())
                     return false;
 
                 // 上不了坐骑
