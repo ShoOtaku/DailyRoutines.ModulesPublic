@@ -42,6 +42,10 @@ public class FastWorldTravel : DailyModuleBase
 
     internal const string COMMAND = "worldtravel";
 
+    private unsafe delegate void ReturnToTitleDelegate(AgentLobby* agent);
+    private static readonly ReturnToTitleDelegate ReturnToTitle =
+        new CompSig("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B F9 33 F6 48 8B 89 ?? ?? ?? ?? 48 85 C9 74 ?? 48 8B 01").GetDelegate<ReturnToTitleDelegate>();
+
     private static readonly HashSet<uint> WorldTravelValidZones = [132, 129, 130];
 
     private static readonly ConditionFlag[] InvalidConditions =
@@ -371,10 +375,11 @@ public class FastWorldTravel : DailyModuleBase
             return;
         }
         
+        // 现在不在原始大区, 要去非原始大区
         var travel0 = new Travel
         {
             CurrentWorldID = GameState.CurrentWorld,
-            TargetWorldID  = targetWorldID,
+            TargetWorldID  = GameState.HomeWorld,
             ContentID      = LocalPlayerState.ContentID,
             IsBack         = true,
             Name           = LocalPlayerState.Name,
@@ -400,7 +405,7 @@ public class FastWorldTravel : DailyModuleBase
         TaskHelper.EnqueueAsync(() => ModuleManager.UnloadAsync(ModuleManager.GetModuleByName("AutoLogin")), "禁用自动登录");
         
         TaskHelper.DelayNext(500, "等待 500 毫秒");
-        TaskHelper.Enqueue(() => ExecuteCommandManager.ExecuteCommand((ExecuteCommandFlag)445), "登出游戏");
+        TaskHelper.Enqueue(() => ChatManager.SendCommand("/logout"), "登出游戏");
 
         TaskHelper.Enqueue(() => IsAddonAndNodesReady(Dialogue), "等待界面出现");
         
@@ -427,38 +432,49 @@ public class FastWorldTravel : DailyModuleBase
         {
             NotificationInfo("DCTravelrX 正在处理超域旅行请求, 请稍等");
 
-            var isOneRequest = data.Length == 1;
             for (var i = 0; i < data.Length; i++)
             {
                 var travelData = data[i];
 
-                var exception = await SendDCTravel.InvokeFunc((int)travelData.CurrentWorldID,
-                                                            (int)travelData.TargetWorldID,
-                                                            travelData.ContentID,
-                                                            travelData.IsBack,
-                                                            travelData.Name);
-                if (exception != null)
+                TaskHelper.EnqueueAsync(async () =>
                 {
-                    NotificationWarning("超域旅行失败: 请查看日志获取详细信息");
-                    throw exception;
-                }
-
-                if (isOneRequest || i == 1)
+                    var exception = await SendDCTravel.InvokeFunc((int)travelData.CurrentWorldID,
+                                                                  (int)travelData.TargetWorldID,
+                                                                  travelData.ContentID,
+                                                                  travelData.IsBack,
+                                                                  travelData.Name);
+                    
+                    if (exception != null)
+                    {
+                        NotificationWarning("超域旅行失败: 请查看日志获取详细信息");
+                        Error("超域旅行失败", exception);
+                        
+                        TaskHelper.Abort();
+                    }
+                });
+                
+                if (i == data.Length - 1)
                 {
+                    TaskHelper.Enqueue(AgentLobbyEvent.OpenCharacterSelect, "进入角色选择界面");
+                    
                     unsafe
                     {
                         TaskHelper.Enqueue(() => CharaSelect != null || CharaSelectListMenu != null, "等待角色选择界面可用");
+                        TaskHelper.DelayNext(1000);
                     }
+                    
+                    TaskHelper.Enqueue(() => AgentLobbyEvent.SelectWorldByID(travelData.TargetWorldID), "选择目标服务器");
+                    
+                    TaskHelper.DelayNext(1000);
+                    TaskHelper.Enqueue(() => AgentLobbyEvent.SelectCharacter(x => x.ContentId == travelData.ContentID), "选择目标角色");
                     
                     if (DRConfig.Instance().ModuleEnabled.GetValueOrDefault("AutoLogin", false))
                         TaskHelper.EnqueueAsync(() => ModuleManager.LoadAsync(ModuleManager.GetModuleByName("AutoLogin")), "启用自动登录");
-                    
-                    TaskHelper.Enqueue(() => EnqueueLogin(travelData), "入队登录");
                     return;
                 }
-                
-                // 第二个请求限流, 不然拂晓不给过
-                NotificationInfo("等待 35 秒, 避免被超域旅行服务判断为频繁请求");
+
+                await Task.Delay(100);
+                TaskHelper.DelayNext(2000, "等待插件那边结束");
             }
         }
         catch (Exception ex)
@@ -579,14 +595,14 @@ public class FastWorldTravel : DailyModuleBase
         public ulong   ContentID;
         public bool    IsBack;
         public string  Name;
-        public string? Description; // 需要切换大区的名字
+        public string? Description;
     }
 
     private class AddonDRFastWorldTravel(TaskHelper TaskHelper) : NativeAddon
     {
         private static NodeBase TeleportWidget;
 
-        private static readonly Version MinDCTravelerXVersion = new("0.1.6.0");
+        private static readonly Version MinDCTravelerXVersion = new("0.2.3.0");
         
         private static bool IsPluginEnabled => 
             IsPluginEnabled("DCTravelerX", MinDCTravelerXVersion);
@@ -642,7 +658,8 @@ public class FastWorldTravel : DailyModuleBase
                         AlignmentType    = AlignmentType.Center,
                         Position         = new(305f, -22f),
                         TextFlags        = TextFlags.Bold | TextFlags.Edge,
-                        TextOutlineColor = ColorHelper.GetColor(7)
+                        TextColor        = ColorHelper.GetColor(50),
+                        TextOutlineColor = ColorHelper.GetColor(32)
                     };
                     pluginHelpNode.AttachNode(this);
                 }
