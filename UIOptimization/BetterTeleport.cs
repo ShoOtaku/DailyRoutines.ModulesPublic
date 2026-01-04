@@ -34,7 +34,7 @@ public unsafe class BetterTeleport : DailyModuleBase
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
-    private const string Command = "/pdrtelepo";
+    private const string COMMAND = "/pdrtelepo";
 
     // Icon ID - Record
     private static readonly Dictionary<string, List<AetheryteRecord>> Records      = [];
@@ -107,7 +107,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(DService.ClientState.TerritoryType);
 
-        CommandManager.AddCommand(Command, new(OnCommand) { HelpMessage = GetLoc("BetterTeleport-CommandHelp") });
+        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("BetterTeleport-CommandHelp") });
 
         UseActionManager.RegPreUseAction(OnPostUseAction);
     }
@@ -117,7 +117,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
 
         ImGui.SameLine();
-        ImGui.TextWrapped($"{Command} {GetLoc("BetterTeleport-CommandHelp")}");
+        ImGui.TextWrapped($"{COMMAND} {GetLoc("BetterTeleport-CommandHelp")}");
     }
 
     protected override void OverlayUI()
@@ -1077,37 +1077,34 @@ public unsafe class BetterTeleport : DailyModuleBase
 
                 RefreshHouseInfo();
 
-                if (Records.Count == 0)
+                Records.Clear();
+                foreach (var aetheryte in MovementManager.Aetherytes)
                 {
-                    // 金碟
-                    foreach (var aetheryte in MovementManager.Aetherytes)
-                    {
-                        if (!aetheryte.IsUnlocked()) continue;
+                    if (!aetheryte.IsUnlocked()) continue;
                         
-                        if (aetheryte.Group == 5)
-                        {
-                            Records.TryAdd(otherName, []);
-                            Records[otherName].Add(aetheryte);
-                        }
-                        else if (aetheryte.Version == 0)
-                        {
-                            var regionRow  = aetheryte.GetZone().PlaceNameRegion.Value;
-                            var regionName = regionRow.RowId is 22 or 23 or 24 ? aetheryte.GetZone().PlaceNameRegion.Value.Name.ExtractText() : otherName;
-
-                            Records.TryAdd(regionName, []);
-                            Records[regionName].Add(aetheryte);
-                        }
-                        else
-                        {
-                            var versionName = $"{aetheryte.Version + 2}.0";
-
-                            Records.TryAdd(versionName, []);
-                            Records[versionName].Add(aetheryte);
-                        }
+                    if (aetheryte.Group == 5)
+                    {
+                        Records.TryAdd(otherName, []);
+                        Records[otherName].Add(aetheryte);
                     }
+                    else if (aetheryte.Version == 0)
+                    {
+                        var regionRow  = aetheryte.GetZone().PlaceNameRegion.Value;
+                        var regionName = regionRow.RowId is 22 or 23 or 24 ? aetheryte.GetZone().PlaceNameRegion.Value.Name.ExtractText() : otherName;
 
-                    RefreshHwdInfo();
+                        Records.TryAdd(regionName, []);
+                        Records[regionName].Add(aetheryte);
+                    }
+                    else
+                    {
+                        var versionName = $"{aetheryte.Version + 2}.0";
+
+                        Records.TryAdd(versionName, []);
+                        Records[versionName].Add(aetheryte);
+                    }
                 }
+
+                RefreshHwdInfo();
 
                 RefreshFavoritesInfo();
             }
@@ -1156,7 +1153,7 @@ public unsafe class BetterTeleport : DailyModuleBase
     protected override void Uninit()
     {
         UseActionManager.Unreg(OnPostUseAction);
-        CommandManager.RemoveCommand(Command);
+        CommandManager.RemoveCommand(COMMAND);
 
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
     }
