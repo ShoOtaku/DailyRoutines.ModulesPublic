@@ -6,11 +6,8 @@ using DailyRoutines.Managers;
 using DailyRoutines.Widgets;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -32,14 +29,14 @@ public unsafe class AutoLogin : DailyModuleBase
         [BehaviourMode.Repeat] = GetLoc("AutoLogin-Repeat")
     };
 
-    private const string Command = "/pdrlogin";
+    private const string COMMAND = "/pdrlogin";
 
     private static Config ModuleConfig = null!;
 
     private static readonly WorldSelectCombo WorldSelectCombo = new("World");
     
-    private static int    SelectedCharaIndex;
-    private static int    DropIndex = -1;
+    private static int SelectedCharaIndex;
+    private static int DropIndex = -1;
 
     private static bool   HasLoginOnce;
     private static int    DefaultLoginIndex = -1;
@@ -55,7 +52,7 @@ public unsafe class AutoLogin : DailyModuleBase
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "Dialogue",   OnDialogue);
         OnTitleMenu(AddonEvent.PostSetup, null);
 
-        CommandManager.AddCommand(Command, new(OnCommand) { HelpMessage = GetLoc("AutoLogin-CommandHelp") });
+        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("AutoLogin-CommandHelp") });
         DService.ClientState.Login += OnLogin;
     }
 
@@ -64,7 +61,7 @@ public unsafe class AutoLogin : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}");
 
         using (ImRaii.PushIndent())
-            ImGui.Text(GetLoc("AutoLogin-AddCommandHelp", Command, Command));
+            ImGui.Text(GetLoc("AutoLogin-AddCommandHelp", COMMAND, COMMAND));
         
         ImGui.NewLine();
         
@@ -331,18 +328,8 @@ public unsafe class AutoLogin : DailyModuleBase
             return true;
         }
 
-        if (IsAddonAndNodesReady(SelectYesno))
-        {
-            TaskHelper.Enqueue(() => ClickSelectYesnoYes(), "准备点击确认登录");
-            TaskHelper.Enqueue(ResetStates);
-            return true;
-        }
-
-        Callback(addon, true, 21, charaIndex);
-        Callback(addon, true, 29, 0, charaIndex);
-        Callback(addon, true, 21, charaIndex);
-
-        return IsAddonAndNodesReady(SelectYesno);
+        AgentLobbyEvent.SelectCharacterByIndex((uint)charaIndex);
+        return true;
     }
 
     private bool? SelectWorld(ushort worldID)
@@ -355,34 +342,17 @@ public unsafe class AutoLogin : DailyModuleBase
 
         if (!IsAddonAndNodesReady(CharaSelectListMenu)) return false;
 
-        var worldName = LuminaWrapper.GetWorldName(worldID);
-        if (string.IsNullOrWhiteSpace(worldName)) return true;
-
-        var stringArray = AtkStage.Instance()->GetStringArrayData(StringArrayType.CharaSelect)->StringArray;
-        for (var i = 0; i < 8; i++)
+        if (!AgentLobbyEvent.SelectWorldByID(worldID))
         {
-            try
+            // 没找到
+            TaskHelper.Abort();
+            if (DefaultLoginIndex != -1 && DefaultLoginIndex < ModuleConfig.LoginInfos.Count)
             {
-                var worldString = SeString.Parse(stringArray[i].Value).ExtractText();
-                if (!worldString.Contains(worldName, StringComparison.OrdinalIgnoreCase)) continue;
-
-                SendEvent(AgentId.Lobby, 0, 25, 0, i);
-                return true;
+                var loginInfo = ModuleConfig.LoginInfos[DefaultLoginIndex];
+                DefaultLoginIndex++;
+                TaskHelper.Enqueue(() => SelectCharacter((ushort)loginInfo.WorldID, loginInfo.CharaIndex),
+                                   $"SelectCharaDefault_{loginInfo.WorldID}_{loginInfo.CharaIndex}");
             }
-            catch
-            {
-                // ignored
-            }
-        }
-
-        // 没找到
-        TaskHelper.Abort();
-        if (DefaultLoginIndex != -1 && DefaultLoginIndex < ModuleConfig.LoginInfos.Count)
-        {
-            var loginInfo = ModuleConfig.LoginInfos[DefaultLoginIndex];
-            DefaultLoginIndex++;
-            TaskHelper.Enqueue(() => SelectCharacter((ushort)loginInfo.WorldID, loginInfo.CharaIndex),
-                               $"SelectCharaDefault_{loginInfo.WorldID}_{loginInfo.CharaIndex}");
         }
 
         return true;
@@ -412,7 +382,7 @@ public unsafe class AutoLogin : DailyModuleBase
     protected override void Uninit()
     {
         DService.ClientState.Login -= OnLogin;
-        CommandManager.RemoveCommand(Command);
+        CommandManager.RemoveCommand(COMMAND);
         
         DService.AddonLifecycle.UnregisterListener(OnTitleMenu);
         DService.AddonLifecycle.UnregisterListener(OnDialogue);
