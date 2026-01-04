@@ -20,7 +20,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
     public override ModuleInfo Info { get; } = new()
     {
         Title            = GetLoc("FastInstanceZoneChangeTitle"),
-        Description      = GetLoc("FastInstanceZoneChangeDescription", Command),
+        Description      = GetLoc("FastInstanceZoneChangeDescription", COMMAND),
         Category         = ModuleCategories.System,
         Author           = ["AtmoOmen", "KirisameVanilla"],
         ModulesRecommend = ["InstantTeleport"]
@@ -35,7 +35,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         TerritoryIntendedUse.Town
     ];
 
-    private const string Command = "insc";
+    private const string COMMAND = "insc";
 
     private static Config        ModuleConfig = null!;
     private static IDtrBarEntry? Entry;
@@ -45,7 +45,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         TaskHelper ??= new() { TimeLimitMS = 30_000 };
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("FastInstanceZoneChange-CommandHelp") });
+        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("FastInstanceZoneChange-CommandHelp") });
 
         Overlay ??= new(this);
         Overlay.WindowName = GetLoc("FastInstanceZoneChangeTitle");
@@ -60,12 +60,11 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
         using (ImRaii.PushIndent())
-            ImGui.Text($"/pdr {Command} \u2192 {GetLoc("FastInstanceZoneChange-CommandHelp")}");
+            ImGui.Text($"/pdr {COMMAND} \u2192 {GetLoc("FastInstanceZoneChange-CommandHelp")}");
 
         ImGui.Spacing();
 
-        if (ImGui.Checkbox(GetLoc("FastInstanceZoneChange-TeleportIfNotNearAetheryte"),
-                           ref ModuleConfig.TeleportIfNotNearAetheryte))
+        if (ImGui.Checkbox(GetLoc("FastInstanceZoneChange-TeleportIfNotNearAetheryte"), ref ModuleConfig.TeleportIfNotNearAetheryte))
             SaveConfig(ModuleConfig);
 
         if (ImGui.Checkbox(GetLoc("FastInstanceZoneChange-ConstantlyTry"), ref ModuleConfig.ConstantlyTry))
@@ -130,7 +129,8 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
     {
         if (!ModuleConfig.AddDtrEntry || Entry == null || BetweenAreas) return;
         
-        Entry.Shown = InstancesManager.IsInstancedArea;
+        Entry.Shown   = InstancesManager.IsInstancedArea;
+        Entry.Tooltip = ValidUses.Contains(GameState.TerritoryIntendedUse) ? GetLoc("FastInstanceZoneChange-DtrEntryTooltip") : string.Empty;
     }
 
     private static void OnTerritoryChanged(ushort zone = 0)
@@ -178,7 +178,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
     protected override void Uninit()
     {
         HandleDtrEntry(false);
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.RemoveSubCommand(COMMAND);
     }
 
     private void OnCommand(string command, string args)
