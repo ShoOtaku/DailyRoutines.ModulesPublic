@@ -104,7 +104,7 @@ public class AutoCuffACur : DailyModuleBase
         builder.Add(NewLinePayload.Payload);
         builder.AddText(info);
         
-        text->SetText(builder.Encode());
+        text->SetText(builder.Build().EncodeWithNullTerminator());
         text->SetPositionFloat(20, 60);
     }
 
