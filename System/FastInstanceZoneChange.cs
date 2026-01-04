@@ -42,7 +42,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeLimitMS = 30_000, ShowDebug = true };
         ModuleConfig = LoadConfig<Config>() ?? new();
 
         CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("FastInstanceZoneChange-CommandHelp") });
@@ -62,7 +62,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         using (ImRaii.PushIndent())
             ImGui.Text($"/pdr {COMMAND} \u2192 {GetLoc("FastInstanceZoneChange-CommandHelp")}");
 
-        ImGui.Spacing();
+        ImGui.NewLine();
 
         if (ImGui.Checkbox(GetLoc("FastInstanceZoneChange-TeleportIfNotNearAetheryte"), ref ModuleConfig.TeleportIfNotNearAetheryte))
             SaveConfig(ModuleConfig);
@@ -113,7 +113,6 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         var count = InstancesManager.GetInstancesCount();
         for (uint i = 1; i <= count; i++)
         {
-            if (i == InstancesManager.CurrentInstance) continue;
             if (ImGui.Button($"{GetLoc("FastInstanceZoneChange-SwitchInstance", i.ToSEChar())}") |
                 DService.KeyState[(VirtualKey)(48 + i)])
             {
@@ -226,15 +225,13 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         var isAnyAetheryteNearby = IsAnyAetheryteNearby(out _);
         if (ModuleConfig.TeleportIfNotNearAetheryte && !isAnyAetheryteNearby)
         {
-            TaskHelper.Enqueue(
-                () => MovementManager.TeleportNearestAetheryte(default, DService.ClientState.TerritoryType, true),
-                weight:  2);
-            TaskHelper.DelayNext(500, string.Empty, false, 2);
+            TaskHelper.Enqueue(() => MovementManager.TeleportNearestAetheryte(default, GameState.TerritoryType, true), "传送到目标区域最近以太之光", weight: 2);
+            TaskHelper.DelayNext(500, "等待传送开始", weight: 2);
             TaskHelper.Enqueue(() =>
             {
                 if (!Throttler.Throttle("FastInstanceZoneChange-WaitTeleportFinish")) return false;
                 return IsAnyAetheryteNearby(out _);
-            }, weight:  2);
+            }, "传送到目标区域最近以太之光", weight: 2);
         }
 
         var currentMountID = 0U;
@@ -255,22 +252,25 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
             }
 
             return !DService.Condition[ConditionFlag.Mounted];
-        }, weight:  2);
+        }, "下坐骑", weight: 2);
 
         if (ModuleConfig.ConstantlyTry)
-            TaskHelper.Enqueue(() => EnqueueInstanceChange(targetInstance, 0), weight:  2);
+            TaskHelper.Enqueue(() => EnqueueInstanceChange(targetInstance, 0), "开始持续尝试切换副本区", weight: 2);
         else
-            TaskHelper.Enqueue(() => ChangeInstanceZone(targetInstance), weight:  2);
+            TaskHelper.Enqueue(() => ChangeInstanceZone(targetInstance), "切换副本区", weight: 2);
 
         if (ModuleConfig.MountAfterChange)
         {
             TaskHelper.Enqueue(() =>
             {
                 if (InstancesManager.CurrentInstance != targetInstance ||
-                    BetweenAreas || !IsScreenReady()) return false;
+                    BetweenAreas                                       ||
+                    !IsScreenReady())
+                    return false;
 
-                if (!LuminaGetter.TryGetRow<TerritoryType>(DService.ClientState.TerritoryType, out var zoneData) ||
-                    !zoneData.Mount) return false;
+                // 上不了坐骑
+                if (ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 9) != 0) 
+                    return true;
                 
                 if (currentMountID != 0)
                     UseActionManager.UseAction(ActionType.Mount, currentMountID);
@@ -278,14 +278,14 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
                     UseActionManager.UseAction(ActionType.GeneralAction, 9);
 
                 return true;
-            });
+            }, "切换完毕后上坐骑");
         }
     }
 
     public void EnqueueInstanceChange(uint i, uint tryTimes)
     {
         // 等待上一次切换完成
-        TaskHelper.Enqueue(() => IsAddonAndNodesReady(SelectString) || !DService.Condition[ConditionFlag.BetweenAreas], weight:  2);
+        TaskHelper.Enqueue(() => IsAddonAndNodesReady(SelectString) || !DService.Condition[ConditionFlag.BetweenAreas], "等待上一次切换完毕", weight: 2);
 
         // 检测切换情况
         TaskHelper.Enqueue(() =>
@@ -302,30 +302,28 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
                 TaskHelper.RemoveAllTasks(2);
 
             return true;
-        }, weight:  2);
+        }, "检测切换情况", weight: 2);
 
         // 实际切换指令
-        TaskHelper.Enqueue(() => ChangeInstanceZone(i), weight:  2);
+        TaskHelper.Enqueue(() => ChangeInstanceZone(i), "开始切换", weight: 2);
 
         // 发送提示信息
         if (tryTimes > 0)
-            TaskHelper.Enqueue(() => NotificationInfo(GetLoc("FastInstanceZoneChange-Notice-ChangeTimes", tryTimes)), weight:  2);
+            TaskHelper.Enqueue(() => NotificationInfo(GetLoc("FastInstanceZoneChange-Notice-ChangeTimes", tryTimes)), "发送提示信息", weight: 2);
 
         // 延迟下一次检测
-        TaskHelper.DelayNext(1_500, string.Empty, false, 2);
-        TaskHelper.Enqueue(() => EnqueueInstanceChange(i, tryTimes++), weight:  2);
+        TaskHelper.DelayNext(1_500, "等待 1.5 秒后继续", weight: 2);
+        TaskHelper.Enqueue(() => EnqueueInstanceChange(i, tryTimes++), "开始新一轮切换", weight: 2);
     }
 
     internal static void ChangeInstanceZone(uint i)
     {
         if (!UIState.Instance()->PublicInstance.IsInstancedArea() ||
-            !IsAnyAetheryteNearby(out var eventID)) return;
+            !IsAnyAetheryteNearby(out var eventID))
+            return;
 
-        var packetStart = new EventStartPackt(DService.ObjectTable.LocalPlayer.GameObjectID, eventID);
-        var packetFinish = new EventCompletePackt(eventID, 33554432, 7, i + 1);
-
-        GamePacketManager.SendPackt(packetStart);
-        GamePacketManager.SendPackt(packetFinish);
+        new EventStartPackt(LocalPlayerState.EntityID, eventID).Send();
+        new EventCompletePackt(eventID, 33554432, 7, i + 1).Send();
     }
 
     private static bool IsAnyAetheryteNearby(out uint eventID)
