@@ -422,8 +422,8 @@ public unsafe class AutoGardensWork : DailyModuleBase
         if (!SelectString->IsAddonAndNodesReady())
             return false;
 
-        if (!TryScanSelectStringText(SelectString, text,                                                                      out var index))
-            TryScanSelectStringText(SelectString,  LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(1).Text.ToString(), out index);
+        if (!TryScanSelectStringText(text,                                                                  out var index))
+            TryScanSelectStringText(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(1).Text.ToString(), out index);
 
         return ClickSelectString(index);
     }

@@ -836,7 +836,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                 {
                     if (InterruptByConflictKey(TaskHelper, Module)) return true;
                     if (!SelectString->IsAddonAndNodesReady()) return false;
-                    if (!TryScanSelectStringText(SelectString, VentureCompleteTexts, out var i))
+                    if (!TryScanSelectStringText(VentureCompleteTexts, out var i))
                     {
                         TaskHelper.Abort();
                         TaskHelper.Enqueue(() => LeaveRetainer(), "回到雇员列表");
