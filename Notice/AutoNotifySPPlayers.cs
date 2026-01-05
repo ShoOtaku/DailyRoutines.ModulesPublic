@@ -103,10 +103,10 @@ public class AutoNotifySPPlayers : DailyModuleBase
                                  [x => () =>
                                  {
                                      if (!DService.Texture.TryGetFromGameIcon(x.Icon, out var statusIcon)) return;
-                                     using var id = ImRaii.PushId($"{x.Name.ExtractText()}_{x.RowId}");
+                                     using var id = ImRaii.PushId($"{x.Name.ToString()}_{x.RowId}");
                                      if (ImGuiOm.SelectableImageWithText(
                                              statusIcon.GetWrapOrEmpty().Handle, new(ImGui.GetTextLineHeightWithSpacing()),
-                                             x.Name.ExtractText(),
+                                             x.Name.ToString(),
                                              SelectedOnlineStatus.Contains(x.RowId),
                                              ImGuiSelectableFlags.DontClosePopups))
                                      {
@@ -114,7 +114,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
                                              SelectedOnlineStatus.Add(x.RowId);
                                      }
                                  }], 
-                                 [x => x.Name.ExtractText()]);
+                                 [x => x.Name.ToString()]);
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -282,7 +282,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
                     if (withText)
                     {
                         ImGui.SameLine();
-                        ImGui.Text($"{row.Name.ExtractText()}({row.RowId})");
+                        ImGui.Text($"{row.Name.ToString()}({row.RowId})");
                     }
                 }
 
@@ -351,7 +351,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
                 checks[1] = config.OnlineStatus.Contains(obj.OnlineStatus.RowId);
 
             if (config.Zone.Count > 0) 
-                checks[2] = config.Zone.Contains(DService.ClientState.TerritoryType);
+                checks[2] = config.Zone.Contains(GameState.TerritoryType);
 
             if (checks.All(x => x))
             {

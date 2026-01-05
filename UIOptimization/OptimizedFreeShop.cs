@@ -122,7 +122,7 @@ public unsafe class OptimizedFreeShop : DailyModuleBase
                     {
                         if (!LuminaGetter.TryGetRow(classJobCategory, out ClassJobCategory categoryData)) continue;
                         if (LuminaGetter.Get<ClassJob>()
-                                        .FirstOrDefault(x => x.Name.ExtractText().Contains(categoryData.Name.ExtractText(), StringComparison.OrdinalIgnoreCase)) 
+                                        .FirstOrDefault(x => x.Name.ToString().Contains(categoryData.Name.ToString(), StringComparison.OrdinalIgnoreCase)) 
                             is not { RowId: > 0 } classJobData) continue;
 
                         var icon = classJobData.RowId + 62100;

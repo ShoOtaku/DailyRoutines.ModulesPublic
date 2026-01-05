@@ -51,7 +51,7 @@ public unsafe class AutoJoinExitDuty : DailyModuleBase
         if (!LuminaGetter.TryGetRow<ContentFinderCondition>(TargetContent, out var contentData)) return;
         if (!UIState.IsInstanceContentUnlocked(TargetContent))
         {
-            NotificationError(GetLoc("AutoJoinExitDuty-DutyLockedNotice", contentData.Name.ExtractText()));
+            NotificationError(GetLoc("AutoJoinExitDuty-DutyLockedNotice", contentData.Name.ToString()));
             return;
         }
 

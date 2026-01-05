@@ -32,7 +32,7 @@ public class AutoInDutySelectYes : DailyModuleBase
         var addon = (AddonSelectYesno*)args.Addon.Address;
         if (addon == null) return;
         
-        var text = addon->PromptText->NodeText.ExtractText();
+        var text = addon->PromptText->NodeText.ToString();
         if (string.IsNullOrWhiteSpace(text) || Blacklist.ContainsAny(text))
             return;
         

@@ -167,15 +167,15 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         var localPlayer = Control.GetLocalPlayer();
         if (localPlayer == null) return;
         
-        if (IsAddonAndNodesReady(NamePlate))
+        if (NamePlate->IsAddonAndNodesReady())
         {
             var node = NamePlate->GetNodeById(1);
             if (node != null)
             {
-                var nodeState = NodeState.Get(node);
+                var nodeState = node->GetNodeState();
                 if (ImGui.Begin($"AutoCountPlayers-{localPlayer->EntityId}", WindowFlags))
                 {
-                    ImGui.SetWindowPos((nodeState.Position2 / 2) - (ImGui.GetWindowSize() * 0.75f));
+                    ImGui.SetWindowPos(nodeState.Center - (ImGui.GetWindowSize() * 0.75f));
                     using (FontManager.UIFont140.Push())
                     using (ImRaii.Group())
                     {
@@ -255,7 +255,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
             PlayersManager.PlayersTargetingMe.ForEach(info =>
                                                           tooltip.AddText($"{info.Player.Name} (")
                                                                  .AddIcon(info.Player.ClassJob.Value.ToBitmapFontIcon())
-                                                                 .AddText($"{info.Player.ClassJob.Value.Name.ExtractText()})")
+                                                                 .AddText($"{info.Player.ClassJob.Value.Name.ToString()})")
                                                                  .Add(NewLinePayload.Payload));
         }
 
@@ -266,7 +266,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         
         characters.ForEach(info => tooltip.AddText($"{info.Name} (")
                                           .AddIcon(info.ClassJob.Value.ToBitmapFontIcon())
-                                          .AddText($"{info.ClassJob.Value.Name.ExtractText()})")
+                                          .AddText($"{info.ClassJob.Value.Name.ToString()})")
                                           .Add(NewLinePayload.Payload));
         
         var message = tooltip.Build();
@@ -298,7 +298,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
                     builder.Add(new NewLinePayload());
                     foreach (var info in targetingPlayersInfo)
                     {
-                        builder.Add(new PlayerPayload(info.Player.Name.ExtractText(), info.Player.HomeWorld.RowId))
+                        builder.Add(new PlayerPayload(info.Player.Name.ToString(), info.Player.HomeWorld.RowId))
                                .Append(" (")
                                .AddIcon(info.Player.ClassJob.Value.ToBitmapFontIcon())
                                .Append($" {info.Player.ClassJob.Value.Name})");

@@ -130,7 +130,7 @@ public class AutoShowDutyGuide : DailyModuleBase
         {
             var originalText = await HttpClientHelper.Get().GetStringAsync(string.Format(FF14OrgLinkBase, dutyID));
 
-            var plainText = MarkdownToPlainText(originalText);
+            var plainText = originalText.SanitizeMarkdown();
             if (!string.IsNullOrWhiteSpace(plainText))
             {
                 GuideData      = [.. plainText.Split('\n')];

@@ -891,7 +891,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
             case DisplayFormat.FullNumberSeparators:
                 return num.ToString("N0");
             case DisplayFormat.ChineseFull:
-                return FormatUtf8NumberByChineseNotation((int)num, currentLang)->ToString();
+                return num.ToChineseString();
             case DisplayFormat.ChineseZeroPrecision:
             case DisplayFormat.ChineseOnePrecision:
             case DisplayFormat.ChineseTwoPrecision:

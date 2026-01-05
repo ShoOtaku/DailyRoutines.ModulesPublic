@@ -38,7 +38,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
                                               .Where(x => x.Item.RowId != 0 && x.Item.IsValid)
                                               .ToDictionary(x => x.RowId, x => x);
         ItemNameMap = OriginalCraftItemsSheet.Values
-                                             .ToDictionary(r => RemoveMJIItemPrefix(r.Item.Value.Name.ExtractText() ?? string.Empty), 
+                                             .ToDictionary(r => RemoveMJIItemPrefix(r.Item.Value.Name.ToString() ?? string.Empty), 
                                                            r => r,
                                                            StringComparer.OrdinalIgnoreCase);
     }
@@ -68,7 +68,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
             return;
         }
         
-        if (!IsAddonAndNodesReady(MJICraftSchedule)) return;
+        if (!MJICraftSchedule->IsAddonAndNodesReady()) return;
         
         using var font = FontManager.UIFont80.Push();
         
@@ -225,7 +225,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
     private static void DrawItemName(uint craftObjectID)
     {
         if (!OriginalCraftItemsSheet.TryGetValue(craftObjectID, out var row)) return;
-        ImGui.TextUnformatted(row.Item.Value.Name.ExtractText());
+        ImGui.TextUnformatted(row.Item.Value.Name.ToString());
     }
 
     private static string RemoveMJIItemPrefix(string name) =>

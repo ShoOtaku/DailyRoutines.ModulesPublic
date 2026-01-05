@@ -7,6 +7,7 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -86,7 +87,7 @@ public class AutoEliminateFishAwareness : DailyModuleBase
         ref bool     ishandled)
     {
         if ((ushort)type != 2243 || ModuleConfig.BlacklistZones.Contains(GameState.TerritoryType)) return;
-        if (!ValidChatMessages.Contains(message.ExtractText())) return;
+        if (!ValidChatMessages.Contains(message.ToString())) return;
 
         TaskHelper.Abort();
 
@@ -100,7 +101,7 @@ public class AutoEliminateFishAwareness : DailyModuleBase
             TaskHelper.DelayNext(5_000, "等待 5 秒");
             TaskHelper.Enqueue(() => !OccupiedInEvent,                                                           "等待不在钓鱼状态");
             TaskHelper.Enqueue(() => ExitDuty(753),                                                              "离开副本");
-            TaskHelper.Enqueue(() => !BoundByDuty && IsScreenReady() && GameState.TerritoryType != 939,          "等待离开副本");
+            TaskHelper.Enqueue(() => !BoundByDuty && UIModule.IsScreenReady() && GameState.TerritoryType != 939,          "等待离开副本");
             TaskHelper.Enqueue(() => ChatManager.SendMessage("/pdrfe diadem"),                                    "发送进入指令");
             TaskHelper.Enqueue(() => GameState.TerritoryType == 939 && DService.ObjectTable.LocalPlayer != null, "等待进入");
             TaskHelper.Enqueue(() => MovementManager.TPSmart_InZone(currentPos),                                 $"传送到原始位置 {currentPos}");
@@ -154,7 +155,7 @@ public class AutoEliminateFishAwareness : DailyModuleBase
     private static bool? EnterFishing()
     {
         if (!Throttler.Throttle("AutoEliminateFishAwareness-EnterFishing")) return false;
-        if (DService.ObjectTable.LocalPlayer == null || BetweenAreas || !IsScreenReady()) return false;
+        if (DService.ObjectTable.LocalPlayer == null || BetweenAreas || !UIModule.IsScreenReady()) return false;
 
         ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.Fish);
         return DService.Condition[ConditionFlag.Fishing];

@@ -102,13 +102,13 @@ public unsafe class AutoUseEventItem : DailyModuleBase
                            .Where(marker => 
                            {
                                if (marker.TooltipString == null || (nint)marker.TooltipString <= 0) return false;
-                               var markerName = marker.TooltipString->ExtractText();
+                               var markerName = marker.TooltipString->ToString();
                                if (string.IsNullOrWhiteSpace(markerName)) return false;
 
                                var distance = Vector3.Distance(localPos, marker.Position);
                                return marker.Radius <= 1 ? distance <= 5 : distance <= marker.Radius;
                            })
-                           .Select(marker => marker.TooltipString->ExtractText())
+                           .Select(marker => marker.TooltipString->ToString())
                            .ToHashSet();
 
         var nearbyQuest = QuestManager.Instance()->NormalQuests.ToArray()

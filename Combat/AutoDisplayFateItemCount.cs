@@ -145,7 +145,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
                 !LuminaGetter.TryGetRow<Fate>(currentFate->FateId, out var fateData) ||
                 fateData.EventItem.RowId      == 0                                   ||
                 fateData.EventItem.Value.Icon == 0                                   ||
-                !IsAddonAndNodesReady(ToDoList))
+                !ToDoList->IsAddonAndNodesReady())
             {
                 IsVisible = false;
                 return;
@@ -171,14 +171,16 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
             
             if (nodeItemCount == null || nodeDescription == null || nodeProgressBar == null) return;
 
-            var progressBarState = NodeState.Get(nodeProgressBar->Component->UldManager.SearchNodeById(4));
+            var progressBarState = nodeProgressBar->Component->UldManager.SearchNodeById(4)->GetNodeState();
 
-            var nodeState0 = NodeState.Get((AtkResNode*)nodeProgressBar);
-            var nodeState1 = NodeState.Get((AtkResNode*)nodeDescription);
-            var nodeState2 = NodeState.Get(nodeItemCount);
-            Position = progressBarState.Position                                                 + 
-                       new Vector2(0, nodeState0.Size.Y + nodeState1.Size.Y + nodeState2.Size.Y) +
-                       new Vector2(0, 12);
+            var nodeStateProgressBar = nodeProgressBar->GetNodeState();
+            var nodeStateDescription = nodeDescription->GetNodeState();
+            var nodeStateItemCount   = nodeItemCount->GetNodeState();
+            Position = progressBarState.TopLeft +
+                       new Vector2(0, nodeStateProgressBar.Height +
+                                      nodeStateDescription.Height +
+                                      nodeStateItemCount.Height +
+                                      12f);
 
             UpdateFateItemHeader(fateData.EventItem.Value);
             HoldCountNode.SetNumber((int)LocalPlayerState.GetItemCount(fateData.EventItem.RowId));

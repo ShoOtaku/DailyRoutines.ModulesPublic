@@ -10,6 +10,7 @@ using Dalamud.Utility.Numerics;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
 using TerritoryIntendedUse = FFXIVClientStructs.FFXIV.Client.Enums.TerritoryIntendedUse;
 
@@ -115,7 +116,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         {
             if (i == InstancesManager.CurrentInstance) continue;
             
-            if (ImGui.Button($"{GetLoc("FastInstanceZoneChange-SwitchInstance", i.ToSEChar())}") |
+            if (ImGui.Button($"{GetLoc("FastInstanceZoneChange-SwitchInstance", i.ToSESquareCount())}") |
                 DService.KeyState[(VirtualKey)(48 + i)])
             {
                 if (TaskHelper.IsBusy || BetweenAreas || DService.Condition[ConditionFlag.Casting]) continue;
@@ -132,7 +133,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         
         Entry.Text = !InstancesManager.IsInstancedArea
                          ? string.Empty
-                         : GetLoc("AutoMarksFinder-RelayInstanceDisplay", InstancesManager.CurrentInstance.ToSEChar());
+                         : GetLoc("AutoMarksFinder-RelayInstanceDisplay", InstancesManager.CurrentInstance.ToSESquareCount());
         Entry.Shown   = InstancesManager.IsInstancedArea;
         Entry.Tooltip = ValidUses.Contains(GameState.TerritoryIntendedUse) ? GetLoc("FastInstanceZoneChange-DtrEntryTooltip") : string.Empty;
     }
@@ -258,7 +259,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         {
             TaskHelper.Enqueue(() =>
             {
-                if (!IsScreenReady())
+                if (!UIModule.IsScreenReady())
                     return false;
 
                 // 上不了坐骑
@@ -278,7 +279,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
     public void EnqueueInstanceChange(uint i, uint tryTimes)
     {
         // 等待上一次切换完成
-        TaskHelper.Enqueue(() => IsAddonAndNodesReady(SelectString) || !DService.Condition[ConditionFlag.BetweenAreas], "等待上一次切换完毕", weight: 2);
+        TaskHelper.Enqueue(() => SelectString->IsAddonAndNodesReady() || !DService.Condition[ConditionFlag.BetweenAreas], "等待上一次切换完毕", weight: 2);
 
         // 检测切换情况
         TaskHelper.Enqueue(() =>
@@ -329,7 +330,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
 
             foreach (var obj in eve.Item2.Value->EventObjects)
             {
-                if (obj.Value->NameString == LuminaGetter.GetRow<Aetheryte>(0)!.Value.Singular.ExtractText())
+                if (obj.Value->NameString == LuminaGetter.GetRow<Aetheryte>(0)!.Value.Singular.ToString())
                 {
                     eventID = eve.Item2.Value->Info.EventId;
                     return true;

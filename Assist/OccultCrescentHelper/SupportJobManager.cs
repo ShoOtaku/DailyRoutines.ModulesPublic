@@ -174,9 +174,9 @@ public partial class OccultCrescentHelper
                                           .Select(data => new
                                           {
                                               Data        = data,
-                                              NameMale    = data.Name.ExtractText(),
-                                              NameFemale  = data.NameFemale.ExtractText(),
-                                              NameEnglish = data.NameEnglish.ExtractText()
+                                              NameMale    = data.Name.ToString(),
+                                              NameFemale  = data.NameFemale.ToString(),
+                                              NameEnglish = data.NameEnglish.ToString()
                                           })
                                           .Where(x => x.NameMale.Contains(args, StringComparison.OrdinalIgnoreCase)   ||
                                                       x.NameFemale.Contains(args, StringComparison.OrdinalIgnoreCase) ||

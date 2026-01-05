@@ -9,6 +9,7 @@ using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -150,12 +151,12 @@ public partial class OccultCrescentHelper
             if (aetheryte.TeleportTo()) return;
 
             // 附近可以找到魔路
-            if (TryGetNearestEvent(x => x.EventId.ContentId == EventHandlerContent.CustomTalk,
-                                                        x => x.NameString.Equals(LuminaWrapper.GetEObjName(2006473), StringComparison.OrdinalIgnoreCase) ||
-                                                             x.NameString.Equals(LuminaWrapper.GetEObjName(2014664), StringComparison.OrdinalIgnoreCase),
-                                                        default,
-                                                        out var eventID,
-                                                        out var eventObjectID) &&
+            if (EventFramework.Instance()->TryGetNearestEvent(x => x.EventId.ContentId == EventHandlerContent.CustomTalk,
+                                                              x => x.NameString.Equals(LuminaWrapper.GetEObjName(2006473), StringComparison.OrdinalIgnoreCase) ||
+                                                                   x.NameString.Equals(LuminaWrapper.GetEObjName(2014664), StringComparison.OrdinalIgnoreCase),
+                                                              default,
+                                                              out var eventID,
+                                                              out var eventObjectID) &&
                 DService.ObjectTable.SearchByID(eventObjectID) is { } targetObj)
             {
                 var distance3D = LocalPlayerState.DistanceTo3D(targetObj.Position);
@@ -246,7 +247,7 @@ public partial class OccultCrescentHelper
                 IsPluginEnabled(vnavmeshIPC.InternalName))
             {
                 MoveTaskHelper.Enqueue(() => UseActionManager.UseActionLocation(ActionType.Action, 41343));
-                MoveTaskHelper.Enqueue(() => IsScreenReady() && LocalPlayerState.DistanceTo3D(CrescentAetheryte.ExpeditionBaseCamp.Position) <= 100);
+                MoveTaskHelper.Enqueue(() => UIModule.IsScreenReady() && LocalPlayerState.DistanceTo3D(CrescentAetheryte.ExpeditionBaseCamp.Position) <= 100);
                 MoveTaskHelper.Enqueue(() => UseAetheryte(aetheryte));
 
                 return;

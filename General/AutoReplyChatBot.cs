@@ -1090,7 +1090,7 @@ public class AutoReplyChatBot : DailyModuleBase
         {
             var name     = p.PlayerName;
             var worldID  = (ushort)p.World.RowId;
-            var worldStr = p.World.Value.Name.ExtractText();
+            var worldStr = p.World.Value.Name.ToString();
             if (!string.IsNullOrEmpty(name))
                 return (name, worldID, worldStr);
         }
@@ -1406,12 +1406,12 @@ public class AutoReplyChatBot : DailyModuleBase
     private static readonly Dictionary<GameContextType, Func<string>> GameContextValueMap = new()
     {
         [GameContextType.PlayerName]   = () => LocalPlayerState.Name,
-        [GameContextType.ClassJob]     = () => LocalPlayerState.ClassJobData.Name.ExtractText(),
+        [GameContextType.ClassJob]     = () => LocalPlayerState.ClassJobData.Name.ToString(),
         [GameContextType.Level]        = () => LocalPlayerState.CurrentLevel.ToString(),
-        [GameContextType.HomeWorld]    = () => GameState.HomeWorldData.Name.ExtractText(),
-        [GameContextType.CurrentWorld] = () => GameState.CurrentWorldData.Name.ExtractText(),
+        [GameContextType.HomeWorld]    = () => GameState.HomeWorldData.Name.ToString(),
+        [GameContextType.CurrentWorld] = () => GameState.CurrentWorldData.Name.ToString(),
         [GameContextType.CurrentZone]  = () => LuminaWrapper.GetZonePlaceName(GameState.TerritoryType),
-        [GameContextType.Weather]      = () => GameState.WeatherData.Name.ExtractText(),
+        [GameContextType.Weather]      = () => GameState.WeatherData.Name.ToString(),
         [GameContextType.LocalTime]    = () => new DateTimeOffset(DateTime.Now).ToString("yyyy/MM/dd HH:mm"),
         [GameContextType.EorzeaTime]   = () => EorzeaDate.GetTime().ToString()
     };

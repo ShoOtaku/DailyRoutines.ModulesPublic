@@ -64,7 +64,7 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
     {
         if (!ModuleConfig.IsSubmitHQItem) return;
 
-        var text = ((AddonSelectYesno*)SelectYesno)->PromptText->NodeText.ExtractText();
+        var text = ((AddonSelectYesno*)SelectYesno)->PromptText->NodeText.ToString();
         if (!HQItemTexts.Contains(text)) return;
         
         ClickSelectYesnoYes();
@@ -80,7 +80,7 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
         
         if (addon->HandOverButton->IsEnabled)
         {
-            addon->HandOverButton->ClickAddonButton(Request);
+            addon->HandOverButton->Click();
             return;
         }
         
@@ -101,7 +101,7 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
             if (slotState->ItemId == itemRequest.ItemId) continue;
 
             // 数据没好, 先请求加载
-            if (!IsAddonAndNodesReady(ContextIconMenu))
+            if (!ContextIconMenu->IsAddonAndNodesReady())
             {
                 AgentId.NpcTrade.SendEvent(0, 2, i, 0, 0);
                 return;

@@ -72,15 +72,15 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     static FastObjectInteract()
     {
         EnpcTitles = LuminaGetter.Get<ENpcResident>()
-                                .Where(x => x.Unknown1 && !string.IsNullOrWhiteSpace(x.Title.ExtractText()))
-                                .ToDictionary(x => x.RowId, x => x.Title.ExtractText());
+                                .Where(x => x.Unknown1 && !string.IsNullOrWhiteSpace(x.Title.ToString()))
+                                .ToDictionary(x => x.RowId, x => x.Title.ToString());
 
         ImportantEnpcs = LuminaGetter.Get<ENpcResident>()
                                    .Where(x => x.Unknown1)
                                    .Select(x => x.RowId)
                                    .ToHashSet();
 
-        AethernetShardName = LuminaGetter.GetRow<EObjName>(2000151)!.Value.Singular.ExtractText();
+        AethernetShardName = LuminaGetter.GetRow<EObjName>(2000151)!.Value.Singular.ToString();
     }
 
     protected override void Init()
@@ -136,8 +136,8 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
         DCWorlds = PresetSheet.Worlds
                               .Where(x => x.Value.DataCenter.RowId == dataCenter)
                               .OrderBy(x => x.Key                  == HomeWorld)
-                              .ThenBy(x => x.Value.Name.ExtractText())
-                              .ToDictionary(x => x.Key, x => x.Value.Name.ExtractText());
+                              .ThenBy(x => x.Value.Name.ToString())
+                              .ToDictionary(x => x.Key, x => x.Value.Name.ToString());
     }
 
     #region 界面
@@ -355,7 +355,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
                     instanceChangeObject = objectToSelect;
             }
 
-            if (!IsOnWorldTraveling && WorldTravelValidZones.Contains(DService.ClientState.TerritoryType) &&
+            if (!IsOnWorldTraveling && WorldTravelValidZones.Contains(GameState.TerritoryType) &&
                 objectToSelect.Kind == ObjectKind.Aetheryte)
             {
                 var gameObj = (GameObject*)objectToSelect.GameObject;

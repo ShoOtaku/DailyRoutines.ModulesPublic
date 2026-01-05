@@ -53,7 +53,7 @@ public unsafe class AutoMovePetCenter : DailyModuleBase
             DService.ObjectTable.LocalPlayer is null)
             return;
         
-        var pos = TextureToWorld(new(1024), GameState.MapData).ToVector3();
+        var pos = TextureToWorld(new(1024), GameState.MapData).ToPlayerHeight();
         ExecuteCommandManager.ExecuteCommandComplexLocation(ExecuteCommandComplexFlag.PetAction, pos, 3);
     }
 }

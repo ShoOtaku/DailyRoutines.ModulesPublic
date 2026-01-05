@@ -1132,7 +1132,7 @@ public partial class OccultCrescentHelper
 
                         var actionTextNode = new TextNode
                         {
-                            SeString         = $"\ue06a {ToSENumberSmall(jobLevel)}: {action.Name.ExtractText()}",
+                            SeString         = $"\ue06a {jobLevel.ToSESmallCount()}: {action.Name.ToString()}",
                             FontSize         = 14,
                             IsVisible        = true,
                             Size             = new(Size.X - 20f, 40f),
@@ -1183,7 +1183,7 @@ public partial class OccultCrescentHelper
 
                         var traitTextNode = new TextNode
                         {
-                            SeString         = $"\ue06a {ToSENumberSmall(jobLevel)}: {traitRow.Unknown0.ExtractText()}",
+                            SeString         = $"\ue06a {jobLevel.ToSESmallCount()}: {traitRow.Unknown0.ToString()}",
                             FontSize         = 14,
                             IsVisible        = true,
                             Size             = new(Size.X - 20f, 44f),

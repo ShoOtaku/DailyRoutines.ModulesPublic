@@ -4,6 +4,7 @@ using DailyRoutines.Abstracts;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
@@ -39,7 +40,7 @@ public class SastashaHelper : DailyModuleBase
         TaskHelper ??= new() { TimeLimitMS = 30_000 };
         
         DService.ClientState.TerritoryChanged += OnZoneChanged;
-        OnZoneChanged(DService.ClientState.TerritoryType);
+        OnZoneChanged(0);
     }
 
     private void OnZoneChanged(ushort zone)
@@ -49,7 +50,7 @@ public class SastashaHelper : DailyModuleBase
 
         CorrectCoralDataID = 0;
         CorrectCoralHighlightColor = ObjectHighlightColor.None;
-        if (zone != 1036) return;
+        if (GameState.TerritoryType != 1036) return;
         
         TaskHelper.Enqueue(GetCorrectCoral);
         FrameworkManager.Reg(OnUpdate, throttleMS: 2_000);
@@ -68,10 +69,10 @@ public class SastashaHelper : DailyModuleBase
     
     private static bool? GetCorrectCoral()
     {
-        if (DService.ObjectTable.LocalPlayer is null || BetweenAreas || !IsScreenReady()) return false;
+        if (DService.ObjectTable.LocalPlayer is null || BetweenAreas || !UIModule.IsScreenReady()) return false;
         
         var book = DService.ObjectTable
-                           .FirstOrDefault(x => x.IsTargetable && x.ObjectKind == ObjectKind.EventObj && 
+                           .FirstOrDefault(x => x is { IsTargetable: true, ObjectKind: ObjectKind.EventObj } && 
                                                 BookToCoral.ContainsKey(x.DataID));
         if (book == null) return false;
 
@@ -79,7 +80,7 @@ public class SastashaHelper : DailyModuleBase
 
         Chat(GetSLoc("SastashaHelper-Message",
                      new SeStringBuilder()
-                         .AddUiForeground(LuminaGetter.GetRow<EObjName>(info.CoralDataID)!.Value.Singular.ExtractText(),
+                         .AddUiForeground(LuminaGetter.GetRow<EObjName>(info.CoralDataID)!.Value.Singular.ToString(),
                                           info.UIColor).Build()));
         
         CorrectCoralDataID         = info.CoralDataID;

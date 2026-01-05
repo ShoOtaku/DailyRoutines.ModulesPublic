@@ -91,7 +91,7 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
             
             // 结束
             case 4:
-                Callback((AtkUnitBase*)addon, true, -1);
+                addon->AtkUnitBase.Callback(-1);
                 addon->Close(true);
                 break;
         }
@@ -102,7 +102,7 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
         var nodeID = addon->GameBoard[i]->AtkComponentButton.AtkComponentBase.OwnerNode->AtkResNode.NodeId;
         if (nodeID is < 30 or > 38) return;
         
-        Callback((AtkUnitBase*)addon, true, 1, (int)(nodeID - 30));
+        addon->AtkUnitBase.Callback(1, (int)(nodeID - 30));
     }
 
     private static void ClickLaneNode(AddonLotteryDaily* addon, int i)
@@ -117,7 +117,7 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
         var ptr = (int*)((nint)addon + 1004);
         *ptr = unkNumber3D4;
 
-        Callback((AtkUnitBase*)addon, true, 2, unkNumber3D4);
+        addon->AtkUnitBase.Callback(2, unkNumber3D4);
     }
     
     protected override void Uninit()

@@ -5,6 +5,7 @@ using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -90,7 +91,7 @@ public unsafe class AutoUseCrafterGathererManual : DailyModuleBase
         {
             if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
             if (localPlayer.Level >= PlayerState.Instance()->MaxLevel) return true;
-            if (BetweenAreas || OccupiedInEvent || IsCasting || !IsScreenReady() ||
+            if (BetweenAreas || OccupiedInEvent || IsCasting || !UIModule.IsScreenReady() ||
                 ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 2) != 0)
                 return false;
 
@@ -111,7 +112,7 @@ public unsafe class AutoUseCrafterGathererManual : DailyModuleBase
             
             UseActionManager.UseActionLocation(ActionType.Item, itemID, 0xE0000000, default, 0xFFFF);
             if (ModuleConfig.SendNotification)
-                NotificationInfo(GetLoc("AutoUseCrafterGathererManual-Notification", itemRow.Name.ExtractText()));
+                NotificationInfo(GetLoc("AutoUseCrafterGathererManual-Notification", itemRow.Name.ToString()));
             return true;
         });
     }

@@ -103,9 +103,9 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     {
         if (!RetainerThrottler.Throttle("EnterRetainer", 100)) return false;
 
-        if (!IsAddonAndNodesReady(RetainerList)) return false;
+        if (!RetainerList->IsAddonAndNodesReady()) return false;
 
-        Callback(RetainerList, true, 2, (int)index, 0, 0);
+        RetainerList->Callback(2, (int)index, 0, 0);
         return true;
     }
 
@@ -115,19 +115,19 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     private static bool LeaveRetainer()
     {
         // 如果存在
-        if (IsAddonAndNodesReady(SelectYesno))
+        if (SelectYesno->IsAddonAndNodesReady())
         {
-            Callback(SelectYesno, true, 0);
+            SelectYesno->Callback(0);
             return false;
         }
 
-        if (IsAddonAndNodesReady(SelectString))
+        if (SelectString->IsAddonAndNodesReady())
         {
-            Callback(SelectString, true, -1);
+            SelectString->Callback(-1);
             return false;
         }
 
-        return IsAddonAndNodesReady(RetainerList);
+        return RetainerList->IsAddonAndNodesReady();
     }
 
     /// <summary>
@@ -169,7 +169,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         if (addon != null) 
             addon->Close(true);
         if (addon2 != null) 
-            Callback(addon2, true, -1);
+            addon2->Callback(-1);
 
         AgentId.Retainer.SendEvent(0, -1);
         return true;
@@ -380,7 +380,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                 TaskHelper.Enqueue(() =>
                 {
                     if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                    if (!IsAddonAndNodesReady(Bank)) return false;
+                    if (!Bank->IsAddonAndNodesReady()) return false;
 
                     var retainerGils = Bank->AtkValues[6].Int;
                     var handler      = new ClickBank(Bank);
@@ -493,7 +493,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             TaskHelper.Enqueue(() =>
             {
                 if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                if (!IsAddonAndNodesReady(Bank)) return false;
+                if (!Bank->IsAddonAndNodesReady()) return false;
 
                 var retainerGils = Bank->AtkValues[6].Int;
                 var handler = new ClickBank(Bank);
@@ -542,7 +542,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             TaskHelper.Enqueue(() =>
             {
                 if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                if (!IsAddonAndNodesReady(Bank)) return false;
+                if (!Bank->IsAddonAndNodesReady()) return false;
 
                 var retainerGils = Bank->AtkValues[6].Int;
                 var handler = new ClickBank(Bank);
@@ -657,19 +657,19 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             switch (args.AddonName)
             {
                 case "RetainerItemTransferList":
-                    Callback((AtkUnitBase*)args.Addon.Address, true, 1);
+                    args.Addon.ToStruct()->Callback(1);
                     break;
                 case "RetainerItemTransferProgress":
                     TaskHelper.Enqueue(() =>
                     {
                         if (InterruptByConflictKey(TaskHelper, Module)) return true;
                         var addon = GetAddonByName("RetainerItemTransferProgress");
-                        if (!IsAddonAndNodesReady(addon)) return false;
+                        if (!addon->IsAddonAndNodesReady()) return false;
 
                         var progress = addon->AtkValues[2].Float;
                         if (progress == 1)
                         {
-                            Callback(addon, true, -2);
+                            addon->Callback(-2);
                             addon->Close(true);
                             return true;
                         }
@@ -835,7 +835,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                 TaskHelper.Enqueue(() =>
                 {
                     if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                    if (!IsAddonAndNodesReady(SelectString)) return false;
+                    if (!SelectString->IsAddonAndNodesReady()) return false;
                     if (!TryScanSelectStringText(SelectString, VentureCompleteTexts, out var i))
                     {
                         TaskHelper.Abort();
@@ -849,18 +849,18 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                 TaskHelper.Enqueue(() =>
                 {
                     if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                    if (!IsAddonAndNodesReady(RetainerTaskResult)) return false;
+                    if (!RetainerTaskResult->IsAddonAndNodesReady()) return false;
                     
-                    Callback(RetainerTaskResult, true, 14);
+                    RetainerTaskResult->Callback(14);
                     return true;
                 }, "重新派遣雇员探险");
 
                 TaskHelper.Enqueue(() =>
                 {
                     if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                    if (!IsAddonAndNodesReady(RetainerTaskAsk)) return false;
+                    if (!RetainerTaskAsk->IsAddonAndNodesReady()) return false;
                     
-                    Callback(RetainerTaskAsk, true, 12);
+                    RetainerTaskAsk->Callback(12);
                     return true;
                 }, "确认派遣雇员探险");
 
@@ -898,13 +898,13 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     
     public class ClickBank(AtkUnitBase* Addon)
     {
-        public void Switch() => Callback(Addon, true, 2, 0);
+        public void Switch() => Addon->Callback(2, 0);
 
-        public void DepositInput(uint amount) => Callback(Addon, true, 3, amount);
+        public void DepositInput(uint amount) => Addon->Callback(3, amount);
 
-        public void Confirm() => Callback(Addon, true, 0, 0);
+        public void Confirm() => Addon->Callback(0, 0);
 
-        public void Cancel() => Callback(Addon, true, 1, 0);
+        public void Cancel() => Addon->Callback(1, 0);
 
         public static ClickBank Using(AtkUnitBase* addon) => new(addon);
     }
@@ -1070,7 +1070,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             IsHQ = isHQ;
             ItemName = itemID == 0
                            ? GetLoc("AutoRetainerWork-PriceAdjust-CommonItemPreset")
-                           : LuminaGetter.GetRow<Item>(ItemID)?.Name.ExtractText() ?? string.Empty;
+                           : LuminaGetter.GetRow<Item>(ItemID)?.Name.ToString() ?? string.Empty;
         }
 
         public uint   ItemID   { get; set; }

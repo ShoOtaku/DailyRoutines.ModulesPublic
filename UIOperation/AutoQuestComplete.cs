@@ -30,11 +30,11 @@ public class AutoQuestComplete : DailyModuleBase
         var itemID = addon->AtkValues[82].UInt;
         if (itemID == 0)
         {
-            Callback(addon, true, 0, 0);
+            addon->Callback(0, 0);
             return;
         }
         
-        Callback(addon, true, 0, itemID);
+        addon->Callback(0, itemID);
     }
     
     private static unsafe void OnAddonSatisfactionSupplyResultSetup(AddonEvent type, AddonArgs args)
@@ -42,7 +42,7 @@ public class AutoQuestComplete : DailyModuleBase
         var addon = SatisfactionSupplyResult;
         if (addon == null) return;
 
-        Callback(addon, true, 1);
+        addon->Callback(1);
     }
 
     protected override void Uninit()

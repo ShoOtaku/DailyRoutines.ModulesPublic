@@ -328,7 +328,7 @@ public class AutoMovePetPosition : DailyModuleBase
     {
         if (!CheckIsEightPlayerDuty()) return;
         
-        var zoneID = DService.ClientState.TerritoryType;
+        var zoneID = GameState.TerritoryType;
         if (!ModuleConfig.PositionSchedules.TryGetValue(zoneID, out var schedulesForThisDuty)) return;
 
         if (DService.ObjectTable.LocalPlayer is { } localPlayer)
@@ -382,7 +382,7 @@ public class AutoMovePetPosition : DailyModuleBase
 
     private static bool CheckIsEightPlayerDuty()
     {
-        var zoneID = DService.ClientState.TerritoryType;
+        var zoneID = GameState.TerritoryType;
         if (zoneID == 0) return false;
         
         var zoneData = LuminaGetter.GetRow<TerritoryType>(zoneID);

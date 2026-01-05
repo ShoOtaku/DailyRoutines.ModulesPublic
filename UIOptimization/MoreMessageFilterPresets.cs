@@ -191,7 +191,7 @@ public class MoreMessageFilterPresets : DailyModuleBase
             var name = RaptureLogModule.Instance()->GetTabName(i)->ToString();
             addonText.Payloads[1] = new TextPayload($"{i + 1}");
 
-            names[i] = name.IsNullOrEmpty() ? addonText.ExtractText() : name;
+            names[i] = name.IsNullOrEmpty() ? addonText.ToString() : name;
         }
 
         return names;

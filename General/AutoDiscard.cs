@@ -58,12 +58,12 @@ public unsafe class AutoDiscard : DailyModuleBase
         TaskHelper   ??= new() { TimeLimitMS = 2_000 };
 
         var itemNames = LuminaGetter.Get<Item>()
-                                 .Where(x => !string.IsNullOrEmpty(x.Name.ExtractText()) &&
+                                 .Where(x => !string.IsNullOrEmpty(x.Name.ToString()) &&
                                              x.ItemSortCategory.RowId != 3 && x.ItemSortCategory.RowId != 4)
-                                 .GroupBy(x => x.Name.ExtractText())
+                                 .GroupBy(x => x.Name.ToString())
                                  .Select(x => x.First())
                                  .ToList();
-        ItemSearcher ??= new(itemNames, [x => x.Name.ExtractText(), x => x.RowId.ToString()]);
+        ItemSearcher ??= new(itemNames, [x => x.Name.ToString(), x => x.RowId.ToString()]);
         
         CommandManager.AddCommand(ModuleCommand, new(OnCommand) { HelpMessage = GetLoc("AutoDiscard-CommandHelp") });
         
@@ -289,7 +289,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                         if (ImGui.Button($"{GetLoc("Add")}##AddItemByName"))
                         {
                             LastAddedItemsByName = ItemSearcher.Data
-                                                               .Where(x => x.Name.ExtractText().Contains(AddItemsByNameInput, StringComparison.OrdinalIgnoreCase))
+                                                               .Where(x => x.Name.ToString().Contains(AddItemsByNameInput, StringComparison.OrdinalIgnoreCase))
                                                                .ToList();
                             LastAddedItemsByName.ForEach(x => group.Items.Add(x.RowId));
                             SaveConfig(ModuleConfig);
@@ -348,14 +348,14 @@ public unsafe class AutoDiscard : DailyModuleBase
                     ImGui.SetNextItemWidth(300f * GlobalFontScale);
                     using (var combo = ImRaii.Combo("###AddItemsByCategoryCombo",
                                                     LuminaGetter.TryGetRow<ItemUICategory>(AddItemsByCategoryInput, out var uiCategory)
-                                                        ? uiCategory.Name.ExtractText()
+                                                        ? uiCategory.Name.ToString()
                                                         : string.Empty, ImGuiComboFlags.HeightLarge))
                     {
                         if (combo)
                         {
                             foreach (var itemUiCategory in LuminaGetter.Get<ItemUICategory>())
                             {
-                                var name = itemUiCategory.Name.ExtractText();
+                                var name = itemUiCategory.Name.ToString();
                                 if (string.IsNullOrEmpty(name)) continue;
                                 if (!ImageHelper.TryGetGameIcon((uint)itemUiCategory.Icon, out var icon)) continue;
 
@@ -391,11 +391,11 @@ public unsafe class AutoDiscard : DailyModuleBase
                             if (specificItemIcon == null) continue;
 
                             if (!string.IsNullOrWhiteSpace(SelectedItemSearchInput) &&
-                                !specificItem.Name.ExtractText().Contains(SelectedItemSearchInput, StringComparison.OrdinalIgnoreCase)) continue;
+                                !specificItem.Name.ToString().Contains(SelectedItemSearchInput, StringComparison.OrdinalIgnoreCase)) continue;
 
                             if (ImGuiOm.SelectableImageWithText(specificItemIcon.Handle,
                                                                 new(ImGui.GetTextLineHeightWithSpacing()),
-                                                                specificItem.Name.ExtractText(),
+                                                                specificItem.Name.ToString(),
                                                                 false,
                                                                 ImGuiSelectableFlags.DontClosePopups))
                                 group.Items.Remove(specificItem.RowId);
@@ -435,7 +435,7 @@ public unsafe class AutoDiscard : DailyModuleBase
 
                             if (ImGuiOm.SelectableImageWithText(itemIcon.Handle,
                                                                 new(ImGui.GetTextLineHeightWithSpacing()),
-                                                                item.Name.ExtractText(),
+                                                                item.Name.ToString(),
                                                                 group.Items.Contains(item.RowId),
                                                                 ImGuiSelectableFlags.DontClosePopups))
                             {
@@ -656,7 +656,10 @@ public unsafe class AutoDiscard : DailyModuleBase
                     isAny = true;
                     if (Behaviour == DiscardBehaviour.Discard)
                     {
-                        taskHelper.Enqueue(() => AgentInventoryContext.Instance()->DiscardItem(itemInventory, type, slot, AgentInventory.GetActiveAddonID()));
+                        taskHelper.Enqueue(() => AgentInventoryContext.Instance()->DiscardItem(itemInventory, 
+                                                                                               type, 
+                                                                                               slot, 
+                                                                                               AgentInventory.Instance()->GetActiveAddonID()));
                         taskHelper.Enqueue(() => { ClickSelectYesnoYes(); });
                     }
                     else
@@ -676,7 +679,7 @@ public unsafe class AutoDiscard : DailyModuleBase
 
         private bool? ClickDiscardContextMenu(TaskHelper? taskHelper)
         {
-            if (!IsAddonAndNodesReady(InfosOm.ContextMenuXIV)) return false;
+            if (!InfosOm.ContextMenuXIV->IsAddonAndNodesReady()) return false;
 
             switch (Behaviour)
             {

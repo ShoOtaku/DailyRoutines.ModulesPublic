@@ -61,7 +61,7 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
                 break;
             case AddonEvent.PostRefresh:
             case AddonEvent.PostDraw:
-                var addon = args.Addon.ToAtkUnitBase();
+                var addon = args.Addon.ToStruct();
                 if (addon == null) return;
 
                 if (LayoutNode == null)

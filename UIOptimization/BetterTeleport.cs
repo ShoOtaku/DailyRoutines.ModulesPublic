@@ -105,7 +105,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         ModuleConfig = LoadConfig<Config>() ?? new();
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
-        OnZoneChanged(DService.ClientState.TerritoryType);
+        OnZoneChanged(0);
 
         CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("BetterTeleport-CommandHelp") });
 
@@ -127,7 +127,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         switch (IsRefreshing)
         {
             case false when !TaskHelper.IsBusy && Records.Count == 0:
-                OnZoneChanged(DService.ClientState.TerritoryType);
+                OnZoneChanged(0);
                 return;
             case true:
                 return;
@@ -833,7 +833,7 @@ public unsafe class BetterTeleport : DailyModuleBase
             // 天穹街
             case 254:
                 TaskHelper.Enqueue(MovementManager.TeleportFirmament, "天穹街");
-                TaskHelper.Enqueue(() => DService.ClientState.TerritoryType == 886 && Control.GetLocalPlayer() != null &&
+                TaskHelper.Enqueue(() => GameState.TerritoryType == 886 && Control.GetLocalPlayer() != null &&
                                          !MovementManager.IsManagerBusy, "等待天穹街");
                 TaskHelper.Enqueue(() => MovementManager.TPSmart_InZone(aetherytePos), "区域内TP");
                 TaskHelper.Enqueue(() =>
@@ -857,7 +857,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                 {
                     TaskHelper.Enqueue(() =>
                     {
-                        if (MovementManager.IsManagerBusy || BetweenAreas || !IsScreenReady() ||
+                        if (MovementManager.IsManagerBusy || BetweenAreas || !UIModule.IsScreenReady() ||
                             DService.Condition.Any(ConditionFlag.Mounted))
                             return false;
                         MovementManager.TPGround();
@@ -869,7 +869,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         }
 
         // 当前在有小水晶的城区
-        if (DService.ClientState.TerritoryType == aetheryte.ZoneID && aetheryte.Group != 0)
+        if (GameState.TerritoryType == aetheryte.ZoneID && aetheryte.Group != 0)
         {
             // 大水晶才要偏移一下
             var offset = new Vector3();
@@ -886,7 +886,7 @@ public unsafe class BetterTeleport : DailyModuleBase
             {
                 TaskHelper.Enqueue(() =>
                 {
-                    if (MovementManager.IsManagerBusy || BetweenAreas || !IsScreenReady() ||
+                    if (MovementManager.IsManagerBusy || BetweenAreas || !UIModule.IsScreenReady() ||
                         DService.Condition.Any(ConditionFlag.Mounted))
                         return false;
                     MovementManager.TPGround();
@@ -898,14 +898,16 @@ public unsafe class BetterTeleport : DailyModuleBase
         }
 
         // 先获取当前区域任一水晶
-        var aetheryteInThisZone = MovementManager.GetNearestAetheryte(Control.GetLocalPlayer()->Position, DService.ClientState.TerritoryType);
+        var aetheryteInThisZone = MovementManager.GetNearestAetheryte(Control.GetLocalPlayer()->Position, GameState.TerritoryType);
 
         // 获取不到水晶 / 不属于同一组水晶 / 附近没有能交互到的水晶 → 直接传
         if ((!isSameZone && aetheryte.Group == 0)        ||
             aetheryteInThisZone       == null            ||
             aetheryteInThisZone.Group != aetheryte.Group ||
-            !TryGetNearestEventID(x => x.EventId.ContentId is EventHandlerContent.Aetheryte, _ => true,
-                                  DService.ObjectTable.LocalPlayer.Position,                 out var eventIDAetheryte))
+            !EventFramework.Instance()->TryGetNearestEventID(x => x.EventId.ContentId is EventHandlerContent.Aetheryte,
+                                                             _ => true,
+                                                             DService.ObjectTable.LocalPlayer.Position,
+                                                             out var eventIDAetheryte))
         {
             // 大水晶直接传
             if (aetheryte.IsAetheryte)
@@ -925,7 +927,7 @@ public unsafe class BetterTeleport : DailyModuleBase
             {
                 TaskHelper.Enqueue(() =>
                 {
-                    if (MovementManager.IsManagerBusy || BetweenAreas || !IsScreenReady() ||
+                    if (MovementManager.IsManagerBusy || BetweenAreas || !UIModule.IsScreenReady() ||
                         DService.Condition.Any(ConditionFlag.Mounted))
                         return false;
                     MovementManager.TPGround();
@@ -937,7 +939,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         }
 
         TaskHelper.Enqueue(() => !OccupiedInEvent);
-        if (!IsAddonAndNodesReady(TelepotTown))
+        if (!TelepotTown->IsAddonAndNodesReady())
             TaskHelper.Enqueue(() => new EventStartPackt(Control.GetLocalPlayer()->EntityId, eventIDAetheryte).Send());
         TaskHelper.Enqueue(() =>
         {
@@ -987,7 +989,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                 rawAddonText.Payloads[3] = new TextPayload(aetheryte.Ward.ToString());
                 rawAddonText.Payloads[5] = new TextPayload(aetheryte.Plot.ToString());
 
-                shareHouseName = rawAddonText.ExtractText();
+                shareHouseName = rawAddonText.ToString();
             }
 
             var name = string.Empty;
@@ -996,7 +998,7 @@ public unsafe class BetterTeleport : DailyModuleBase
             else if (aetheryte.IsApartment)
                 name = LuminaWrapper.GetAddonText(6710);
             else
-                name = aetheryteRow.PlaceName.Value.Name.ExtractText();
+                name = aetheryteRow.PlaceName.Value.Name.ToString();
 
             var record = new AetheryteRecord(aetheryte.AetheryteID, aetheryte.SubIndex, 255, 0, aetheryte.TerritoryID,
                                              row.Map.RowId, true, new(aetheryte.Ward, aetheryte.SubIndex, 0),
@@ -1048,7 +1050,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         isPrevented = true;
 
         if (GameMain.Instance()->CurrentContentFinderConditionId != 0    || IsRefreshing || BetweenAreas ||
-            Control.GetLocalPlayer()                             == null || !IsScreenReady())
+            Control.GetLocalPlayer()                             == null || !UIModule.IsScreenReady())
             return;
 
         UIGlobals.PlaySoundEffect(23);
@@ -1060,7 +1062,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         Overlay.IsOpen = false;
         TaskHelper.RemoveAllTasks(1);
 
-        if (zone == 0 || GameState.ContentFinderCondition != 0 || !DService.ClientState.IsLoggedIn) return;
+        if (GameState.TerritoryType == 0 || GameState.ContentFinderCondition != 0 || !DService.ClientState.IsLoggedIn) return;
 
         TaskHelper.Enqueue(() =>
         {
@@ -1090,7 +1092,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                     else if (aetheryte.Version == 0)
                     {
                         var regionRow  = aetheryte.GetZone().PlaceNameRegion.Value;
-                        var regionName = regionRow.RowId is 22 or 23 or 24 ? aetheryte.GetZone().PlaceNameRegion.Value.Name.ExtractText() : otherName;
+                        var regionName = regionRow.RowId is 22 or 23 or 24 ? aetheryte.GetZone().PlaceNameRegion.Value.Name.ToString() : otherName;
 
                         Records.TryAdd(regionName, []);
                         Records[regionName].Add(aetheryte);

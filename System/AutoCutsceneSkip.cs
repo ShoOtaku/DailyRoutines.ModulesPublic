@@ -128,8 +128,8 @@ public unsafe class AutoCutsceneSkip : DailyModuleBase
         if (*(ulong*)(a1 + 56) != 0 && JournalResult == null && SatisfactionSupplyResult == null)
         {
             SendKeypress(Keys.Escape);
-            if (IsAddonAndNodesReady(SelectString)) 
-                Callback(SelectString, true, 0);
+            if (SelectString->IsAddonAndNodesReady()) 
+                SelectString->Callback(0);
         }
 
         return CutsceneHandleInputHook.Original(a1, a2);
@@ -152,7 +152,7 @@ public unsafe class AutoCutsceneSkip : DailyModuleBase
 
     private static bool IsProhibitToSkipInZone()
     {
-        var currentZone = DService.ClientState.TerritoryType;
+        var currentZone = GameState.TerritoryType;
         return ModuleConfig.WorkMode switch
         {
             true => !ModuleConfig.WhitelistZones.Contains(currentZone),

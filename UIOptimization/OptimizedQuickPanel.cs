@@ -262,7 +262,7 @@ public unsafe class OptimizedQuickPanel : DailyModuleBase
     {
         ToggleUIHook.Original(module, flags, enable, unknown);
         
-        if (flags.HasAnyFlag(UIModule.UiFlags.ActionBars))
+        if (flags.IsSetAny(UIModule.UiFlags.ActionBars))
         {
             // 隐藏
             if (!enable)

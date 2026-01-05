@@ -105,7 +105,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
         async Task Get(string dcName)
         {
             if (!ModuleConfig.DataCenters.TryGetValue(dcName, out var isEnabled) || 
-                (!isEnabled && GameState.CurrentDataCenterData.Name.ExtractText() != dcName)) 
+                (!isEnabled && GameState.CurrentDataCenterData.Name.ToString() != dcName)) 
                 return;
             // 小于 3 小时
             if (!ModuleConfig.DataCentersNotifyTime.TryGetValue(dcName, out var lastTime) || 
@@ -114,7 +114,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
 
             // 不在副本内且当前就在目标大区
             if (DService.ClientState.IsLoggedIn && !GameState.IsInInstanceArea && 
-                GameState.CurrentDataCenterData.Name.ExtractText() == dcName)
+                GameState.CurrentDataCenterData.Name.ToString() == dcName)
             {
                 var isBonusNow = GameState.IsChaoticRaidBonusActive;
                 if (isBonusNow)

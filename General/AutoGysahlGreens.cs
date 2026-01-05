@@ -7,6 +7,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -59,7 +60,7 @@ public unsafe class AutoGysahlGreens : DailyModuleBase
                         ImGui.SameLine();
                     isFirst = false;
 
-                    if (ImGui.RadioButton(buddyAction.Name.ExtractText(), ModuleConfig.Stance == checkPoint))
+                    if (ImGui.RadioButton(buddyAction.Name.ToString(), ModuleConfig.Stance == checkPoint))
                     {
                         ModuleConfig.Stance = checkPoint;
                         SaveConfig(ModuleConfig);
@@ -107,7 +108,7 @@ public unsafe class AutoGysahlGreens : DailyModuleBase
         var localPlayer = Control.GetLocalPlayer();
         if (localPlayer == null || localPlayer->IsDead()) return;
         
-        if (OccupiedInEvent || IsOnMount || !IsScreenReady()) return;
+        if (OccupiedInEvent || IsOnMount || !UIModule.IsScreenReady()) return;
 
         if (!LuminaGetter.TryGetRow<ClassJob>(localPlayer->ClassJob, out var classJob)) return;
         if (!ModuleConfig.NotBattleJobUsingGysahl && classJob.DohDolJobIndex != -1) return;

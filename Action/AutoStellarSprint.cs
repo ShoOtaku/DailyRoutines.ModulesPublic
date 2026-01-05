@@ -3,6 +3,7 @@ using DailyRoutines.Managers;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
 using TerritoryIntendedUse = FFXIVClientStructs.FFXIV.Client.Enums.TerritoryIntendedUse;
 
@@ -26,7 +27,7 @@ public unsafe class AutoStellarSprint : DailyModuleBase
         TaskHelper ??= new();
 
         DService.ClientState.TerritoryChanged += OnTerritoryChange;
-        OnTerritoryChange(DService.ClientState.TerritoryType);
+        OnTerritoryChange(0);
     }
 
     private void OnTerritoryChange(ushort zone)
@@ -46,7 +47,7 @@ public unsafe class AutoStellarSprint : DailyModuleBase
 
     private bool? UseSprint()
     {
-        if (!IsScreenReady() || BetweenAreas || OccupiedInEvent) return false;
+        if (!UIModule.IsScreenReady() || BetweenAreas || OccupiedInEvent) return false;
 
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.CosmicExploration)
         {

@@ -8,6 +8,7 @@ using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Interface.Colors;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
@@ -75,8 +76,8 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
     private bool? EnqueueSubmit()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
-        if (!IsAddonAndNodesReady(SubmarinePartsMenu)) return false;
-        if (IsAddonAndNodesReady(Request)) return false;
+        if (!SubmarinePartsMenu->IsAddonAndNodesReady()) return false;
+        if (Request->IsAddonAndNodesReady()) return false;
 
         TaskHelper.Abort();
         
@@ -99,7 +100,7 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
             TaskHelper.Enqueue(() =>
             {
                 if (InterruptByConflictKey(TaskHelper, this)) return true;
-                return !IsAddonAndNodesReady(Request) && !IsAddonAndNodesReady(SelectYesno);
+                return !Request->IsAddonAndNodesReady() && !SelectYesno->IsAddonAndNodesReady();
             }, "等待材料上交界面消失");
             break;
         }
@@ -132,7 +133,7 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
         var addon = SelectYesno;
         if (addon == null) return;
 
-        var text = addon->AtkValues[0].String.ExtractText();
+        var text = addon->AtkValues[0].String.ToString();
         if (string.IsNullOrWhiteSpace(text)) return;
 
         if (InterruptByConflictKey(TaskHelper, this)) return;
@@ -157,7 +158,7 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
         TaskHelper.Enqueue(() =>
         {
             if (InterruptByConflictKey(TaskHelper, this)) return true;
-            if (DService.UIBuilder.CutsceneActive || !IsScreenReady()) return false;
+            if (DService.UIBuilder.CutsceneActive || !UIModule.IsScreenReady()) return false;
             if (TargetManager.Target is not { ObjectKind: ObjectKind.EventObj, DataID: 2011588 })
             {
                 var target =
@@ -167,7 +168,7 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
             }
 
             TargetManager.Target.Interact();
-            return IsAddonAndNodesReady(SubmarinePartsMenu) || IsAddonAndNodesReady(SelectString);
+            return SubmarinePartsMenu->IsAddonAndNodesReady() || SelectString->IsAddonAndNodesReady();
         }, "尝试再次交互合建设备", null, null, 1);
     }
     

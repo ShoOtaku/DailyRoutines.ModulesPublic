@@ -164,7 +164,7 @@ public class ContentFinderCommand : DailyModuleBase
         {
             case DutyType.Normal:
                 var contentByName = LuminaGetter.Get<ContentFinderCondition>()
-                    .FirstOrDefault(x => x.Name.ExtractText().Replace(" ", string.Empty).Contains(input, StringComparison.OrdinalIgnoreCase));
+                    .FirstOrDefault(x => x.Name.ToString().Replace(" ", string.Empty).Contains(input, StringComparison.OrdinalIgnoreCase));
                 if (contentByName.RowId != 0)
                 {
                     id = contentByName.RowId;
@@ -173,7 +173,7 @@ public class ContentFinderCommand : DailyModuleBase
                 break;
             case DutyType.Roulette:
                 var rouletteByName = LuminaGetter.Get<ContentRoulette>()
-                    .FirstOrDefault(x => x.Name.ExtractText().Replace(" ", string.Empty).Contains(input, StringComparison.OrdinalIgnoreCase));
+                    .FirstOrDefault(x => x.Name.ToString().Replace(" ", string.Empty).Contains(input, StringComparison.OrdinalIgnoreCase));
                 if (rouletteByName.RowId != 0)
                 {
                     id = rouletteByName.RowId;
@@ -182,7 +182,7 @@ public class ContentFinderCommand : DailyModuleBase
                 break;
             case DutyType.Support:
                 var supportByName = LuminaGetter.Get<DawnContent>()
-                    .FirstOrDefault(x => x.Content.Value.Name.ExtractText().Replace(" ", string.Empty).Contains(input, StringComparison.OrdinalIgnoreCase));
+                    .FirstOrDefault(x => x.Content.Value.Name.ToString().Replace(" ", string.Empty).Contains(input, StringComparison.OrdinalIgnoreCase));
                 if (supportByName.RowId != 0)
                 {
                     id = supportByName.RowId;
@@ -219,33 +219,33 @@ public class ContentFinderCommand : DailyModuleBase
             ["n"]        = (DutyType.Normal, GetLoc("ContentFinderCommand-DutyType-Normal")),
             ["roulette"] = (DutyType.Roulette, GetLoc("ContentFinderCommand-DutyType-Roulette")),
             ["r"]        = (DutyType.Roulette, GetLoc("ContentFinderCommand-DutyType-Roulette")),
-            ["support"]  = (DutyType.Support, LuminaGetter.GetRow<Addon>(14804)!.Value.Text.ExtractText()),
-            ["s"]        = (DutyType.Support, LuminaGetter.GetRow<Addon>(14804)!.Value.Text.ExtractText())
+            ["support"]  = (DutyType.Support, LuminaGetter.GetRow<Addon>(14804)!.Value.Text.ToString()),
+            ["s"]        = (DutyType.Support, LuminaGetter.GetRow<Addon>(14804)!.Value.Text.ToString())
         };
 
     private static readonly Dictionary<string, (Action<OptionsWrapper> action, string desc)> OptionSetters =
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["supply"] = (wrapper => wrapper.Options.Supply = true,
-                             LuminaGetter.GetRow<Addon>(2519)!.Value.Text.ExtractText()),
+                             LuminaGetter.GetRow<Addon>(2519)!.Value.Text.ToString()),
             ["unrest"] = (wrapper => wrapper.Options.UnrestrictedParty = true,
-                             LuminaGetter.GetRow<Addon>(10008)!.Value.Text.ExtractText()),
+                             LuminaGetter.GetRow<Addon>(10008)!.Value.Text.ToString()),
             ["minil"] = (wrapper => wrapper.Options.MinimalIL = true,
-                            LuminaGetter.GetRow<Addon>(10010)!.Value.Text.ExtractText()),
+                            LuminaGetter.GetRow<Addon>(10010)!.Value.Text.ToString()),
             ["sync"] = (wrapper => wrapper.Options.LevelSync = true,
-                           LuminaGetter.GetRow<Addon>(12696)!.Value.Text.ExtractText()),
+                           LuminaGetter.GetRow<Addon>(12696)!.Value.Text.ToString()),
             ["silence"] = (wrapper => wrapper.Options.SilenceEcho = true,
-                              LuminaGetter.GetRow<Addon>(2266)!.Value.Text.ExtractText()),
+                              LuminaGetter.GetRow<Addon>(2266)!.Value.Text.ToString()),
             ["explorer"] = (wrapper => wrapper.Options.ExplorerMode = true,
-                               LuminaGetter.GetRow<Addon>(13038)!.Value.Text.ExtractText()),
+                               LuminaGetter.GetRow<Addon>(13038)!.Value.Text.ToString()),
             ["limitleveling"] = (wrapper => wrapper.Options.IsLimitedLevelingRoulette = true,
-                                    LuminaGetter.GetRow<Addon>(13030)!.Value.Text.ExtractText()),
+                                    LuminaGetter.GetRow<Addon>(13030)!.Value.Text.ToString()),
             ["lootgreed"] = (wrapper => wrapper.Options.LootRules = ContentsFinder.LootRule.GreedOnly,
-                                LuminaGetter.GetRow<Addon>(102627)!.Value.Text.ExtractText()),
+                                LuminaGetter.GetRow<Addon>(102627)!.Value.Text.ToString()),
             ["lootmaster"] = (wrapper => wrapper.Options.LootRules = ContentsFinder.LootRule.Lootmaster,
-                                 LuminaGetter.GetRow<Addon>(11087)!.Value.Text.ExtractText()),
+                                 LuminaGetter.GetRow<Addon>(11087)!.Value.Text.ToString()),
             ["lootnormal"] = (wrapper => wrapper.Options.LootRules = ContentsFinder.LootRule.Normal,
-                                 LuminaGetter.GetRow<Addon>(10100)!.Value.Text.ExtractText())
+                                 LuminaGetter.GetRow<Addon>(10100)!.Value.Text.ToString())
         };
     
     private sealed class OptionsWrapper

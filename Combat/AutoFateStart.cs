@@ -40,10 +40,10 @@ public class AutoFateStart : DailyModuleBase
                 if (gameObj == null || gameObj->NamePlateIconId != 60093 || gameObj->FateId == 0) continue;
 
                 if (!LuminaGetter.TryGetRow<Fate>(gameObj->FateId, out var fateData)) continue;
-                if (!Throttler.Throttle($"AutoFateStart-{fateData.Name.ExtractText()}", 1_000)) continue;
+                if (!Throttler.Throttle($"AutoFateStart-{fateData.Name.ToString()}", 1_000)) continue;
             
                 ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.FateStart, gameObj->FateId, gameObj->EntityId);
-                Chat(GetLoc("AutoFateStart-StartNotice", fateData.Name.ExtractText(), gameObj->NameString));
+                Chat(GetLoc("AutoFateStart-StartNotice", fateData.Name.ToString(), gameObj->NameString));
                 break;
             }
         }

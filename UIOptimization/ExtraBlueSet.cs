@@ -37,7 +37,7 @@ public unsafe class ExtraBlueSet : DailyModuleBase
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "AOZNotebook", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "AOZNotebook", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "AOZNotebook", OnAddon);
-        if (IsAddonAndNodesReady(AOZNotebook))
+        if (AOZNotebook->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
 
         CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("ExtraBlueSet-CommandHelp") });
@@ -105,7 +105,7 @@ public unsafe class ExtraBlueSet : DailyModuleBase
 
         ImGui.Spacing();
         
-        var nodeState = NodeState.Get(resNode);
+        var       nodeState  = resNode->GetNodeState();
         using var presetList = ImRaii.Child("List", nodeState.Size, true);
         if (!presetList) return;
         

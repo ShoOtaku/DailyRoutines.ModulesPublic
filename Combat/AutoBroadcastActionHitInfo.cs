@@ -158,7 +158,7 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
                 ImGui.Image(actionIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
 
                 ImGui.SameLine();
-                ImGui.Text(data.Name.ExtractText());
+                ImGui.Text(data.Name.ToString());
 
                 ImGui.SameLine();
                 if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, GetLoc("Delete")))
@@ -219,7 +219,7 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
             var actionName = ModuleConfig.CustomActionName.TryGetValue(actionID, out var customName) &&
                              !string.IsNullOrWhiteSpace(customName)
                                  ? customName
-                                 : actionData.Value.Name.ExtractText();
+                                 : actionData.Value.Name.ToString();
 
             var message = effectArray->Param0 switch
             {

@@ -26,10 +26,10 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "LookingForGroupDetail", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddon);
-        if (IsAddonAndNodesReady(LookingForGroupDetail)) 
+        if (LookingForGroupDetail->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostDraw, null);
         
-        if (IsAddonAndNodesReady(LookingForGroup)) 
+        if (LookingForGroup->IsAddonAndNodesReady()) 
             AgentId.LookingForGroup.SendEvent(1, 17);
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddonYesno);
@@ -130,12 +130,12 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
         taskHelper.Enqueue(() =>
         {
             if (!Throttler.Throttle("FastJoinAnotherPartyRecruitment-Task")) return false;
-            if (!IsAddonAndNodesReady(LookingForGroupDetail)) return false;
+            if (!LookingForGroupDetail->IsAddonAndNodesReady()) return false;
             
             var buttonNode = LookingForGroupDetail->GetComponentButtonById(109);
             if (buttonNode == null) return false;
 
-            buttonNode->ClickAddonButton(LookingForGroupDetail);
+            buttonNode->Click();
             return true;
         });
         

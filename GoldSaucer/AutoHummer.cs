@@ -43,7 +43,7 @@ public class AutoHummer : DailyModuleBase
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
 
-        if (!IsAddonAndNodesReady(Hummer))
+        if (!Hummer->IsAddonAndNodesReady())
             return false;
 
         var button = Hummer->GetComponentButtonById(29);
@@ -51,7 +51,7 @@ public class AutoHummer : DailyModuleBase
 
         Hummer->IsVisible = false;
 
-        Callback(Hummer, true, 11, 3, 0);
+        Hummer->Callback(11, 3, 0);
 
         // 只是纯粹因为游玩动画太长了而已
         TaskHelper.DelayNext(5000);
@@ -66,7 +66,7 @@ public class AutoHummer : DailyModuleBase
         
         var machineTarget = TargetManager.PreviousTarget;
         var machine =
-            machineTarget.Name.TextValue.Contains(LuminaGetter.GetRow<EObjName>(2005035)!.Value.Singular.ExtractText(),
+            machineTarget.Name.TextValue.Contains(LuminaGetter.GetRow<EObjName>(2005035)!.Value.Singular.ToString(),
                                                       StringComparison.OrdinalIgnoreCase)
                 ? (GameObject*)machineTarget.Address
                 : null;

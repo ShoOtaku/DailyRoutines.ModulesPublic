@@ -26,7 +26,7 @@ public unsafe class AutoShowFrontlineKillCount : DailyModuleBase
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "PvPFrontlineGauge", OnAddon);
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         
-        if (IsAddonAndNodesReady(PvPFrontlineGauge))
+        if (PvPFrontlineGauge->IsAddonAndNodesReady())
         {
             try
             {

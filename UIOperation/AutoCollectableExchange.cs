@@ -82,22 +82,22 @@ public unsafe class AutoCollectableExchange : DailyModuleBase
             ImGui.SameLine();
             using (ImRaii.Disabled(!buttonNode->NodeFlags.HasFlag(NodeFlags.Enabled)))
             {
-                if (ImGui.Button(LuminaGetter.GetRow<Addon>(531)!.Value.Text.ExtractText()))
+                if (ImGui.Button(LuminaGetter.GetRow<Addon>(531)!.Value.Text.ToString()))
                     HandInCollectables(AgentModule.Instance()->GetAgentByInternalId(AgentId.CollectablesShop));
             }
             
             ImGui.SameLine();
-            if (ImGui.Button(LuminaGetter.GetRow<InclusionShop>(3801094)!.Value.Unknown0.ExtractText()))
+            if (ImGui.Button(LuminaGetter.GetRow<InclusionShop>(3801094)!.Value.Unknown0.ToString()))
             {
                 TaskHelper.Enqueue(() =>
                 {
-                    if (IsAddonAndNodesReady(InfosOm.CollectablesShop))
+                    if (InfosOm.CollectablesShop->IsAddonAndNodesReady())
                         InfosOm.CollectablesShop->Close(true);
                 });
                 TaskHelper.Enqueue(() => !OccupiedInEvent);
                 TaskHelper.Enqueue(() => GamePacketManager.SendPackt(
                                        new EventStartPackt(DService.ObjectTable.LocalPlayer.GameObjectID,
-                                                           GetScriptEventID(DService.ClientState.TerritoryType))));
+                                                           GetScriptEventID(GameState.TerritoryType))));
             }
         }
     }
@@ -106,7 +106,7 @@ public unsafe class AutoCollectableExchange : DailyModuleBase
     {
         TaskHelper.Enqueue(() =>
         {
-            if (InfosOm.CollectablesShop == null || IsAddonAndNodesReady(SelectYesno))
+            if (InfosOm.CollectablesShop == null || SelectYesno->IsAddonAndNodesReady())
             {
                 TaskHelper.Abort();
                 return true;
@@ -141,7 +141,7 @@ public unsafe class AutoCollectableExchange : DailyModuleBase
 
     private void OnAddon(AddonEvent type, AddonArgs? args)
     {
-        var addon = args.Addon.ToAtkUnitBase();
+        var addon = args.Addon.ToStruct();
         if (addon == null) return;
         
         Overlay.IsOpen = type switch

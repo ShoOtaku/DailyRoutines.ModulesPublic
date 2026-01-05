@@ -441,10 +441,10 @@ public class OptimizedRecipeNote : DailyModuleBase
                             var button = InfosOm.RecipeNote->GetComponentButtonById(35);
                             if (button != null)
                             {
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
+                                DService.Framework.Run(() => button->Click());
+                                DService.Framework.Run(() => button->Click());
+                                DService.Framework.Run(() => button->Click());
+                                DService.Framework.Run(() => button->Click());
                             }
                         }
                     };
@@ -466,10 +466,10 @@ public class OptimizedRecipeNote : DailyModuleBase
                             var button = InfosOm.RecipeNote->GetComponentButtonById(35);
                             if (button != null)
                             {
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
+                                DService.Framework.Run(() => button->Click());
+                                DService.Framework.Run(() => button->Click());
+                                DService.Framework.Run(() => button->Click());
+                                DService.Framework.Run(() => button->Click());
                             }
                         }
                     };
@@ -491,10 +491,10 @@ public class OptimizedRecipeNote : DailyModuleBase
                             var button = InfosOm.RecipeNote->GetComponentButtonById(35);
                             if (button != null)
                             {
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
-                                DService.Framework.Run(() => button->ClickAddonButton(InfosOm.RecipeNote));
+                                DService.Framework.Run(() => button->Click());
+                                DService.Framework.Run(() => button->Click());
+                                DService.Framework.Run(() => button->Click());
+                                DService.Framework.Run(() => button->Click());
                             }
                         }
                     };
@@ -697,7 +697,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                .AddItemLink(result.GetRecipe().ItemResult.RowId)
                .AddText(" (")
                .AddIcon(result.GetJob().ToBitmapFontIcon())
-               .AddText(result.GetJob().Name.ExtractText())
+               .AddText(result.GetJob().Name.ToString())
                .AddText(")")
                .Add(NewLinePayload.Payload)
                .AddText($"{GetLoc("Step")}: ")
@@ -807,7 +807,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                 SeString = new SeStringBuilder()
                            .AddText($"{LuminaWrapper.GetAddonText(294)}: ")
                            .AddIcon(Result.GetJob().ToBitmapFontIcon())
-                           .AddText(Result.GetJob().Name.ExtractText())
+                           .AddText(Result.GetJob().Name.ToString())
                            .Build()
                            .Encode()
             };

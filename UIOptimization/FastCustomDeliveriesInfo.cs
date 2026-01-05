@@ -74,11 +74,11 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
             ImGui.SetWindowPos(ImGui.GetMousePos());
         }
         
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), LuminaGetter.GetRow<Addon>(8813)!.Value.Text.ExtractText());
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), LuminaGetter.GetRow<Addon>(8813)!.Value.Text.ToString());
         using (ImRaii.PushIndent())
         {
             using (FontManager.UIFont120.Push())
-                ImGui.Text(SelectedInfo?.Value.GetRow().Npc.Value.Singular.ExtractText());
+                ImGui.Text(SelectedInfo?.Value.GetRow().Npc.Value.Singular.ToString());
         }
 
         ImGui.Separator();
@@ -125,7 +125,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
             isNeedToClose = true;
         }
         
-        if (ImGui.MenuItem(LuminaGetter.GetRow<Addon>(66)!.Value.Text.ExtractText()))
+        if (ImGui.MenuItem(LuminaGetter.GetRow<Addon>(66)!.Value.Text.ToString()))
         {
             var instance = AgentMap.Instance();
 
@@ -138,7 +138,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
             isNeedToClose = true;
         }
         
-        if (ImGui.MenuItem(LuminaGetter.GetRow<Addon>(1219)!.Value.Text.ExtractText()) | isNeedToClose)
+        if (ImGui.MenuItem(LuminaGetter.GetRow<Addon>(1219)!.Value.Text.ToString()) | isNeedToClose)
         {
             Overlay.IsOpen = false;
             SelectedInfo   = null;
@@ -179,7 +179,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
     {
         // 不在天穹街 → 先去伊修加德基础层
         TaskHelper.Enqueue(MovementManager.TeleportFirmament);
-        TaskHelper.Enqueue(() => DService.ClientState.TerritoryType == 886  && IsScreenReady() &&
+        TaskHelper.Enqueue(() => GameState.TerritoryType == 886  && UIModule.IsScreenReady() &&
                                  !DService.Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy);
     }
 

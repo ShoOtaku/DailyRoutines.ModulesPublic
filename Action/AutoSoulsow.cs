@@ -3,6 +3,7 @@ using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -55,7 +56,7 @@ public class AutoSoulsow : DailyModuleBase
 
     private bool? CheckCurrentJob()
     {
-        if (BetweenAreas || !IsScreenReady() || OccupiedInEvent) return false;
+        if (BetweenAreas || !UIModule.IsScreenReady() || OccupiedInEvent) return false;
         if (DService.Condition[ConditionFlag.InCombat] || LocalPlayerState.ClassJob != 39 || !IsValidPVEDuty())
         {
             TaskHelper.Abort();
@@ -66,7 +67,7 @@ public class AutoSoulsow : DailyModuleBase
         return true;
     }
     
-    private unsafe bool? UseRelatedActions()
+    private bool? UseRelatedActions()
     {
         if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
 

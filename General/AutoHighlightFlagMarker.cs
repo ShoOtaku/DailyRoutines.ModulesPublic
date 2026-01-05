@@ -1,11 +1,7 @@
-// TODO: 闪现问题比较严重, 目前未知原因, 先注释掉
-/*
 using System;
 using System.Linq;
 using System.Numerics;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Helpers;
-using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
@@ -25,8 +21,8 @@ public unsafe class AutoHighlightFlagMarker : DailyModuleBase
         ModulesConflict = ["MultiTargetTracker"],
     };
 
-    private delegate        void SetFlagMarkerDelegate(AgentMap* agent, uint zoneID, uint mapID, float worldX, float worldZ, uint iconID = 60561);
-    private static          Hook<SetFlagMarkerDelegate>? SetFlagMarkerHook;
+    private delegate void SetFlagMarkerDelegate(AgentMap* agent, uint zoneID, uint mapID, float worldX, float worldZ, uint iconID = 60561);
+    private static   Hook<SetFlagMarkerDelegate>? SetFlagMarkerHook;
 
     private static Hook<AgentReceiveEventDelegate>? AgentMapReceiveEventHook;
 
@@ -48,7 +44,7 @@ public unsafe class AutoHighlightFlagMarker : DailyModuleBase
         AgentMapReceiveEventHook.Enable();
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
-        FrameworkManager.Register(OnUpdate, throttleMS: 3000);
+        FrameworkManager.Reg(OnUpdate, throttleMS: 3000);
     }
 
     protected override void ConfigUI()
@@ -59,7 +55,7 @@ public unsafe class AutoHighlightFlagMarker : DailyModuleBase
 
     protected override void Uninit()
     {
-        FrameworkManager.Unregister(OnUpdate);
+        FrameworkManager.Unreg(OnUpdate);
         DService.ClientState.TerritoryChanged -= OnZoneChanged;
     }
 
@@ -102,10 +98,10 @@ public unsafe class AutoHighlightFlagMarker : DailyModuleBase
             foreach (var fieldMarkerPoint in Enum.GetValues<FieldMarkerPoint>())
             {
                 var targetPos  = flagPos.ToVector3(currentY - 2 + (counter * 5));
-                var currentPos = FieldMarkerHelper.GetLocalPosition(fieldMarkerPoint);
+                var currentPos = fieldMarkerPoint.GetPosition();
                 if (Vector3.DistanceSquared(targetPos, currentPos) <= 9) continue;
 
-                FieldMarkerHelper.PlaceLocal(fieldMarkerPoint, flagPos.ToVector3(currentY - 2 + (counter * 5)), true);
+                MarkingController.Instance()->PlaceFieldMarkerLocal(fieldMarkerPoint, flagPos.ToVector3(currentY - 2 + (counter * 5)));
                 counter++;
             }
         });
@@ -141,12 +137,12 @@ public unsafe class AutoHighlightFlagMarker : DailyModuleBase
             var currentY = DService.ObjectTable.LocalPlayer?.Position.Y ?? 0;
                 
             var targetPos  = flagPos.ToVector3(currentY - 2 + (counter * 5));
-            var currentPos = FieldMarkerHelper.GetLocalPosition(fieldMarkerPoint);
+            var currentPos = fieldMarkerPoint.GetPosition();
                 
             if (Vector3.DistanceSquared(targetPos, currentPos) <= 9 && MarkingController.Instance()->FieldMarkers[(int)fieldMarkerPoint].Active) 
                 continue;
                     
-            FieldMarkerHelper.PlaceLocal(fieldMarkerPoint, flagPos.ToVector3(currentY - 2 + (counter * 5)), true);
+            MarkingController.Instance()->PlaceFieldMarkerLocal(fieldMarkerPoint, flagPos.ToVector3(currentY - 2 + (counter * 5)));
                 
             counter++;
         }
@@ -169,4 +165,3 @@ public unsafe class AutoHighlightFlagMarker : DailyModuleBase
         public bool ConstantlyUpdate;
     }
 }
-*/

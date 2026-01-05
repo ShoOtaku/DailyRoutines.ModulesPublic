@@ -28,7 +28,7 @@ public class AutoVeryEasyQuestBattle : DailyModuleBase
 
         param1 = 2;
 
-        if (!IsAddonAndNodesReady(SelectString))
+        if (!SelectString->IsAddonAndNodesReady())
         {
             Chat(GetLoc("AutoVeryEasyQuestBattle-Notification"));
             NotificationInfo(GetLoc("AutoVeryEasyQuestBattle-Notification"));

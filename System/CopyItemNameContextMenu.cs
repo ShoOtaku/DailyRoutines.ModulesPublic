@@ -22,7 +22,7 @@ public class CopyItemNameContextMenu : DailyModuleBase
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     private static readonly string CopyItemNameString = LuminaWrapper.GetAddonText(159);
-    private static readonly string GlamoursString     = LuminaGetter.GetRow<CircleActivity>(18)!.Value.Name.ExtractText();
+    private static readonly string GlamoursString     = LuminaGetter.GetRow<CircleActivity>(18)!.Value.Name.ToString();
 
     private static readonly CopyItemNameMenuItem MenuItem        = new(CopyItemNameString);
     private static readonly CopyItemNameMenuItem GlamourMenuItem = new($"{CopyItemNameString} ({GlamoursString})");
@@ -105,13 +105,13 @@ public class CopyItemNameContextMenu : DailyModuleBase
             var itemName = string.Empty;
 
             if (ItemID >= 2000000 && LuminaGetter.TryGetRow<EventItem>(ItemID, out var eventItem))
-                itemName = eventItem.Singular.ExtractText();
+                itemName = eventItem.Singular.ToString();
             else
             {
                 ItemID %= 500000;
 
                 if (LuminaGetter.TryGetRow<Item>(ItemID, out var item))
-                    itemName = item.Name.ExtractText();
+                    itemName = item.Name.ToString();
             }
 
             if (string.IsNullOrWhiteSpace(itemName))

@@ -101,13 +101,13 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
         if (AssignedCommendationContentID == LocalPlayerState.ContentID)
             return true;
 
-        Callback(notification, true, 0, 11);
+        notification->Callback(0, 11);
         return true;
     }
     
     private static bool? EnqueueCommendation()
     {
-        if (!IsAddonAndNodesReady(VoteMvp)) return false;
+        if (!VoteMvp->IsAddonAndNodesReady()) return false;
         if (!AgentModule.Instance()->GetAgentByInternalId(AgentId.ContentsMvp)->IsAgentActive()) return false;
         
         if (AssignedCommendationContentID == LocalPlayerState.ContentID)
@@ -125,7 +125,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
             var index = Math.Clamp(hudMembers.IndexOf(x => x.ContentId == (ulong)member.ContentId) - 1, 0, 6);
             
             var rawRole = member.ClassJob.Value.Role;
-            partyMembers[(member.Name.ExtractText(), 
+            partyMembers[(member.Name.ToString(), 
                              member.World.RowId, 
                              member.ClassJob.RowId, 
                              member.ClassJob.Value.ClassJobCategory.RowId, 
@@ -231,7 +231,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
             Chat(GetSLoc("AutoPlayerCommend-NoticeMessage",
                          new PlayerPayload(memberInfo.Name, memberInfo.HomeWorld),
                          job.ToBitmapFontIcon(),
-                         job.Name.ExtractText()));
+                         job.Name.ToString()));
             return true;
         }
 
@@ -326,7 +326,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
 
             NotificationInfo(contentID == LocalPlayerState.ContentID
                                  ? GetLoc("AutoPlayerCommend-GiveNobodyCommendMessage")
-                                 : GetLoc("AutoPlayerCommend-AssignPlayerCommendMessage", playerName, playerWorld.Value.Name.ExtractText()));
+                                 : GetLoc("AutoPlayerCommend-AssignPlayerCommendMessage", playerName, playerWorld.Value.Name.ToString()));
             
             AssignedCommendationContentID = contentID;
         }

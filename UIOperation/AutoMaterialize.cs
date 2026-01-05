@@ -82,7 +82,7 @@ public unsafe class AutoMaterialize : DailyModuleBase
                     itemData.EquipSlotCategory.Value.RowId == 0)
                     continue;
 
-                var itemName = itemData.Name.ExtractText();
+                var itemName = itemData.Name.ToString();
                 TaskHelper.Enqueue(() => ExtractMateria(type, (uint)i) == 0, $"开始精炼单件装备 {itemName}({slot->ItemId})");
                 TaskHelper.Enqueue(() => Chat(GetSLoc("AutoMaterialize-Notice-ExtractNow", SeString.CreateItemLink(itemData, slot->IsHighQuality()))), 
                                    $"通知精制进度 {itemName}({slot->ItemId})");
@@ -203,7 +203,7 @@ public unsafe class AutoMaterialize : DailyModuleBase
         var addon = MaterializeDialog;
         if (addon == null) return;
 
-        Callback(addon, true, 0);
+        addon->Callback(0);
     }
 
     protected override void Uninit()

@@ -10,6 +10,8 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -120,10 +122,10 @@ public class MultiTargetTracker : DailyModuleBase
 
     private static unsafe void OnUpdate(IFramework framework)
     {
-        if (BetweenAreas || !IsScreenReady() || DService.ClientState.TerritoryType == 0) return;
+        if (BetweenAreas || !UIModule.IsScreenReady() || GameState.TerritoryType == 0) return;
         if (ModuleConfig.PermanentTrackedPlayers.Count == 0 && TempTrackedPlayers.Count == 0) return;
 
-        if (!LuminaGetter.TryGetRow<TerritoryType>(DService.ClientState.TerritoryType, out var currentZoneData)) return;
+        if (!LuminaGetter.TryGetRow<TerritoryType>(GameState.TerritoryType, out var currentZoneData)) return;
 
         Dictionary<ulong, Vector3> validPlayers = [];
 
@@ -168,14 +170,14 @@ public class MultiTargetTracker : DailyModuleBase
         PlaceFieldMarkers(validPlayers);
     }
 
-    private static void PlaceFieldMarkers(IReadOnlyDictionary<ulong, Vector3> founds)
+    private static unsafe void PlaceFieldMarkers(IReadOnlyDictionary<ulong, Vector3> founds)
     {
         var counter = 0U;
         foreach (var found in founds)
         {
             if (counter > 8) break;
 
-            FieldMarkerHelper.PlaceLocal(counter, found.Value, true);
+            MarkingController.Instance()->PlaceFieldMarkerLocal((FieldMarkerPoint)counter, found.Value);
             counter++;
         }
     }
@@ -207,7 +209,7 @@ public class MultiTargetTracker : DailyModuleBase
             var chara = ipc.ToStruct();
             ContentID = chara->ContentId;
             Name      = ipc.Name.TextValue;
-            WorldName = ipc.HomeWorld.ValueNullable?.Name.ExtractText();
+            WorldName = ipc.HomeWorld.ValueNullable?.Name.ToString();
         }
 
         public TrackPlayer() { }
@@ -245,7 +247,7 @@ public class MultiTargetTracker : DailyModuleBase
             if (args.Target is not MenuTargetDefault target) return;
 
             var data = new TrackPlayer(target.TargetContentId,
-                                       target.TargetName, target.TargetHomeWorld.ValueNullable?.Name.ExtractText());
+                                       target.TargetName, target.TargetHomeWorld.ValueNullable?.Name.ToString());
             if (!TempTrackedPlayers.Add(data))
             {
                 TempTrackedPlayers.Remove(data);
@@ -265,7 +267,7 @@ public class MultiTargetTracker : DailyModuleBase
         {
             var target = args.Target as MenuTargetDefault;
             if (IPlayerCharacter.Create(target.TargetObject.Address) is not { } player ||
-                string.IsNullOrEmpty(player.Name.ExtractText())                        ||
+                string.IsNullOrEmpty(player.Name.ToString())                        ||
                 player.ClassJob.RowId == 0)
                 return;
             

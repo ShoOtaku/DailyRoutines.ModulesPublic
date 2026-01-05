@@ -35,7 +35,7 @@ public class AutoConfirmPortraitUpdate : DailyModuleBase
 
     private static unsafe void OnAddon(AddonEvent type, AddonArgs? args)
     {
-        Callback(BannerPreview, true, 0);
+        BannerPreview->Callback(0);
         
         if (ModuleConfig.SendNotification) 
             NotificationSuccess(GetLoc("AutoConfirmPortraitUpdate-Notification"));

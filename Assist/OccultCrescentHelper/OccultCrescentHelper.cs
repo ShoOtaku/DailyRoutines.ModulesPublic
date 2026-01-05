@@ -5,6 +5,7 @@ using DailyRoutines.Managers;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -133,8 +134,8 @@ public partial class OccultCrescentHelper : DailyModuleBase
             taskHelper.Abort();
         
         taskHelper.Enqueue(() => UseActionManager.UseActionLocation(ActionType.Action, 41343), weight: weight);
-        taskHelper.Enqueue(() => !IsScreenReady(),                                             weight: weight);
-        taskHelper.Enqueue(() => DService.ObjectTable.LocalPlayer != null && IsScreenReady(),  weight: weight);
+        taskHelper.Enqueue(() => !UIModule.IsScreenReady(),                                             weight: weight);
+        taskHelper.Enqueue(() => DService.ObjectTable.LocalPlayer != null && UIModule.IsScreenReady(),  weight: weight);
         taskHelper.Enqueue(() =>
         {
             MovementManager.TPPlayerAddress(pos);

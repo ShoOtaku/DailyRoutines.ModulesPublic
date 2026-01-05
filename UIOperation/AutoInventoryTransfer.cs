@@ -35,17 +35,17 @@ public unsafe class AutoInventoryTransfer : DailyModuleBase
     {
         if (!IsConflictKeyPressed() || !IsInventoryOpen()) return;
         
-        TaskHelper.Enqueue(() => IsAddonAndNodesReady(ContextMenuXIV));
+        TaskHelper.Enqueue(() => ContextMenuXIV->IsAddonAndNodesReady());
         TaskHelper.Enqueue(() => { ClickContextMenu(MenuTexts); });
         
         return;
 
         bool IsInventoryOpen()
-            => IsAddonAndNodesReady(Inventory)          ||
-               IsAddonAndNodesReady(InventoryLarge)     ||
-               IsAddonAndNodesReady(InventoryExpansion) ||
-               IsAddonAndNodesReady(InventoryRetainer)  ||
-               IsAddonAndNodesReady(InventoryRetainerLarge);
+            => Inventory->IsAddonAndNodesReady()          ||
+               InventoryLarge->IsAddonAndNodesReady()     ||
+               InventoryExpansion->IsAddonAndNodesReady() ||
+               InventoryRetainer->IsAddonAndNodesReady()  ||
+               InventoryRetainerLarge->IsAddonAndNodesReady();
     }
 
     protected override void Uninit() => 

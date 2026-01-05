@@ -330,7 +330,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         ImGui.AlignTextToFramePadding();
         ImGui.Text($"{GetLoc("Name")}");
 
-        var targetName = chara.Name.ExtractText();
+        var targetName = chara.Name.ToString();
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(-1f);
         ImGui.InputText("###TargetNamePreview", ref targetName, 128, ImGuiInputTextFlags.ReadOnly);
@@ -401,7 +401,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
 
         foreach (var obj in DService.ObjectTable)
         {
-            if (obj.ObjectKind == ObjectKind.Player && string.IsNullOrWhiteSpace(obj.Name.ExtractText())) continue;
+            if (obj.ObjectKind == ObjectKind.Player && string.IsNullOrWhiteSpace(obj.Name.ToString())) continue;
             if (obj is not ICharacter chara) continue;
             
             var pTarget     = chara.ToStruct();
@@ -409,7 +409,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
             
             var targetAddress = (nint)pTarget;
 
-            var name            = chara.Name.ExtractText();
+            var name            = chara.Name.ToString();
             var dataID          = chara.DataID.ToString();
             var objectID        = chara.GameObjectID.ToString();
             var modelCharaID    = chara.ModelCharaID.ToString();

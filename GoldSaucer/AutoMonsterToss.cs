@@ -92,11 +92,11 @@ public class AutoMonsterToss : DailyModuleBase
     }
     
     private static unsafe bool? WaitSelectStringAddon() =>
-        IsAddonAndNodesReady(SelectString) && IsAddonAndNodesReady(BasketBall);
+        SelectString->IsAddonAndNodesReady() && BasketBall->IsAddonAndNodesReady();
     
     private static unsafe void UpdateSelectStringInfo(string info)
     {
-        if (!IsAddonAndNodesReady(SelectString) || !IsAddonAndNodesReady(BasketBall)) return;
+        if (!SelectString->IsAddonAndNodesReady() || !BasketBall->IsAddonAndNodesReady()) return;
 
         var list = SelectString->GetComponentListById(3);
         var text = SelectString->GetTextNodeById(2);
@@ -123,7 +123,7 @@ public class AutoMonsterToss : DailyModuleBase
     {
         DService.AddonLifecycle.UnregisterListener(OnAddonSetup);
         
-        if (IsAddonAndNodesReady(BasketBall))
+        if (BasketBall->IsAddonAndNodesReady())
             new EventCompletePackt(0x240001, 14).Send();
     }
 }

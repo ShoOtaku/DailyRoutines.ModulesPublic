@@ -63,10 +63,10 @@ public class AutoReuseEmote : DailyModuleBase
         if (string.IsNullOrWhiteSpace(name)) return false;
 
         var first = LuminaGetter.Get<Emote>()
-                               .Where(x => !string.IsNullOrWhiteSpace(x.Name.ExtractText()) &&
+                               .Where(x => !string.IsNullOrWhiteSpace(x.Name.ToString()) &&
                                            x.TextCommand.ValueNullable != null)
-                               .Where(x => x.Name.ExtractText().ToLowerInvariant() == name ||
-                                           x.TextCommand.Value.Command.ExtractText().ToLowerInvariant().Trim('/') ==
+                               .Where(x => x.Name.ToString().ToLowerInvariant() == name ||
+                                           x.TextCommand.Value.Command.ToString().ToLowerInvariant().Trim('/') ==
                                            name)
                                .FirstOrDefault();
         if (first.RowId == 0) return false;

@@ -25,11 +25,11 @@ public class AutoCommenceDuty : DailyModuleBase
     {
         if (args.Addon == nint.Zero) return;
         
-        var addon = args.Addon.ToAtkUnitBase();
+        var addon = args.Addon.ToStruct();
         if (addon->AtkValues[7].UInt != 0)
             return;
         
-        ((AddonContentsFinderConfirm*)addon)->CommenceButton->ClickAddonButton(addon);
+        ((AddonContentsFinderConfirm*)addon)->CommenceButton->Click();
     }
 
     protected override void Uninit() => 

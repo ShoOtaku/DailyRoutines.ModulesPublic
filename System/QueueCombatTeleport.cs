@@ -135,7 +135,7 @@ public unsafe class QueueCombatTeleport : DailyModuleBase
                                                                x.SubIndex == QueuedTeleport.Value.SubID);
                 if (qualifiedAetheryteSaved == null) return;
                 message = GetLoc("QueueCombatTeleport-Notice-Saved",
-                                 qualifiedAetheryteSaved.AetheryteData.Value.PlaceName.Value.Name.ExtractText());
+                                 qualifiedAetheryteSaved.AetheryteData.Value.PlaceName.Value.Name.ToString());
                 break;
             case QueueTeleportNotifyType.Execute when QueuedTeleport != null:
                 var qualifiedAetheryteExecuted =
@@ -143,7 +143,7 @@ public unsafe class QueueCombatTeleport : DailyModuleBase
                                                                x.SubIndex == QueuedTeleport.Value.SubID);
                 if (qualifiedAetheryteExecuted == null) return;
                 message = GetLoc("QueueCombatTeleport-Notice-Executed",
-                                 qualifiedAetheryteExecuted.AetheryteData.Value.PlaceName.Value.Name.ExtractText());
+                                 qualifiedAetheryteExecuted.AetheryteData.Value.PlaceName.Value.Name.ToString());
                 break;
             case QueueTeleportNotifyType.Clear:
                 message = GetLoc("QueueCombatTeleport-Notice-Cleared");

@@ -4,6 +4,8 @@ using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using FFXIVClientStructs.FFXIV.Client.Game.Event;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
@@ -151,7 +153,7 @@ public unsafe class AutoSellCards : DailyModuleBase
     {
         if (ShopCardDialog == null) return;
         
-        Callback(ShopCardDialog, true, 0, ShopCardDialog->AtkValues[6].UInt);
+        ShopCardDialog->Callback(0, ShopCardDialog->AtkValues[6].UInt);
         ShopCardDialog->FireCloseCallback();
         ShopCardDialog->Close(true);
     }
@@ -159,25 +161,25 @@ public unsafe class AutoSellCards : DailyModuleBase
     private void OnCommand(string command, string args)
     {
         // 交换界面已经打开了
-        if (IsAddonAndNodesReady(TripleTriadCoinExchange))
+        if (TripleTriadCoinExchange->IsAddonAndNodesReady())
         {
             StartHandOver();
             return;
         }
         
         // 附近没有可用的幻卡兑换地点
-        if (!IsEventIDNearby(721135))
+        if (!EventFramework.Instance()->IsEventIDNearby(721135))
         {
             TaskHelper.Enqueue(() => ChatManager.SendMessage("/pdrduty n 195"), "发送九宫幻卡对局室参加申请");
-            TaskHelper.Enqueue(() => GameState.TerritoryType == 579 && IsScreenReady(), "等待进入九宫幻卡对局室");
+            TaskHelper.Enqueue(() => GameState.TerritoryType == 579 && UIModule.IsScreenReady(), "等待进入九宫幻卡对局室");
         }
 
         TaskHelper.Enqueue(() => new EventStartPackt(LocalPlayerState.EntityID, 721135).Send(), "发包打开幻卡交换页面");
         TaskHelper.Enqueue(StartHandOver, "开始交换");
         TaskHelper.Enqueue(() =>
         {
-            if (!IsAddonAndNodesReady(TripleTriadCoinExchange)) return;
-            Callback(TripleTriadCoinExchange, true, -1);
+            if (!TripleTriadCoinExchange->IsAddonAndNodesReady()) return;
+            TripleTriadCoinExchange->Callback(-1);
         }, "交换完毕, 关闭界面");
         TaskHelper.Enqueue(() => ChatManager.SendMessage("/pdr leaveduty"), "离开幻卡对局室");
     }
@@ -187,13 +189,13 @@ public unsafe class AutoSellCards : DailyModuleBase
         if (!Throttler.Throttle("AutoSellCards-HandOver")) 
             return false;
 
-        if (IsAddonAndNodesReady(ShopCardDialog))
+        if (ShopCardDialog->IsAddonAndNodesReady())
         {
             TaskHelper.RemoveAllTasks(2);
             return true;
         }
 
-        if (!IsAddonAndNodesReady(TripleTriadCoinExchange)) 
+        if (!TripleTriadCoinExchange->IsAddonAndNodesReady()) 
             return false;
 
         var cardsAmount = TripleTriadCoinExchange->AtkValues[1].Int;
@@ -214,7 +216,7 @@ public unsafe class AutoSellCards : DailyModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(() => Callback(TripleTriadCoinExchange, true, 0, 0, 0), "点击交换幻卡", weight: 2);
+        TaskHelper.Enqueue(() => TripleTriadCoinExchange->Callback(0, 0, 0), "点击交换幻卡", weight: 2);
         TaskHelper.DelayNext(100, "等待 100 毫秒", weight: 2);
         TaskHelper.Enqueue(StartHandOver, "开始新一轮检测交换", weight: 2);
         return true;

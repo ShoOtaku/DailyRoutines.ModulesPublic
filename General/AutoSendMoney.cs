@@ -364,7 +364,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
             return;
         }*/
 
-        MemberList.Add(new() { EntityID = entityID, FirstName = fullName, World = world.Name.ExtractText(), GroupIndex = groupIndex });
+        MemberList.Add(new() { EntityID = entityID, FirstName = fullName, World = world.Name.ToString(), GroupIndex = groupIndex });
     }
 
     private static void AddTargetPlayer()
@@ -563,7 +563,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
     {
         var unitBase = GetAddonByName("Trade");
         if (unitBase is not null)
-            Callback(unitBase, true, 1, 0);
+            unitBase->Callback(1, 0);
     }
 
     /// <summary>
@@ -573,14 +573,14 @@ public unsafe class AutoSendMoney : DailyModuleBase
     {
         var unitBase = GetAddonByName("Trade");
         if (unitBase is not null)
-            Callback(unitBase, true, 0, 0);
+            unitBase->Callback(0, 0);
     }
 
     private static void AddonTradeFinalCheck(bool confirm = true)
     {
         var unitBase = SelectYesno;
         if (unitBase is not null)
-            Callback(unitBase, true, confirm ? 0 : 1);
+            unitBase->Callback(confirm ? 0 : 1);
     }
 
     #endregion
@@ -670,7 +670,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
             FirstName = gameObject.Name.TextValue;
             
             var worldID = ((Character*)gameObject.Address)->HomeWorld;
-            World = LuminaGetter.GetRow<World>(worldID)?.Name.ExtractText() ?? "???";
+            World = LuminaGetter.GetRow<World>(worldID)?.Name.ToString() ?? "???";
         }
 
         public string FullName => 

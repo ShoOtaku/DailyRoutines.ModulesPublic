@@ -78,7 +78,7 @@ public class AutoShopPurchase : DailyModuleBase
         {
             if (!ListNodeIDs.Contains(nodeID)) return null;
             var addon = GetAddon();
-            if (!IsAddonAndNodesReady(addon)) return null;
+            if (!addon->IsAddonAndNodesReady()) return null;
             return addon->GetComponentListById(nodeID);
         }
 
@@ -113,13 +113,13 @@ public class AutoShopPurchase : DailyModuleBase
             foreach (var entry in addons)
             {
                 var addon = entry.Value;
-                if (!IsAddonAndNodesReady(addon)) continue;
+                if (!addon->IsAddonAndNodesReady()) continue;
 
                 var info = new AddonWithListInfo(addon->NameString, []);
 
-                addon->UldManager.SearchComponentNodesByType(ComponentType.List)
+                addon->UldManager.SearchComponentsByType(ComponentType.List)
                                  .ForEach(x => info.ListNodeIDs.Add(((AtkComponentList*)x)->OwnerNode->NodeId));
-                addon->UldManager.SearchComponentNodesByType(ComponentType.TreeList)
+                addon->UldManager.SearchComponentsByType(ComponentType.TreeList)
                                  .ForEach(x => info.ListNodeIDs.Add(((AtkComponentTreeList*)x)->OwnerNode->NodeId));
 
                 if (info.ListNodeIDs.Count > 0) 
@@ -142,7 +142,7 @@ public class AutoShopPurchase : DailyModuleBase
             GetAddonByName(AddonName);
         
         public bool IsAddonValid() => 
-            IsAddonAndNodesReady(GetAddon());
+            GetAddon()->IsAddonAndNodesReady();
         
         public AtkComponentList* GetListNode() => 
             !IsAddonValid() ? null : GetAddon()->GetComponentListById(ClickRoute.Key);
@@ -156,7 +156,7 @@ public class AutoShopPurchase : DailyModuleBase
 
             var numberNode =
                 listNode->ItemRendererList[ClickRoute.Value].AtkComponentListItemRenderer->UldManager
-                    .SearchComponentNodeByType<AtkComponentNumericInput>(ComponentType.NumericInput);
+                    .SearchComponentByType<AtkComponentNumericInput>(ComponentType.NumericInput);
 
             return numberNode;
         }
@@ -457,7 +457,7 @@ public class AutoShopPurchase : DailyModuleBase
         private unsafe void WindowRenderAddonInfo(AddonWithListInfo data)
         {
             var addon = data.GetAddon();
-            if (!IsAddonAndNodesReady(addon))
+            if (!addon->IsAddonAndNodesReady())
             {
                 ScannedData.Remove(data);
                 return;
@@ -479,7 +479,7 @@ public class AutoShopPurchase : DailyModuleBase
             using (var treeNode = ImRaii.TreeNode($"{GetLoc("List")} {nodeID}", ImGuiTreeNodeFlags.DefaultOpen))
             {
                 if (ImGui.IsItemHovered())
-                    OutlineNode((AtkResNode*)node->OwnerNode);
+                    ((AtkResNode*)node->OwnerNode)->OutlineNode();
 
                 if (treeNode)
                 {
@@ -645,7 +645,7 @@ public class AutoShopPurchase : DailyModuleBase
                 TaskHelper.Enqueue(() =>
                 {
                     CancelSource.Token.ThrowIfCancellationRequested();
-                    if (IsAddonAndNodesReady(Request)) return false;
+                    if (Request->IsAddonAndNodesReady()) return false;
 
                     IsWaitingRefresh = true;
                     x();
@@ -661,8 +661,8 @@ public class AutoShopPurchase : DailyModuleBase
         {
             if ((!TaskHelper.IsBusy && !IsWaitingRefresh) || args.Addon == nint.Zero) return;
 
-            var addon = args.Addon.ToAtkUnitBase();
-            Callback(addon, true, 0);
+            var addon = args.Addon.ToStruct();
+            addon->Callback(0);
         }
 
         private void OnReceiveCommand(ExecuteCommandFlag command, uint param1, uint param2, uint param3, uint param4)

@@ -557,7 +557,7 @@ public partial class OccultCrescentHelper
                             return null;
                     }
                     
-                    return new(type, gameObject.EntityID, gameObject.Name.ExtractText(), gameObject.Position);
+                    return new(type, gameObject.EntityID, gameObject.Name.ToString(), gameObject.Position);
                 }
                 catch
                 {

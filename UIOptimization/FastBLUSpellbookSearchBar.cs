@@ -65,12 +65,12 @@ public unsafe class FastBLUSpellbookSearchBar : DailyModuleBase
                         ShowLimitText = true,
                         OnInputReceived = x =>
                         {
-                            SearchBarInput = x.ExtractText();
+                            SearchBarInput = x.ToString();
                             ConductSearch(SearchBarInput);
                         },
                         OnInputComplete = x =>
                         {
-                            SearchBarInput = x.ExtractText();
+                            SearchBarInput = x.ToString();
                             ConductSearch(SearchBarInput);
                         },
                     };
@@ -96,7 +96,7 @@ public unsafe class FastBLUSpellbookSearchBar : DailyModuleBase
                 return true;
             }
             
-            if (!IsAddonAndNodesReady(addon)) return false;
+            if (!addon->IsAddonAndNodesReady()) return false;
             // 非技能页面
             if (addon->AtkValues->Int >= 9)
             {

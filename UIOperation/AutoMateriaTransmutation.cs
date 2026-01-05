@@ -61,7 +61,7 @@ public unsafe class AutoMateriaTransmutation : DailyModuleBase
                                      if (itemIcon == null) return;
 
                                      if (ImGuiOm.SelectableImageWithText(
-                                             itemIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()), $"{x.Name.ExtractText()}",
+                                             itemIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()), $"{x.Name.ToString()}",
                                              ModuleConfig.BlacklistedItems.Contains(x.RowId),
                                              ImGuiSelectableFlags.SpanAllColumns | ImGuiSelectableFlags.DontClosePopups))
                                      {
@@ -74,7 +74,7 @@ public unsafe class AutoMateriaTransmutation : DailyModuleBase
                                  },
                              ],
                              [
-                                 x => x.Name.ExtractText(),
+                                 x => x.Name.ToString(),
                                  x => x.RowId.ToString()
                              ],
                              true))

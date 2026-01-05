@@ -19,7 +19,7 @@ public unsafe class LargerColorantColoringPreviewComponent : DailyModuleBase
     protected override void Init()
     {
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ColorantColoring", OnAddon);
-        if (IsAddonAndNodesReady(ColorantColoring))
+        if (ColorantColoring->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
 

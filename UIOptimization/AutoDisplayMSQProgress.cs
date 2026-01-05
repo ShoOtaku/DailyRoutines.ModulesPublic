@@ -23,7 +23,7 @@ public unsafe class AutoDisplayMSQProgress : DailyModuleBase
     protected override void Init()
     {
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "ScenarioTree", OnAddon);
-        if (IsAddonAndNodesReady(InfosOm.ScenarioTree))
+        if (InfosOm.ScenarioTree->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
 
@@ -35,13 +35,13 @@ public unsafe class AutoDisplayMSQProgress : DailyModuleBase
         if (!Throttler.Throttle("ScenarioTree", 1_000)) return;
         
         var addon = InfosOm.ScenarioTree;
-        if (!IsAddonAndNodesReady(addon)) return;
+        if (!addon->IsAddonAndNodesReady()) return;
 
         if (!TryGetCurrentExpansionMSQProgress(out var result)) return;
         if (result.Remaining == 0) return;
         if (!LuminaGetter.TryGetRow<Quest>(result.FirstIncompleteQuest, out var questData)) return;
         
-        var text = $"{questData.Name.ExtractText()} ({result.Remaining} / {result.PercentComplete:F1}%)";
+        var text = $"{questData.Name.ToString()} ({result.Remaining} / {result.PercentComplete:F1}%)";
         addon->AtkValues[7].SetManagedString(text);
         addon->OnRefresh(addon->AtkValuesCount, addon->AtkValues);
 

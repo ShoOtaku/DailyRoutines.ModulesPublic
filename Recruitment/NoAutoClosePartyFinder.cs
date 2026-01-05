@@ -39,7 +39,7 @@ public unsafe class NoAutoClosePartyFinder : DailyModuleBase
         isPrevented = true;
         
         LastPartyMemberChangeTime = DateTime.UtcNow.AddSeconds(1);
-        if (IsAddonAndNodesReady(LookingForGroupDetail))
+        if (LookingForGroupDetail->IsAddonAndNodesReady())
             LastViewTime = DateTime.UtcNow.AddSeconds(1);
     }
 
@@ -49,7 +49,7 @@ public unsafe class NoAutoClosePartyFinder : DailyModuleBase
         {
             if (DateTime.UtcNow < LastViewTime)
             {
-                if (IsAddonAndNodesReady(LookingForGroupDetail))
+                if (LookingForGroupDetail->IsAddonAndNodesReady())
                     LookingForGroupDetail->Close(true);
 
                 DService.Framework.RunOnTick(() => agent->OpenListing(agent->LastViewedListing.ListingId), TimeSpan.FromMilliseconds(100));

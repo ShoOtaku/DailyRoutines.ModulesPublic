@@ -10,6 +10,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
 using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -209,7 +210,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
                                       PresetSheet.Food,
                                       ref SelectedItem,
                                       ref SelectItemSearch,
-                                      x => $"{x.Name.ExtractText()} ({x.RowId})",
+                                      x => $"{x.Name.ToString()} ({x.RowId})",
                                       [new("物品", ImGuiTableColumnFlags.WidthStretch, 0)],
                                       [
                                           x => () =>
@@ -217,12 +218,12 @@ public class AutoCheckFoodUsage : DailyModuleBase
                                               var icon = ImageHelper.GetGameIcon(x.Icon, SelectItemIsHQ);
 
                                               if (ImGuiOm.SelectableImageWithText(icon.Handle, ScaledVector2(20f),
-                                                                                  x.Name.ExtractText(), x.RowId == SelectedItem,
+                                                                                  x.Name.ToString(), x.RowId == SelectedItem,
                                                                                   ImGuiSelectableFlags.DontClosePopups))
                                                   SelectedItem = SelectedItem == x.RowId ? 0 : x.RowId;
                                           }
                                       ],
-                                      [x => x.Name.ExtractText(), x => x.RowId.ToString()],
+                                      [x => x.Name.ToString(), x => x.RowId.ToString()],
                                       true);
 
                     ImGui.SameLine();
@@ -271,7 +272,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
 
             ImGui.TableNextColumn();
             ImGui.Selectable(
-                $"{LuminaGetter.GetRow<Item>(preset.ItemID)!.Value.Name.ExtractText()} {(preset.IsHQ ? "(HQ)" : "")}");
+                $"{LuminaGetter.GetRow<Item>(preset.ItemID)!.Value.Name.ToString()} {(preset.IsHQ ? "(HQ)" : "")}");
 
             using (var context = ImRaii.ContextPopupItem("PresetContextMenu"))
             {
@@ -334,13 +335,13 @@ public class AutoCheckFoodUsage : DailyModuleBase
                                          },
                                          x => () =>
                                          {
-                                             var contentName = x.ContentFinderCondition.Value.Name.ExtractText() ?? "";
+                                             var contentName = x.ContentFinderCondition.Value.Name.ToString() ?? "";
                                              ImGui.Text(contentName);
                                          }
                                      ],
                                      [
                                          x => x.ExtractPlaceName(),
-                                         x => x.ContentFinderCondition.Value.Name.ExtractText() ?? ""
+                                         x => x.ContentFinderCondition.Value.Name.ToString() ?? ""
                                      ], true))
                 {
                     preset.Zones = zones;
@@ -495,7 +496,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
         !OccupiedInEvent                         &&
         !IsCasting                               &&
         DService.ObjectTable.LocalPlayer != null &&
-        IsScreenReady()                          &&
+        UIModule.IsScreenReady()                          &&
         ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 2) == 0;
     
     private static bool IsCooldownElapsed() => 
@@ -507,7 +508,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
     private static unsafe List<FoodUsagePreset> GetValidPresets()
     {
         var instance = InventoryManager.Instance();
-        var zone     = DService.ClientState.TerritoryType;
+        var zone     = GameState.TerritoryType;
         if (instance == null || zone == 0) return [];
         
         return ModuleConfig.Presets

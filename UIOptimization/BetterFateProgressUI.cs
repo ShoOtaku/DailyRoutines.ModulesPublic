@@ -74,7 +74,7 @@ public class BetterFateProgressUI : DailyModuleBase
         Overlay.Flags &= ~ImGuiWindowFlags.NoTitleBar;
         Overlay.Flags |= ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
         Overlay.SizeConstraints = new() { MinimumSize = ChildSize, };
-        Overlay.WindowName = $"{LuminaGetter.GetRow<Addon>(3933)!.Value.Text.ExtractText()}###BetterFateProgressUI";
+        Overlay.WindowName = $"{LuminaGetter.GetRow<Addon>(3933)!.Value.Text.ToString()}###BetterFateProgressUI";
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "FateProgress", OnAddon);
     }
@@ -304,7 +304,7 @@ public class BetterFateProgressUI : DailyModuleBase
         {
             var remainingProgress = 66 - fateProgress;
             var text = fateProgress == 66
-                           ? LuminaGetter.GetRow<Addon>(3930)!.Value.Text.ExtractText()
+                           ? LuminaGetter.GetRow<Addon>(3930)!.Value.Text.ToString()
                            : Lang.Get("BetterFateProgressUI-LeftFateAmount", remainingProgress);
 
             ImGui.SetWindowFontScale(0.95f);
@@ -325,7 +325,7 @@ public class BetterFateProgressUI : DailyModuleBase
                     agent->AgentInterface.Hide();
                 else
                 {
-                    agent->MapTitleString = *Utf8String.FromString(LuminaGetter.GetRow<Addon>(3933)!.Value.Text.ExtractText());
+                    agent->MapTitleString = *Utf8String.FromString(LuminaGetter.GetRow<Addon>(3933)!.Value.Text.ToString());
                     agent->OpenMapByMapId(zoneSheetRow.Map.RowId);
                 }
             }

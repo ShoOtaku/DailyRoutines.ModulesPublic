@@ -144,14 +144,14 @@ public class AutoReplaceLocationAction : DailyModuleBase
             if (!LuminaGetter.TryGetRow<Action>(actionPair.Key, out var action)) continue;
             var state = actionPair.Value;
 
-            if (ImGui.Checkbox($"###{actionPair.Key}_{action.Name.ExtractText()}", ref state))
+            if (ImGui.Checkbox($"###{actionPair.Key}_{action.Name.ToString()}", ref state))
             {
                 ModuleConfig.EnabledActions[actionPair.Key] = state;
                 SaveConfig(ModuleConfig);
             }
 
             ImGui.SameLine();
-            ImGuiOm.TextImage(action.Name.ExtractText(), ImageHelper.GetGameIcon(action.Icon).Handle, ScaledVector2(20f));
+            ImGuiOm.TextImage(action.Name.ToString(), ImageHelper.GetGameIcon(action.Icon).Handle, ScaledVector2(20f));
         }
 
         foreach (var actionPair in ModuleConfig.EnabledPetActions)
@@ -159,14 +159,14 @@ public class AutoReplaceLocationAction : DailyModuleBase
             if (!LuminaGetter.TryGetRow<PetAction>(actionPair.Key, out var action)) continue;
             var state = actionPair.Value;
 
-            if (ImGui.Checkbox($"###{actionPair.Key}_{action.Name.ExtractText()}", ref state))
+            if (ImGui.Checkbox($"###{actionPair.Key}_{action.Name.ToString()}", ref state))
             {
                 ModuleConfig.EnabledPetActions[actionPair.Key] = state;
                 SaveConfig(ModuleConfig);
             }
 
             ImGui.SameLine();
-            ImGuiOm.TextImage(action.Name.ExtractText(), ImageHelper.GetGameIcon((uint)action.Icon).Handle, ScaledVector2(20f));
+            ImGuiOm.TextImage(action.Name.ToString(), ImageHelper.GetGameIcon((uint)action.Icon).Handle, ScaledVector2(20f));
         }
     }
 
@@ -180,8 +180,8 @@ public class AutoReplaceLocationAction : DailyModuleBase
         using var indent = ImRaii.PushIndent();
 
         var       isMapValid             = GameState.TerritoryTypeData is { RowId: > 0, ContentFinderCondition.RowId: > 0 };
-        var       currentMapPlaceName    = isMapValid ? GameState.MapData.PlaceName.Value.Name.ExtractText() : string.Empty;
-        var       currentMapPlaceNameSub = isMapValid ? GameState.MapData.PlaceNameSub.Value.Name.ExtractText() : string.Empty;
+        var       currentMapPlaceName    = isMapValid ? GameState.MapData.PlaceName.Value.Name.ToString() : string.Empty;
+        var       currentMapPlaceNameSub = isMapValid ? GameState.MapData.PlaceNameSub.Value.Name.ToString() : string.Empty;
         using var disabled               = ImRaii.Disabled(!isMapValid);
 
         ImGui.AlignTextToFramePadding();
@@ -376,7 +376,7 @@ public class AutoReplaceLocationAction : DailyModuleBase
         var modifiedLocation = markers
                                .MinBy(x => Vector2.DistanceSquared(
                                             DService.ObjectTable.LocalPlayer.Position.ToVector2(), x))
-                               .ToVector3();
+                               .ToPlayerHeight();
 
         return UpdateLocationIfClose(ref sourceLocation, modifiedLocation);
     }
@@ -388,7 +388,7 @@ public class AutoReplaceLocationAction : DailyModuleBase
 
         var sourceCopy = sourceLocation;
         var modifiedLocation = markers.Values
-                                      .Select(x => x.ToVector3() as Vector3?)
+                                      .Select(x => x.ToPlayerHeight() as Vector3?)
                                       .FirstOrDefault(x => x.HasValue && 
                                                            Vector3.DistanceSquared(x.Value, sourceCopy) < 900);
         if (modifiedLocation == null) return false;
@@ -405,7 +405,7 @@ public class AutoReplaceLocationAction : DailyModuleBase
             !LuminaGetter.TryGetRow<Map>(GameState.Map, out var map))
             return false;
         
-        var modifiedLocation = TextureToWorld(new(1024f), map).ToVector3();
+        var modifiedLocation = TextureToWorld(new(1024f), map).ToPlayerHeight();
         return UpdateLocationIfClose(ref sourceLocation, modifiedLocation);
     }
 

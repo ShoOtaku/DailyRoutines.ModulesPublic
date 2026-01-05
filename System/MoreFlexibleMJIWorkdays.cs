@@ -23,7 +23,7 @@ public unsafe class MoreFlexibleMJIWorkdays : DailyModuleBase
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "MJICraftSchedule", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MJICraftSchedule", OnAddon);
-        if (IsAddonAndNodesReady(MJICraftSchedule))
+        if (MJICraftSchedule->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
 
@@ -40,8 +40,8 @@ public unsafe class MoreFlexibleMJIWorkdays : DailyModuleBase
         var node = addon->GetNodeById(24);
         if (node == null) return;
 
-        var nodeState = NodeState.Get((AtkResNode*)addon->WindowNode);
-        ImGui.SetWindowPos(nodeState.Position with { Y = nodeState.Position.Y - ImGui.GetWindowSize().Y });
+        var nodeState = addon->WindowNode->GetNodeState();
+        ImGui.SetWindowPos(nodeState.TopLeft with { Y = nodeState.TopLeft.Y - ImGui.GetWindowSize().Y });
 
         if (agent->Data->NewRestCycles == 0)
             agent->Data->NewRestCycles = agent->Data->RestCycles;

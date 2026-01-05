@@ -152,9 +152,9 @@ public class ExpandItemMenuSearch : DailyModuleBase
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
             if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
                 Util.OpenLink(string.Format(Url, itemName));
@@ -175,9 +175,9 @@ public class ExpandItemMenuSearch : DailyModuleBase
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
             if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
                 Util.OpenLink(string.Format(Url, itemName));
@@ -199,9 +199,9 @@ public class ExpandItemMenuSearch : DailyModuleBase
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
             if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
                 Util.OpenLink(string.Format(Url, Uri.EscapeDataString(itemName)));
@@ -271,9 +271,9 @@ public class ExpandItemMenuSearch : DailyModuleBase
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
             if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
                 Util.OpenLink(string.Format(Url, itemName));
@@ -295,9 +295,9 @@ public class ExpandItemMenuSearch : DailyModuleBase
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
             if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
                 Util.OpenLink(string.Format(Url, Uri.EscapeDataString(itemName)));
@@ -318,9 +318,9 @@ public class ExpandItemMenuSearch : DailyModuleBase
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
             if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ExtractText();
+                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
             
             if (!string.IsNullOrWhiteSpace(itemName))
             {

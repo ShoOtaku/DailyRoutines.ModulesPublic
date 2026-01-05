@@ -11,8 +11,6 @@ using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using FFXIVClientStructs.FFXIV.Component.Shell;
-using InteropGenerator.Runtime;
 using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
 using TinyPinyin;
@@ -136,7 +134,7 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
             }
             
             ImGui.SameLine();
-            ImGui.ColorButton("###HighlightColorPreview", UIColorToVector4Color(unitColorRow.Dark));
+            ImGui.ColorButton("###HighlightColorPreview",  unitColorRow.ToVector4());
         }
 
         ImGui.SameLine(0, 8f * GlobalFontScale);
@@ -438,59 +436,100 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
             processedTexts.Add(result);
             var newResult = new StringBuilder();
 
-            // 跳过 <> 标签内容
+            var resultRunes   = result.EnumerateRunes().ToList();
+            var filteredRunes = filtered.EnumerateRunes().ToList();
+
+            var i = 0;
+            var j = 0;
             var insideTag = false;
 
-            for (var i = 0; i < result.Length; i++)
+            while (i < resultRunes.Count)
             {
-                // 检查是否进入或离开标签
-                if (result[i] == '<')
+                var resultRune = resultRunes[i];
+
+                if (resultRune.Value == '<')
                     insideTag = true;
 
                 if (insideTag)
                 {
-                    newResult.Append(result[i]);
-                    if (result[i] == '>') 
+                    newResult.Append(resultRune.ToString());
+
+                    if (j < filteredRunes.Count && filteredRunes[j] == resultRune)
+                        j++;
+
+                    if (resultRune.Value == '>')
                         insideTag = false;
 
+                    i++;
                     continue;
                 }
 
-                // 处理非标签内容
-                if (i < filtered.Length && filtered[i] == '*' && result[i] != '*')
-                {
-                    // 找出连续被屏蔽的部分
-                    var startPos = i;
-                    while (i + 1 < filtered.Length && filtered[i + 1] == '*' && result[i + 1] != '*') 
-                        i++;
+                Rune? filteredRune = j < filteredRunes.Count ? filteredRunes[j] : null;
 
-                    // 截取被屏蔽的词
-                    var censoredWord = result.Substring(startPos, i - startPos + 1);
-                    if (censoredWord.Length == 1 && IsChineseCharacter(censoredWord[0]))
-                        newResult.Append(PinyinHelper.GetPinyin(censoredWord).ToLowerInvariant());
-                    else if (IsChineseString(censoredWord))
+                if (filteredRune.HasValue && filteredRune.Value == resultRune)
+                {
+                    newResult.Append(resultRune.ToString());
+                    i++;
+                    j++;
+                }
+                else
+                {
+                    if (filteredRune is { Value: '*' })
                     {
-                        // 汉字词组加分隔符
-                        for (var j = 0; j < censoredWord.Length; j++)
+                        var nextClearFilteredIndex = j;
+                        while (nextClearFilteredIndex < filteredRunes.Count && filteredRunes[nextClearFilteredIndex].Value == '*')
+                            nextClearFilteredIndex++;
+
+                        if (nextClearFilteredIndex >= filteredRunes.Count)
                         {
-                            newResult.Append(censoredWord[j]);
-                            if (j < censoredWord.Length - 1) 
-                                newResult.Append(ModuleConfig.Seperator);
+                            var count        = resultRunes.Count - i;
+                            var censoredWord = GetStringFromRunes(resultRunes, i, count);
+                            ProcessCensoredWord(newResult, censoredWord);
+                            i = resultRunes.Count;
+                            j = filteredRunes.Count;
+                        }
+                        else
+                        {
+                            var anchorRune = filteredRunes[nextClearFilteredIndex];
+
+                            var nextClearResultIndex = i;
+                            var found                = false;
+                            while (nextClearResultIndex < resultRunes.Count)
+                            {
+                                if (resultRunes[nextClearResultIndex] == anchorRune)
+                                {
+                                    found = true;
+                                    break;
+                                }
+
+                                nextClearResultIndex++;
+                            }
+
+                            if (found)
+                            {
+                                var count        = nextClearResultIndex - i;
+                                var censoredWord = GetStringFromRunes(resultRunes, i, count);
+                                ProcessCensoredWord(newResult, censoredWord);
+
+                                i = nextClearResultIndex;
+                                j = nextClearFilteredIndex;
+                            }
+                            else
+                            {
+                                newResult.Append(resultRune.ToString());
+                                i++;
+                                j++;
+                            }
                         }
                     }
                     else
                     {
-                        // 其他内容加分隔符
-                        for (var j = 0; j < censoredWord.Length; j++)
-                        {
-                            newResult.Append(censoredWord[j]);
-                            if (j < censoredWord.Length - 1) 
-                                newResult.Append(ModuleConfig.Seperator);
-                        }
+                        newResult.Append(resultRune.ToString());
+                        i++;
+                        if (j < filteredRunes.Count) 
+                            j++;
                     }
                 }
-                else
-                    newResult.Append(result[i]);
             }
 
             result   = newResult.ToString();
@@ -498,6 +537,42 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
         }
 
         return result;
+    }
+
+    private static string GetStringFromRunes(List<Rune> runes, int start, int count)
+    {
+        var sb = new StringBuilder();
+        for (var k = 0; k < count; k++)
+            sb.Append(runes[start + k].ToString());
+        return sb.ToString();
+    }
+
+    private static void ProcessCensoredWord(StringBuilder builder, string censoredWord)
+    {
+        var censoredRunes = censoredWord.EnumerateRunes().ToList();
+
+        if (censoredRunes.Count == 1 && string.IsChineseRune(censoredRunes[0]))
+            builder.Append(PinyinHelper.GetPinyin(censoredWord).ToLowerInvariant());
+        else if (censoredWord.IsChinese())
+        {
+            // 汉字词组加分隔符
+            for (var j = 0; j < censoredRunes.Count; j++)
+            {
+                builder.Append(censoredRunes[j].ToString());
+                if (j < censoredRunes.Count - 1)
+                    builder.Append(ModuleConfig.Seperator);
+            }
+        }
+        else
+        {
+            // 其他内容加分隔符
+            for (var j = 0; j < censoredRunes.Count; j++)
+            {
+                builder.Append(censoredRunes[j].ToString());
+                if (j < censoredRunes.Count - 1)
+                    builder.Append(ModuleConfig.Seperator);
+            }
+        }
     }
     
     private static void HighlightCensorship(ref SeString text)
@@ -588,7 +663,7 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
     {
         var utf8String = Utf8String.FromString(str);
         GetFilteredUtf8String(Marshal.ReadIntPtr((nint)Framework.Instance() + VulgarInstanceOffset), utf8String);
-        var result = utf8String->ExtractText();
+        var result = utf8String->ToString();
 
         utf8String->Dtor(true);
         return result;

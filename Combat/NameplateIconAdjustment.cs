@@ -37,7 +37,7 @@ public unsafe class NameplateIconAdjustment : DailyModuleBase
     private static void OnAddon(AddonEvent type, AddonArgs? args)
     {
         var addon = NamePlate;
-        if (!IsAddonAndNodesReady(NamePlate)) return;
+        if (!NamePlate->IsAddonAndNodesReady()) return;
 
         {
             var componentNode = addon->GetComponentNodeById(2);

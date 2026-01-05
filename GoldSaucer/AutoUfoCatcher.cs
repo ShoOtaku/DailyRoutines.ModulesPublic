@@ -36,15 +36,14 @@ public class AutoUfoCatcher : DailyModuleBase
     private unsafe bool? WaitSelectStringAddon()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
-        return TryGetAddonByName<AddonSelectString>("SelectString", out var addon) &&
-               IsAddonAndNodesReady(&addon->AtkUnitBase) && ClickSelectString(0);
+        return SelectString->IsAddonAndNodesReady() && ClickSelectString(0);
     }
 
     private unsafe bool? ClickGameButton()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
 
-        if (!IsAddonAndNodesReady(UFOCatcher))
+        if (!UFOCatcher->IsAddonAndNodesReady())
             return false;
 
         var button = UFOCatcher->GetComponentButtonById(2);
@@ -52,7 +51,7 @@ public class AutoUfoCatcher : DailyModuleBase
 
         UFOCatcher->IsVisible = false;
 
-        Callback(UFOCatcher, true, 11, 3, 0);
+        UFOCatcher->Callback(11, 3, 0);
 
         // 只是纯粹因为游玩动画太长了而已
         TaskHelper.DelayNext(5000);
@@ -66,7 +65,7 @@ public class AutoUfoCatcher : DailyModuleBase
         if (OccupiedInEvent) return false;
         
         var machineTarget = TargetManager.PreviousTarget;
-        var machine = machineTarget.Name.TextValue.Contains(LuminaGetter.GetRow<EObjName>(2005036)!.Value.Singular.ExtractText(),
+        var machine = machineTarget.Name.TextValue.Contains(LuminaGetter.GetRow<EObjName>(2005036)!.Value.Singular.ToString(),
                                                             StringComparison.OrdinalIgnoreCase)
                           ? (GameObject*)machineTarget.Address
                           : null;

@@ -46,7 +46,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
             return;
         }
         
-        if (!IsAddonAndNodesReady(ContentsFinder)) return;
+        if (!ContentsFinder->IsAddonAndNodesReady()) return;
 
         var isLoading = ContentsFinder->AtkValues[1].Bool;
         if (isLoading) return;
@@ -101,7 +101,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                                         ImGui.SameLine();
                                         if (ImGui.ImageButton(explorerTexture.GetWrapOrEmpty().Handle, new(lineHeight)))
                                             ChatManager.SendMessage($"/pdrduty n {item.CleanName} explorer");
-                                        ImGuiOm.TooltipHover($"{sharedPrefix} ({LuminaGetter.GetRow<Addon>(13038)!.Value.Text.ExtractText()})");
+                                        ImGuiOm.TooltipHover($"{sharedPrefix} ({LuminaGetter.GetRow<Addon>(13038)!.Value.Text.ToString()})");
                                     }
                                 }
                                 else
@@ -111,7 +111,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                                         ImGui.SameLine();
                                         if (ImGui.ImageButton(unrestTexture.GetWrapOrEmpty().Handle, new(lineHeight)))
                                             ChatManager.SendMessage($"/pdrduty n {item.CleanName} unrest");
-                                        ImGuiOm.TooltipHover($"{sharedPrefix} ({LuminaGetter.GetRow<Addon>(10008)!.Value.Text.ExtractText()})\n" +
+                                        ImGuiOm.TooltipHover($"{sharedPrefix} ({LuminaGetter.GetRow<Addon>(10008)!.Value.Text.ToString()})\n" +
                                                              $"[{GetLoc("FastContentsFinderRegister-HoldConflictKeyToToggle")}]");
                                     }
                                 }

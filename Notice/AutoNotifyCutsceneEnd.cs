@@ -33,7 +33,7 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
         TaskHelper ??= new() { TimeLimitMS = 30_000 };
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
-        OnZoneChanged(DService.ClientState.TerritoryType);
+        OnZoneChanged(0);
     }
 
     protected override void ConfigUI()
@@ -62,8 +62,7 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
         Stopwatch = null;
         IsDutyEnd = false;
         
-        if (!LuminaGetter.TryGetRow<TerritoryType>(zone, out var zoneRow) ||
-            zoneRow.ContentFinderCondition.ValueNullable == null) return;
+        if (GameState.ContentFinderCondition == 0) return;
         
         TaskHelper.Enqueue(() => !BetweenAreas, "WaitForEnteringDuty");
         TaskHelper.Enqueue(CheckIsDutyStateEligibleThenEnqueue, "CheckIsDutyStateEligibleThenEnqueue");

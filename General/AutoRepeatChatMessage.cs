@@ -103,7 +103,7 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
         foreach (var senderPayload in sender.Payloads)
         {
             if (senderPayload is PlayerPayload playerPayload)
-                senderStr = $"{playerPayload.PlayerName}@{playerPayload.World.Value.Name.ExtractText()}";
+                senderStr = $"{playerPayload.PlayerName}@{playerPayload.World.Value.Name.ToString()}";
         }
 
         var linkPayload = LinkPayloadManager.Register(OnClickRepeat, out var id);

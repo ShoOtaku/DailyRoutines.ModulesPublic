@@ -18,13 +18,13 @@ public class Alphascape3Helper : DailyModuleBase
     protected override void Init()
     {
         DService.ClientState.TerritoryChanged += OnZoneChanged;
-        OnZoneChanged(DService.ClientState.TerritoryType);
+        OnZoneChanged(0);
     }
 
     private static void OnZoneChanged(ushort zoneID)
     {
         FrameworkManager.Unreg(OnUpdate);
-        if (zoneID != 800) return;
+        if (GameState.TerritoryType != 800) return;
         
         FrameworkManager.Reg(OnUpdate, throttleMS: 100);
     }

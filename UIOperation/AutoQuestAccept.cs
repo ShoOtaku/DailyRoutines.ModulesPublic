@@ -33,7 +33,7 @@ public class AutoQuestAccept : DailyModuleBase
         var isAcceptable = addon->AtkValues[4].UInt;
         if (isAcceptable == 0) return;
         
-        Callback(addon, true, 3, questID);
+        addon->Callback(3, questID);
     }
 
     protected override void Uninit() => 

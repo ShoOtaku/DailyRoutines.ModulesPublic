@@ -37,10 +37,10 @@ public unsafe class AutoUseMountAction : DailyModuleBase
         MountSearcher ??= new(LuminaGetter.Get<Mount>()
                                           .Where(x => x.MountAction.RowId > 0)
                                           .Where(x => x.Icon              > 0)
-                                          .Where(x => !string.IsNullOrEmpty(x.Singular.ExtractText()))
-                                          .GroupBy(x => x.Singular.ExtractText())
+                                          .Where(x => !string.IsNullOrEmpty(x.Singular.ToString()))
+                                          .GroupBy(x => x.Singular.ToString())
                                           .Select(x => x.First()),
-                              [x => x.Singular.ExtractText()]);
+                              [x => x.Singular.ToString()]);
         
         DService.Condition.ConditionChange += OnConditionChanged;
         if (DService.Condition[ConditionFlag.Mounted])
@@ -70,7 +70,7 @@ public unsafe class AutoUseMountAction : DailyModuleBase
                 ImGui.SetNextItemWidth(250f * GlobalFontScale);
                 using (var combo = ImRaii.Combo($"{LuminaWrapper.GetAddonText(4964)}##MountSelectCombo",
                                                 SelectedMountID > 0 && LuminaGetter.TryGetRow(SelectedMountID, out Mount selectedMount)
-                                                    ? $"{selectedMount.Singular.ExtractText()}"
+                                                    ? $"{selectedMount.Singular.ToString()}"
                                                     : string.Empty,
                                                 ImGuiComboFlags.HeightLarge))
                 {
@@ -88,7 +88,7 @@ public unsafe class AutoUseMountAction : DailyModuleBase
 
                                 if (ImGuiOm.SelectableImageWithText(textureWrap.Handle,
                                                                     new(ImGui.GetTextLineHeightWithSpacing()),
-                                                                    $"{mount.Singular.ExtractText()}",
+                                                                    $"{mount.Singular.ToString()}",
                                                                     mount.RowId == SelectedMountID))
                                     SelectedMountID = mount.RowId;
                             }
@@ -142,12 +142,12 @@ public unsafe class AutoUseMountAction : DailyModuleBase
             // 坐骑ID和特性
             ImGui.TableNextColumn();
             if (LuminaGetter.TryGetRow<Mount>(action.MountID, out var mountRow) && ImageHelper.TryGetGameIcon(mountRow.Icon, out var mountIcon))
-                ImGuiOm.TextImage($"{mountRow.Singular.ExtractText()}", mountIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
+                ImGuiOm.TextImage($"{mountRow.Singular.ToString()}", mountIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
 
             // 动作ID
             ImGui.TableNextColumn();
             if (LuminaGetter.TryGetRow<Action>(action.ActionID, out var actionRow) && ImageHelper.TryGetGameIcon(actionRow.Icon, out var actionIcon))
-                ImGuiOm.TextImage($"{actionRow.Name.ExtractText()}", actionIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
+                ImGuiOm.TextImage($"{actionRow.Name.ToString()}", actionIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
 
             // 删除按钮
             ImGui.TableNextColumn();

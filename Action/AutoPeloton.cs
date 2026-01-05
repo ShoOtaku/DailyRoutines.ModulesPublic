@@ -3,6 +3,7 @@ using DailyRoutines.Abstracts;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -66,7 +67,7 @@ public unsafe class AutoPeloton : DailyModuleBase
         if (ModuleConfig.OnlyInDuty && GameState.ContentFinderCondition == 0) return;
         if (GameState.IsInPVPArea) return;
         if (DService.Condition[ConditionFlag.InCombat]) return;
-        if (BetweenAreas || !IsScreenReady() || OccupiedInEvent || DService.ObjectTable.LocalPlayer is not { } localPlayer)
+        if (BetweenAreas || !UIModule.IsScreenReady() || OccupiedInEvent || DService.ObjectTable.LocalPlayer is not { } localPlayer)
             return;
         if (!ValidClassJobs.Contains(localPlayer.ClassJob.RowId))
             return;

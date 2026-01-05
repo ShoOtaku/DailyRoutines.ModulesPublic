@@ -24,14 +24,14 @@ public class BaitSwitchCommand : DailyModuleBase
 
     private static readonly Dictionary<uint, (string NameLower, string NamePinyin)> Baits = 
         LuminaGetter.Get<Item>()
-                    .Where(x => x.FilterGroup == 17 && !string.IsNullOrWhiteSpace(x.Name.ExtractText()))
-                    .ToDictionary(x => x.RowId, x => (x.Name.ExtractText().ToLower(),
-                                                         PinyinHelper.GetPinyin(x.Name.ExtractText(), string.Empty)));
+                    .Where(x => x.FilterGroup == 17 && !string.IsNullOrWhiteSpace(x.Name.ToString()))
+                    .ToDictionary(x => x.RowId, x => (x.Name.ToString().ToLower(),
+                                                         PinyinHelper.GetPinyin(x.Name.ToString(), string.Empty)));
     private static readonly Dictionary<uint, (string NameLower, string NamePinyin)> Fishes = 
         LuminaGetter.Get<Item>()
-                    .Where(x => x.FilterGroup == 16 && !string.IsNullOrWhiteSpace(x.Name.ExtractText()))
-                    .ToDictionary(x => x.RowId, x => (x.Name.ExtractText().ToLower(),
-                                                         PinyinHelper.GetPinyin(x.Name.ExtractText(), string.Empty)));
+                    .Where(x => x.FilterGroup == 16 && !string.IsNullOrWhiteSpace(x.Name.ToString()))
+                    .ToDictionary(x => x.RowId, x => (x.Name.ToString().ToLower(),
+                                                         PinyinHelper.GetPinyin(x.Name.ToString(), string.Empty)));
 
     protected override void Init() => 
         CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("BaitSwitchCommand-CommandHelp") });
@@ -118,7 +118,7 @@ public class BaitSwitchCommand : DailyModuleBase
             return false;
         }
 
-        var itemName = LuminaGetter.GetRow<Item>(itemID)?.Name.ExtractText();
+        var itemName = LuminaGetter.GetRow<Item>(itemID)?.Name.ToString();
 
         if (Baits.ContainsKey(itemID))
         {

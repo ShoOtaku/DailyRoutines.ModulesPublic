@@ -92,7 +92,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
 
     private static void OnRefreshTimer(object? sender, ElapsedEventArgs e)
     {
-        if (!IsAddonAndNodesReady(LookingForGroup) || IsAddonAndNodesReady(LookingForGroupDetail))
+        if (!LookingForGroup->IsAddonAndNodesReady() || LookingForGroupDetail->IsAddonAndNodesReady())
         {
             PFRefreshTimer.Stop();
             return;

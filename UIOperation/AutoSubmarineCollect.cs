@@ -15,7 +15,9 @@ using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
@@ -140,7 +142,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
     private void EnqueueSubmarineStateCheck()
     {
-        TaskHelper.Enqueue(() => IsAddonAndNodesReady(AirShipExplorationDetail), "等待出航信息确认界面出现");
+        TaskHelper.Enqueue(() => AirShipExplorationDetail->IsAddonAndNodesReady(), "等待出航信息确认界面出现");
         
         TaskHelper.Enqueue(() =>
         {
@@ -154,9 +156,9 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         
         TaskHelper.Enqueue(() =>
         {
-            if (!IsAddonAndNodesReady(AirShipExplorationDetail)) return false;
+            if (!AirShipExplorationDetail->IsAddonAndNodesReady()) return false;
 
-            Callback(AirShipExplorationDetail, true, 0);
+            AirShipExplorationDetail->Callback(0);
             AirShipExplorationDetail->Close(true);
 
             return true;
@@ -244,9 +246,9 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     private static bool IsOnValidSubmarineList()
     {
         if (HousingManager.Instance()->WorkshopTerritory == null) return false;
-        if (!IsAddonAndNodesReady(SelectString)) return false;
+        if (!SelectString->IsAddonAndNodesReady()) return false;
 
-        var title = SelectString->AtkValues[2].String.ExtractText();
+        var title = SelectString->AtkValues[2].String.ToString();
         if (string.IsNullOrEmpty(title) || !VoyageListTitleText.Value.All(title.Contains)) 
             return false;
         
@@ -420,7 +422,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             return false;
         }
 
-        if (!IsScreenReady()) return false;
+        if (!UIModule.IsScreenReady()) return false;
         
         return entryObject.TargetInteract();
     }
@@ -437,18 +439,18 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             return false;
 
         // 没找到入口
-        if (!IsEventIDNearby(721074))
+        if (!EventFramework.Instance()->IsEventIDNearby(721074))
         {
             MovementManager.TPSmart_InZone(Vector3.Zero);
             return false;
         }
 
-        if (!IsScreenReady()) return false;
+        if (!UIModule.IsScreenReady()) return false;
 
         if (!OccupiedInEvent)
             new EventStartPackt(LocalPlayerState.EntityID, 721074).Send();
         
-        return ClickSelectString(LuminaGetter.GetRowOrDefault<HousingPersonalRoomEntrance>(11).Text.ExtractText());
+        return ClickSelectString(LuminaGetter.GetRowOrDefault<HousingPersonalRoomEntrance>(11).Text.ToString());
     }
 
     private static bool? TeleportToPanel()
@@ -463,13 +465,13 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             return false;
 
         // 没找到入口
-        if (!TryGetNearestEvent(x => x.EventId == 3276843,
-                                                     _ => true,
-                                                     default,
-                                                     out _,
-                                                     out var gameObjectID,
-                                                     out _,
-                                                     out _) ||
+        if (!EventFramework.Instance()->TryGetNearestEvent(x => x.EventId == 3276843,
+                                                           _ => true,
+                                                           default,
+                                                           out _,
+                                                           out var gameObjectID,
+                                                           out _,
+                                                           out _) ||
             DService.ObjectTable.SearchByID(gameObjectID) is not { } panelObject)
         {
             MovementManager.TPSmart_InZone(Vector3.Zero);
@@ -484,7 +486,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             return false;
         }
 
-        if (!IsScreenReady()) return false;
+        if (!UIModule.IsScreenReady()) return false;
 
         if (!OccupiedInEvent)
         {
@@ -492,7 +494,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             return false;
         }
         
-        return ClickSelectString(LuminaGetter.GetRowOrDefault<CustomTalk>(721343).MainOption.ExtractText());
+        return ClickSelectString(LuminaGetter.GetRowOrDefault<CustomTalk>(721343).MainOption.ToString());
     }
 
     #endregion
@@ -501,9 +503,9 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
     private void OnExplorationResult(AddonEvent type, AddonArgs args)
     {
-        if (AirShipExplorationResult == null || !IsAddonAndNodesReady(AirShipExplorationResult)) return;
+        if (AirShipExplorationResult == null || !AirShipExplorationResult->IsAddonAndNodesReady()) return;
 
-        Callback(AirShipExplorationResult, true, 1);
+        AirShipExplorationResult->Callback(1);
         if (TaskHelper.IsBusy) 
             AirShipExplorationResult->IsVisible = false;
     }

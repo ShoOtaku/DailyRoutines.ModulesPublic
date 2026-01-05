@@ -94,7 +94,7 @@ public unsafe class InstantLogout : DailyModuleBase
 
     private static bool CheckCommand(string message, TextCommand command, TaskHelper taskHelper, Action<TaskHelper> action)
     {
-        if (message == command.Command.ExtractText() || message == command.Alias.ExtractText())
+        if (message == command.Command.ToString() || message == command.Alias.ToString())
         {
             action(taskHelper);
             return true;

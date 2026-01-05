@@ -4,7 +4,9 @@ using System.Linq;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -94,17 +96,17 @@ public unsafe class AutoRepair : DailyModuleBase
             return;
 
         // 优先委托 NPC 修理
-        if (ModuleConfig is { AllowNPCRepair: true, PrioritizeNPCRepair: true } && IsEventIDNearby(720915))
+        if (ModuleConfig is { AllowNPCRepair: true, PrioritizeNPCRepair: true } && EventFramework.Instance()->IsEventIDNearby(720915))
         {
             TaskHelper.Abort();
             TaskHelper.Enqueue(() => IsAbleToRepair());
             TaskHelper.Enqueue(() => NotificationInfo(GetLoc("AutoRepair-RepairNotice"), GetLoc("AutoRepairTitle")));
             TaskHelper.Enqueue(() => new EventStartPackt(LocalPlayerState.EntityID, 720915).Send());
-            TaskHelper.Enqueue(() => IsAddonAndNodesReady(Repair));
+            TaskHelper.Enqueue(() => Repair->IsAddonAndNodesReady());
             TaskHelper.Enqueue(() => ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, 1000));
             TaskHelper.Enqueue(() =>
             {
-                if (!IsAddonAndNodesReady(Repair)) return;
+                if (!Repair->IsAddonAndNodesReady()) return;
                 Repair->Close(true);
             });
             
@@ -166,23 +168,23 @@ public unsafe class AutoRepair : DailyModuleBase
         }
 
         // 附近存在修理工
-        if (ModuleConfig.AllowNPCRepair && itemsUnableToRepair.Count > 0 && IsEventIDNearby(720915))
+        if (ModuleConfig.AllowNPCRepair && itemsUnableToRepair.Count > 0 && EventFramework.Instance()->IsEventIDNearby(720915))
         {
             TaskHelper.Enqueue(() => IsAbleToRepair());
             TaskHelper.Enqueue(() => NotificationInfo(GetLoc("AutoRepair-RepairNotice"), GetLoc("AutoRepairTitle")));
             TaskHelper.Enqueue(() => new EventStartPackt(LocalPlayerState.EntityID, 720915).Send());
-            TaskHelper.Enqueue(() => IsAddonAndNodesReady(Repair));
+            TaskHelper.Enqueue(() => Repair->IsAddonAndNodesReady());
             TaskHelper.Enqueue(() => ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, 1000));
             TaskHelper.Enqueue(() =>
             {
-                if (!IsAddonAndNodesReady(Repair)) return;
+                if (!Repair->IsAddonAndNodesReady()) return;
                 Repair->Close(true);
             });
         }
     }
 
     private static bool IsAbleToRepair() =>
-        IsScreenReady()            &&
+        UIModule.IsScreenReady()            &&
         !OccupiedInEvent           &&
         !GameState.IsInPVPInstance &&
         !IsOnMount                 &&

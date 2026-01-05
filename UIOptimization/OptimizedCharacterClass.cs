@@ -9,6 +9,7 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
+using AtkEventWrapper = OmenTools.Managers.AtkEventWrapper;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -30,12 +31,12 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
     {
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "CharacterClass", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CharacterClass", OnAddon);
-        if (IsAddonAndNodesReady(CharacterClass))
+        if (CharacterClass->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "PvPCharacter", OnAddonPVP);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "PvPCharacter", OnAddonPVP);
-        if (IsAddonAndNodesReady(PvPCharacter))
+        if (PvPCharacter->IsAddonAndNodesReady())
             OnAddonPVP(AddonEvent.PostSetup, null);
     }
 
@@ -52,7 +53,7 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
     {
         if (!LuminaGetter.TryGetRow(classJobID, out ClassJob classJob)) return;
         
-        var colNode = (AtkCollisionNode*)componentNode->Component->UldManager.SearchSimpleNodeByType(NodeType.Collision);
+        var colNode = componentNode->Component->UldManager.SearchSimpleNodeByType<AtkCollisionNode>(NodeType.Collision);
         if (colNode == null) return;
         
         var iconNodes = componentNode->Component->UldManager.SearchSimpleNodesByType(NodeType.Image);

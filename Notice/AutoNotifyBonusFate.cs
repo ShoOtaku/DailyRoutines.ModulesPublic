@@ -20,26 +20,23 @@ public class AutoNotifyBonusFate : DailyModuleBase
         Author = ["Due"]
     };
 
+    private static readonly HashSet<uint> ValidTerritory =
+        LuminaGetter.Get<TerritoryType>()
+                    .Where(x => x.TerritoryIntendedUse.RowId == 1)
+                    .Where(x => x.ExVersion.Value.RowId      >= 2)
+                    .Select(x => x.RowId)
+                    .ToHashSet();
+    
     private static Config ModuleConfig = null!;
     
     private static List<IFate> LastFates = [];
-    private static readonly HashSet<ushort> ValidTerritory;
-
-    static AutoNotifyBonusFate()
-    {
-        ValidTerritory = LuminaGetter.Get<TerritoryType>()
-                                    .Where(x => x.TerritoryIntendedUse.RowId == 1)
-                                    .Where(x => x.ExVersion.Value.RowId      >= 2)
-                                    .Select(x => (ushort)x.RowId)
-                                    .ToHashSet();
-    }
 
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
         DService.ClientState.TerritoryChanged += OnZoneChanged;
-        OnZoneChanged(DService.ClientState.TerritoryType);
+        OnZoneChanged(0);
     }
 
     protected override void ConfigUI()
@@ -64,13 +61,13 @@ public class AutoNotifyBonusFate : DailyModuleBase
         FrameworkManager.Unreg(OnUpdate);
         LastFates.Clear();
 
-        if (ValidTerritory.Contains(zone))
+        if (ValidTerritory.Contains(GameState.TerritoryType))
             FrameworkManager.Reg(OnUpdate, throttleMS: 5_000);
     }
 
     private static unsafe void OnUpdate(IFramework _)
     {
-        var zoneID = DService.ClientState.TerritoryType;
+        var zoneID = GameState.TerritoryType;
         if (!ValidTerritory.Contains(zoneID))
         {
             FrameworkManager.Unreg(OnUpdate);
@@ -92,8 +89,8 @@ public class AutoNotifyBonusFate : DailyModuleBase
 
             var mapPos = WorldToMap(fate.Position.ToVector2(), mapRow);
             
-            var chatMessage = GetSLoc("AutoNotifyBonusFate-Chat", fate.Name.ExtractText(), fate.Progress, SeString.CreateMapLink(zoneID, mapID, mapPos.X, mapPos.Y));
-            var notificationMessage = GetLoc("AutoNotifyBonusFate-Notification", fate.Name.ExtractText(), fate.Progress);
+            var chatMessage = GetSLoc("AutoNotifyBonusFate-Chat", fate.Name.ToString(), fate.Progress, SeString.CreateMapLink(zoneID, mapID, mapPos.X, mapPos.Y));
+            var notificationMessage = GetLoc("AutoNotifyBonusFate-Notification", fate.Name.ToString(), fate.Progress);
 
             if (ModuleConfig.SendChat) 
                 Chat(chatMessage);
@@ -110,8 +107,8 @@ public class AutoNotifyBonusFate : DailyModuleBase
 
                 if (!instance->IsAgentActive()) 
                     instance->Show();
-                instance->SetFlagMapMarker(DService.ClientState.TerritoryType, currentZoneMapID, fate.Position);
-                instance->OpenMap(currentZoneMapID, DService.ClientState.TerritoryType, fate.Name.ExtractText());
+                instance->SetFlagMapMarker(GameState.TerritoryType, currentZoneMapID, fate.Position);
+                instance->OpenMap(currentZoneMapID, GameState.TerritoryType, fate.Name.ToString());
             }
             break;
         }

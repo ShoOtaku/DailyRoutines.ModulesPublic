@@ -34,7 +34,7 @@ public unsafe class FastRidePillion : DailyModuleBase
     {
         if (flag != ConditionFlag.RidingPillion || !value) return;
 
-        if (InfosOm.ContextMenuXIV != null && IsAddonAndNodesReady(InfosOm.ContextMenuXIV))
+        if (InfosOm.ContextMenuXIV != null && InfosOm.ContextMenuXIV->IsAddonAndNodesReady())
             InfosOm.ContextMenuXIV->Close(true);
     }
 

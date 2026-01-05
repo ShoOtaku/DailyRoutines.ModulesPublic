@@ -74,7 +74,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,           "FriendList", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate,  "FriendList", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "FriendList", OnAddon);
-        if (IsAddonAndNodesReady(FriendList)) 
+        if (FriendList->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostSetup, null);
 
         DService.ContextMenu.OnMenuOpened += OnContextMenu;
@@ -93,7 +93,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
         SearchSettingAddon?.Dispose();
         SearchSettingAddon = null;
         
-        if (IsAddonAndNodesReady(FriendList))
+        if (FriendList->IsAddonAndNodesReady())
             InfoProxyFriendList.Instance()->RequestData();
     }
 
@@ -127,12 +127,12 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                         ShowLimitText = true,
                         OnInputReceived = x =>
                         {
-                            SearchString = x.ExtractText();
+                            SearchString = x.ToString();
                             ApplySearchFilter(SearchString, TaskHelper);
                         },
                         OnInputComplete = x =>
                         {
-                            SearchString = x.ExtractText();
+                            SearchString = x.ToString();
                             ApplySearchFilter(SearchString, TaskHelper);
                         },
                     };
@@ -239,7 +239,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
     private static void ApplyDisplayModification(TaskHelper? taskHelper)
     {
         var addon = FriendList;
-        if (!IsAddonAndNodesReady(addon)) return;
+        if (!addon->IsAddonAndNodesReady()) return;
 
         var info = InfoProxyFriendList.Instance();
         
@@ -620,7 +620,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
 
         protected override void OnUpdate(AtkUnitBase* addon)
         {
-            if (!IsAddonAndNodesReady(FriendList))
+            if (!FriendList->IsAddonAndNodesReady())
                 Close();
         }
 
@@ -793,10 +793,10 @@ public unsafe class OptimizedFriendList : DailyModuleBase
 
                 TaskHelper.DelayNext(100);
                 TaskHelper.Enqueue(() => !RemarkEditAddon.IsOpen);
-                TaskHelper.Enqueue(() => RemarkEditAddon.OpenWithData(target.TargetContentId, target.TargetName, target.TargetHomeWorld.Value.Name.ExtractText()));
+                TaskHelper.Enqueue(() => RemarkEditAddon.OpenWithData(target.TargetContentId, target.TargetName, target.TargetHomeWorld.Value.Name.ToString()));
             }
             else
-                RemarkEditAddon.OpenWithData(target.TargetContentId, target.TargetName, target.TargetHomeWorld.Value.Name.ExtractText());
+                RemarkEditAddon.OpenWithData(target.TargetContentId, target.TargetName, target.TargetHomeWorld.Value.Name.ToString());
 
             ApplySearchFilter(SearchString, TaskHelper);
         }

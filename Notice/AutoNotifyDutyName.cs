@@ -55,7 +55,7 @@ public class AutoNotifyDutyName : DailyModuleBase
                                          .OrderByDescending(x => x.LevelItem.RowId)
                                          .FirstOrDefault().LevelItem.RowId;
         
-        var message = GetLoc("AutoNotifyDutyName-NoticeMessage", levelText, content.Name.ExtractText(),
+        var message = GetLoc("AutoNotifyDutyName-NoticeMessage", levelText, content.Name.ToString(),
                              GetLoc("ILMinimum"), content.ItemLevelRequired,          
                              GetLoc("ILMaximum"), content.ItemLevelSync != 0 ? content.ItemLevelSync : maxILGearIL);
         

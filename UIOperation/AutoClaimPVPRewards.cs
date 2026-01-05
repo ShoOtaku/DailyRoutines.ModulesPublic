@@ -3,6 +3,7 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using AtkEventWrapper = OmenTools.Managers.AtkEventWrapper;
 
 namespace DailyRoutines.ModulesPublic;
 

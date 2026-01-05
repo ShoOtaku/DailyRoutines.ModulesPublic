@@ -38,7 +38,7 @@ public class CrossDCPartyFinder : DailyModuleBase
     private const string BASE_DETAIL_URL = "https://xivpf.littlenightmare.top/api/listing/";
     
     private static string LocatedDataCenter =>
-        GameState.CurrentDataCenterData.Name.ExtractText();
+        GameState.CurrentDataCenterData.Name.ToString();
 
     private static Hook<AgentReceiveEventDelegate>? AgentLookingForGroupReceiveEventHook;
 
@@ -72,7 +72,7 @@ public class CrossDCPartyFinder : DailyModuleBase
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroup", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroup", OnAddon);
-        if (IsAddonAndNodesReady(LookingForGroup))
+        if (LookingForGroup->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
 
         AgentLookingForGroupReceiveEventHook ??=
@@ -101,16 +101,20 @@ public class CrossDCPartyFinder : DailyModuleBase
 
         if (SelectedDataCenter == LocatedDataCenter) return;
 
-        var nodeInfo0  = NodeState.Get(addon->GetNodeById(38));
-        var nodeInfo1  = NodeState.Get(addon->GetNodeById(31));
-        var nodeInfo2  = NodeState.Get(addon->GetNodeById(41));
-        var size       = nodeInfo0.Size + nodeInfo1.Size.WithX(0) + nodeInfo2.Size.WithX(0);
+        var nodeInfo0  = addon->GetNodeById(38)->GetNodeState();
+        var nodeInfo1  = addon->GetNodeById(31)->GetNodeState();
+        var nodeInfo2  = addon->GetNodeById(41)->GetNodeState();
+        var size       = nodeInfo0.Size + new Vector2(0, nodeInfo1.Height + nodeInfo2.Height);
         var sizeOffset = new Vector2(4, 4);
         ImGui.SetNextWindowPos(new(addon->GetNodeById(31)->ScreenX - 4f, addon->GetNodeById(31)->ScreenY));
         ImGui.SetNextWindowSize(size + (2 * sizeOffset));
         if (ImGui.Begin("###CrossDCPartyFinder_PartyListWindow",
-                        ImGuiWindowFlags.NoTitleBar            | ImGuiWindowFlags.NoResize   | ImGuiWindowFlags.NoDocking   |
-                        ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar |
+                        ImGuiWindowFlags.NoTitleBar            |
+                        ImGuiWindowFlags.NoResize              |
+                        ImGuiWindowFlags.NoDocking             |
+                        ImGuiWindowFlags.NoBringToFrontOnFocus |
+                        ImGuiWindowFlags.NoCollapse            |
+                        ImGuiWindowFlags.NoScrollbar           |
                         ImGuiWindowFlags.NoScrollWithMouse))
         {
             var isNeedToResetY = false;
@@ -398,7 +402,7 @@ public class CrossDCPartyFinder : DailyModuleBase
             {
                 unsafe
                 {
-                    if (!IsAddonAndNodesReady(LookingForGroup)) return;
+                    if (!LookingForGroup->IsAddonAndNodesReady()) return;
                     LookingForGroup->GetTextNodeById(49)->SetText($"{SelectedDataCenter}: {ListingsDisplay.Count}");
                 }
             }).ConfigureAwait(false);
@@ -464,9 +468,9 @@ public class CrossDCPartyFinder : DailyModuleBase
         {
             DataCenters = LuminaGetter.Get<WorldDCGroupType>()
                                       .Where(x => x.Region == localPlayer.HomeWorld.Value.DataCenter.Value.Region)
-                                      .Select(x => x.Name.ExtractText())
+                                      .Select(x => x.Name.ToString())
                                       .ToList();
-            SelectedDataCenter = GameState.CurrentDataCenterData.Name.ExtractText();
+            SelectedDataCenter = GameState.CurrentDataCenterData.Name.ToString();
         }
 
         switch (type)
@@ -648,7 +652,7 @@ public class CrossDCPartyFinder : DailyModuleBase
                 12 => LuminaWrapper.GetAddonText(2306),
                 13 => LuminaWrapper.GetAddonText(2304),
                 14 => LuminaWrapper.GetAddonText(2307),
-                15 => LuminaGetter.GetRowOrDefault<ContentType>(30).Name.ExtractText(),
+                15 => LuminaGetter.GetRowOrDefault<ContentType>(30).Name.ToString(),
                 16 => LuminaWrapper.GetAddonText(7),
                 _  => string.Empty
             };
@@ -891,22 +895,22 @@ public class CrossDCPartyFinder : DailyModuleBase
             {
                 BattleJobs = LuminaGetter.Get<ClassJob>()
                                          .Where(x => x.RowId != 0 && x.DohDolJobIndex == -1)
-                                         .Select(x => x.Abbreviation.ExtractText())
+                                         .Select(x => x.Abbreviation.ToString())
                                          .ToHashSet();
 
                 TankJobs = LuminaGetter.Get<ClassJob>()
                                        .Where(x => x.RowId != 0 && x.Role is 1)
-                                       .Select(x => x.Abbreviation.ExtractText())
+                                       .Select(x => x.Abbreviation.ToString())
                                        .ToHashSet();
 
                 DPSJobs = LuminaGetter.Get<ClassJob>()
                                       .Where(x => x.RowId != 0 && (x.Role == 2 || x.Role == 3))
-                                      .Select(x => x.Abbreviation.ExtractText())
+                                      .Select(x => x.Abbreviation.ToString())
                                       .ToHashSet();
 
                 HealerJobs = LuminaGetter.Get<ClassJob>()
                                          .Where(x => x.RowId != 0 && x.Role is 4)
-                                         .Select(x => x.Abbreviation.ExtractText())
+                                         .Select(x => x.Abbreviation.ToString())
                                          .ToHashSet();
             }
 
@@ -945,7 +949,7 @@ public class CrossDCPartyFinder : DailyModuleBase
 
                     uint ParseClassJobIdByName(string job)
                     {
-                        var rowID = LuminaGetter.Get<ClassJob>().FirstOrDefault(x => x.Abbreviation.ExtractText() == job).RowId;
+                        var rowID = LuminaGetter.Get<ClassJob>().FirstOrDefault(x => x.Abbreviation.ToString() == job).RowId;
                         return rowID == 0 ? 62145 : 62100 + rowID;
                     }
                 }

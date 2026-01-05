@@ -138,7 +138,7 @@ public unsafe class AutoLogin : DailyModuleBase
                         var world = worldNullable.Value;
                         using (ImRaii.PushColor(ImGuiCol.Text, i % 2 == 0 ? ImGuiColors.TankBlue : ImGuiColors.DalamudWhite))
                             ImGui.Selectable(
-                                $"{i + 1}. {GetLoc("AutoLogin-LoginInfoDisplayText", world.Name.ExtractText(), world.DataCenter.Value.Name.ExtractText(), info.CharaIndex)}");
+                                $"{i + 1}. {GetLoc("AutoLogin-LoginInfoDisplayText", world.Name.ToString(), world.DataCenter.Value.Name.ToString(), info.CharaIndex)}");
 
                         using (var source = ImRaii.DragDropSource())
                         {
@@ -149,8 +149,8 @@ public unsafe class AutoLogin : DailyModuleBase
 
                                 ImGui.TextColored(ImGuiColors.DalamudYellow,
                                                   GetLoc("AutoLogin-LoginInfoDisplayText",
-                                                         world.Name.ExtractText(),
-                                                         world.DataCenter.Value.Name.ExtractText(),
+                                                         world.Name.ToString(),
+                                                         world.DataCenter.Value.Name.ToString(),
                                                          info.CharaIndex));
                             }
                         }
@@ -244,8 +244,8 @@ public unsafe class AutoLogin : DailyModuleBase
                 ManualCharaIndex = charaIndex0;
                 break;
             case 2:
-                var world1 = PresetSheet.Worlds.Where(x => x.Value.Name.ExtractText().Contains(parts[0]))
-                                        .OrderBy(x => x.Value.Name.ExtractText())
+                var world1 = PresetSheet.Worlds.Where(x => x.Value.Name.ToString().Contains(parts[0]))
+                                        .OrderBy(x => x.Value.Name.ToString())
                                         .FirstOrDefault()
                                         .Key;
                 if (world1 == 0) return;
@@ -268,15 +268,15 @@ public unsafe class AutoLogin : DailyModuleBase
         if (ModuleConfig.LoginInfos.Count <= 0                        ||
             (ModuleConfig.Mode == BehaviourMode.Once && HasLoginOnce) ||
             InterruptByConflictKey(TaskHelper, this)                  ||
-            IsAddonAndNodesReady(LobbyDKT)                            ||
+            LobbyDKT->IsAddonAndNodesReady()                            ||
             DService.ClientState.IsLoggedIn)
             return;
         
         TaskHelper.Abort();
         TaskHelper.Enqueue(() =>
         {
-            if (IsAddonAndNodesReady(CharaSelectListMenu)) return true;
-            if (!IsAddonAndNodesReady(TitleMenu)) return false;
+            if (CharaSelectListMenu->IsAddonAndNodesReady()) return true;
+            if (!TitleMenu->IsAddonAndNodesReady()) return false;
 
             AgentId.Lobby.SendEvent(0, 4);
             return true;
@@ -291,12 +291,12 @@ public unsafe class AutoLogin : DailyModuleBase
     private static void OnDialogue(AddonEvent type, AddonArgs args)
     {
         var addon = Dialogue;
-        if (!IsAddonAndNodesReady(addon)) return;
+        if (!addon->IsAddonAndNodesReady()) return;
 
         var buttonNode = addon->GetComponentButtonById(4);
         if (buttonNode == null) return;
 
-        buttonNode->ClickAddonButton(addon);
+        buttonNode->Click();
     }
 
     private void SelectCharacterDefault()
@@ -318,7 +318,7 @@ public unsafe class AutoLogin : DailyModuleBase
         if (agent == null) return false;
 
         var addon = CharaSelectListMenu;
-        if (!IsAddonAndNodesReady(addon)) return false;
+        if (!addon->IsAddonAndNodesReady()) return false;
 
         // 不对应, 重新选
         if (agent->WorldId != worldID)
@@ -340,7 +340,7 @@ public unsafe class AutoLogin : DailyModuleBase
         var agent = AgentLobby.Instance();
         if (agent == null) return false;
 
-        if (!IsAddonAndNodesReady(CharaSelectListMenu)) return false;
+        if (!CharaSelectListMenu->IsAddonAndNodesReady()) return false;
 
         if (!AgentLobbyEvent.SelectWorldByID(worldID))
         {

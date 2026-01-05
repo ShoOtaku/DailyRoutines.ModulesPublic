@@ -111,9 +111,9 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
     private static void OnAddon(AddonEvent type, AddonArgs args)
     {
         if (!Throttler.Throttle("AutoDesynthesizeItems-Process", 100)) return;
-        if (!IsAddonAndNodesReady(SalvageDialog)) return;
+        if (!SalvageDialog->IsAddonAndNodesReady()) return;
 
-        Callback(SalvageDialog, true, 0, 0);
+        SalvageDialog->Callback(0, 0);
     }
 
     private void StartDesynthesizeAll()
@@ -125,7 +125,7 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
     private bool? StartDesynthesize()
     {
         if (OccupiedInEvent) return false;
-        if (!IsAddonAndNodesReady(SalvageItemSelector)) return false;
+        if (!SalvageItemSelector->IsAddonAndNodesReady()) return false;
 
         // 背包满了
         if (PlayerInventories.IsFull(3))

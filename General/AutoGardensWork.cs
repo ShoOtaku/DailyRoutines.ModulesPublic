@@ -83,7 +83,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
                               PresetSheet.Seeds,
                               ref ModuleConfig.SeedSelected,
                               ref SearchSeed,
-                              x => $"{x.Name.ExtractText()} ({x.RowId})",
+                              x => $"{x.Name.ToString()} ({x.RowId})",
                               [new(LuminaWrapper.GetAddonText(6412), ImGuiTableColumnFlags.WidthStretch, 0)],
                               [
                                   x => () =>
@@ -92,13 +92,13 @@ public unsafe class AutoGardensWork : DailyModuleBase
                                       if (ImGuiOm.SelectableImageWithText(
                                               icon.Handle,
                                               new(ImGui.GetTextLineHeightWithSpacing()),
-                                              x.Name.ExtractText(),
+                                              x.Name.ToString(),
                                               x.RowId == ModuleConfig.SeedSelected,
                                               ImGuiSelectableFlags.DontClosePopups | ImGuiSelectableFlags.SpanAllColumns))
                                           ModuleConfig.SeedSelected = x.RowId;
                                   }
                               ],
-                              [x => x.Name.ExtractText(), x => x.RowId.ToString()],
+                              [x => x.Name.ToString(), x => x.RowId.ToString()],
                               true))
             SaveConfig(ModuleConfig);
         
@@ -112,7 +112,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
                                   PresetSheet.Soils, 
                                   ref ModuleConfig.SoilSelected, 
                                   ref SearchSoil,
-                                  x => $"{x.Name.ExtractText()} ({x.RowId})",
+                                  x => $"{x.Name.ToString()} ({x.RowId})",
                                   [new(LuminaWrapper.GetAddonText(6411), ImGuiTableColumnFlags.WidthStretch, 0)],
                                   [
                                       x => () =>
@@ -120,12 +120,12 @@ public unsafe class AutoGardensWork : DailyModuleBase
                                           var icon = ImageHelper.GetGameIcon(x.Icon);
                                           if (ImGuiOm.SelectableImageWithText(
                                                   icon.Handle, new(ImGui.GetTextLineHeightWithSpacing()),
-                                                  x.Name.ExtractText(), x.RowId == ModuleConfig.SeedSelected,
+                                                  x.Name.ToString(), x.RowId == ModuleConfig.SeedSelected,
                                                   ImGuiSelectableFlags.DontClosePopups))
                                               ModuleConfig.SoilSelected = x.RowId;
                                       }
                                   ],
-                                  [x => x.Name.ExtractText(), x => x.RowId.ToString()],
+                                  [x => x.Name.ToString(), x => x.RowId.ToString()],
                                   true))
                 SaveConfig(ModuleConfig);
         }
@@ -178,7 +178,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
                               PresetSheet.Fertilizers,
                               ref ModuleConfig.FertilizerSelected,
                               ref SearchFertilize,
-                              x => $"{x.Name.ExtractText()} ({x.RowId})",
+                              x => $"{x.Name.ToString()} ({x.RowId})",
                               [new(LuminaWrapper.GetAddonText(6417), ImGuiTableColumnFlags.WidthStretch, 0)],
                               [
                                   x => () =>
@@ -186,13 +186,13 @@ public unsafe class AutoGardensWork : DailyModuleBase
                                       if (ImGuiOm.SelectableImageWithText(
                                               ImageHelper.GetGameIcon(x.Icon).Handle,
                                               new(ImGui.GetTextLineHeightWithSpacing()),
-                                              x.Name.ExtractText(),
+                                              x.Name.ToString(),
                                               x.RowId == ModuleConfig.SeedSelected,
                                               ImGuiSelectableFlags.DontClosePopups | ImGuiSelectableFlags.SpanAllColumns))
                                           ModuleConfig.FertilizerSelected = x.RowId;
                                   }
                               ],
-                              [x => x.Name.ExtractText(), x => x.RowId.ToString()],
+                              [x => x.Name.ToString(), x => x.RowId.ToString()],
                               true))
             ModuleConfig.Save(this);
         
@@ -292,16 +292,16 @@ public unsafe class AutoGardensWork : DailyModuleBase
     }
 
     private void StartGather() => 
-        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(6).Text.ExtractText());
+        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(6).Text.ToString());
 
     private void StartTend() => 
-        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(4).Text.ExtractText());
+        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(4).Text.ToString());
 
     private void StartPlant() =>
-        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(2).Text.ExtractText(), () => TaskHelper.DelayNext(250));
+        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(2).Text.ToString(), () => TaskHelper.DelayNext(250));
 
     private void StartFertilize() =>
-        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(3).Text.ExtractText(), () =>
+        StartAction(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(3).Text.ToString(), () =>
         {
             TaskHelper.Enqueue(CheckFertilizerState);
             TaskHelper.Enqueue(ClickFertilizer);
@@ -413,17 +413,17 @@ public unsafe class AutoGardensWork : DailyModuleBase
                             0,
                             AgentModule.Instance()->GetAgentByInternalId(AgentId.Inventory)->AddonId);
 
-        TaskHelper.Enqueue(() => ClickContextMenu(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(3).Text.ExtractText()), weight: 2);
+        TaskHelper.Enqueue(() => ClickContextMenu(LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(3).Text.ToString()), weight: 2);
         return true;
     }
 
     private static bool? ClickGardenEntryByText(string text)
     {
-        if (!IsAddonAndNodesReady(SelectString))
+        if (!SelectString->IsAddonAndNodesReady())
             return false;
 
         if (!TryScanSelectStringText(SelectString, text,                                                                      out var index))
-            TryScanSelectStringText(SelectString,  LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(1).Text.ExtractText(), out index);
+            TryScanSelectStringText(SelectString,  LuminaGetter.GetRowOrDefault<HousingGardeningPlant>(1).Text.ToString(), out index);
 
         return ClickSelectString(index);
     }

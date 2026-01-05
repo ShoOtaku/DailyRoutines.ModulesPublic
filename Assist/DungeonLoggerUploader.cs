@@ -115,8 +115,8 @@ public class DungeonLoggerUploader : DailyModuleBase
         }
         
         InDungeon   = true;
-        DungeonName = contentFinderCondition.Value.Name.ExtractText();
-        JobName     = LocalPlayerState.ClassJobData.Name.ExtractText();
+        DungeonName = contentFinderCondition.Value.Name.ToString();
+        JobName     = LocalPlayerState.ClassJobData.Name.ToString();
 
         if (ModuleConfig.SendChat)
             Chat("已进入 “随机任务：指导者” 任务, 完成后将自动上传记录至网站");

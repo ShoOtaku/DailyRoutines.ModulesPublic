@@ -99,7 +99,7 @@ public unsafe class AutoAcceptInvitation : DailyModuleBase
         var addon = (AddonSelectYesno*)SelectYesno;
         if (addon == null || DService.PartyList.Length > 1) return;
         
-        var text = addon->PromptText->NodeText.ExtractText();
+        var text = addon->PromptText->NodeText.ToString();
         if (string.IsNullOrWhiteSpace(text)) return;
         
         var playerName = ExtractPlayerName(text);

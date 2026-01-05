@@ -35,7 +35,7 @@ public unsafe class AutoTrackStatusOff : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        StatusSelectCombo ??= new("Status", LuminaGetter.Get<Status>().Where(x => x.CanStatusOff && !string.IsNullOrEmpty(x.Name.ExtractText())));
+        StatusSelectCombo ??= new("Status", LuminaGetter.Get<Status>().Where(x => x.CanStatusOff && !string.IsNullOrEmpty(x.Name.ToString())));
 
         if (ModuleConfig.StatusToMonitor.Count > 0)
             StatusSelectCombo.SelectedStatusIDs = ModuleConfig.StatusToMonitor.ToHashSet();
@@ -121,7 +121,7 @@ public unsafe class AutoTrackStatusOff : DailyModuleBase
                 if (ModuleConfig.SendChat)
                     Chat(GetSLoc("AutoTrackStatusOff-Notification",
                                  LuminaWrapper.GetStatusName(statusID),                    statusID,               $"{expectedDuration:F1}", $"{actualDuration:F1}",
-                                 new PlayerPayload(player->NameString, player->HomeWorld), job.ToBitmapFontIcon(), job.Name.ExtractText()));
+                                 new PlayerPayload(player->NameString, player->HomeWorld), job.ToBitmapFontIcon(), job.Name.ToString()));
             }
 
             Records.Remove(statusID);

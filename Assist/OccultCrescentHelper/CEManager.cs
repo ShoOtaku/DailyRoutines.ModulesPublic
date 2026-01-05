@@ -581,7 +581,7 @@ public partial class OccultCrescentHelper
                 if (leftTime < 0)
                     leftTime = 0;
 
-                var name = ce.Name.ExtractText();
+                var name = ce.Name.ToString();
                 if (data.RowId != 48) // 两歧塔 力之塔
                 {
                     name = ce.State switch
@@ -620,7 +620,7 @@ public partial class OccultCrescentHelper
                 if (leftTime < 0)
                     leftTime = 0;
 
-                var name = ce.Name.ExtractText();
+                var name = ce.Name.ToString();
                 if (data.RowId != 48)
                 {
                     name = ce.State switch

@@ -1,5 +1,7 @@
 ﻿using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
+using FFXIVClientStructs.FFXIV.Client.Game.Event;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -22,7 +24,7 @@ public class BrayfloxsLongstopHelper : DailyModuleBase
         TaskHelper   ??= new() { TimeLimitMS = 30_000 };
         
         DService.ClientState.TerritoryChanged += OnZoneChanged;
-        OnZoneChanged(DService.ClientState.TerritoryType);
+        OnZoneChanged(0);
     }
 
     protected override void ConfigUI()
@@ -31,22 +33,22 @@ public class BrayfloxsLongstopHelper : DailyModuleBase
             SaveConfig(ModuleConfig);
     }
 
-    private void OnZoneChanged(ushort zone)
+    private unsafe void OnZoneChanged(ushort zone)
     {
         TaskHelper.Abort();
         
-        if (zone != 1041) return;
+        if (GameState.TerritoryType != 1041) return;
         
         TaskHelper.Enqueue(() =>
         {
             if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
-            if (BetweenAreas || !IsScreenReady()) return false;
+            if (BetweenAreas || !UIModule.IsScreenReady()) return false;
             if (ModuleConfig.ValidWhenSolo && (DService.PartyList.Length > 1 || PlayersManager.PlayersAroundCount > 0))
             {
                 TaskHelper.Abort();
                 return true;
             }
-            if (!IsEventIDNearby(1638401)) return false;
+            if (!EventFramework.Instance()->IsEventIDNearby(1638401)) return false;
 
             new EventStartPackt(localPlayer.EntityID, 1638401).Send();
             return true;

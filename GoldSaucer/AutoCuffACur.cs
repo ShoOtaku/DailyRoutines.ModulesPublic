@@ -72,7 +72,7 @@ public class AutoCuffACur : DailyModuleBase
     }
 
     private static unsafe bool? WaitSelectStringAddon() =>
-        IsAddonAndNodesReady(SelectString) && IsAddonAndNodesReady(PunchingMachine);
+        SelectString->IsAddonAndNodesReady() && PunchingMachine->IsAddonAndNodesReady();
 
     private bool? EnqueueNewRound()
     {
@@ -85,7 +85,7 @@ public class AutoCuffACur : DailyModuleBase
     
     private static unsafe void UpdateSelectStringInfo(string info)
     {
-        if (!IsAddonAndNodesReady(SelectString) || !IsAddonAndNodesReady(PunchingMachine)) return;
+        if (!SelectString->IsAddonAndNodesReady() || !PunchingMachine->IsAddonAndNodesReady()) return;
 
         var list = SelectString->GetComponentListById(3);
         var text = SelectString->GetTextNodeById(2);
@@ -112,7 +112,7 @@ public class AutoCuffACur : DailyModuleBase
     {
         DService.AddonLifecycle.UnregisterListener(OnAddonSetup);
         
-        if (IsAddonAndNodesReady(PunchingMachine))
+        if (PunchingMachine->IsAddonAndNodesReady())
             new EventCompletePackt(2359300, 14).Send();
     }
 }

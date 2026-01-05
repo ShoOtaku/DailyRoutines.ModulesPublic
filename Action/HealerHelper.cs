@@ -259,7 +259,7 @@ public class HealerHelper : DailyModuleBase
         {
             using var id = ImRaii.PushId($"{index}");
             // component
-            var jobName  = JobNameMap[cardOrder[index]].ExtractText();
+            var jobName  = JobNameMap[cardOrder[index]].ToString();
             var textSize = ImGui.CalcTextSize(jobName);
             ImGui.Button(jobName, new(textSize.X + 20f, 0));
 
@@ -873,9 +873,9 @@ public class HealerHelper : DailyModuleBase
                 var member = FetchMember((uint)targetID);
                 if (member is not null)
                 {
-                    var name         = member.Name.ExtractText();
-                    var classJobIcon = member.ClassJob.ValueNullable.ToBitmapFontIcon();
-                    var classJobName = member.ClassJob.Value.Name.ExtractText();
+                    var name         = member.Name.ToString();
+                    var classJobIcon = member.ClassJob.Value.ToBitmapFontIcon();
+                    var classJobName = member.ClassJob.Value.Name.ToString();
 
                     var locKey = actionID switch
                     {
@@ -1127,9 +1127,9 @@ public class HealerHelper : DailyModuleBase
                 var member = FetchMember((uint)targetID);
                 if (member is not null)
                 {
-                    var name         = member.Name.ExtractText();
-                    var classJobIcon = member.ClassJob.ValueNullable.ToBitmapFontIcon();
-                    var classJobName = member.ClassJob.Value.Name.ExtractText();
+                    var name         = member.Name.ToString();
+                    var classJobIcon = member.ClassJob.Value.ToBitmapFontIcon();
+                    var classJobName = member.ClassJob.Value.Name.ToString();
 
                     if (ModuleConfig.SendChat)
                         Chat(GetSLoc("HealerHelper-EasyHeal-Message", name, classJobIcon, classJobName));
@@ -1156,9 +1156,9 @@ public class HealerHelper : DailyModuleBase
                 var member = FetchMember((uint)targetID);
                 if (member is not null)
                 {
-                    var name         = member.Name.ExtractText();
-                    var classJobIcon = member.ClassJob.ValueNullable.ToBitmapFontIcon();
-                    var classJobName = member.ClassJob.Value.Name.ExtractText();
+                    var name         = member.Name.ToString();
+                    var classJobIcon = member.ClassJob.Value.ToBitmapFontIcon();
+                    var classJobName = member.ClassJob.Value.Name.ToString();
 
                     if (ModuleConfig.SendChat)
                         Chat(GetSLoc("HealerHelper-EasyDispel-Message", name, classJobIcon, classJobName));
@@ -1185,9 +1185,9 @@ public class HealerHelper : DailyModuleBase
                 var member = FetchMember((uint)targetID);
                 if (member is not null)
                 {
-                    var name         = member.Name.ExtractText();
-                    var classJobIcon = member.ClassJob.ValueNullable.ToBitmapFontIcon();
-                    var classJobName = member.ClassJob.Value.Name.ExtractText();
+                    var name         = member.Name.ToString();
+                    var classJobIcon = member.ClassJob.Value.ToBitmapFontIcon();
+                    var classJobName = member.ClassJob.Value.Name.ToString();
 
                     if (ModuleConfig.SendChat)
                         Chat(GetSLoc("HealerHelper-EasyRaise-Message", name, classJobIcon, classJobName));

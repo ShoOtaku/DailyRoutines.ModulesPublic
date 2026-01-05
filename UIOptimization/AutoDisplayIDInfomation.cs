@@ -150,7 +150,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
                 if (actionTextNode == null) return;
                 
                 actionTextNode->TextFlags |= TextFlags.MultiLine;
-                actionTextNode->FontSize  =  (byte)(actionTextNode->NodeText.StringPtr.ExtractText().Contains('\n') ? 10 : 12);
+                actionTextNode->FontSize  =  (byte)(actionTextNode->NodeText.StringPtr.ToString().Contains('\n') ? 10 : 12);
                 break;
             
             case "ItemDetail":

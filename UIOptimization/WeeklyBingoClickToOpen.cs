@@ -29,7 +29,7 @@ public class WeeklyBingoClickToOpen : DailyModuleBase
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "WeeklyBingo", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "WeeklyBingo", OnAddon);
 
-        if (IsAddonAndNodesReady(WeeklyBingo)) 
+        if (WeeklyBingo->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostSetup, null);
     }
 

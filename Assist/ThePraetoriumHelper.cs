@@ -23,13 +23,13 @@ public unsafe class ThePraetoriumHelper : DailyModuleBase
     protected override void Init()
     {
         DService.ClientState.TerritoryChanged += OnZoneChanged;
-        OnZoneChanged(DService.ClientState.TerritoryType);
+        OnZoneChanged(0);
     }
 
     private static void OnZoneChanged(ushort zoneID)
     {
         FrameworkManager.Unreg(OnUpdate);
-        if (zoneID != 1044) return;
+        if (GameState.TerritoryType != 1044) return;
         
         FrameworkManager.Reg(OnUpdate, throttleMS: 1000);
     }
@@ -37,7 +37,7 @@ public unsafe class ThePraetoriumHelper : DailyModuleBase
     private static void OnUpdate(IFramework framework)
     {
         if (!Throttler.Throttle("ThePraetoriumHelper-OnUpdate", 1_000)) return;
-        if (DService.ClientState.TerritoryType != 1044)
+        if (GameState.TerritoryType != 1044)
         {
             FrameworkManager.Unreg(OnUpdate);
             return;

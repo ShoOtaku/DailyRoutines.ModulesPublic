@@ -18,13 +18,13 @@ public unsafe class AutoClaimItemIgnoringMismatchJobAndLevel : DailyModuleBase
     protected override void Init()
     {
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddon);
-        if (IsAddonAndNodesReady(SelectYesno)) 
+        if (SelectYesno->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostSetup, null);
     }
 
     private static void OnAddon(AddonEvent type, AddonArgs? args)
     {
-        if (!IsAddonAndNodesReady(SelectYesno)) return;
+        if (!SelectYesno->IsAddonAndNodesReady()) return;
         
         ClickSelectYesnoYes
         ([

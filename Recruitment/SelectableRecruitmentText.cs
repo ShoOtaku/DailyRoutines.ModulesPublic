@@ -61,7 +61,7 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroupDetail", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddon);
-        if (IsAddonAndNodesReady(LookingForGroupDetail)) 
+        if (LookingForGroupDetail->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostSetup, null);
     }
 
@@ -80,25 +80,25 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
         var textNode    = addon->GetTextNodeById(20);
         if (resNode == null || buttonShare == null || locatedNode == null || textNode == null) return;
         
-        var nodeStateInfo    = NodeState.Get(resNode);
-        var nodeStateShare   = NodeState.Get((AtkResNode*)buttonShare->OwnerNode);
-        var nodeStateLocated = NodeState.Get(locatedNode);
+        var nodeStateInfo    = resNode->GetNodeState();
+        var nodeStateShare   = buttonShare->OwnerNode->GetNodeState();
+        var nodeStateLocated = locatedNode->GetNodeState();
 
         var offsetSpacing       = ImGui.GetStyle().ItemSpacing;
         var offsetHeightSpacing = new Vector2(0f, ImGui.GetTextLineHeightWithSpacing());
         
         using var fontBefore = FontManager.UIFont80.Push();
         
-        var windowPos = nodeStateInfo.Position - (3 * offsetSpacing) - offsetHeightSpacing;
+        var windowPos = nodeStateInfo.TopLeft - (3 * offsetSpacing) - offsetHeightSpacing;
         
-        var width  = nodeStateShare.Position.X   - nodeStateInfo.Position.X + ImGui.GetStyle().ItemSpacing.X;
-        var height = nodeStateLocated.Position.Y - windowPos.Y - offsetSpacing.Y;
+        var width  = nodeStateShare.X   - nodeStateInfo.X + ImGui.GetStyle().ItemSpacing.X;
+        var height = nodeStateLocated.Y                   - windowPos.Y - offsetSpacing.Y;
         
         ImGui.SetWindowPos(windowPos);
         ImGui.SetWindowSize(new(width, height));
         
         using var fontAfter = FontManager.UIFont.Push();
-        ImGuiOm.TextSelectable(textNode->NodeText.ExtractText(), width - (2 * offsetSpacing.X), LinkTypes);
+        ImGuiOm.TextSelectable(textNode->NodeText.ToString(), width - (2 * offsetSpacing.X), LinkTypes);
     }
 
     private void OnAddon(AddonEvent type, AddonArgs? args) =>

@@ -181,7 +181,7 @@ public class AutoAethericMimicry : DailyModuleBase
             }
 
             Chat(GetSLoc("AutoAethericMimicry-MimicTarget", chara.ClassJob.Value.ToBitmapFontIcon(),
-                         new PlayerPayload(chara.Name.ExtractText(), chara.HomeWorld.RowId)));
+                         new PlayerPayload(chara.Name.ToString(), chara.HomeWorld.RowId)));
         }
     }
 }

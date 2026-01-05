@@ -68,7 +68,7 @@ public class AutoConvertMapLink : DailyModuleBase
 
                 var mapName = match.Groups["map"].Value;
 
-                var zone = PresetSheet.Zones.Values.FirstOrDefault(x => x.PlaceName.Value.Name.ExtractText() == mapName);
+                var zone = PresetSheet.Zones.Values.FirstOrDefault(x => x.PlaceName.Value.Name.ToString() == mapName);
                 if (zone.RowId == 0) continue;
 
                 var (territoryId, mapId) = (zone.RowId, zone.Map.RowId);

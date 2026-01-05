@@ -11,6 +11,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
 using KamiToolKit.Nodes;
 using TinyPinyin;
+using AtkEventWrapper = OmenTools.Managers.AtkEventWrapper;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -67,7 +68,7 @@ public class OptimizedLetter : DailyModuleBase
     
     private static unsafe void OnAddon(AddonEvent type, AddonArgs? args)
     {
-        if (Addon.IsOpen || !IsAddonAndNodesReady(LetterList)) return;
+        if (Addon.IsOpen || !LetterList->IsAddonAndNodesReady()) return;
         Addon.Open();
     }
     
@@ -106,12 +107,12 @@ public class OptimizedLetter : DailyModuleBase
                                 var remark   = GetRemarkByContentID.TryInvokeFunc(chara.ContentId)   ?? string.Empty;
                                 var nickname = GetNicknameByContentID.TryInvokeFunc(chara.ContentId) ?? string.Empty;
 
-                                if (chara.NameString.Contains(name.ExtractText(), StringComparison.OrdinalIgnoreCase)                                       ||
-                                    PinyinHelper.GetPinyin(chara.NameString, string.Empty).Contains(name.ExtractText(), StringComparison.OrdinalIgnoreCase) ||
-                                    remark.Contains(name.ExtractText(), StringComparison.OrdinalIgnoreCase)                                                 ||
-                                    PinyinHelper.GetPinyin(remark, string.Empty).Contains(name.ExtractText(), StringComparison.OrdinalIgnoreCase)           ||
-                                    nickname.Contains(name.ExtractText(), StringComparison.OrdinalIgnoreCase)                                               ||
-                                    PinyinHelper.GetPinyin(nickname, string.Empty).Contains(name.ExtractText(), StringComparison.OrdinalIgnoreCase))
+                                if (chara.NameString.Contains(name.ToString(), StringComparison.OrdinalIgnoreCase)                                       ||
+                                    PinyinHelper.GetPinyin(chara.NameString, string.Empty).Contains(name.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                                    remark.Contains(name.ToString(), StringComparison.OrdinalIgnoreCase)                                                 ||
+                                    PinyinHelper.GetPinyin(remark, string.Empty).Contains(name.ToString(), StringComparison.OrdinalIgnoreCase)           ||
+                                    nickname.Contains(name.ToString(), StringComparison.OrdinalIgnoreCase)                                               ||
+                                    PinyinHelper.GetPinyin(nickname, string.Empty).Contains(name.ToString(), StringComparison.OrdinalIgnoreCase))
                                     names.Add(chara.NameString);
                             }
                             if (names.Count == 0) return;
@@ -147,7 +148,7 @@ public class OptimizedLetter : DailyModuleBase
 
                 if (ListNode != null)
                 {
-                    var shouldDisplay = !string.IsNullOrWhiteSpace(TextInputButton.SeString.ExtractText());
+                    var shouldDisplay = !string.IsNullOrWhiteSpace(TextInputButton.SeString.ToString());
                     ListNode.IsVisible = shouldDisplay;
                 }
                 
@@ -167,7 +168,7 @@ public class OptimizedLetter : DailyModuleBase
         
         protected override unsafe void OnSetup(AtkUnitBase* addon)
         {
-            if (IsAddonAndNodesReady(LetterList))
+            if (LetterList->IsAddonAndNodesReady())
             {
                 var button = LetterList->GetComponentButtonById(4);
                 if (button != null)
@@ -176,7 +177,7 @@ public class OptimizedLetter : DailyModuleBase
 
                     FireRequestEvent ??= new AtkEventWrapper((_, _, _) =>
                     {
-                        if (!IsAddonAndNodesReady(LetterList)) return;
+                        if (!LetterList->IsAddonAndNodesReady()) return;
                         
                         var buttonNode = LetterList->GetComponentButtonById(4);
                         if (buttonNode != null)
@@ -260,7 +261,7 @@ public class OptimizedLetter : DailyModuleBase
                     {
                         TaskHelper.Enqueue(() => AgentId.LetterList.SendEvent(0, 0, index, 0,  1));
                         TaskHelper.Enqueue(() => AgentId.LetterList.SendEvent(1, 0, 0,     0U, 0, 0));
-                        TaskHelper.Enqueue(() => IsAddonAndNodesReady(LetterViewer));
+                        TaskHelper.Enqueue(() => LetterViewer->IsAddonAndNodesReady());
                         TaskHelper.Enqueue(() => AgentId.LetterView.SendEvent(0, 1));
                         TaskHelper.Enqueue(() => AtkStage.Instance()->GetNumberArrayData(NumberArrayType.Letter)->IntArray[136] == 0);
                         TaskHelper.Enqueue(() =>
@@ -283,9 +284,9 @@ public class OptimizedLetter : DailyModuleBase
                 return;
             }
 
-            var position = new Vector2(LetterList->RootNode->ScreenX - addon->GetScaledWidth(true), LetterList->RootNode->ScreenY);
-            SetPosition(addon,           position);
-            SetPosition(addon->RootNode, position);
+
+            this.SetWindowPosition(new(LetterList->RootNode->ScreenX - addon->GetScaledWidth(true),
+                                       LetterList->RootNode->ScreenY));
         }
 
         protected override unsafe void OnFinalize(AtkUnitBase* addon) 

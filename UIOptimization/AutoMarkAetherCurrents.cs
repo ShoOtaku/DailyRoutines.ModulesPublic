@@ -13,6 +13,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Textures.TextureWraps;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel;
@@ -135,11 +136,11 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
             if (ImGui.BeginMenu(GetLoc("General")))
             {
                 if (ImGui.MenuItem(GetLoc("ManualMode"), string.Empty, ref ManualMode))
-                    MarkAetherCurrents(DService.ClientState.TerritoryType, true, UseLocalMark);
+                    MarkAetherCurrents(GameState.TerritoryType, true, UseLocalMark);
                 ImGuiOm.TooltipHover(GetLoc("AutoMarkAetherCurrents-ManualModeHelp"));
                 
                 if (ImGui.MenuItem(GetLoc("AutoMarkAetherCurrents-UseLocalMark"), string.Empty, ref UseLocalMark))
-                    MarkAetherCurrents(DService.ClientState.TerritoryType, true, UseLocalMark);
+                    MarkAetherCurrents(GameState.TerritoryType, true, UseLocalMark);
                 ImGuiOm.TooltipHover(GetLoc("AutoMarkAetherCurrents-UseLocalMarkHelp"));
                 
                 ImGui.EndMenu();
@@ -150,15 +151,15 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
             if (ImGui.BeginMenu(LuminaWrapper.GetAddonText(7131)))
             {
                 if (ImGui.MenuItem(GetLoc("AutoMarkAetherCurrents-RefreshDisplay")))
-                    MarkAetherCurrents(DService.ClientState.TerritoryType, true, UseLocalMark);
+                    MarkAetherCurrents(GameState.TerritoryType, true, UseLocalMark);
                 
                 if (ImGui.MenuItem(GetLoc("AutoMarkAetherCurrents-DisplayLeftCurrents")))
-                    MarkAetherCurrents(DService.ClientState.TerritoryType, false, UseLocalMark);
+                    MarkAetherCurrents(GameState.TerritoryType, false, UseLocalMark);
 
                 if (ImGui.MenuItem(GetLoc("AutoMarkAetherCurrents-RemoveAllWaymarks")))
                 {
-                    for (var i = 0U; i < 8; i++) 
-                        FieldMarkerHelper.RemoveLocal(i);
+                    for (var i = 0U; i < 8; i++)
+                        MarkingController.Instance()->ClearFieldMarkerLocal((FieldMarkerPoint)i);
                 }
                 
                 ImGui.EndMenu();
@@ -174,7 +175,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
             if (ImGui.MenuItem(GetLoc("AutoMarkAetherCurrents-DisplayNotActivated")))
             {
                 SelectNotActivatedAetherCurrents();
-                MarkAetherCurrents(DService.ClientState.TerritoryType, true, UseLocalMark);
+                MarkAetherCurrents(GameState.TerritoryType, true, UseLocalMark);
             }
             
             ImGui.EndMenuBar();
@@ -210,13 +211,13 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
         }
     }
 
-    private static void MarkAetherCurrents(ushort zoneID, bool isFirstPage = true, bool isLocal = true)
+    private static void MarkAetherCurrents(uint zoneID, bool isFirstPage = true, bool isLocal = true)
     {
         if (!LuminaGetter.TryGetRow<TerritoryType>(zoneID, out var zoneRow)) return;
         if (!VersionToZoneInfos.TryGetValue(zoneRow.ExVersion.RowId - 1, out var zoneInfos)) return;
         if (!zoneInfos.TryGetFirst(x => x.Zone == zoneID, out var zoneInfo)) return;
         
-        Enumerable.Range(0, 8).ForEach(x => FieldMarkerHelper.PlaceLocal((uint)x, new(), false));
+        Enumerable.Range(0, 8).ForEach(x => MarkingController.Instance()->ClearFieldMarkerLocal((FieldMarkerPoint)x));
         
         var thisZoneSelected = SelectedAetherCurrents.Where(x => x.Zone == zoneID).ToList();
         var finalSet         = thisZoneSelected.Count != 0 || ManualMode ? thisZoneSelected : [..zoneInfo.NormalPoints];
@@ -440,7 +441,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
             LuminaGetter.Get<Level>()
                         .Where(x => x.Object.Is<EObj>())
                         .DistinctBy(x => x.Object.RowId)
-                        .ToDictionary(x => x.Object.RowId, x => x.ToPosition());
+                        .ToDictionary(x => x.Object.RowId, x => x.GetPosition());
         
         public static Dictionary<uint, bool> UnlockStates { get; private set; } = [];
         
@@ -456,7 +457,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
             if (aetherCurrent.Quest.RowId != 0)
             {
                 return new AetherCurrentPoint(PointType.Quest, zone, data.RowId, aetherCurrent.Quest.RowId,
-                                              aetherCurrent.Quest.Value.IssuerLocation.Value.ToPosition());
+                                              aetherCurrent.Quest.Value.IssuerLocation.Value.GetPosition());
             }
 
             if (!EObjDataSheet.TryGetValue(aetherCurrent.RowId, out var eobjID)) return null;
@@ -574,7 +575,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
                 
                 if (Type == PointType.Quest && LuminaGetter.TryGetRow<Quest>(ObjectID, out var questRow))
                 {
-                    var questName = questRow.Name.ExtractText();
+                    var questName = questRow.Name.ToString();
                     var questIcon = DService.Texture.GetFromGameIcon(71141);
 
                     ImGui.AlignTextToFramePadding();
@@ -588,10 +589,10 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
 
         public void PlaceFieldMarker(bool isLocal, uint index)
         {
-            if (isLocal) 
-                FieldMarkerHelper.PlaceLocal(index, Position, true);
+            if (isLocal)
+                MarkingController.Instance()->PlaceFieldMarkerLocal((FieldMarkerPoint)index, Position);
             else 
-                FieldMarkerHelper.PlaceOnline(index, Position);
+                MarkingController.Instance()->PlaceFieldMarkerOnline((FieldMarkerPoint)index, Position);
         }
 
         public void PlaceFlag()
@@ -602,19 +603,19 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
             agent->SetFlagMapMarker(RealTerritory.RowId, RealMap.RowId, Position);
             if (!agent->IsAgentActive()) 
                 agent->Show();
-            agent->OpenMap(RealMap.RowId, RealTerritory.RowId, LuminaGetter.GetRow<Addon>(2448)!.Value.Text.ExtractText());
+            agent->OpenMap(RealMap.RowId, RealTerritory.RowId, LuminaWrapper.GetAddonText(2448));
         }
 
-        public void TeleportTo()
-            => MovementManager.TPSmart_BetweenZone(RealTerritory.RowId, Position);
+        public void TeleportTo() => 
+            MovementManager.TPSmart_BetweenZone(RealTerritory.RowId, Position);
 
         public void MoveTo(TaskHelper? taskHelper)
         {
             if (taskHelper == null) return;
             
-            if (DService.ClientState.TerritoryType != RealTerritory.RowId)
+            if (GameState.TerritoryType != RealTerritory.RowId)
                 taskHelper.Enqueue(() => MovementManager.TeleportNearestAetheryte(Position, RealTerritory.RowId));
-            taskHelper.Enqueue(() => DService.ClientState.TerritoryType == RealTerritory.RowId && IsScreenReady());
+            taskHelper.Enqueue(() => GameState.TerritoryType == RealTerritory.RowId && UIModule.IsScreenReady());
             taskHelper.Enqueue(() =>
             {
                 if (!IsOnMount)

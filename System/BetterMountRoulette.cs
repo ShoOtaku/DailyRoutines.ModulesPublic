@@ -185,7 +185,7 @@ public class BetterMountRoulette : DailyModuleBase
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ((contentSize.X - iconSize) / 2));
                 ImGui.Image(texture.Handle, new(iconSize));
 
-                var mountName = mount.Singular.ExtractText();
+                var mountName = mount.Singular.ToString();
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ((contentSize.X - ImGui.CalcTextSize(mountName).X) / 2));
                 ImGui.Text(mountName);
             }
@@ -217,13 +217,13 @@ public class BetterMountRoulette : DailyModuleBase
         var unlockedMounts = LuminaGetter.Get<Mount>()
                                          .Where(mount => PlayerState.Instance()->IsMountUnlocked(mount.RowId) &&
                                                          mount.Icon != 0                                      &&
-                                                         !string.IsNullOrEmpty(mount.Singular.ExtractText()))
+                                                         !string.IsNullOrEmpty(mount.Singular.ToString()))
                                          .ToList();
 
         MasterMountsSearcher = new LuminaSearcher<Mount>(
             unlockedMounts,
             [
-                x => x.Singular.ExtractText()
+                x => x.Singular.ToString()
             ]
         );
 

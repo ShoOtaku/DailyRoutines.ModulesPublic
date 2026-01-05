@@ -68,7 +68,7 @@ public unsafe class QuickChatPanel : DailyModuleBase
                 ModuleConfig.SoundEffectNotes[i] = $"<se.{i}>";
         }
         
-        Searcher ??= new(LuminaGetter.Get<Item>(), [x => x.Name.ExtractText(), x => x.RowId.ToString()]);
+        Searcher ??= new(LuminaGetter.Get<Item>(), [x => x.Name.ToString(), x => x.RowId.ToString()]);
         
         // 初始化 Panel Tabs
         PanelTabs =
@@ -326,7 +326,7 @@ public unsafe class QuickChatPanel : DailyModuleBase
                 var macro = span.GetPointer(i);
                 if (macro == null) continue;
 
-                var name = macro->Name.ExtractText();
+                var name = macro->Name.ToString();
                 var icon = ImageHelper.GetGameIcon(macro->IconId);
                 if (string.IsNullOrEmpty(name) || icon == null) continue;
 
@@ -412,7 +412,7 @@ public unsafe class QuickChatPanel : DailyModuleBase
                 var inputNode = (AtkComponentNode*)ChatLog->GetNodeById(5);
                 var textNode  = inputNode->Component->UldManager.SearchNodeById(16)->GetAsAtkTextNode();
                 var text      = SeString.Parse(textNode->NodeText);
-                if (!string.IsNullOrWhiteSpace(text.ExtractText()))
+                if (!string.IsNullOrWhiteSpace(text.ToString()))
                 {
                     ChatManager.SendMessage(text.Encode());
 
@@ -838,7 +838,7 @@ public unsafe class QuickChatPanel : DailyModuleBase
                         if (!LuminaGetter.TryGetRow(data.RowId, out Item itemData)) continue;
                         if (!DService.Texture.TryGetFromGameIcon(new(itemData.Icon, isConflictKeyHolding), out var texture)) continue;
                         
-                        var itemName = itemData.Name.ExtractText();
+                        var itemName = itemData.Name.ToString();
                         if (itemName.Length > longestText.Length)
                             longestText = itemName;
 
@@ -914,7 +914,7 @@ public static class QuickChatPanelExtensions
     {
         var savedMacro = new QuickChatPanel.SavedMacro
         {
-            Name           = macro.Name.ExtractText(),
+            Name           = macro.Name.ToString(),
             IconID         = macro.IconId,
             LastUpdateTime = DateTime.Now
         };

@@ -7,6 +7,7 @@ using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -86,8 +87,8 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
     private void MainProcess()
     {
         TaskHelper.Abort();
-        
-        if (!IsScreenReady() || OccupiedInEvent)
+
+        if (!UIModule.IsScreenReady() || OccupiedInEvent)
         {
             TaskHelper.DelayNext(1000);
             TaskHelper.Enqueue(MainProcess);
@@ -101,7 +102,7 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
 
         TaskHelper.Enqueue(PreventAbilityUse, "PreventAbilityUse", 5_000, true, 1);
         TaskHelper.Enqueue(UseLucidDreaming,  "UseLucidDreaming",  5_000, true, 1);
-        
+
         TaskHelper.DelayNext(1000);
         TaskHelper.Enqueue(MainProcess);
     }

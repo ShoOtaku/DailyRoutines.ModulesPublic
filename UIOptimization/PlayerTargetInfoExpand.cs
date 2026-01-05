@@ -26,17 +26,17 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
     [
         new("/Name/", "名称", c => c.Name.TextValue),
         new("/Job/", "职业",
-            c => c.ClassJob.ValueNullable?.Name.ExtractText() ?? LuminaGetter.GetRow<ClassJob>(0)!.Value.Name.ExtractText()),
+            c => c.ClassJob.ValueNullable?.Name.ToString() ?? LuminaGetter.GetRow<ClassJob>(0)!.Value.Name.ToString()),
         new("/Level/", "等级", c => c.Level.ToString()),
         new("/FCTag/", "部队", c => c.CompanyTag.TextValue),
         new("/OnlineStatus/", "在线状态",
-            c => string.IsNullOrWhiteSpace(c.OnlineStatus.ValueNullable?.Name.ExtractText())
-                     ? LuminaGetter.GetRow<OnlineStatus>(47)!.Value.Name.ExtractText()
-                     : c.OnlineStatus.ValueNullable?.Name.ExtractText()),
-        new("/Mount/", "坐骑", c => LuminaGetter.GetRow<Mount>(c.ToStruct()->Mount.MountId)!.Value.Singular.ExtractText()),
-        new("/HomeWorld/", "原始服务器", c => LuminaGetter.GetRow<World>(c.ToStruct()->HomeWorld)!.Value.Name.ExtractText()),
+            c => string.IsNullOrWhiteSpace(c.OnlineStatus.ValueNullable?.Name.ToString())
+                     ? LuminaGetter.GetRow<OnlineStatus>(47)!.Value.Name.ToString()
+                     : c.OnlineStatus.ValueNullable?.Name.ToString()),
+        new("/Mount/", "坐骑", c => LuminaGetter.GetRow<Mount>(c.ToStruct()->Mount.MountId)!.Value.Singular.ToString()),
+        new("/HomeWorld/", "原始服务器", c => LuminaGetter.GetRow<World>(c.ToStruct()->HomeWorld)!.Value.Name.ToString()),
         new("/Emote/", "情感动作",
-            c => LuminaGetter.GetRow<Emote>(c.ToStruct()->EmoteController.EmoteId)!.Value.Name.ExtractText()),
+            c => LuminaGetter.GetRow<Emote>(c.ToStruct()->EmoteController.EmoteId)!.Value.Name.ToString()),
         new("/TargetsTarget/", "目标的目标", c => c.TargetObject?.Name.TextValue ?? ""),
         new("/ShieldValue/", "盾值 (百分比)", c => c.ShieldPercentage.ToString()),
         new("/CurrentHP/", "当前生命值", c => c.CurrentHp.ToString()),

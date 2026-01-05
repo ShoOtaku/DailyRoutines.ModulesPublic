@@ -4,6 +4,7 @@ using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -53,7 +54,7 @@ public class AutoSummonPet : DailyModuleBase
 
     private unsafe bool? CheckCurrentJob()
     {
-        if (BetweenAreas || !IsScreenReady() || DService.Condition[ConditionFlag.Casting] ||
+        if (BetweenAreas || !UIModule.IsScreenReady() || DService.Condition[ConditionFlag.Casting] ||
             DService.ObjectTable.LocalPlayer is not { IsTargetable: true } localPlayer) return false;
 
         if (!SummonActions.TryGetValue(LocalPlayerState.ClassJob, out var actionID))

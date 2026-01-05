@@ -127,7 +127,7 @@ public class AutoNotifyMessages : DailyModuleBase
         if (ModuleConfig.OnlyNotifyWhenBackground && !Framework.Instance()->WindowInactive) return;
         if (ModuleConfig.ValidChatTypes.Count == 0 && ModuleConfig.ValidKeywords.Count == 0) return;
 
-        var messageContent = message.ExtractText();
+        var messageContent = message.ToString();
         var conditionType = ModuleConfig.ValidChatTypes.Count > 0 && ModuleConfig.ValidChatTypes.Contains(type);
         var conditionMessage = ModuleConfig.ValidKeywords.Count > 0 &&
                                ModuleConfig.ValidKeywords.FirstOrDefault(

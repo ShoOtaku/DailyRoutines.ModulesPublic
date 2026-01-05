@@ -79,15 +79,15 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
 
                 if ((nint)agentBlackList != nint.Zero && agentBlackList->AgentInterface.IsAgentActive())
                 {
-                    var playerName = agentBlackList->SelectedPlayerName.ExtractText();
-                    var serverName = agentBlackList->SelectedPlayerFullName.ExtractText()
+                    var playerName = agentBlackList->SelectedPlayerName.ToString();
+                    var serverName = agentBlackList->SelectedPlayerFullName.ToString()
                                                                            .TrimStart(playerName.ToCharArray());
 
                     TargetChara = new()
                     {
                         Name  = playerName,
                         World = serverName,
-                        WorldID = LuminaGetter.Get<World>().FirstOrDefault(x => x.Name.ExtractText().Contains(serverName, StringComparison.OrdinalIgnoreCase)).RowId
+                        WorldID = LuminaGetter.Get<World>().FirstOrDefault(x => x.Name.ToString().Contains(serverName, StringComparison.OrdinalIgnoreCase)).RowId
                     };
                     return true;
                 }
@@ -99,7 +99,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
                 TargetChara = new()
                 {
                     Name = menuTarget.TargetName, 
-                    World = menuTarget.TargetHomeWorld.ValueNullable?.Name.ExtractText() ?? string.Empty,
+                    World = menuTarget.TargetHomeWorld.ValueNullable?.Name.ToString() ?? string.Empty,
                     WorldID = menuTarget.TargetHomeWorld.RowId
                 };
                 return true;
@@ -126,7 +126,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
                 TargetChara = new CharacterSearchInfo()
                 {
                     Name    = menuTarget.TargetCharacter.Name,
-                    World   = menuTarget.TargetCharacter.HomeWorld.ValueNullable?.Name.ExtractText(),
+                    World   = menuTarget.TargetCharacter.HomeWorld.ValueNullable?.Name.ToString(),
                     WorldID = menuTarget.TargetCharacter.HomeWorld.RowId
                 };
             }
@@ -134,8 +134,8 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
             {
                 TargetChara = new CharacterSearchInfo()
                 {
-                    Name    = chara.Name.ExtractText(),
-                    World   = LuminaGetter.GetRow<World>(((Character*)chara.Address)->HomeWorld)?.Name.ExtractText() ?? string.Empty,
+                    Name    = chara.Name.ToString(),
+                    World   = LuminaGetter.GetRow<World>(((Character*)chara.Address)->HomeWorld)?.Name.ToString() ?? string.Empty,
                     WorldID = ((Character*)chara.Address)->HomeWorld
                 };
             }
@@ -144,7 +144,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
                 TargetChara = new()
                 {
                     Name = menuTarget.TargetName, 
-                    World = menuTarget.TargetHomeWorld.ValueNullable?.Name.ExtractText() ?? string.Empty,
+                    World = menuTarget.TargetHomeWorld.ValueNullable?.Name.ToString() ?? string.Empty,
                     WorldID = menuTarget.TargetHomeWorld.RowId
                 };
             }
@@ -369,7 +369,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         {
             if (TargetChara == null) return;
 
-            var dcName = LuminaGetter.GetRow<World>(TargetChara.WorldID)?.DataCenter.ValueNullable?.Name.ExtractText() ?? "";
+            var dcName = LuminaGetter.GetRow<World>(TargetChara.WorldID)?.DataCenter.ValueNullable?.Name.ToString() ?? "";
             Util.OpenLink(string.Format(Url, TargetChara.Name.Replace(' ', '+'), dcName));
         }
     }

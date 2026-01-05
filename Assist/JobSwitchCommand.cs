@@ -41,12 +41,12 @@ public class JobSwitchCommand : DailyModuleBase
         foreach (var classJob in LuminaGetter.Get<ClassJob>())
         {
             if (classJob.RowId == 0 ||
-                string.IsNullOrWhiteSpace(classJob.Name.ExtractText()))
+                string.IsNullOrWhiteSpace(classJob.Name.ToString()))
                 continue;
 
-            if (classJob.Name.ExtractText().Contains(args, StringComparison.OrdinalIgnoreCase)                                       ||
-                PinyinHelper.GetPinyin(classJob.Name.ExtractText(), string.Empty).Contains(args, StringComparison.OrdinalIgnoreCase) ||
-                classJob.NameEnglish.ExtractText().Contains(args, StringComparison.OrdinalIgnoreCase))
+            if (classJob.Name.ToString().Contains(args, StringComparison.OrdinalIgnoreCase)                                       ||
+                PinyinHelper.GetPinyin(classJob.Name.ToString(), string.Empty).Contains(args, StringComparison.OrdinalIgnoreCase) ||
+                classJob.NameEnglish.ToString().Contains(args, StringComparison.OrdinalIgnoreCase))
             {
                 LocalPlayerState.SwitchGearset(classJob.RowId);
                 return;

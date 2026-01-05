@@ -103,7 +103,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
                     ImGui.Spacing();
 
                     ImGui.SameLine();
-                    ImGuiOm.TextImage(result.Name.ExtractText(), ImageHelper.GetGameIcon(result.Icon).Handle,
+                    ImGuiOm.TextImage(result.Name.ToString(), ImageHelper.GetGameIcon(result.Icon).Handle,
                                       ScaledVector2(20f));
                     
                     ImGui.TableNextColumn();
@@ -171,7 +171,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
         {
             if (ModuleConfig.SendNotification && 
                 Throttler.Throttle($"AutoPreventDuplicateStatus-Notification-{adjustedActionID}", 1_000))
-                NotificationInfo(GetLoc("AutoPreventDuplicateStatus-PreventedNotification", actionData.Value.Name.ExtractText(), adjustedActionID));
+                NotificationInfo(GetLoc("AutoPreventDuplicateStatus-PreventedNotification", actionData.Value.Name.ToString(), adjustedActionID));
 
             isPrevented = true;
         }
@@ -241,7 +241,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
 
         public IDalamudTextureWrap? GetIcon() => !PresetSheet.Statuses.TryGetValue(StatusID, out var rowData) ? null : DService.Texture.GetFromGameIcon(new(rowData.Icon)).GetWrapOrDefault();
 
-        public string? GetName() => !PresetSheet.Statuses.TryGetValue(StatusID, out var rowData) ? null : rowData.Name.ExtractText();
+        public string? GetName() => !PresetSheet.Statuses.TryGetValue(StatusID, out var rowData) ? null : rowData.Name.ToString();
 
         public bool HasStatus()
         {

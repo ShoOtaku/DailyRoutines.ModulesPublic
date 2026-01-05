@@ -431,7 +431,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
     public static unsafe void Draw()
     {
         if (Throttler.Throttle("AutoDisplayMitigationInfo-OnUpdatePartyDrawCondition"))
-            IsNeedToDrawOnPartyList = IsAddonAndNodesReady(PartyList) && !GameState.IsInPVPArea;
+            IsNeedToDrawOnPartyList = PartyList->IsAddonAndNodesReady() && !GameState.IsInPVPArea;
 
         if (!IsNeedToDrawOnPartyList)
             return;
@@ -465,7 +465,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
                 return;
 
             var partyListAddon = (AddonPartyList*)PartyList;
-            if (!IsAddonAndNodesReady(PartyList))
+            if (!PartyList->IsAddonAndNodesReady())
                 return;
 
             // hidden when casting
@@ -502,7 +502,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
                 return;
 
             var partyListAddon = (AddonPartyList*)PartyList;
-            if (!IsAddonAndNodesReady(PartyList))
+            if (!PartyList->IsAddonAndNodesReady())
                 return;
 
             // hide mp number

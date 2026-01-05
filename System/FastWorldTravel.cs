@@ -15,6 +15,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
@@ -89,7 +90,7 @@ public class FastWorldTravel : DailyModuleBase
         FrameworkManager.Reg(OnUpdate, throttleMS: 1_000);
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "WorldTravelSelect", OnAddon);
-        if (IsAddonAndNodesReady(WorldTravelSelect))
+        if (WorldTravelSelect->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
     
@@ -177,7 +178,7 @@ public class FastWorldTravel : DailyModuleBase
             return;
 
         Entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.CrossWorld)
-                                          .Append($"{GameState.CurrentWorldData.Name.ExtractText()}")
+                                          .Append($"{GameState.CurrentWorldData.Name.ToString()}")
                                           .Build();
     }
 
@@ -216,7 +217,7 @@ public class FastWorldTravel : DailyModuleBase
                 worldID = parsedNumber;
         }
         else
-            worldID = PresetSheet.Worlds.FirstOrDefault(x => x.Value.Name.ExtractText().Contains(args, StringComparison.OrdinalIgnoreCase)).Key;
+            worldID = PresetSheet.Worlds.FirstOrDefault(x => x.Value.Name.ToString().Contains(args, StringComparison.OrdinalIgnoreCase)).Key;
 
         if (worldID != 0)
         {
@@ -276,7 +277,7 @@ public class FastWorldTravel : DailyModuleBase
         TaskHelper.Enqueue(() =>
         {
             if (Entry == null) return;
-            Entry.Text = $"\ue06f {targetWorld.Name.ExtractText()}";
+            Entry.Text = $"\ue06f {targetWorld.Name.ToString()}";
         }, "更新 DTR 目标服务器信息");
 
         if (ModuleConfig.AutoLeaveParty)
@@ -289,15 +290,15 @@ public class FastWorldTravel : DailyModuleBase
                                            .MinBy(x => x.GilCost);
             if (nearestAetheryte == null) return;
 
-            TaskHelper.Enqueue(() => Telepo.Instance()->Teleport(nearestAetheryte.AetheryteID, 0),               "传送回可跨服区域");
-            TaskHelper.Enqueue(() => GameState.TerritoryType == nearestAetheryte.TerritoryID && IsScreenReady(), "等待跨服完成");
+            TaskHelper.Enqueue(() => Telepo.Instance()->Teleport(nearestAetheryte.AetheryteID, 0),                        "传送回可跨服区域");
+            TaskHelper.Enqueue(() => GameState.TerritoryType == nearestAetheryte.TerritoryID && UIModule.IsScreenReady(), "等待跨服完成");
         }
 
         TaskHelper.Enqueue(() =>
         {
             AgentWorldTravel.Instance()->TravelTo(worldID);
             NotificationInfo(GetLoc("FastWorldTravel-Notice-TravelTo",
-                                    $"{char.ToUpper(targetWorld.Name.ExtractText()[0])}{targetWorld.Name.ExtractText()[1..]}"));
+                                    $"{char.ToUpper(targetWorld.Name.ToString()[0])}{targetWorld.Name.ToString()[1..]}"));
         }, "发起大区内跨服请求");
     }
 
@@ -315,7 +316,7 @@ public class FastWorldTravel : DailyModuleBase
             if (GameState.CurrentWorld != GameState.HomeWorld)
                 EnqueueWorldTravel(GameState.HomeWorld);
 
-            TaskHelper.Enqueue(() => GameState.HomeWorld == GameState.CurrentWorld && IsScreenReady(), "等待返回原始服务器的跨服完成");
+            TaskHelper.Enqueue(() => GameState.HomeWorld == GameState.CurrentWorld && UIModule.IsScreenReady(), "等待返回原始服务器的跨服完成");
 
             travel = new Travel
             {
@@ -324,7 +325,7 @@ public class FastWorldTravel : DailyModuleBase
                 ContentID      = LocalPlayerState.ContentID,
                 IsBack         = false,
                 Name           = LocalPlayerState.Name,
-                Description    = targetWorld.DataCenter.Value.Name.ExtractText()
+                Description    = targetWorld.DataCenter.Value.Name.ToString()
             };
 
             EnqueueLogout();
@@ -342,7 +343,7 @@ public class FastWorldTravel : DailyModuleBase
                 ContentID      = LocalPlayerState.ContentID,
                 IsBack         = true,
                 Name           = LocalPlayerState.Name,
-                Description    = targetWorld.DataCenter.Value.Name.ExtractText()
+                Description    = targetWorld.DataCenter.Value.Name.ToString()
             };
 
             EnqueueLogout();
@@ -360,7 +361,7 @@ public class FastWorldTravel : DailyModuleBase
                 ContentID      = LocalPlayerState.ContentID,
                 IsBack         = true,
                 Name           = LocalPlayerState.Name,
-                Description    = targetWorld.DataCenter.Value.Name.ExtractText(),
+                Description    = targetWorld.DataCenter.Value.Name.ToString(),
                 HomeWorldID    = GameState.HomeWorld,
             };
 
@@ -384,7 +385,7 @@ public class FastWorldTravel : DailyModuleBase
             ContentID      = LocalPlayerState.ContentID,
             IsBack         = true,
             Name           = LocalPlayerState.Name,
-            Description    = targetWorld.DataCenter.Value.Name.ExtractText()
+            Description    = targetWorld.DataCenter.Value.Name.ToString()
         };
 
         var travel1 = new Travel
@@ -394,7 +395,7 @@ public class FastWorldTravel : DailyModuleBase
             ContentID      = LocalPlayerState.ContentID,
             IsBack         = false,
             Name           = LocalPlayerState.Name,
-            Description    = targetWorld.DataCenter.Value.Name.ExtractText()
+            Description    = targetWorld.DataCenter.Value.Name.ToString()
         };
         
         EnqueueLogout();
@@ -408,23 +409,23 @@ public class FastWorldTravel : DailyModuleBase
         TaskHelper.DelayNext(500, "等待 500 毫秒");
         TaskHelper.Enqueue(() => ChatManager.SendCommand("/logout"), "登出游戏");
 
-        TaskHelper.Enqueue(() => IsAddonAndNodesReady(Dialogue), "等待界面出现");
+        TaskHelper.Enqueue(() => Dialogue->IsAddonAndNodesReady(), "等待界面出现");
         
         TaskHelper.DelayNext(500, "等待 500 毫秒");
         
         TaskHelper.Enqueue(() =>
         {
-            if (IsAddonAndNodesReady(TitleMenu)) return true;
-            if (!IsAddonAndNodesReady(Dialogue)) return false;
+            if (TitleMenu->IsAddonAndNodesReady()) return true;
+            if (!Dialogue->IsAddonAndNodesReady()) return false;
                 
             var buttonNode = Dialogue->GetComponentButtonById(4);
             if (buttonNode == null) return false;
                 
-            buttonNode->ClickAddonButton(Dialogue);
+            buttonNode->Click();
             return true;
         }, "点击确认键");
 
-        TaskHelper.Enqueue(() => IsAddonAndNodesReady(TitleMenu), "等待标题界面");
+        TaskHelper.Enqueue(() => TitleMenu->IsAddonAndNodesReady(), "等待标题界面");
     }
     
     private async Task EnqueueDCTravelRequest(Travel[] data)

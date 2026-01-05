@@ -144,7 +144,7 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
         if (textNode == null) return;
 
         // 指令
-        var nodeText = textNode->NodeText.ExtractText();
+        var nodeText = textNode->NodeText.ToString();
         if (nodeText.StartsWith('/')) return;
 
         var focusLayout = InputMethodController.FindKeyboardLayout(ModuleConfig.FocusLayoutLangID);

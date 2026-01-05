@@ -52,7 +52,7 @@ public unsafe class BetterBlueSetLoad : DailyModuleBase
         uint            valueCount,
         ulong           eventKind)
     {
-        if (!IsAddonAndNodesReady(AOZNotebookPresetList) || AOZNotebookPresetList->AtkValues->UInt != 0 || eventKind != 1 || valueCount != 2)
+        if (!AOZNotebookPresetList->IsAddonAndNodesReady() || AOZNotebookPresetList->AtkValues->UInt != 0 || eventKind != 1 || valueCount != 2)
             return InvokeOriginal();
 
         var index = values[1].UInt;

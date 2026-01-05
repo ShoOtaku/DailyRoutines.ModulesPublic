@@ -80,7 +80,7 @@ public unsafe partial class AutoRetainerWork
                 MoveToRetainerMarketDetour);
             MoveToRetainerMarketHook.Enable();
 
-            ItemSearcher ??= new(LuminaGetter.Get<Item>(), [x => x.Name.ExtractText(), x => x.RowId.ToString()]);
+            ItemSearcher ??= new(LuminaGetter.Get<Item>(), [x => x.Name.ToString(), x => x.RowId.ToString()]);
 
             TaskHelper ??= new() { TimeLimitMS = 30_000 };
 
@@ -136,7 +136,7 @@ public unsafe partial class AutoRetainerWork
         private static void DrawMarketListWindow()
         {
             if (!IsNeedToDrawMarketListWindow) return;
-            if (!IsAddonAndNodesReady(RetainerSellList))
+            if (!RetainerSellList->IsAddonAndNodesReady())
             {
                 IsNeedToDrawMarketListWindow = false;
                 return;
@@ -181,7 +181,7 @@ public unsafe partial class AutoRetainerWork
         private static void DrawUpshelfWindow()
         {
             if (!IsNeedToDrawMarketUpshelfWindow) return;
-            if (!IsAddonAndNodesReady(RetainerSellList))
+            if (!RetainerSellList->IsAddonAndNodesReady())
             {
                 IsNeedToDrawMarketUpshelfWindow = false;
                 return;
@@ -285,7 +285,7 @@ public unsafe partial class AutoRetainerWork
                             {
                                 ItemID = NewConfigItemID,
                                 IsHQ = NewConfigItemHQ,
-                                ItemName = LuminaGetter.GetRow<Item>(NewConfigItemID)?.Name.ExtractText() ?? string.Empty,
+                                ItemName = LuminaGetter.GetRow<Item>(NewConfigItemID)?.Name.ToString() ?? string.Empty,
                                 AbortLogic = itemConfig.Value.AbortLogic,
                                 AdjustBehavior = itemConfig.Value.AdjustBehavior,
                                 AdjustValues = itemConfig.Value.AdjustValues,
@@ -331,7 +331,7 @@ public unsafe partial class AutoRetainerWork
                 if (itemIcon == null) continue;
 
                 if (ImGuiOm.SelectableImageWithText(itemIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()),
-                                                    item.Name.ExtractText(), item.RowId == NewConfigItemID,
+                                                    item.Name.ToString(), item.RowId == NewConfigItemID,
                                                     ImGuiSelectableFlags.DontClosePopups))
                     NewConfigItemID = item.RowId;
             }
@@ -349,7 +349,7 @@ public unsafe partial class AutoRetainerWork
             
             var itemName = SelectedItemConfig.ItemID == 0
                                ? GetLoc("AutoRetainerWork-PriceAdjust-CommonItemPreset")
-                               : item.Name.ExtractText() ?? string.Empty;
+                               : item.Name.ToString() ?? string.Empty;
 
             var itemLogo = DService.Texture
                                    .GetFromGameIcon(new(SelectedItemConfig.ItemID == 0 ? 65002 : (uint)item.Icon, SelectedItemConfig.IsHQ))
@@ -726,8 +726,8 @@ public unsafe partial class AutoRetainerWork
                 
                 using (ImRaii.Disabled(TaskHelper.IsBusy))
                 {
-                    if (ImGui.MenuItem(LuminaGetter.GetRow<Addon>(2366)!.Value.Text.ExtractText()))
-                        Callback(RetainerSellList, true, -1);
+                    if (ImGui.MenuItem(LuminaGetter.GetRow<Addon>(2366)!.Value.Text.ToString()))
+                        RetainerSellList->Callback(-1);
                 }
 
                 ImGui.EndMenuBar();
@@ -781,7 +781,7 @@ public unsafe partial class AutoRetainerWork
                 var itemIcon = DService.Texture.GetFromGameIcon(new(item.Data.Icon, isItemHQ)).GetWrapOrDefault();
                 if (itemIcon == null) continue;
 
-                var itemName = $"{item.Data.Name.ExtractText()}" + (isItemHQ ? "\ue03c" : string.Empty);
+                var itemName = $"{item.Data.Name.ToString()}" + (isItemHQ ? "\ue03c" : string.Empty);
 
                 ImGui.TableNextRow();
 
@@ -796,7 +796,7 @@ public unsafe partial class AutoRetainerWork
                 ImGui.Text($"{item.Inventory.Quantity}");
 
                 ImGui.TableNextColumn();
-                ImGui.Text($"{FormatNumber((uint)(item.Inventory.Quantity * itemPrice))}");
+                ImGui.Text($"{(item.Inventory.Quantity * itemPrice).ToChineseString()}");
             }
 
             if (isTooltip)
@@ -849,7 +849,7 @@ public unsafe partial class AutoRetainerWork
             using var group = ImRaii.Group();
 
             ImGui.TableNextColumn();
-            ImGui.Selectable($"{FormatNumber(price)}");
+            ImGui.Selectable($"{price.ToChineseString()}");
 
             if (ImGui.IsItemHovered())
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
@@ -924,7 +924,7 @@ public unsafe partial class AutoRetainerWork
                     ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{LuminaWrapper.GetAddonText(6936)}:");
 
                     ImGui.SameLine();
-                    ImGui.Text($"{FormatNumber(quantity * ItemModifyUnitPriceManual)}");
+                    ImGui.Text($"{(quantity * ItemModifyUnitPriceManual).ToChineseString()}");
 
                     ImGui.Separator();
 
@@ -977,7 +977,7 @@ public unsafe partial class AutoRetainerWork
                     ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{LuminaWrapper.GetAddonText(6936)}:");
 
                     ImGui.SameLine();
-                    ImGui.Text($"{FormatNumber(quantity * ItemModifyUnitPriceManual)}");
+                    ImGui.Text($"{(quantity * ItemModifyUnitPriceManual).ToChineseString()}");
 
                     ImGui.Separator();
 
@@ -1031,12 +1031,12 @@ public unsafe partial class AutoRetainerWork
                     {
                         var minPrice = listingsArray.Min(x => x.UnitPrice);
                         ImGui.SameLine();
-                        ImGui.TextDisabled($" / {GetLoc("AutoRetainerWork-PriceAdjust-MinPrice")}: {FormatNumber(minPrice)} / ");
+                        ImGui.TextDisabled($" / {GetLoc("AutoRetainerWork-PriceAdjust-MinPrice")}: {minPrice.ToChineseString()} / ");
                         ClickToCopy(minPrice.ToString());
 
                         var maxPrice = listingsArray.Max(x => x.UnitPrice);
                         ImGui.SameLine();
-                        ImGui.TextDisabled($"{GetLoc("AutoRetainerWork-PriceAdjust-MaxPrice")}: {FormatNumber(maxPrice)}");
+                        ImGui.TextDisabled($"{GetLoc("AutoRetainerWork-PriceAdjust-MaxPrice")}: {maxPrice.ToChineseString()}");
                         ClickToCopy(maxPrice.ToString());
                     }
                 }
@@ -1105,14 +1105,14 @@ public unsafe partial class AutoRetainerWork
                 }
 
                 ImGui.TableNextColumn();
-                ImGui.Text($"{FormatNumber(listing.UnitPrice)}");
+                ImGui.Text($"{listing.UnitPrice.ToChineseString()}");
                 ClickToCopy(listing.UnitPrice.ToString());
 
                 ImGui.TableNextColumn();
                 ImGui.Text($"{listing.Quantity}");
 
                 ImGui.TableNextColumn();
-                ImGui.Text($"{FormatNumber((listing.UnitPrice * listing.Quantity) + listing.TotalTax)}");
+                ImGui.Text($"{((listing.UnitPrice * listing.Quantity) + listing.TotalTax).ToChineseString()}");
             }
         }
 
@@ -1137,12 +1137,12 @@ public unsafe partial class AutoRetainerWork
                 {
                     var minPrice = HistoryListings.Value.Min(x => x.SalePrice);
                     ImGui.SameLine();
-                    ImGui.TextDisabled($" / {GetLoc("AutoRetainerWork-PriceAdjust-MinPrice")}: {FormatNumber(minPrice)} / ");
+                    ImGui.TextDisabled($" / {GetLoc("AutoRetainerWork-PriceAdjust-MinPrice")}: {minPrice.ToChineseString()} / ");
                     ClickToCopy(minPrice.ToString());
 
                     var maxPrice = HistoryListings.Value.Max(x => x.SalePrice);
                     ImGui.SameLine();
-                    ImGui.TextDisabled($"{GetLoc("AutoRetainerWork-PriceAdjust-MaxPrice")}: {FormatNumber(maxPrice)}");
+                    ImGui.TextDisabled($"{GetLoc("AutoRetainerWork-PriceAdjust-MaxPrice")}: {maxPrice.ToChineseString()}");
                     ClickToCopy(maxPrice.ToString());
                 }
             }
@@ -1187,7 +1187,7 @@ public unsafe partial class AutoRetainerWork
                 ImGui.Text($"{listing.Quantity}");
 
                 ImGui.TableNextColumn();
-                ImGui.Text($"{FormatNumber(listing.SalePrice)}");
+                ImGui.Text($"{listing.SalePrice.ToChineseString()}");
                 ClickToCopy(listing.SalePrice.ToString());
 
                 ImGui.TableNextColumn();
@@ -1237,7 +1237,7 @@ public unsafe partial class AutoRetainerWork
             using (ImRaii.Group())
             {
                 using (FontManager.UIFont160.Push())
-                    ImGui.Text($"{itemData.Name.ExtractText()}" + (isItemHQ ? "\ue03c" : string.Empty));
+                    ImGui.Text($"{itemData.Name.ToString()}" + (isItemHQ ? "\ue03c" : string.Empty));
             }
             ManualUnitPriceImageSize = ImGui.GetItemRectSize();
 
@@ -1258,7 +1258,7 @@ public unsafe partial class AutoRetainerWork
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{LuminaWrapper.GetAddonText(6936)}:");
 
             ImGui.SameLine();
-            ImGui.Text($"{FormatNumber(UpshelfQuantityInput * UpshelfUnitPriceInput)}");
+            ImGui.Text($"{(UpshelfQuantityInput * UpshelfUnitPriceInput).ToChineseString()}");
 
             ImGui.Separator();
 
@@ -1323,8 +1323,8 @@ public unsafe partial class AutoRetainerWork
         private static void OnRetainerSell(AddonEvent type, AddonArgs args)
         {
             if (!DService.Condition[ConditionFlag.OccupiedSummoningBell]) return;
-            if (!IsAddonAndNodesReady(args.Addon.ToAtkUnitBase())) return;
-            Callback(args.Addon, true, 0);
+            if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
+            args.Addon.ToStruct()->Callback(0);
         }
 
         // 当前市场数据获取
@@ -1401,7 +1401,7 @@ public unsafe partial class AutoRetainerWork
                     TaskHelper.Enqueue(() =>
                     {
                         if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                        return IsAddonAndNodesReady(SelectString) && RetainerManager.Instance()->GetActiveRetainer() != null;
+                        return SelectString->IsAddonAndNodesReady() && RetainerManager.Instance()->GetActiveRetainer() != null;
                     }, $"等待接收 {index} 号雇员的数据");
                     TaskHelper.Enqueue(() =>
                     {
@@ -1416,8 +1416,8 @@ public unsafe partial class AutoRetainerWork
                     TaskHelper.Enqueue(() =>
                     {
                         if (InterruptByConflictKey(TaskHelper, Module)) return;
-                        if (!IsAddonAndNodesReady(RetainerSellList)) return;
-                        Callback(RetainerSellList, true, -1);
+                        if (!RetainerSellList->IsAddonAndNodesReady()) return;
+                        RetainerSellList->Callback(-1);
                     }, "单一雇员改价完成, 退出出售品列表界面");
                     TaskHelper.Enqueue(() =>
                     {
@@ -1578,7 +1578,7 @@ public unsafe partial class AutoRetainerWork
                             var foundItem = foundItems.FirstOrDefault();
                             return foundItem.OpenContext();
                         }, "找到物品并打开其右键菜单", weight: 3);
-                        TaskHelper.Enqueue(() => IsAddonAndNodesReady(InfosOm.ContextMenuXIV),       "等待右键菜单出现",  weight: 3);
+                        TaskHelper.Enqueue(() => InfosOm.ContextMenuXIV->IsAddonAndNodesReady(),       "等待右键菜单出现",  weight: 3);
                         TaskHelper.Enqueue(() => ClickContextMenu(LuminaWrapper.GetAddonText(5480)), "出售物品至系统商店", weight: 3);
                         break;
                 }
@@ -1810,7 +1810,7 @@ public unsafe partial class AutoRetainerWork
 
             var priceChangedValue = (long)modifiedPrice - origPrice;
     
-            var priceChangeText = FormatNumber(priceChangedValue);
+            var priceChangeText = priceChangedValue.ToChineseString();
             if (!priceChangeText.StartsWith('-'))
                 priceChangeText = $"+{priceChangeText}";
 
@@ -1820,8 +1820,8 @@ public unsafe partial class AutoRetainerWork
             Chat(GetSLoc("AutoRetainerWork-PriceAdjust-PriceAdjustSuccessfully",
                          itemPayload,
                          RetainerManager.Instance()->GetActiveRetainer()->NameString,
-                         FormatNumber(origPrice),
-                         FormatNumber(modifiedPrice),
+                         origPrice.ToChineseString(),
+                         modifiedPrice.ToChineseString(),
                          priceChangeText,
                          priceChangeRateText));
         }
@@ -1883,17 +1883,6 @@ public unsafe partial class AutoRetainerWork
             
             count = (uint)Math.Min(item.Quantity, upshelfLimit);
             return true;
-        }
-
-        /// <summary>
-        /// 根据语言格式化数字
-        /// </summary>
-        private static string FormatNumber(long number)
-        {
-            if (LanguageManager.CurrentLanguage is not ("ChineseSimplified" or "ChineseTraditional"))
-                return number.ToString(CultureInfo.InvariantCulture);
-
-            return FormatNumberByChineseNotation(number, LanguageManager.CurrentLanguage);
         }
 
         /// <summary>

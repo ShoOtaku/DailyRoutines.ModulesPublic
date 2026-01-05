@@ -348,9 +348,9 @@ public unsafe class OptimizedCastBar : DailyModuleBase
         var interruptedTextNode = CastBar->GetTextNodeById(2);
         if (interruptedTextNode != null)
         {
-            interruptedTextNode->TextColor       = ConvertVector4ToByteColor(ModuleConfig.InterruptedTextColor);
-            interruptedTextNode->EdgeColor       = ConvertVector4ToByteColor(ModuleConfig.InterruptedTextEdgeColor);
-            interruptedTextNode->BackgroundColor = ConvertVector4ToByteColor(ModuleConfig.InterruptedTextBackgroundColor);
+            interruptedTextNode->TextColor       = ModuleConfig.InterruptedTextColor.ToByteColor();
+            interruptedTextNode->EdgeColor       = ModuleConfig.InterruptedTextEdgeColor.ToByteColor();
+            interruptedTextNode->BackgroundColor = ModuleConfig.InterruptedTextBackgroundColor.ToByteColor();
             interruptedTextNode->FontSize        = ModuleConfig.InterruptedTextSize;
             interruptedTextNode->SetPositionFloat(ModuleConfig.InterruptedTextPosition.X, ModuleConfig.InterruptedTextPosition.Y);
         }
@@ -358,9 +358,9 @@ public unsafe class OptimizedCastBar : DailyModuleBase
         var actionNameTextNode = CastBar->GetTextNodeById(4);
         if (actionNameTextNode != null)
         {
-            actionNameTextNode->TextColor       = ConvertVector4ToByteColor(ModuleConfig.NameTextColor);
-            actionNameTextNode->EdgeColor       = ConvertVector4ToByteColor(ModuleConfig.NameTextEdgeColor);
-            actionNameTextNode->BackgroundColor = ConvertVector4ToByteColor(ModuleConfig.NameTextBackgroundColor);
+            actionNameTextNode->TextColor       = ModuleConfig.NameTextColor.ToByteColor();
+            actionNameTextNode->EdgeColor       = ModuleConfig.NameTextEdgeColor.ToByteColor();
+            actionNameTextNode->BackgroundColor = ModuleConfig.NameTextBackgroundColor.ToByteColor();
             actionNameTextNode->FontSize        = ModuleConfig.NameTextSize;
             actionNameTextNode->SetPositionFloat(ModuleConfig.NameTextPosition.X, ModuleConfig.NameTextPosition.Y);
         }
@@ -376,9 +376,9 @@ public unsafe class OptimizedCastBar : DailyModuleBase
         var castingTextNode = CastBar->GetTextNodeById(6);
         if (castingTextNode != null)
         {
-            castingTextNode->TextColor       = ConvertVector4ToByteColor(ModuleConfig.CastingTextColor);
-            castingTextNode->EdgeColor       = ConvertVector4ToByteColor(ModuleConfig.CastingTextEdgeColor);
-            castingTextNode->BackgroundColor = ConvertVector4ToByteColor(ModuleConfig.CastingTextBackgroundColor);
+            castingTextNode->TextColor       = ModuleConfig.CastingTextColor.ToByteColor();
+            castingTextNode->EdgeColor       = ModuleConfig.CastingTextEdgeColor.ToByteColor();
+            castingTextNode->BackgroundColor = ModuleConfig.CastingTextBackgroundColor.ToByteColor();
             castingTextNode->FontSize        = ModuleConfig.CastingTextSize;
             castingTextNode->SetPositionFloat(ModuleConfig.CastingTextPosition.X, ModuleConfig.CastingTextPosition.Y);
         }
@@ -386,9 +386,9 @@ public unsafe class OptimizedCastBar : DailyModuleBase
         var castTimeTextNode = CastBar->GetTextNodeById(7);
         if (castTimeTextNode != null)
         {
-            castTimeTextNode->TextColor       = ConvertVector4ToByteColor(ModuleConfig.CastTimeTextColor);
-            castTimeTextNode->EdgeColor       = ConvertVector4ToByteColor(ModuleConfig.CastTimeTextEdgeColor);
-            castTimeTextNode->BackgroundColor = ConvertVector4ToByteColor(ModuleConfig.CastTimeTextBackgroundColor);
+            castTimeTextNode->TextColor       = ModuleConfig.CastTimeTextColor.ToByteColor();
+            castTimeTextNode->EdgeColor       = ModuleConfig.CastTimeTextEdgeColor.ToByteColor();
+            castTimeTextNode->BackgroundColor = ModuleConfig.CastTimeTextBackgroundColor.ToByteColor();
             castTimeTextNode->FontSize        = ModuleConfig.CastTimeTextSize;
             castTimeTextNode->SetPositionFloat(ModuleConfig.CastTimeTextPosition.X, ModuleConfig.CastTimeTextPosition.Y);
         }

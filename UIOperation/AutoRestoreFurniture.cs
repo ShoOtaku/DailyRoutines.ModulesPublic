@@ -116,7 +116,7 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
     private void OnAddon(AddonEvent type, AddonArgs args)
     {
         var addon = HousingGoods;
-        if (addon == null || !IsAddonAndNodesReady(addon)) return;
+        if (addon == null || !addon->IsAddonAndNodesReady()) return;
 
         Overlay.IsOpen = type switch
         {

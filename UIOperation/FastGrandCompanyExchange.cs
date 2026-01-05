@@ -72,7 +72,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
     
     private static unsafe void OnAddon(AddonEvent type, AddonArgs? args)
     {
-        if (Addon.IsOpen || !IsAddonAndNodesReady(GrandCompanyExchange)) return;
+        if (Addon.IsOpen || !GrandCompanyExchange->IsAddonAndNodesReady()) return;
         Addon.Open();
     }
 
@@ -96,8 +96,8 @@ public class FastGrandCompanyExchange : DailyModuleBase
 
     public unsafe bool? EnqueueByName(string itemName, int itemCount = -1)
     {
-        if (!IsAddonAndNodesReady(GrandCompanyExchange)) return false;
-        if (IsAddonAndNodesReady(SelectYesno))
+        if (!GrandCompanyExchange->IsAddonAndNodesReady()) return false;
+        if (SelectYesno->IsAddonAndNodesReady())
         {
             ClickSelectYesnoYes();
             return false;
@@ -118,9 +118,9 @@ public class FastGrandCompanyExchange : DailyModuleBase
                                 .SelectMany(x => x)
                                 .Where(x => LuminaGetter.GetRow<GCScripShopCategory>(x.RowId)!.Value.GrandCompany.RowId == grandCompany)
                                 .Where(x => gcRank >= x.RequiredGrandCompanyRank.RowId)
-                                .Where(x => (x.Item.ValueNullable?.Name.ExtractText() ?? string.Empty)
+                                .Where(x => (x.Item.ValueNullable?.Name.ToString() ?? string.Empty)
                                            .Contains(itemName, StringComparison.OrdinalIgnoreCase))
-                                .OrderBy(x => (x.Item.ValueNullable?.Name.ExtractText() ?? string.Empty).Length)
+                                .OrderBy(x => (x.Item.ValueNullable?.Name.ToString() ?? string.Empty).Length)
                                 .FirstOrDefault();
         if (result.RowId == 0) return true;
         
@@ -143,12 +143,12 @@ public class FastGrandCompanyExchange : DailyModuleBase
             TaskHelper.Enqueue(() =>
             {
                 if (GrandCompanyExchange->AtkValues[2].UInt == (uint)tier - 1) return true;
-                Callback(GrandCompanyExchange, true, 1, tier - 1);
+                GrandCompanyExchange->Callback(1, tier - 1);
                 return false;
             }, "点击军衔类别");
         }
 
-        TaskHelper.Enqueue(() => Callback(GrandCompanyExchange, true, 2, (int)subCategory), "点击道具类别");
+        TaskHelper.Enqueue(() => GrandCompanyExchange->Callback(2, (int)subCategory), "点击道具类别");
         
         TaskHelper.Enqueue(() =>
         {
@@ -162,7 +162,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
                     var offset   = 17 + i;
                     var atkValue = GrandCompanyExchange->AtkValues[offset];
                     var name     = MemoryHelper.ReadSeStringNullTerminated((nint)atkValue.String.Value);
-                    if (string.IsNullOrWhiteSpace(name.ExtractText()) || name.ExtractText() != result.Item.Value.Name.ExtractText()) continue;
+                    if (string.IsNullOrWhiteSpace(name.ToString()) || name.ToString() != result.Item.Value.Name.ToString()) continue;
 
                     AgentId.GrandCompanyExchange.SendEvent(0, 0, i, exchangeCount, 0, true, false);
                     
@@ -183,7 +183,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
         {
             TaskHelper.Enqueue(() =>
             {
-                if (!IsAddonAndNodesReady(ShopExchangeCurrencyDialog)) return false;
+                if (!ShopExchangeCurrencyDialog->IsAddonAndNodesReady()) return false;
                 
                 var numericInput = (AtkComponentNumericInput*)ShopExchangeCurrencyDialog->GetNodeById(13)->GetComponent();
                 if (numericInput == null) return true;
@@ -248,7 +248,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
                 IsVisible       = true,
                 Size            = new(layoutNode.Size.X - 10, 35),
                 SeString        = ModuleConfig.ExchangeItemName,
-                OnInputReceived = x => ModuleConfig.ExchangeItemName = x.ExtractText(),
+                OnInputReceived = x => ModuleConfig.ExchangeItemName = x.ToString(),
             };
 
             itemNameInputNode.OnInputComplete = UpdateExchangeItem;
@@ -296,7 +296,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
 
         private void UpdateExchangeItem(ReadOnlySeString x)
         {
-            ModuleConfig.ExchangeItemName = x.ExtractText();
+            ModuleConfig.ExchangeItemName = x.ToString();
 
             var grandCompany = PlayerState.Instance()->GrandCompany;
             var gcRank       = PlayerState.Instance()->GetGrandCompanyRank();
@@ -305,17 +305,17 @@ public class FastGrandCompanyExchange : DailyModuleBase
                                      .SelectMany(d => d)
                                      .Where(d => LuminaGetter.GetRowOrDefault<GCScripShopCategory>(d.RowId).GrandCompany.RowId == grandCompany)
                                      .Where(d => gcRank                                                                        >= d.RequiredGrandCompanyRank.RowId)
-                                     .Where(d => (d.Item.ValueNullable?.Name.ExtractText() ?? string.Empty)
+                                     .Where(d => (d.Item.ValueNullable?.Name.ToString() ?? string.Empty)
                                                 .Contains(ModuleConfig.ExchangeItemName, StringComparison.OrdinalIgnoreCase))
-                                     .OrderBy(d => (d.Item.ValueNullable?.Name.ExtractText() ?? string.Empty).Length)
+                                     .OrderBy(d => (d.Item.ValueNullable?.Name.ToString() ?? string.Empty).Length)
                                      .FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(ModuleConfig.ExchangeItemName) || result.RowId == 0)
                 ModuleConfig.ExchangeItemName = LuminaWrapper.GetItemName(21072);
             else if (result.RowId != 0)
-                ModuleConfig.ExchangeItemName = result.Item.Value.Name.ExtractText();
+                ModuleConfig.ExchangeItemName = result.Item.Value.Name.ToString();
 
-            if (ModuleConfig.ExchangeItemName == x.ExtractText())
+            if (ModuleConfig.ExchangeItemName == x.ToString())
                 return;
 
             IsNotClosed = true;

@@ -40,17 +40,17 @@ public unsafe class AutoAttireItems : DailyModuleBase
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, "MiragePrismPrismSetConvert", OnAddonMiragePrismPrismSetConvert);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MiragePrismPrismSetConvert", OnAddonMiragePrismPrismSetConvert);
-        if (IsAddonAndNodesReady(MiragePrismPrismSetConvert)) 
+        if (MiragePrismPrismSetConvert->IsAddonAndNodesReady()) 
             OnAddonMiragePrismPrismSetConvert(AddonEvent.PostRefresh, null);
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "MiragePrismPrismSetConvertC", OnAddonMiragePrismPrismSetConvertC);
-        if (IsAddonAndNodesReady(MiragePrismPrismSetConvertC)) 
+        if (MiragePrismPrismSetConvertC->IsAddonAndNodesReady()) 
             OnAddonMiragePrismPrismSetConvertC(AddonEvent.PostSetup, null);
     }
 
     protected override void ConfigUI()
     {
-        using (ImRaii.Disabled(TaskHelper.IsBusy || !IsAddonAndNodesReady(MiragePrismPrismBox)))
+        using (ImRaii.Disabled(TaskHelper.IsBusy || !MiragePrismPrismBox->IsAddonAndNodesReady()))
         {
             if (ImGui.Button(GetLoc("Start")))
                 RestoreItemsFromPrismBox();
@@ -130,12 +130,12 @@ public unsafe class AutoAttireItems : DailyModuleBase
     private static void OnAddonMiragePrismPrismSetConvertC(AddonEvent type, AddonArgs? args)
     {
         if (MiragePrismPrismSetConvertC == null) return;
-        Callback(MiragePrismPrismSetConvertC, true, 0);
+        MiragePrismPrismSetConvertC->Callback(0);
     }
 
     private void FillMiragePrismBoxSet()
     {
-        if (!IsAddonAndNodesReady(MiragePrismPrismSetConvert) || TaskHelper.IsBusy) return;
+        if (!MiragePrismPrismSetConvert->IsAddonAndNodesReady() || TaskHelper.IsBusy) return;
         
         var slotCount = MiragePrismPrismSetConvert->AtkValues[20].UInt;
         if (slotCount == 0) return;
@@ -159,14 +159,14 @@ public unsafe class AutoAttireItems : DailyModuleBase
             var index = i;
             TaskHelper.Enqueue(() =>
             {
-                if (!IsAddonAndNodesReady(ContextIconMenu))
+                if (!ContextIconMenu->IsAddonAndNodesReady())
                 {
-                    Callback(MiragePrismPrismSetConvert, true, 13, index);
+                    MiragePrismPrismSetConvert->Callback(13, index);
                     return false;
                 }
                 else
                 {
-                    Callback(ContextIconMenu, true, 0, 0, 1021003u, 0u, 0);
+                    ContextIconMenu->Callback(0, 0, 1021003u, 0u, 0);
                     return true;
                 }
             });
@@ -189,7 +189,7 @@ public unsafe class AutoAttireItems : DailyModuleBase
         {
             if (!LuminaGetter.TryGetRow<Item>(row.RowId, out var setItemRow)) return null;
             
-            var setName = setItemRow.Name.ExtractText();
+            var setName = setItemRow.Name.ToString();
             if (string.IsNullOrWhiteSpace(setName)) return null;
 
             List<uint> setItemsID =
@@ -200,7 +200,7 @@ public unsafe class AutoAttireItems : DailyModuleBase
 
             var filitered = setItemsID
                             .Where(x => x > 1 && LuminaGetter.TryGetRow<Item>(x, out _))
-                            .Select(x => (x, LuminaGetter.GetRow<Item>(x)!.Value.Name.ExtractText()))
+                            .Select(x => (x, LuminaGetter.GetRow<Item>(x)!.Value.Name.ToString()))
                             .ToList();
             if (filitered.Count == 0) return null;
             

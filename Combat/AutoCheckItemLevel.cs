@@ -162,7 +162,7 @@ public unsafe class AutoCheckItemLevel : DailyModuleBase
         var ssb = new SeStringBuilder();
 
         ssb.AddUiForeground(25)
-           .Add(new PlayerPayload(partyMember.Name.ExtractText(), partyMember.Object->HomeWorld))
+           .Add(new PlayerPayload(partyMember.Name.ToString(), partyMember.Object->HomeWorld))
            .AddUiForegroundOff();
         
         ssb.Append($" ({LuminaWrapper.GetJobName(partyMember.Object->ClassJob)})");

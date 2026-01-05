@@ -51,7 +51,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
 
     protected override void OverlayUI()
     {
-        if (!IsAddonAndNodesReady(WeeklyPuzzle))
+        if (!WeeklyPuzzle->IsAddonAndNodesReady())
         {
             Overlay.IsOpen = false;
             return;
@@ -93,7 +93,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
     private static void OnUpdate(IFramework framework)
     {
         var addon = (AddonWeeklyPuzzle*)WeeklyPuzzle;
-        if (addon == null || !IsAddonAndNodesReady(WeeklyPuzzle)) return;
+        if (addon == null || !WeeklyPuzzle->IsAddonAndNodesReady()) return;
 
         var tileState = ParseTileInformation(addon);
         Board.Update(tileState);

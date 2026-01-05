@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using DailyRoutines.Abstracts;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -70,7 +71,7 @@ public class AutoTankStance : DailyModuleBase
 
     private static bool? CheckCurrentJob()
     {
-        if (BetweenAreas || OccupiedInEvent || !IsScreenReady()) return false;
+        if (BetweenAreas || OccupiedInEvent || !UIModule.IsScreenReady()) return false;
 
         if (DService.ObjectTable.LocalPlayer is not { ClassJob.RowId: var job, IsTargetable: true } || job == 0) 
             return false;

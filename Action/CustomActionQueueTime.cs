@@ -184,8 +184,8 @@ public class CustomActionQueueTime : DailyModuleBase
         using var table         = ImRaii.Table("CustomActionQueueTimeTable", 3, ImGuiTableFlags.Borders, tableSize);
         if (!table) return;
         
-        ImGui.TableSetupColumn(LuminaGetter.GetRow<Addon>(1340)?.Text.ExtractText(), ImGuiTableColumnFlags.WidthStretch, 20);
-        ImGui.TableSetupColumn(LuminaGetter.GetRow<Addon>(702)?.Text.ExtractText(), ImGuiTableColumnFlags.WidthStretch, 10);
+        ImGui.TableSetupColumn(LuminaGetter.GetRow<Addon>(1340)?.Text.ToString(), ImGuiTableColumnFlags.WidthStretch, 20);
+        ImGui.TableSetupColumn(LuminaGetter.GetRow<Addon>(702)?.Text.ToString(), ImGuiTableColumnFlags.WidthStretch, 10);
         ImGui.TableSetupColumn(GetLoc("CustomActionQueueTime-QueueTime"), ImGuiTableColumnFlags.WidthStretch, 20);
 
         ImGui.TableHeadersRow();
@@ -204,7 +204,7 @@ public class CustomActionQueueTime : DailyModuleBase
 
             ImGui.TableNextColumn();
             ImGuiOm.SelectableImageWithText(icon.Handle, new(ImGui.GetTextLineHeightWithSpacing()),
-                                            data.Name.ExtractText(), false);
+                                            data.Name.ToString(), false);
 
             using (var context = ImRaii.ContextPopupItem("ActionContext"))
             {
@@ -267,7 +267,7 @@ public class CustomActionQueueTime : DailyModuleBase
                 var icon = DService.Texture.GetFromGameIcon(new(data.Icon)).GetWrapOrDefault();
                 if (icon == null) return;
                 
-                ImGuiOm.TextImage($"{data.Name.ExtractText()}", icon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
+                ImGuiOm.TextImage($"{data.Name.ToString()}", icon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
             }
         }
         
