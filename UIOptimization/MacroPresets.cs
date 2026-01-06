@@ -1,3 +1,5 @@
+// TODO: 等待修改
+/*
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -631,3 +633,4 @@ public unsafe class MacroPresets : DailyModuleBase
         public bool ConfirmDelete    = true;
     }
 }
+*/
