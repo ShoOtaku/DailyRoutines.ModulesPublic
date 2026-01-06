@@ -183,9 +183,9 @@ public unsafe class ChineseNumericalNotation : DailyModuleBase
 
     private static void AtkCounterNodeSetNumberDetour(AtkCounterNode* node, CStringPointer number)
     {
-        if (!ModuleConfig.NoChineseUnit        &&
-            number.HasValue                    &&
-            number.ToString() is var textValue &&
+        if (!ModuleConfig.NoChineseUnit           &&
+            number.HasValue                       &&
+            number.ExtractText() is var textValue &&
             textValue.IsAnyChinese())
         {
             node->SetText(textValue.FromChineseString<int>().ToMyriadString());
