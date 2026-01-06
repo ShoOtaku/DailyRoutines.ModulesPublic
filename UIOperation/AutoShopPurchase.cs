@@ -653,7 +653,7 @@ public class AutoShopPurchase : DailyModuleBase
                 }, weight: 2);
             });
 
-            TaskHelper.DelayNext(1_000, "防止卡住", false, 1);
+            TaskHelper.DelayNext(1_000, "防止卡住", 1);
             TaskHelper.Enqueue(() => OnReceiveCommand(ExecuteCommandFlag.InventoryRefresh, 0, 0, 0, 0));
         }
 

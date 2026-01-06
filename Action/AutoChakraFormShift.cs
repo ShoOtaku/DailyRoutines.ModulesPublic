@@ -71,7 +71,7 @@ public class AutoChakraFormShift : DailyModuleBase
         }
 
         TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, action), $"UseAction_{action}", 2_000, true, 1);
-        TaskHelper.DelayNext(500, $"Delay_Use{action}", false, 1);
+        TaskHelper.DelayNext(500, $"Delay_Use{action}", 1);
         TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, true, 1);
         return true;
     }

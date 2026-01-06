@@ -133,7 +133,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             }
 
             TaskHelper.Enqueue(() => ClickSelectString(submarineIndex), $"收取 {submarineIndex} 号潜艇", null, null, 1);
-            TaskHelper.DelayNext(2_000, "延迟 2 秒, 等待远航结果确认", false, 1);
+            TaskHelper.DelayNext(2_000, "延迟 2 秒, 等待远航结果确认", 1);
             TaskHelper.Enqueue(EnqueueSubmarineStateCheck, "确认潜艇信息, 准备修理和再次出航", null, null, 1);
         }, "检测是否有潜艇待收取");
 

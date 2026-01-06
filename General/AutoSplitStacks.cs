@@ -355,14 +355,14 @@ public unsafe class AutoSplitStacks : DailyModuleBase
 
     private void EnqueueOperations(uint itemID, InventoryType foundType, int foundSlot, int amount)
     {
-        TaskHelper.DelayNext(20, $"ContextMenu_{itemID}_{foundType}_{foundSlot}", false, 2);
+        TaskHelper.DelayNext(20, $"ContextMenu_{itemID}_{foundType}_{foundSlot}", 2);
         TaskHelper.Enqueue(() =>
         {
             ClickContextMenu(LuminaGetter.GetRow<Addon>(92)!.Value.Text.ToString());
             return true;
         }, weight: 2);
 
-        TaskHelper.DelayNext(20, $"InputNumeric_{itemID}_{foundType}_{foundSlot}", false, 2);
+        TaskHelper.DelayNext(20, $"InputNumeric_{itemID}_{foundType}_{foundSlot}", 2);
         TaskHelper.Enqueue(() =>
         {
             if (InputNumeric == null || !InputNumeric->IsAddonAndNodesReady()) return false;

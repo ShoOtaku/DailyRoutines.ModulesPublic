@@ -109,7 +109,7 @@ public class AutoDrawMotifs : DailyModuleBase
         }
 
         TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, motifAction), $"UseAction_{motifAction}", 2_000, true, 1);
-        TaskHelper.DelayNext(500, $"DrawMotif_{motifAction}", false, 1);
+        TaskHelper.DelayNext(500, $"DrawMotif_{motifAction}", 1);
         TaskHelper.Enqueue(DrawNeededMotif, "DrawNeededMotif", 5_000, true, 1);
         return true;
     }

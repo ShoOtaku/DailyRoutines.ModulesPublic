@@ -44,7 +44,7 @@ public class AutoUseEarthsReply : DailyModuleBase
         if (actionType != ActionType.Action || actionID != RiddleOfEarthAction || !result) return;
 
         TaskHelper.Abort();
-        TaskHelper.DelayNext(8_000, $"Delay_UseAction{EarthsReplyAction}", false, 1);
+        TaskHelper.DelayNext(8_000, $"Delay_UseAction{EarthsReplyAction}", 1);
         TaskHelper.Enqueue(() =>
                            {
                                if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
