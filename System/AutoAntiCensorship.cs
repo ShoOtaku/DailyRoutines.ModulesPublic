@@ -257,6 +257,8 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
         AtkEventData*          atkEventData)
     {
         TextInputReceiveEventHook.Original(textInput, eventType, eventParam, atkEvent, atkEventData);
+        
+        if (!ModuleConfig.HandleCensoredText) return;
 
         if (eventType == AtkEventType.FocusStop && textInput != null)
         {
