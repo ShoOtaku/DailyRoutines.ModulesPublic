@@ -4,6 +4,7 @@ using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
@@ -89,7 +90,7 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
         
         using var fontBefore = FontManager.UIFont80.Push();
         
-        var windowPos = nodeStateInfo.TopLeft - (3 * offsetSpacing) - offsetHeightSpacing;
+        var windowPos = nodeStateInfo.TopLeft - 3 * offsetSpacing - offsetHeightSpacing;
         
         var width  = nodeStateShare.X   - nodeStateInfo.X + ImGui.GetStyle().ItemSpacing.X;
         var height = nodeStateLocated.Y                   - windowPos.Y - offsetSpacing.Y;
@@ -98,7 +99,7 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
         ImGui.SetWindowSize(new(width, height));
         
         using var fontAfter = FontManager.UIFont.Push();
-        ImGuiOm.TextSelectable(textNode->NodeText.ToString(), width - (2 * offsetSpacing.X), LinkTypes);
+        ImGuiOm.TextSelectable(SeString.Parse(textNode->NodeText).ToString(), width - 2 * offsetSpacing.X, LinkTypes);
     }
 
     private void OnAddon(AddonEvent type, AddonArgs? args) =>
