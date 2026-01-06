@@ -75,7 +75,7 @@ public unsafe class AutoDiscard : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
 
         ImGui.SameLine();
-        ImGui.Text($"{ModuleCommand} → {GetLoc("AutoDiscard-CommandHelp")}");
+        ImGui.TextUnformatted($"{ModuleCommand} → {GetLoc("AutoDiscard-CommandHelp")}");
 
         ImGui.Spacing();
 
@@ -244,7 +244,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                 }
             }
             else
-                ImGui.Text(GetLoc("AutoDiscard-NoItemInGroupHelp"));
+                ImGui.TextUnformatted(GetLoc("AutoDiscard-NoItemInGroupHelp"));
         }
 
         if (ImGui.IsItemClicked())
@@ -255,7 +255,7 @@ public unsafe class AutoDiscard : DailyModuleBase
         {
             if (popupMenu)
             {
-                ImGui.Text(group.UniqueName);
+                ImGui.TextUnformatted(group.UniqueName);
                 
                 ImGui.Separator();
                 ImGui.Spacing();

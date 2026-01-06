@@ -198,7 +198,7 @@ public class AutoReplyChatBot : DailyModuleBase
                     
                     ImGui.NewLine();
                     
-                    ImGui.Text(GetLoc("AutoReplyChatBot-FilterSystemPrompt"));
+                    ImGui.TextUnformatted(GetLoc("AutoReplyChatBot-FilterSystemPrompt"));
                     
                     ImGui.SameLine();
                     if (ImGui.SmallButton($"{GetLoc("Reset")}##ResetFilterPrompt"))
@@ -352,7 +352,7 @@ public class AutoReplyChatBot : DailyModuleBase
                             using (ImRaii.PushIndent())
                             {
                                 // 词条名
-                                ImGui.Text(GetLoc("AutoReplyChatBot-WorldBookEntryName"));
+                                ImGui.TextUnformatted(GetLoc("AutoReplyChatBot-WorldBookEntryName"));
                                     
                                 ImGui.SetNextItemWidth(fieldW);
                                 ImGui.InputText($"##Key_{key}", ref key, 128);
@@ -369,7 +369,7 @@ public class AutoReplyChatBot : DailyModuleBase
                                 }
                                     
                                 // 词条释义
-                                ImGui.Text(GetLoc("AutoReplyChatBot-WorldBookEntryContent"));
+                                ImGui.TextUnformatted(GetLoc("AutoReplyChatBot-WorldBookEntryContent"));
                                     
                                 ImGui.SetNextItemWidth(promptW);
                                 ImGui.InputTextMultiline($"##Value_{key}", ref value, 2048, new(promptW, 100 * GlobalFontScale));
@@ -726,7 +726,7 @@ public class AutoReplyChatBot : DailyModuleBase
             return;
 
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("AutoReplyChatBot-TestChat-Role")}:");
+        ImGui.TextUnformatted($"{GetLoc("AutoReplyChatBot-TestChat-Role")}:");
         
         ImGui.SameLine();
         ImGui.SetNextItemWidth(150f * GlobalFontScale);
@@ -735,7 +735,7 @@ public class AutoReplyChatBot : DailyModuleBase
             SaveConfig(ModuleConfig);
 
         ImGui.SameLine();
-        ImGui.Text($"{GetLoc("Name")}:");
+        ImGui.TextUnformatted($"{GetLoc("Name")}:");
         
         ImGui.SameLine();
         ImGui.SetNextItemWidth(150f * GlobalFontScale);

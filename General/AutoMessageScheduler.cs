@@ -96,13 +96,13 @@ public class AutoMessageScheduler : DailyModuleBase
             ImGui.TextUnformatted(sched.Name);
             
             ImGui.TableNextColumn();
-            ImGui.Text($"{sched.StartHour:D2}:{sched.StartMinute:D2}");
+            ImGui.TextUnformatted($"{sched.StartHour:D2}:{sched.StartMinute:D2}");
             
             ImGui.TableNextColumn();
-            ImGui.Text($"{sched.IntervalSeconds}");
+            ImGui.TextUnformatted($"{sched.IntervalSeconds}");
             
             ImGui.TableNextColumn();
-            ImGui.Text($"{sched.Remaining}/{sched.Repeat}");
+            ImGui.TextUnformatted($"{sched.Remaining}/{sched.Repeat}");
             
             ImGui.TableNextColumn();
             ImGui.TextColored(sched.IsActive ? KnownColor.GreenYellow.ToVector4() : KnownColor.Pink.ToVector4(), sched.IsActive ? "O" : "X");
@@ -149,14 +149,14 @@ public class AutoMessageScheduler : DailyModuleBase
         
         if (EditingData == null) return;
                 
-        ImGui.Text($"{GetLoc("Name")}:");
+        ImGui.TextUnformatted($"{GetLoc("Name")}:");
         using (ImRaii.PushIndent())
         {
             ImGui.SetNextItemWidth(200f * GlobalFontScale);
             ImGui.InputText("##Name", ref EditingData.Name, 64);
         }
                 
-        ImGui.Text($"{GetLoc("StartTime")}:");
+        ImGui.TextUnformatted($"{GetLoc("StartTime")}:");
         using (ImRaii.PushIndent())
         {
             var hourStr = EditingData.StartHour.ToString("D2");
@@ -170,7 +170,7 @@ public class AutoMessageScheduler : DailyModuleBase
 
             ImGui.SameLine();
             ImGui.AlignTextToFramePadding();
-            ImGui.Text(":");
+            ImGui.TextUnformatted(":");
             ImGui.SameLine();
 
             ImGui.SetNextItemWidth(25f * GlobalFontScale);
@@ -179,7 +179,7 @@ public class AutoMessageScheduler : DailyModuleBase
                 EditingData.StartMinute = parsedMin;
         }
                 
-        ImGui.Text($"{GetLoc("Interval")} (s):");
+        ImGui.TextUnformatted($"{GetLoc("Interval")} (s):");
         using (ImRaii.PushIndent())
         {
             ImGui.SetNextItemWidth(200f * GlobalFontScale);
@@ -187,7 +187,7 @@ public class AutoMessageScheduler : DailyModuleBase
                 EditingData.Interval = Math.Clamp(EditingData.Interval, 1, 864000);
         }
                 
-        ImGui.Text($"{GetLoc("AutoMessageScheduler-RepeatTimes")}:");
+        ImGui.TextUnformatted($"{GetLoc("AutoMessageScheduler-RepeatTimes")}:");
         using (ImRaii.PushIndent())
         {
             ImGui.SetNextItemWidth(200f * GlobalFontScale);
@@ -195,7 +195,7 @@ public class AutoMessageScheduler : DailyModuleBase
                 EditingData.Repeat = Math.Clamp(EditingData.Repeat, 1, 14400);
         }
                 
-        ImGui.Text($"{GetLoc("AutoMessageScheduler-TimeMode")}:");
+        ImGui.TextUnformatted($"{GetLoc("AutoMessageScheduler-TimeMode")}:");
         using (ImRaii.PushIndent())
         {
             var mode = (int)EditingData.Mode;
@@ -210,7 +210,7 @@ public class AutoMessageScheduler : DailyModuleBase
                 EditingData.Mode = (TimeMode)mode;
         }
                 
-        ImGui.Text($"{LuminaWrapper.GetAddonText(2581)}:");
+        ImGui.TextUnformatted($"{LuminaWrapper.GetAddonText(2581)}:");
         using (ImRaii.PushIndent())
             ImGui.InputTextMultiline("##Messages", ref EditingData.Message, 1024, new(-1, 100f * GlobalFontScale));
 

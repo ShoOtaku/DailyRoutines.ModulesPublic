@@ -46,13 +46,13 @@ public unsafe class AutoNoviceNetwork : DailyModuleBase
             IsJoined = IsInNoviceNetwork();
         }
         
-        ImGui.Text($"{GetLoc("AutoNoviceNetwork-JoinState")}:");
+        ImGui.TextUnformatted($"{GetLoc("AutoNoviceNetwork-JoinState")}:");
         
         ImGui.SameLine();
         ImGui.TextColored(IsJoined ? ImGuiColors.HealerGreen : ImGuiColors.DPSRed,
                           IsJoined ? "√" : "×");
         
-        ImGui.Text($"{GetLoc("AutoNoviceNetwork-AttemptedTimes")}:");
+        ImGui.TextUnformatted($"{GetLoc("AutoNoviceNetwork-AttemptedTimes")}:");
 
         ImGui.SameLine();
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{TryTimes}");

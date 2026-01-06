@@ -49,7 +49,7 @@ public unsafe class AutoRefuseTrade : DailyModuleBase
         if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
             SaveConfig(ModuleConfig);
 
-        ImGui.Text(GetLoc("AutoRefuseTrade-ExtraCommands"));
+        ImGui.TextUnformatted(GetLoc("AutoRefuseTrade-ExtraCommands"));
         ImGui.InputTextMultiline("###ExtraCommandsInput", ref ModuleConfig.ExtraCommands, 1024, ScaledVector2(300f, 120f));
         ImGuiOm.TooltipHover(ModuleConfig.ExtraCommands);
 

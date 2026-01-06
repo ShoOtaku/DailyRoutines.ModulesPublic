@@ -59,7 +59,7 @@ public class AutoSortItems : DailyModuleBase
         
         ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
         ImGui.TableNextColumn();
-        ImGui.Text(LuminaGetter.GetRow<Addon>(12210)!.Value.Text.ToString());
+        ImGui.TextUnformatted(LuminaGetter.GetRow<Addon>(12210)!.Value.Text.ToString());
 
         var typeText = LuminaGetter.GetRow<Addon>(9448)!.Value.Text.ToString();
         
@@ -69,7 +69,7 @@ public class AutoSortItems : DailyModuleBase
         
         ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
         ImGui.TableNextColumn();
-        ImGui.Text(LuminaGetter.GetRow<Addon>(12209)!.Value.Text.ToString());
+        ImGui.TextUnformatted(LuminaGetter.GetRow<Addon>(12209)!.Value.Text.ToString());
         
         DrawTableRow("背包 HQ", "HQ", ref ModuleConfig.InventoryHQ, SortOptions);
         DrawTableRow("背包 ID", "ID", ref ModuleConfig.InventoryID, SortOptions);
@@ -88,7 +88,7 @@ public class AutoSortItems : DailyModuleBase
         ImGui.TableNextRow();
         
         ImGui.TableNextColumn();
-        ImGui.Text(label);
+        ImGui.TextUnformatted(label);
 
         if (!string.IsNullOrWhiteSpace(note))
             ImGuiOm.HelpMarker(note);

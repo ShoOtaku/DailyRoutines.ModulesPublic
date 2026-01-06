@@ -280,7 +280,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                     {
                         isSettingOn = true;
 
-                        ImGui.Text($"{LuminaWrapper.GetAddonText(8522)}");
+                        ImGui.TextUnformatted($"{LuminaWrapper.GetAddonText(8522)}");
 
                         using (var combo = ImRaii.Combo("###TeleportUsageTypeCombo", TicketUsageTypes[TicketUsageType]))
                         {
@@ -294,7 +294,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                             }
                         }
 
-                        ImGui.Text($"{LuminaWrapper.GetAddonText(8528)}");
+                        ImGui.TextUnformatted($"{LuminaWrapper.GetAddonText(8528)}");
 
                         var gilSetting = TicketUsageGilSetting;
                         if (ImGui.InputUInt("###GilInput", ref gilSetting))
@@ -344,7 +344,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         {
             if (context)
             {
-                ImGui.Text($"{aetheryte.Name}");
+                ImGui.TextUnformatted($"{aetheryte.Name}");
 
                 ImGui.Separator();
                 ImGui.Spacing();
@@ -361,7 +361,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                ImGui.Text(GetLoc("Note"));
+                ImGui.TextUnformatted(GetLoc("Note"));
 
                 var input = hasRemark ? remark : string.Empty;
                 ImGui.SetNextItemWidth(Math.Max(150f * GlobalFontScale, ImGui.CalcTextSize(aetheryte.Name).X));
@@ -379,11 +379,11 @@ public unsafe class BetterTeleport : DailyModuleBase
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                ImGui.Text(GetLoc("Position"));
+                ImGui.TextUnformatted(GetLoc("Position"));
 
                 var hasPosition = ModuleConfig.Positions.TryGetValue(aetheryte.RowID, out var position);
                 using (FontManager.UIFont60.Push())
-                    ImGui.Text($"{(hasPosition ? position : aetheryte.Position):F1}");
+                    ImGui.TextUnformatted($"{(hasPosition ? position : aetheryte.Position):F1}");
                 if (ImGui.MenuItem(GetLoc("BetterTeleport-RedirectedToCurrentPos")))
                 {
                     ModuleConfig.Positions[aetheryte.RowID] = Control.GetLocalPlayer()->Position;
@@ -792,7 +792,7 @@ public unsafe class BetterTeleport : DailyModuleBase
             ImGui.SameLine(0, 5f * GlobalFontScale);
 
             var text = $"{row.Name}: {manager->GetInventoryItemCount(itemID)}";
-            ImGui.Text(text);
+            ImGui.TextUnformatted(text);
         }
     }
 

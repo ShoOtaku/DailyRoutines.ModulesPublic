@@ -37,7 +37,7 @@ public class FastResetAllSDEnmity : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
 
         ImGui.SameLine();
-        ImGui.Text($"/pdr {Command} → {GetLoc("FastResetAllSDEnmity-CommandHelp")}");
+        ImGui.TextUnformatted($"/pdr {Command} → {GetLoc("FastResetAllSDEnmity-CommandHelp")}");
     }
 
     private static void OnCommand(string command, string arguments) => ResetAllStrikingDummies();

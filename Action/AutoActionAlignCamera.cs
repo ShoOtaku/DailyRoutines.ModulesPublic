@@ -73,7 +73,7 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
             
             ImGui.SameLine();
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (2f * GlobalFontScale));
-            ImGui.Text($"{data.Name.ToString()}");
+            ImGui.TextUnformatted($"{data.Name.ToString()}");
 
             ImGui.TableNextColumn();
             var isReversed = ModuleConfig.ActionReversed.Contains(actionPair.Key);

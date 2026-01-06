@@ -48,7 +48,7 @@ public unsafe class AutoSellCards : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
         
         ImGui.SameLine();
-        ImGui.Text($"/pdr {Command} → {GetLoc("AutoSellCards-CommandHelp")}");
+        ImGui.TextUnformatted($"/pdr {Command} → {GetLoc("AutoSellCards-CommandHelp")}");
     }
 
     private void OnAddon(AddonEvent type, AddonArgs args)

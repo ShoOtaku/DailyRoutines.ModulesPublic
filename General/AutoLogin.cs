@@ -61,7 +61,7 @@ public unsafe class AutoLogin : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}");
 
         using (ImRaii.PushIndent())
-            ImGui.Text(GetLoc("AutoLogin-AddCommandHelp", COMMAND, COMMAND));
+            ImGui.TextUnformatted(GetLoc("AutoLogin-AddCommandHelp", COMMAND, COMMAND));
         
         ImGui.NewLine();
         
@@ -85,7 +85,7 @@ public unsafe class AutoLogin : DailyModuleBase
                     {
                         // 服务器选择
                         ImGui.AlignTextToFramePadding();
-                        ImGui.Text($"{LuminaWrapper.GetAddonText(15834)}:");
+                        ImGui.TextUnformatted($"{LuminaWrapper.GetAddonText(15834)}:");
 
                         ImGui.SameLine();
                         ImGui.SetNextItemWidth(200f * GlobalFontScale);
@@ -101,7 +101,7 @@ public unsafe class AutoLogin : DailyModuleBase
 
                         // 角色登录索引选择
                         ImGui.AlignTextToFramePadding();
-                        ImGui.Text($"{GetLoc("AutoLogin-CharacterIndex")}:");
+                        ImGui.TextUnformatted($"{GetLoc("AutoLogin-CharacterIndex")}:");
 
                         ImGui.SameLine();
                         ImGui.SetNextItemWidth(200f * GlobalFontScale);
@@ -210,7 +210,7 @@ public unsafe class AutoLogin : DailyModuleBase
             {
                 ImGui.Spacing();
                 
-                ImGui.Text($"{GetLoc("State")}:");
+                ImGui.TextUnformatted($"{GetLoc("State")}:");
 
                 ImGui.SameLine();
                 ImGui.TextColored(HasLoginOnce ? KnownColor.LawnGreen.ToVector4() : KnownColor.OrangeRed.ToVector4(),

@@ -134,10 +134,10 @@ public partial class OccultCrescentHelper
                                 history.TryGetValue(ceID, out var time))
                             {
                                 var dateTime = LocalTimes.GetOrAdd(time, _ => time.ToUTCDateTimeFromUnixSeconds().ToLocalTime());
-                                ImGui.Text($"{dateTime.TimeAgo()}\t\t\t({dateTime:MM/dd HH:mm:ss})");
+                                ImGui.TextUnformatted($"{dateTime.TimeAgo()}\t\t\t({dateTime:MM/dd HH:mm:ss})");
                             }
                             else
-                                ImGui.Text("-");
+                                ImGui.TextUnformatted("-");
                         }
                     }
                 }
@@ -213,9 +213,9 @@ public partial class OccultCrescentHelper
 
             using (ImRaii.PushIndent())
             {
-                ImGui.Text($"/pdr {CommandFate} {GetLoc("OccultCrescentHelper-Command-PFate-Help")}");
+                ImGui.TextUnformatted($"/pdr {CommandFate} {GetLoc("OccultCrescentHelper-Command-PFate-Help")}");
 
-                ImGui.Text($"/pdr {CommandCE} {GetLoc("OccultCrescentHelper-Command-PCE-Help")}");
+                ImGui.TextUnformatted($"/pdr {CommandCE} {GetLoc("OccultCrescentHelper-Command-PCE-Help")}");
             }
         }
         

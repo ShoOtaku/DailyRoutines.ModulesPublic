@@ -42,7 +42,7 @@ public unsafe class BetterBlueSetLoad : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
         
         ImGui.SameLine();
-        ImGui.Text($"/pdr {Command} → {GetLoc("BetterBlueSetLoad-CommandHelp")}");
+        ImGui.TextUnformatted($"/pdr {Command} → {GetLoc("BetterBlueSetLoad-CommandHelp")}");
     }
 
     private static AtkValue* AgentAozNotebookReceiveEventDetour(

@@ -87,20 +87,20 @@ public class AutoMovePetPosition : DailyModuleBase
         }
         
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("Zone"));
+        ImGui.TextUnformatted(GetLoc("Zone"));
         
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("Note"));
+        ImGui.TextUnformatted(GetLoc("Note"));
         
         ImGui.TableNextColumn();
-        ImGui.Text(FontAwesomeIcon.Clock.ToIconString());
+        ImGui.TextUnformatted(FontAwesomeIcon.Clock.ToIconString());
         ImGuiOm.TooltipHover($"{GetLoc("AutoMovePetPosition-Delay")} (s)");
         
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("Position"));
+        ImGui.TextUnformatted(GetLoc("Position"));
         
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("Operation"));
+        ImGui.TextUnformatted(GetLoc("Operation"));
 
         foreach (var (zoneID, scheduleList) in ModuleConfig.PositionSchedules.ToArray())
         {

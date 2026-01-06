@@ -89,19 +89,19 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "上次记录:");
 
         ImGui.SameLine();
-        ImGui.Text($"{info.Record}");
+        ImGui.TextUnformatted($"{info.Record}");
 
         ImGui.NewLine();
 
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "月卡剩余时间:");
 
         ImGui.SameLine();
-        ImGui.Text(FormatTimeSpan(info.LeftMonth == TimeSpan.MinValue ? TimeSpan.Zero : info.LeftMonth));
+        ImGui.TextUnformatted(FormatTimeSpan(info.LeftMonth == TimeSpan.MinValue ? TimeSpan.Zero : info.LeftMonth));
 
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "点卡剩余时间:");
 
         ImGui.SameLine();
-        ImGui.Text(FormatTimeSpan(info.LeftTime));
+        ImGui.TextUnformatted(FormatTimeSpan(info.LeftTime));
     }
 
     protected override void Uninit()

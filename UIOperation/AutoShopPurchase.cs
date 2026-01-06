@@ -290,19 +290,19 @@ public class AutoShopPurchase : DailyModuleBase
             }
 
             ImGui.TableNextColumn();
-            ImGui.Text(GetLoc("Name"));
+            ImGui.TextUnformatted(GetLoc("Name"));
 
             ImGui.TableNextColumn();
-            ImGui.Text(GetLoc("Target"));
+            ImGui.TextUnformatted(GetLoc("Target"));
 
             ImGui.TableNextColumn();
-            ImGui.Text(GetLoc("Addon"));
+            ImGui.TextUnformatted(GetLoc("Addon"));
 
             ImGui.TableNextColumn();
-            ImGui.Text(GetLoc("Route"));
+            ImGui.TextUnformatted(GetLoc("Route"));
 
             ImGui.TableNextColumn();
-            ImGui.Text(GetLoc("Amount"));
+            ImGui.TextUnformatted(GetLoc("Amount"));
 
             ImGui.TableNextColumn();
         }
@@ -313,22 +313,22 @@ public class AutoShopPurchase : DailyModuleBase
             ImGui.TableNextRow();
 
             ImGui.TableNextColumn();
-            ImGui.Text($"{counter + 1}");
+            ImGui.TextUnformatted($"{counter + 1}");
 
             ImGui.TableNextColumn();
-            ImGui.Text($"{preset.Name}");
+            ImGui.TextUnformatted($"{preset.Name}");
 
             ImGui.TableNextColumn();
-            ImGui.Text($"{preset.TargetName}");
+            ImGui.TextUnformatted($"{preset.TargetName}");
 
             ImGui.TableNextColumn();
-            ImGui.Text($"{preset.AddonName}");
+            ImGui.TextUnformatted($"{preset.AddonName}");
 
             ImGui.TableNextColumn();
-            ImGui.Text($"{preset.ClickRoute.Key} -> {preset.ClickRoute.Value}");
+            ImGui.TextUnformatted($"{preset.ClickRoute.Key} -> {preset.ClickRoute.Value}");
 
             ImGui.TableNextColumn();
-            ImGui.Text(preset.NumberRoute.Key ? $"{preset.NumberRoute.Value}" : $"({GetLoc("None")})");
+            ImGui.TextUnformatted(preset.NumberRoute.Key ? $"{preset.NumberRoute.Value}" : $"({GetLoc("None")})");
 
             ImGui.TableNextColumn();
             PresetRunTimesInputComponent.Using(preset).Draw();

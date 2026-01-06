@@ -67,7 +67,7 @@ public unsafe class AutoReplaceActionLowLevel : DailyModuleBase
 
             ImGui.TableNextColumn();
             ImGui.AlignTextToFramePadding();
-            ImGui.Text("→");
+            ImGui.TextUnformatted("→");
 
             ImGui.TableNextColumn();
             ImGuiOm.TextImage(action1Data.Value.Name.ToString(), action1Icon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));

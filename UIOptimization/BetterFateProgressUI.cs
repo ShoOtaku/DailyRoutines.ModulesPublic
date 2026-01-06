@@ -121,7 +121,7 @@ public class BetterFateProgressUI : DailyModuleBase
 
             ImGui.SameLine();
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (2f * GlobalFontScale));
-            ImGui.Text($"{BicolorGemAmount}/{BicolorGemCap}");
+            ImGui.TextUnformatted($"{BicolorGemAmount}/{BicolorGemCap}");
         }
         BicolorGemComponentSize = ImGui.GetItemRectSize();
         ImGui.SetCursorPos(originalPos);
@@ -279,7 +279,7 @@ public class BetterFateProgressUI : DailyModuleBase
             
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (8f * GlobalFontScale));
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (4f * GlobalFontScale));
-            ImGui.Text(name);
+            ImGui.TextUnformatted(name);
             
             ImGui.SetWindowFontScale(1f);
         }
@@ -295,7 +295,7 @@ public class BetterFateProgressUI : DailyModuleBase
             var text = fateProgress > 6 ? $"{fateProgress - 6}/60" : $"{fateProgress}/6";
             ImGui.SetCursorPosY(ImGui.GetContentRegionMax().Y - ImGui.CalcTextSize(text).Y);
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (4f * GlobalFontScale));
-            ImGui.Text(text);
+            ImGui.TextUnformatted(text);
 
             DrawFinalProgress(fateProgress);
         }

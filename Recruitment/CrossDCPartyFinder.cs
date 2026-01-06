@@ -148,7 +148,7 @@ public class CrossDCPartyFinder : DailyModuleBase
                     }
 
                     ImGui.SameLine();
-                    ImGui.Text($" {CurrentPage + 1} / {Math.Max(1, totalPages)} ");
+                    ImGui.TextUnformatted($" {CurrentPage + 1} / {Math.Max(1, totalPages)} ");
                     ImGuiOm.TooltipHover($"{ListingsDisplay.Count}");
 
                     ImGui.SameLine();
@@ -309,7 +309,7 @@ public class CrossDCPartyFinder : DailyModuleBase
                     {
                         ImGui.SameLine(0, 6f * GlobalFontScale);
                         using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, listing.MinItemLevel != 0))
-                            ImGui.Text($"[{listing.MinItemLevel}]");
+                            ImGui.TextUnformatted($"[{listing.MinItemLevel}]");
                     }
                 }
                 
@@ -328,17 +328,17 @@ public class CrossDCPartyFinder : DailyModuleBase
                 ImGui.TextColored(KnownColor.Orange.ToVector4(), "当前位于:");
 
                 ImGui.SameLine();
-                ImGui.Text($"{listing.CreatedAtWorldName}");
+                ImGui.TextUnformatted($"{listing.CreatedAtWorldName}");
 
                 ImGui.TextColored(KnownColor.Orange.ToVector4(), "剩余人数:");
 
                 ImGui.SameLine();
-                ImGui.Text($"{listing.SlotAvailable - listing.SlotFilled}");
+                ImGui.TextUnformatted($"{listing.SlotAvailable - listing.SlotFilled}");
 
                 ImGui.TextColored(KnownColor.Orange.ToVector4(), "剩余时间:");
 
                 ImGui.SameLine();
-                ImGui.Text($"{TimeSpan.FromSeconds(listing.TimeLeft).TotalMinutes:F0} 分钟");
+                ImGui.TextUnformatted($"{TimeSpan.FromSeconds(listing.TimeLeft).TotalMinutes:F0} 分钟");
             }
             
             ImGui.TableNextRow();

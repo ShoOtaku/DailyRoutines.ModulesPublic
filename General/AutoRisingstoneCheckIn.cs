@@ -103,8 +103,8 @@ public class AutoRisingstoneCheckIn : DailyModuleBase
 
             using (ImRaii.PushIndent())
             {
-                ImGui.Text($"返回信息: {LastSignInResult}");
-                ImGui.Text($"操作时间: {ModuleConfig.LastSignInTime:yyyy-MM-dd HH:mm:ss}");
+                ImGui.TextUnformatted($"返回信息: {LastSignInResult}");
+                ImGui.TextUnformatted($"操作时间: {ModuleConfig.LastSignInTime:yyyy-MM-dd HH:mm:ss}");
             }
         }
     }

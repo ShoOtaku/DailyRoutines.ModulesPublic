@@ -46,7 +46,7 @@ public unsafe class SpecialRenderMode : DailyModuleBase
                 ToggleFade(Framework.Instance()->EnvironmentManager, 0, 0.1f, &color);
 
             ImGui.SameLine(0, 8f * GlobalFontScale);
-            ImGui.Text($"{GetLoc("Color")}:");
+            ImGui.TextUnformatted($"{GetLoc("Color")}:");
             
             ImGui.SameLine();
             ModuleConfig.BackgroundColor = ImGuiComponents.ColorPickerWithPalette(1, string.Empty, ModuleConfig.BackgroundColor);

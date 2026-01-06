@@ -60,14 +60,14 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
                 InputCombo.DrawRadio();
 
             ImGui.SameLine();
-            ImGui.Text(GetLoc("Input"));
+            ImGui.TextUnformatted(GetLoc("Input"));
 
             ImGui.SetNextItemWidth(300f * GlobalFontScale);
             using (ImRaii.PushId("Output"))
                 OutputCombo.DrawRadio();
             
             ImGui.SameLine();
-            ImGui.Text(GetLoc("Output"));
+            ImGui.TextUnformatted(GetLoc("Output"));
 
             ImGui.SetNextItemWidth(300f * GlobalFontScale);
             using (ImRaii.PushId("Output"))
@@ -84,7 +84,7 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
             }
             
             ImGui.SameLine();
-            ImGui.Text(GetLoc("Range"));
+            ImGui.TextUnformatted(GetLoc("Range"));
         }
 
         ImGui.SameLine(0, 10f * GlobalFontScale);
@@ -168,7 +168,7 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
                     ImGui.SameLine();
                 }
 
-                ImGui.Text(LuminaWrapper.GetActionName(input));
+                ImGui.TextUnformatted(LuminaWrapper.GetActionName(input));
             }
             
             if (ImGui.IsItemHovered())
@@ -177,7 +177,7 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
                 InputCombo.SelectedActionID = input;
             
             ImGui.TableNextColumn();
-            ImGui.Text("→");
+            ImGui.TextUnformatted("→");
             
             ImGui.TableNextColumn();
             using (ImRaii.Group())
@@ -190,7 +190,7 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
                     ImGui.SameLine();
                 }
 
-                ImGui.Text(LuminaWrapper.GetActionName(output));
+                ImGui.TextUnformatted(LuminaWrapper.GetActionName(output));
             }
 
             if (ImGui.IsItemHovered())

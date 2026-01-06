@@ -40,14 +40,14 @@ public unsafe class AutoAcceptInvitation : DailyModuleBase
     protected override void ConfigUI()
     {
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("Mode")}:");
+        ImGui.TextUnformatted($"{GetLoc("Mode")}:");
         
         ImGui.SameLine();
         if (ImGuiComponents.ToggleButton("ModeSwitch", ref ModuleConfig.Mode))
             SaveConfig(ModuleConfig);
         
         ImGui.SameLine();
-        ImGui.Text(GetLoc(ModuleConfig.Mode ? "Whitelist" : "Blacklist"));
+        ImGui.TextUnformatted(GetLoc(ModuleConfig.Mode ? "Whitelist" : "Blacklist"));
         
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{LuminaWrapper.GetAddonText(9818)}:");
 
@@ -84,7 +84,7 @@ public unsafe class AutoAcceptInvitation : DailyModuleBase
             ImGui.Bullet();
             
             ImGui.SameLine(0, 8f * GlobalFontScale);
-            ImGui.Text($"{player}");
+            ImGui.TextUnformatted($"{player}");
         }
 
         if (playersToRemove.Count > 0)

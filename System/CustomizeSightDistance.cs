@@ -91,7 +91,7 @@ public unsafe class CustomizeSightDistance : DailyModuleBase
 
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        ImGui.Text($"{GetLoc("CustomizeSightDistance-IgnoreCollision")}: ");
+        ImGui.TextUnformatted($"{GetLoc("CustomizeSightDistance-IgnoreCollision")}: ");
 
         ImGui.TableNextColumn();
         if (ImGui.Checkbox("###IgnoreCollision", ref ModuleConfig.IgnoreCollision))
@@ -108,7 +108,7 @@ public unsafe class CustomizeSightDistance : DailyModuleBase
     {
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        ImGui.Text($"{GetLoc(label)}:");
+        ImGui.TextUnformatted($"{GetLoc(label)}:");
 
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(200f * GlobalFontScale);

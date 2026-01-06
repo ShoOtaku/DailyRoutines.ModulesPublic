@@ -86,7 +86,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "导入数据");
         
         ImGui.SameLine();
-        ImGui.Text("(");
+        ImGui.TextUnformatted("(");
         
         ImGui.SameLine();
         if (ImGui.SmallButton("常规作业集 (蜡笔桶)"))
@@ -97,7 +97,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
             Util.OpenLink("https://docs.qq.com/sheet/DVmxFek1pUUtmYVhl");
         
         ImGui.SameLine();
-        ImGui.Text(")");
+        ImGui.TextUnformatted(")");
         
         ImGui.Spacing();
 
@@ -151,7 +151,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
         foreach (var (cycle, rec) in Recommendations.Enumerate())
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.Text($"第 {cycle} 天:");
+            ImGui.TextUnformatted($"第 {cycle} 天:");
             
             ImGui.SameLine();
             if (ImGui.SmallButton($"{GetLoc("Apply")}##{cycle}"))

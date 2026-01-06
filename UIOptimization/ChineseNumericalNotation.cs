@@ -130,7 +130,7 @@ public unsafe class ChineseNumericalNotation : DailyModuleBase
                                 ImGui.ColorButton($"###ColorButtonTable{row.RowId}", row.ToVector4());
                                         
                                 ImGui.SameLine();
-                                ImGui.Text($"{row.RowId}");
+                                ImGui.TextUnformatted($"{row.RowId}");
                             }
                         }
                     }

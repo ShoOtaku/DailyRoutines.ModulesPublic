@@ -29,9 +29,9 @@ public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.Text($"{Lang.Get("AutoNotifyLeveUpdate-NumText")}{lastLeve}");
-        ImGui.Text($"{Lang.Get("AutoNotifyLeveUpdate-FullTimeText")}{finishTime.ToLocalTime():g}");
-        ImGui.Text($"{Lang.Get("AutoNotifyLeveUpdate-UpdateTimeText")}{nextLeveCheck.ToLocalTime():g}");
+        ImGui.TextUnformatted($"{Lang.Get("AutoNotifyLeveUpdate-NumText")}{lastLeve}");
+        ImGui.TextUnformatted($"{Lang.Get("AutoNotifyLeveUpdate-FullTimeText")}{finishTime.ToLocalTime():g}");
+        ImGui.TextUnformatted($"{Lang.Get("AutoNotifyLeveUpdate-UpdateTimeText")}{nextLeveCheck.ToLocalTime():g}");
 
         if (ImGui.Checkbox(Lang.Get("AutoNotifyLeveUpdate-OnChatMessageConfig"), ref ModuleConfig.OnChatMessage))
             SaveConfig(ModuleConfig);

@@ -93,7 +93,7 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
             SaveConfig(ModuleConfig);
 
         ImGui.SameLine();
-        ImGui.Text(ModuleConfig.WorkMode ? GetLoc("Whitelist") : GetLoc("Blacklist"));
+        ImGui.TextUnformatted(ModuleConfig.WorkMode ? GetLoc("Whitelist") : GetLoc("Blacklist"));
 
         ImGui.AlignTextToFramePadding();
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Action")}:");
@@ -152,13 +152,13 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
                 using var group = ImRaii.Group();
 
                 ImGui.AlignTextToFramePadding();
-                ImGui.Text($"{counter}.");
+                ImGui.TextUnformatted($"{counter}.");
 
                 ImGui.SameLine();
                 ImGui.Image(actionIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
 
                 ImGui.SameLine();
-                ImGui.Text(data.Name.ToString());
+                ImGui.TextUnformatted(data.Name.ToString());
 
                 ImGui.SameLine();
                 if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, GetLoc("Delete")))

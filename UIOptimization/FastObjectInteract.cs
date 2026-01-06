@@ -155,7 +155,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     private void RenderFontScaleSettings()
     {
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("FontScale")}:");
+        ImGui.TextUnformatted($"{GetLoc("FontScale")}:");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80f * GlobalFontScale);
@@ -172,7 +172,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     private void RenderButtonWidthSettings()
     {
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("FastObjectInteract-MinButtonWidth")}:");
+        ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-MinButtonWidth")}:");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80f * GlobalFontScale);
@@ -183,7 +183,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
             ValidateButtonWidthSettings();
 
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("FastObjectInteract-MaxButtonWidth")}:");
+        ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-MaxButtonWidth")}:");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80f * GlobalFontScale);
@@ -210,7 +210,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     private void RenderMaxDisplayAmountSetting()
     {
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("FastObjectInteract-MaxDisplayAmount")}:");
+        ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-MaxDisplayAmount")}:");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80f * GlobalFontScale);
@@ -226,7 +226,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     private void RenderObjectKindsSelection()
     {
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("FastObjectInteract-SelectedObjectKinds")}:");
+        ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-SelectedObjectKinds")}:");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
@@ -251,7 +251,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     private void RenderBlacklistSettings()
     {
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("FastObjectInteract-BlacklistKeysList")}:");
+        ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-BlacklistKeysList")}:");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
@@ -283,7 +283,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
             }
 
             ImGui.SameLine();
-            ImGui.Text(key);
+            ImGui.TextUnformatted(key);
         }
     }
 

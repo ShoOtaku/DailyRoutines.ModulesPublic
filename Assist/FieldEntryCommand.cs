@@ -93,7 +93,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
             ImGui.TableNextRow();
 
             ImGui.TableNextColumn();
-            ImGui.Text(command.Key);
+            ImGui.TextUnformatted(command.Key);
             
             if (ImGui.IsItemHovered())
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
@@ -104,7 +104,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
             }
 
             ImGui.TableNextColumn();
-            ImGui.Text(ContentToPlaceName.TryGetValue(command.Value.Content, out var placeName) ? placeName : data.Name.ToString());
+            ImGui.TextUnformatted(ContentToPlaceName.TryGetValue(command.Value.Content, out var placeName) ? placeName : data.Name.ToString());
         }
     }
 

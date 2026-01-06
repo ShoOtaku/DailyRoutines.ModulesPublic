@@ -79,13 +79,13 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
                 ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
 
                 ImGui.TableNextColumn();
-                ImGui.Text(GetLoc("Action"));
+                ImGui.TextUnformatted(GetLoc("Action"));
 
                 ImGui.TableNextColumn();
-                ImGui.Text(GetLoc("AutoPreventDuplicateStatus-RelatedStatus"));
+                ImGui.TextUnformatted(GetLoc("AutoPreventDuplicateStatus-RelatedStatus"));
 
                 ImGui.TableNextColumn();
-                ImGui.Text($"{GetLoc("AutoPreventDuplicateStatus-RelatedStatus")} 2");
+                ImGui.TextUnformatted($"{GetLoc("AutoPreventDuplicateStatus-RelatedStatus")} 2");
 
                 foreach (var actionInfo in DuplicateActions)
                 {

@@ -67,7 +67,7 @@ public unsafe class AutoConstantlyClick : DailyModuleBase
     protected override void ConfigUI()
     {
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("Interval")}:");
+        ImGui.TextUnformatted($"{GetLoc("Interval")}:");
         
         ImGui.SameLine();
         ImGui.SetNextItemWidth(200f * GlobalFontScale);

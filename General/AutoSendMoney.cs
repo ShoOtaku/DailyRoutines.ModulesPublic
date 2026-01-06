@@ -108,7 +108,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Settings")}:");
 
         ImGui.SameLine();
-        ImGui.Text($"{GetLoc("AutoSendMoney-Step", 1)}:");
+        ImGui.TextUnformatted($"{GetLoc("AutoSendMoney-Step", 1)}:");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(50f * GlobalFontScale);
@@ -120,7 +120,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         }
 
         ImGui.SameLine();
-        ImGui.Text($"{GetLoc("AutoSendMoney-Step", 2)}:");
+        ImGui.TextUnformatted($"{GetLoc("AutoSendMoney-Step", 2)}:");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
@@ -132,7 +132,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         }
 
         ImGui.SameLine();
-        ImGui.Text($"{GetLoc("AutoSendMoney-DelayLowerLimit")}:");
+        ImGui.TextUnformatted($"{GetLoc("AutoSendMoney-DelayLowerLimit")}:");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
@@ -141,7 +141,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
             SaveConfig(ModuleConfig);
 
         ImGui.SameLine();
-        ImGui.Text($"{GetLoc("AutoSendMoney-DelayUpperLimit")}:");
+        ImGui.TextUnformatted($"{GetLoc("AutoSendMoney-DelayUpperLimit")}:");
 
         ImGui.SameLine();
         ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
@@ -189,7 +189,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         }
 
         ImGui.SameLine();
-        ImGui.Text(GetLoc("All"));
+        ImGui.TextUnformatted(GetLoc("All"));
 
         using var disabled = ImRaii.Disabled(IsRunning);
 
@@ -248,18 +248,18 @@ public unsafe class AutoSendMoney : DailyModuleBase
         if (p.GroupIndex >= 0)
         {
             ImGui.SameLine();
-            ImGui.Text($"{(char)('A' + p.GroupIndex)}-");
+            ImGui.TextUnformatted($"{(char)('A' + p.GroupIndex)}-");
         }
 
         ImGui.SameLine();
-        ImGui.Text(p.FullName);
+        ImGui.TextUnformatted(p.FullName);
 
         ImGui.SameLine(NameLength + 60);
         if (!hasPlan)
             return;
 
         if (IsRunning)
-            ImGui.Text(GetLoc("AutoSendMoney-Count", TradePlan.GetValueOrDefault(p.EntityID, 0)));
+            ImGui.TextUnformatted(GetLoc("AutoSendMoney-Count", TradePlan.GetValueOrDefault(p.EntityID, 0)));
         else
         {
             ImGui.SetNextItemWidth(80f * GlobalFontScale);

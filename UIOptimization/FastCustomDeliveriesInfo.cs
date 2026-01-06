@@ -78,7 +78,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
         using (ImRaii.PushIndent())
         {
             using (FontManager.UIFont120.Push())
-                ImGui.Text(SelectedInfo?.Value.GetRow().Npc.Value.Singular.ToString());
+                ImGui.TextUnformatted(SelectedInfo?.Value.GetRow().Npc.Value.Singular.ToString());
         }
 
         ImGui.Separator();

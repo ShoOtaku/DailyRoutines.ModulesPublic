@@ -32,7 +32,7 @@ public class AutoMaximiseWindow : DailyModuleBase
 
         using var indent = ImRaii.PushIndent();
         
-        ImGui.Text($"/pdr {Command} → {GetLoc("AutoMaximiseWindow-CommandHelp")}");
+        ImGui.TextUnformatted($"/pdr {Command} → {GetLoc("AutoMaximiseWindow-CommandHelp")}");
     }
 
     private static void OnCommand(string command, string args) => 

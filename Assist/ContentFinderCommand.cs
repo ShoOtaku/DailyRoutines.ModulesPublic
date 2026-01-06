@@ -33,10 +33,10 @@ public class ContentFinderCommand : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
 
         ImGui.SameLine();
-        ImGui.Text($"{Command} {GetLoc("ContentFinderCommand-CommandHelp")}");
+        ImGui.TextUnformatted($"{Command} {GetLoc("ContentFinderCommand-CommandHelp")}");
 
         using (ImRaii.PushIndent())
-            ImGui.Text(GetLoc("ContentFinderCommand-ArgsHelp"));
+            ImGui.TextUnformatted(GetLoc("ContentFinderCommand-ArgsHelp"));
 
         ImGui.Spacing();
         
@@ -64,7 +64,7 @@ public class ContentFinderCommand : DailyModuleBase
         {
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
-            ImGui.Text($"{rowData.Key}");
+            ImGui.TextUnformatted($"{rowData.Key}");
             if (ImGui.IsItemHovered()) 
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
             ImGuiOm.ClickToCopy(rowData.Key.ToString(), ImGuiMouseButton.Left);
@@ -72,7 +72,7 @@ public class ContentFinderCommand : DailyModuleBase
                 NotificationSuccess(GetLoc("CopiedToClipboard"));
 
             ImGui.TableNextColumn();
-            ImGui.Text($"{right(rowData)}");
+            ImGui.TextUnformatted($"{right(rowData)}");
         }
     }
 

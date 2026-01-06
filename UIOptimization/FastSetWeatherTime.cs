@@ -127,11 +127,11 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("FastSetWeatherTime-CommandHelp"));
         using (ImRaii.PushIndent())
         {
-            ImGui.Text($"1. /pdr {Command}");
+            ImGui.TextUnformatted($"1. /pdr {Command}");
             
             if (ImageHelper.TryGetImage(NaviMapImageURL, out var image))
             {
-                ImGui.Text($"2. {GetLoc("FastSetWeatherTime-OperationHelp-ClickNaviMap")}");
+                ImGui.TextUnformatted($"2. {GetLoc("FastSetWeatherTime-OperationHelp-ClickNaviMap")}");
                 ImGui.Image(image.Handle, image.Size);
             }
         }

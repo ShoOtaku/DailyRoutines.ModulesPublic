@@ -82,22 +82,22 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
         
         ImGui.SameLine();
-        ImGui.Text($"{Command} → {GetLoc("AutoFaceCameraDirection-CommandHelp", Command)}");
+        ImGui.TextUnformatted($"{Command} → {GetLoc("AutoFaceCameraDirection-CommandHelp", Command)}");
         
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"<{GetLoc("Type")}> :");
         
         using (ImRaii.PushIndent())
         {
-            ImGui.Text($"ground ({GetLoc("AutoFaceCameraDirection-GroundDirection")})");
+            ImGui.TextUnformatted($"ground ({GetLoc("AutoFaceCameraDirection-GroundDirection")})");
             
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"<{GetLoc("Value")}> :");
             
             ImGui.SameLine();
-            ImGui.Text($"{string.Join(" / ", WorldDirectionToNormalizedDirection.Keys)}");
+            ImGui.TextUnformatted($"{string.Join(" / ", WorldDirectionToNormalizedDirection.Keys)}");
             
-            ImGui.Text($"chara ({GetLoc("AutoFaceCameraDirection-CharacterRotation")})");
+            ImGui.TextUnformatted($"chara ({GetLoc("AutoFaceCameraDirection-CharacterRotation")})");
             
-            ImGui.Text($"camera ({GetLoc("AutoFaceCameraDirection-CameraRotation")})");
+            ImGui.TextUnformatted($"camera ({GetLoc("AutoFaceCameraDirection-CameraRotation")})");
         }
         
         if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
@@ -128,7 +128,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
                     localPlayer.ToStruct()->SetRotation(LocalPlayerRotationInput);
                 
                 ImGui.SameLine();
-                ImGui.Text($"{localPlayer.Rotation:F2}");
+                ImGui.TextUnformatted($"{localPlayer.Rotation:F2}");
             }
             
             ImGui.SameLine();
@@ -144,7 +144,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
                                   $"{GetLoc("AutoFaceCameraDirection-CharacterRotation")}:");
                 
                 ImGui.SameLine();
-                ImGui.Text($"{camera->DirH:F2} → {CameraDirHToCharaRotation(camera->DirH):F2}");
+                ImGui.TextUnformatted($"{camera->DirH:F2} → {CameraDirHToCharaRotation(camera->DirH):F2}");
             }
         }
     }

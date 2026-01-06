@@ -55,7 +55,7 @@ public unsafe class ExpandMacroTargetParameters : DailyModuleBase
             }
             
             ImGui.TableNextColumn();
-            ImGui.Text(kvp.Value.Description);
+            ImGui.TextUnformatted(kvp.Value.Description);
         }
         
         foreach (var kvp in StartWithArguments)
@@ -72,7 +72,7 @@ public unsafe class ExpandMacroTargetParameters : DailyModuleBase
             }
             
             ImGui.TableNextColumn();
-            ImGui.Text(kvp.Value.Description);
+            ImGui.TextUnformatted(kvp.Value.Description);
         }
     }
 

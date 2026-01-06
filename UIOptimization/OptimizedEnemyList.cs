@@ -88,7 +88,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             ModuleConfig.TextColor = ImGuiComponents.ColorPickerWithPalette(0, "###TextColorInput", ModuleConfig.TextColor);
             
             ImGui.SameLine();
-            ImGui.Text($"{GetLoc("Color")}");
+            ImGui.TextUnformatted($"{GetLoc("Color")}");
             
             ImGui.SameLine(0, 4f * GlobalFontScale);
             ImGui.TextDisabled("|");
@@ -97,7 +97,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             ModuleConfig.EdgeColor = ImGuiComponents.ColorPickerWithPalette(1, "###EdgeColorInput", ModuleConfig.EdgeColor);
             
             ImGui.SameLine();
-            ImGui.Text($"{GetLoc("EdgeColor")}");
+            ImGui.TextUnformatted($"{GetLoc("EdgeColor")}");
 
             ImGui.SameLine(0, 4f * GlobalFontScale);
             ImGui.TextDisabled("|");
@@ -106,7 +106,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             ModuleConfig.BackgroundNodeColor = ImGuiComponents.ColorPickerWithPalette(2, "###BackgroundColorInput", ModuleConfig.BackgroundNodeColor);
             
             ImGui.SameLine();
-            ImGui.Text($"{GetLoc("BackgroundColor")}");
+            ImGui.TextUnformatted($"{GetLoc("BackgroundColor")}");
             
             ImGui.SameLine(0, 4f * GlobalFontScale);
             ImGui.TextDisabled("|");
@@ -194,7 +194,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
                 }
                 
                 ImGui.SameLine();
-                ImGui.Text($"{counter}. {blacklist}");
+                ImGui.TextUnformatted($"{counter}. {blacklist}");
 
                 counter++;
             }

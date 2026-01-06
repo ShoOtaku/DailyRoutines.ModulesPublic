@@ -80,17 +80,17 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
         {
             ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
             ImGui.TableNextColumn();
-            ImGui.Text(Lang.Get("PlayerTargetInfoExpand-AvailablePayload"));
+            ImGui.TextUnformatted(Lang.Get("PlayerTargetInfoExpand-AvailablePayload"));
             ImGui.TableNextColumn();
-            ImGui.Text(Lang.Get("Description"));
+            ImGui.TextUnformatted(Lang.Get("Description"));
 
             foreach (var payload in Payloads)
             {
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
-                ImGui.Text(payload.Placeholder);
+                ImGui.TextUnformatted(payload.Placeholder);
                 ImGui.TableNextColumn();
-                ImGui.Text(payload.Description);
+                ImGui.TextUnformatted(payload.Description);
             }
 
             ImGui.EndTable();
@@ -109,7 +109,7 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
 
                 ImGui.TableNextColumn();
                 ImGui.AlignTextToFramePadding();
-                ImGui.Text($"{categoryTitle}:");
+                ImGui.TextUnformatted($"{categoryTitle}:");
 
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1f);
@@ -122,10 +122,10 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
 
                     ImGui.TableNextColumn();
                     ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"{Lang.Get("Example")}:");
+                    ImGui.TextUnformatted($"{Lang.Get("Example")}:");
 
                     ImGui.TableNextColumn();
-                    ImGui.Text(ReplacePatterns(config, Payloads, chara));
+                    ImGui.TextUnformatted(ReplacePatterns(config, Payloads, chara));
                 }
 
                 ImGui.EndTable();

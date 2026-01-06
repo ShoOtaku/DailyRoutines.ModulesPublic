@@ -190,7 +190,7 @@ public class AutoReplaceLocationAction : DailyModuleBase
         
         using (ImRaii.PushIndent())
         {
-            ImGui.Text($"{currentMapPlaceName}" + (string.IsNullOrEmpty(currentMapPlaceNameSub) ? string.Empty : $" / {currentMapPlaceNameSub}"));
+            ImGui.TextUnformatted($"{currentMapPlaceName}" + (string.IsNullOrEmpty(currentMapPlaceNameSub) ? string.Empty : $" / {currentMapPlaceNameSub}"));
             
             if (ImGui.Button($"{GetLoc("OpenMap")}"))
             {

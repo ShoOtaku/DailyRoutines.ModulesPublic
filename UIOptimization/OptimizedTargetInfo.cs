@@ -86,7 +86,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
             if (combo)
             {
                 ImGui.AlignTextToFramePadding();
-                ImGui.Text($"{GetLoc("OptimizedTargetInfo-NumberPreview")}:");
+                ImGui.TextUnformatted($"{GetLoc("OptimizedTargetInfo-NumberPreview")}:");
 
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(-1f);
@@ -298,7 +298,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
         ImGuiOm.TooltipHover(GetLoc("OptimizedTargetInfo-ZeroAlphaHelp"));
         
         ImGui.SameLine();
-        ImGui.Text($"{GetLoc("OptimizedTargetInfo-CustomColor")}");
+        ImGui.TextUnformatted($"{GetLoc("OptimizedTargetInfo-CustomColor")}");
 
         using (var popup = ImRaii.Popup($"{prefix}CustomColorPopup"))
         {
@@ -315,7 +315,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
         ImGuiOm.TooltipHover(GetLoc("OptimizedTargetInfo-ZeroAlphaHelp"));
         
         ImGui.SameLine();
-        ImGui.Text($"{GetLoc("EdgeColor")}");
+        ImGui.TextUnformatted($"{GetLoc("EdgeColor")}");
 
         using (var popup = ImRaii.Popup($"{prefix}OutlineColorPopup"))
         {

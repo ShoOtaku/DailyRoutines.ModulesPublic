@@ -187,7 +187,7 @@ public class BetterMountRoulette : DailyModuleBase
 
                 var mountName = mount.Singular.ToString();
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ((contentSize.X - ImGui.CalcTextSize(mountName).X) / 2));
-                ImGui.Text(mountName);
+                ImGui.TextUnformatted(mountName);
             }
             
             ImGui.SetCursorPos(cursorPos);

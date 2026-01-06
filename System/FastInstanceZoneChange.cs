@@ -61,7 +61,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
         using (ImRaii.PushIndent())
-            ImGui.Text($"/pdr {COMMAND} \u2192 {GetLoc("FastInstanceZoneChange-CommandHelp")}");
+            ImGui.TextUnformatted($"/pdr {COMMAND} \u2192 {GetLoc("FastInstanceZoneChange-CommandHelp")}");
 
         ImGui.NewLine();
 

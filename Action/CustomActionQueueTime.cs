@@ -152,7 +152,7 @@ public class CustomActionQueueTime : DailyModuleBase
                 SaveConfig(ModuleConfig);
         }
         else
-            ImGui.Text($"{GetDefaultQueueTime():F1} (ms)");
+            ImGui.TextUnformatted($"{GetDefaultQueueTime():F1} (ms)");
         
         ImGui.Spacing();
         
@@ -257,9 +257,9 @@ public class CustomActionQueueTime : DailyModuleBase
         using (ImRaii.Group())
         {
             if (actionID == 0)
-                ImGui.Text($"({GetLoc("CustomActionQueueTime-NoActionInQueue")})");
+                ImGui.TextUnformatted($"({GetLoc("CustomActionQueueTime-NoActionInQueue")})");
             else if (actionType != ActionType.Action)
-                ImGui.Text($"({GetLoc("CustomActionQueueTime-NonePlayerAction")})");
+                ImGui.TextUnformatted($"({GetLoc("CustomActionQueueTime-NonePlayerAction")})");
             else
             {
                 if (!LuminaGetter.TryGetRow<Action>(actionID, out var data)) return;

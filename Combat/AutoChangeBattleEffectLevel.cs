@@ -123,7 +123,7 @@ public class AutoChangeBattleEffectLevel : DailyModuleBase
         
         ImGui.SameLine();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text(GetLoc("Enable"));
+        ImGui.TextUnformatted(GetLoc("Enable"));
         
         if (!isEnabled) return;
         

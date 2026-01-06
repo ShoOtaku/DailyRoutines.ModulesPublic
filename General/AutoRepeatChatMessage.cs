@@ -76,12 +76,12 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
                 ImGui.TextColored(ColorHelper.GetColor(34), "\ue04e \ue090");
                 
                 ImGui.SameLine();
-                ImGui.Text($": {GetLoc("AutoRepeatChatMessage-ColorAble")}");
+                ImGui.TextUnformatted($": {GetLoc("AutoRepeatChatMessage-ColorAble")}");
                 
                 ImGui.TextColored(ColorHelper.GetColor(32), "\ue04e \ue090");
                 
                 ImGui.SameLine();
-                ImGui.Text($": {GetLoc("AutoRepeatChatMessage-ColorUnable")}");
+                ImGui.TextUnformatted($": {GetLoc("AutoRepeatChatMessage-ColorUnable")}");
             }
             
             ImGui.Spacing();

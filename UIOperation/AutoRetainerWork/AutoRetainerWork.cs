@@ -282,7 +282,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             {
                 using (ImRaii.Tooltip())
                 {
-                    ImGui.Text(GetLoc("AutoRetainerWork-Dispatch-Description"));
+                    ImGui.TextUnformatted(GetLoc("AutoRetainerWork-Dispatch-Description"));
                     if (imageState)
                         ImGui.Image(imageHandle.Handle, imageHandle.Size * 0.8f);
                 }

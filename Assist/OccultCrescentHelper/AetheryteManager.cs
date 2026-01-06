@@ -101,7 +101,7 @@ public partial class OccultCrescentHelper
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Command"));
 
             using (ImRaii.PushIndent())
-                ImGui.Text($"/pdr {CommandTP} {GetLoc("OccultCrescentHelper-Command-PTP-Help")}");
+                ImGui.TextUnformatted($"/pdr {CommandTP} {GetLoc("OccultCrescentHelper-Command-PTP-Help")}");
         }
 
         private static void OnLogout(int type, int code)

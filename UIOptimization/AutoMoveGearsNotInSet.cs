@@ -53,7 +53,7 @@ public class AutoMoveGearsNotInSet : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
         
         ImGui.SameLine();
-        ImGui.Text($"/pdr {Command} → {GetLoc("AutoMoveGearsNotInSet-CommandHelp")}");
+        ImGui.TextUnformatted($"/pdr {Command} → {GetLoc("AutoMoveGearsNotInSet-CommandHelp")}");
         
         ImGui.Spacing();
         

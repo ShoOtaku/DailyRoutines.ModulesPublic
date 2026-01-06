@@ -84,7 +84,7 @@ public class PartyFinderFilter : DailyModuleBase
         ImGuiComponents.ToggleButton("###IsHighEndRoleCountFilterManualMode", ref ManualMode);
 
         ImGui.SameLine();
-        ImGui.Text(GetLoc(ManualMode ? "ManualMode" : "AutoMode"));
+        ImGui.TextUnformatted(GetLoc(ManualMode ? "ManualMode" : "AutoMode"));
 
         if (!ModuleConfig.HighEndFilterRoleCount)
             return;
@@ -141,7 +141,7 @@ public class PartyFinderFilter : DailyModuleBase
             SaveConfig(ModuleConfig);
 
         ImGui.SameLine();
-        ImGui.Text(ModuleConfig.IsWhiteList ? GetLoc("Whitelist") : GetLoc("Blacklist"));
+        ImGui.TextUnformatted(ModuleConfig.IsWhiteList ? GetLoc("Whitelist") : GetLoc("Blacklist"));
 
         ImGui.SameLine();
         ImGuiOm.HelpMarker(GetLoc("PartyFinderFilter-WorkModeHelp"), 20f * GlobalFontScale);

@@ -84,7 +84,7 @@ public unsafe class AutoCutsceneSkip : DailyModuleBase
             ModuleConfig.Save(this);
 
         ImGui.SameLine();
-        ImGui.Text(GetLoc(ModuleConfig.WorkMode ? "Whitelist" : "Blacklist"));
+        ImGui.TextUnformatted(GetLoc(ModuleConfig.WorkMode ? "Whitelist" : "Blacklist"));
 
         ImGuiOm.HelpMarker(GetLoc("AutoCutsceneSkip-WorkModeHelp"));
 

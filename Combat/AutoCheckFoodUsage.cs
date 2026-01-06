@@ -202,7 +202,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
                 using (ImRaii.PushIndent())
                 {
                     ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"{GetLoc("Food")}:");
+                    ImGui.TextUnformatted($"{GetLoc("Food")}:");
 
                     ImGui.SameLine();
                     ImGui.SetNextItemWidth(200f * GlobalFontScale);
@@ -245,13 +245,13 @@ public class AutoCheckFoodUsage : DailyModuleBase
         }
 
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("Food"));
+        ImGui.TextUnformatted(GetLoc("Food"));
 
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("AutoCheckFoodUsage-ZoneRestrictions"));
+        ImGui.TextUnformatted(GetLoc("AutoCheckFoodUsage-ZoneRestrictions"));
 
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("AutoCheckFoodUsage-JobRestrictions"));
+        ImGui.TextUnformatted(GetLoc("AutoCheckFoodUsage-JobRestrictions"));
 
         for (var i = 0; i < ModuleConfig.Presets.Count; i++)
         {
@@ -336,7 +336,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
                                          x => () =>
                                          {
                                              var contentName = x.ContentFinderCondition.Value.Name.ToString() ?? "";
-                                             ImGui.Text(contentName);
+                                             ImGui.TextUnformatted(contentName);
                                          }
                                      ],
                                      [

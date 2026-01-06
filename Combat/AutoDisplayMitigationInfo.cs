@@ -177,10 +177,10 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
             ImGui.TableNextColumn();
             ImGui.AlignTextToFramePadding();
-            ImGui.Text($"{GetLoc("Shield")}");
+            ImGui.TextUnformatted($"{GetLoc("Shield")}");
 
             ImGui.TableNextColumn();
-            ImGui.Text($"{MitigationManager.LocalShield}");
+            ImGui.TextUnformatted($"{MitigationManager.LocalShield}");
         }
     }
 
@@ -233,20 +233,20 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{row.Name} ({status.Value:F1}s)");
+        ImGui.TextUnformatted($"{row.Name} ({status.Value:F1}s)");
         ImGuiOm.TooltipHover($"{status.Key.ID}");
 
         ImGui.TableNextColumn();
         ImGuiHelpers.SeStringWrapped(DamagePhysicalStr);
 
         ImGui.SameLine();
-        ImGui.Text($"{status.Key.Info.Physical}% ");
+        ImGui.TextUnformatted($"{status.Key.Info.Physical}% ");
 
         ImGui.SameLine();
         ImGuiHelpers.SeStringWrapped(DamageMagicalStr);
 
         ImGui.SameLine();
-        ImGui.Text($"{status.Key.Info.Magical}% ");
+        ImGui.TextUnformatted($"{status.Key.Info.Magical}% ");
     }
 
     #endregion

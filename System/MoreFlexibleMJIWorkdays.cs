@@ -79,11 +79,11 @@ public unsafe class MoreFlexibleMJIWorkdays : DailyModuleBase
                 {
                     case 6:
                         ImGui.SameLine(0, 4f * GlobalFontScale);
-                        ImGui.Text(LuminaWrapper.GetAddonText(15107));
+                        ImGui.TextUnformatted(LuminaWrapper.GetAddonText(15107));
                         break;
                     case 13:
                         ImGui.SameLine(0, 4f * GlobalFontScale);
-                        ImGui.Text(LuminaWrapper.GetAddonText(15108));
+                        ImGui.TextUnformatted(LuminaWrapper.GetAddonText(15108));
                         break;
                 }
                 

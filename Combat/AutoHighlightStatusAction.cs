@@ -168,14 +168,14 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
                 ActionCombo.SelectedActionIDs = statusConfig.BindActions.ToHashSet();
 
             ImGui.TableNextColumn();
-            ImGui.Text($"{statusConfig.Countdown:0.0}");
+            ImGui.TextUnformatted($"{statusConfig.Countdown:0.0}");
             if (ImGui.IsItemHovered())
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
             if (ImGui.IsItemClicked())
                 Countdown = statusConfig.Countdown;
 
             ImGui.TableNextColumn();
-            ImGui.Text(statusConfig.KeepHighlight ? GetLoc("Yes") : GetLoc("No"));
+            ImGui.TextUnformatted(statusConfig.KeepHighlight ? GetLoc("Yes") : GetLoc("No"));
             if (ImGui.IsItemHovered())
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
             if (ImGui.IsItemClicked())

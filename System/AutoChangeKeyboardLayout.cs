@@ -63,7 +63,7 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
         if (CachedLayouts == null) return;
 
         // 聚焦时的布局选择
-        ImGui.Text(GetLoc("Focused"));
+        ImGui.TextUnformatted(GetLoc("Focused"));
 
         using (var focusCombo = ImRaii.Combo("##FocusLayout", CachedLayouts.GetValueOrDefault(ModuleConfig.FocusLayoutLangID).Name ?? GetLoc("Unknown")))
         {
@@ -87,7 +87,7 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
         ImGui.Spacing();
 
         // 失焦时的布局选择
-        ImGui.Text(GetLoc("Unfocused"));
+        ImGui.TextUnformatted(GetLoc("Unfocused"));
         
         using (var unfocusCombo = ImRaii.Combo("##UnfocusLayout", CachedLayouts.GetValueOrDefault(ModuleConfig.UnfocusLayoutLangID).Name ?? GetLoc("Unknown")))
         {
@@ -111,7 +111,7 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
         ImGui.NewLine();
 
         var currentLangID = (ushort)(InputMethodController.CurrentLayout.ToInt64() & 0xFFFF);
-        ImGui.Text($"{GetLoc("Current")}\n\t\t{CachedLayouts.GetValueOrDefault(currentLangID).Name ?? GetLoc("Unknown")}");
+        ImGui.TextUnformatted($"{GetLoc("Current")}\n\t\t{CachedLayouts.GetValueOrDefault(currentLangID).Name ?? GetLoc("Unknown")}");
     }
 
     private static void ChangeKeyboardLayout(

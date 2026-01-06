@@ -153,7 +153,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
             
 
             ImGui.SameLine();
-            ImGui.Text($"{playerAround.Name} ({playerAround.ClassJob.Value.Name})");
+            ImGui.TextUnformatted($"{playerAround.Name} ({playerAround.ClassJob.Value.Name})");
         }
     }
     

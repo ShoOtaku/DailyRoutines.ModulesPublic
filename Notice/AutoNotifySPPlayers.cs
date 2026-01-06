@@ -55,7 +55,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("WorkTheory")}");
 
         using (ImRaii.PushIndent())
-            ImGui.Text(GetLoc("AutoNotifySPPlayers-WorkTheoryHelp"));
+            ImGui.TextUnformatted(GetLoc("AutoNotifySPPlayers-WorkTheoryHelp"));
 
         ImGui.NewLine();
 
@@ -82,7 +82,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
-                ImGui.Text($"{Lang.Get("Name")}:");
+                ImGui.TextUnformatted($"{Lang.Get("Name")}:");
 
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1f);
@@ -91,7 +91,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
-                ImGui.Text($"{Lang.Get("OnlineStatus")}:");
+                ImGui.TextUnformatted($"{Lang.Get("OnlineStatus")}:");
 
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1f);
@@ -118,7 +118,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
-                ImGui.Text($"{Lang.Get("Zone")}:");
+                ImGui.TextUnformatted($"{Lang.Get("Zone")}:");
 
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1f);
@@ -126,7 +126,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
 
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
-                ImGui.Text($"{Lang.Get("AutoNotifySPPlayers-ExtraCommand")}:");
+                ImGui.TextUnformatted($"{Lang.Get("AutoNotifySPPlayers-ExtraCommand")}:");
 
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1f);
@@ -189,16 +189,16 @@ public class AutoNotifySPPlayers : DailyModuleBase
         ImGui.TableNextColumn();
 
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("Name"));
+        ImGui.TextUnformatted(GetLoc("Name"));
 
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("OnlineStatus"));
+        ImGui.TextUnformatted(GetLoc("OnlineStatus"));
 
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("Zone"));
+        ImGui.TextUnformatted(GetLoc("Zone"));
 
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("AutoNotifySPPlayers-ExtraCommand"));
+        ImGui.TextUnformatted(GetLoc("AutoNotifySPPlayers-ExtraCommand"));
 
         for (var i = 0; i < ModuleConfig.NotifiedPlayer.Count; i++)
         {
@@ -209,11 +209,11 @@ public class AutoNotifySPPlayers : DailyModuleBase
 
             ImGui.TableNextColumn();
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (2f * GlobalFontScale));
-            ImGui.Text($"{i + 1}");
+            ImGui.TextUnformatted($"{i + 1}");
 
             ImGui.TableNextColumn();
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (2f * GlobalFontScale));
-            ImGui.Text($"{preset.Name}");
+            ImGui.TextUnformatted($"{preset.Name}");
             ImGuiOm.TooltipHover(preset.Name);
 
             ImGui.TableNextColumn();
@@ -233,7 +233,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
                 {
                     if (!LuminaGetter.TryGetRow<TerritoryType>(zone, out var zoneData)) continue;
 
-                    ImGui.Text($"{zoneData.ExtractPlaceName()}({zoneData.RowId})");
+                    ImGui.TextUnformatted($"{zoneData.ExtractPlaceName()}({zoneData.RowId})");
                     ImGui.SameLine();
                 }
                 ImGui.Spacing();
@@ -241,7 +241,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
 
             ImGui.TableNextColumn();
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (2f * GlobalFontScale));
-            ImGui.Text($"{preset.Command}");
+            ImGui.TextUnformatted($"{preset.Command}");
             ImGuiOm.TooltipHover(preset.Command);
 
             ImGui.TableNextColumn();
@@ -282,7 +282,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
                     if (withText)
                     {
                         ImGui.SameLine();
-                        ImGui.Text($"{row.Name.ToString()}({row.RowId})");
+                        ImGui.TextUnformatted($"{row.Name.ToString()}({row.RowId})");
                     }
                 }
 

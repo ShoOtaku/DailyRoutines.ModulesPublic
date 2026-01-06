@@ -54,7 +54,7 @@ public class AutoTimedLogout : DailyModuleBase
                 ImGui.TextColored(KnownColor.GreenYellow.ToVector4(), $"{operationText}:");
                 
                 ImGui.SameLine();
-                ImGui.Text($" {hours:D2}:{minutes:D2}:{seconds:D2}");
+                ImGui.TextUnformatted($" {hours:D2}:{minutes:D2}:{seconds:D2}");
             }
 
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Times, GetLoc("Cancel")))

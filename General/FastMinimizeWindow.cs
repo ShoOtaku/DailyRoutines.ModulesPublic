@@ -62,8 +62,8 @@ public unsafe class FastMinimizeWindow : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Command"));
         using (ImRaii.PushIndent())
         {
-            ImGui.Text($"/pdr {CommandMini} → {GetLoc("FastMinimizeWindow-MinimizeToTaskbar")}");
-            ImGui.Text($"/pdr {CommandTray} → {GetLoc("FastMinimizeWindow-MinimizeToTray")}");
+            ImGui.TextUnformatted($"/pdr {CommandMini} → {GetLoc("FastMinimizeWindow-MinimizeToTaskbar")}");
+            ImGui.TextUnformatted($"/pdr {CommandTray} → {GetLoc("FastMinimizeWindow-MinimizeToTray")}");
         }
         
         ImGui.NewLine();

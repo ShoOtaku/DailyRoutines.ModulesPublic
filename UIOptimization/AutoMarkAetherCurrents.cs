@@ -367,7 +367,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
                     using (ImRaii.Group())
                     {
                         ImGui.AlignTextToFramePadding();
-                        ImGui.Text("Q  ");
+                        ImGui.TextUnformatted("Q  ");
 
                         QuestPoints.ForEach(x => x.Draw());
                     }
@@ -378,7 +378,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
                     using (ImRaii.Group())
                     {
                         ImGui.AlignTextToFramePadding();
-                        ImGui.Text("N  ");
+                        ImGui.TextUnformatted("N  ");
 
                         NormalPoints.ForEach(x => x.Draw());
                     }
@@ -404,7 +404,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
             
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (8f * GlobalFontScale));
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (4f * GlobalFontScale));
-            ImGui.Text(name);
+            ImGui.TextUnformatted(name);
             
             ImGui.SetWindowFontScale(1f);
         }

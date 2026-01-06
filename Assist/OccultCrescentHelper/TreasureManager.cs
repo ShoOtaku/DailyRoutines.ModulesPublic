@@ -85,7 +85,7 @@ public partial class OccultCrescentHelper
                 using (ImRaii.Disabled(GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent))
                 using (ImRaii.PushIndent())
                 {
-                    ImGui.Text($"{GetLoc("OccultCrescentHelper-TreasureManager-AutoHuntTresures-LeftPoints")}: {QueuedGatheringList.Count}");
+                    ImGui.TextUnformatted($"{GetLoc("OccultCrescentHelper-TreasureManager-AutoHuntTresures-LeftPoints")}: {QueuedGatheringList.Count}");
 
                     var isFirst = true;
                     foreach (var (routeName, routeData) in Routes)
@@ -177,7 +177,7 @@ public partial class OccultCrescentHelper
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Command"));
 
             using (ImRaii.PushIndent())
-                ImGui.Text($"/pdr {CommandTreasure} {GetLoc("OccultCrescentHelper-Command-PTreasure-Help")}");
+                ImGui.TextUnformatted($"/pdr {CommandTreasure} {GetLoc("OccultCrescentHelper-Command-PTreasure-Help")}");
         }
         
         public override void Uninit()

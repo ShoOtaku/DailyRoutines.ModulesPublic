@@ -71,7 +71,7 @@ public class BetterFPSLimitation : DailyModuleBase
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Command"));
         
-        ImGui.Text($"/pdr {Command} → {GetLoc("BetterFPSLimitation-CommandHelp")}");
+        ImGui.TextUnformatted($"/pdr {Command} → {GetLoc("BetterFPSLimitation-CommandHelp")}");
         
         ImGui.NewLine();
         
@@ -90,7 +90,7 @@ public class BetterFPSLimitation : DailyModuleBase
                 }
                 
                 ImGui.SameLine();
-                ImGui.Text($"{threshold}");
+                ImGui.TextUnformatted($"{threshold}");
             }
             
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, GetLoc("Add")))

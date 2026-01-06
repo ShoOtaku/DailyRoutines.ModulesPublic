@@ -68,21 +68,21 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
         using (ImRaii.Group())
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.Text($"{GetLoc("Key")}:");
+            ImGui.TextUnformatted($"{GetLoc("Key")}:");
 
             ImGui.SameLine();
             ImGui.SetNextItemWidth(300f * GlobalFontScale);
             ImGui.InputText("###KeyInput", ref KeyInput, 96);
             
             ImGui.AlignTextToFramePadding();
-            ImGui.Text($"{GetLoc("Value")}:");
+            ImGui.TextUnformatted($"{GetLoc("Value")}:");
 
             ImGui.SameLine();
             ImGui.SetNextItemWidth(300f * GlobalFontScale);
             ImGui.InputText("###ValueInput", ref ValueInput, 96);
 
             ImGui.AlignTextToFramePadding();
-            ImGui.Text($"{GetLoc("CustomizeInterfaceText-ReplaceMode")}:");
+            ImGui.TextUnformatted($"{GetLoc("CustomizeInterfaceText-ReplaceMode")}:");
 
             foreach (var replaceMode in Enum.GetValues<ReplaceMode>())
             {
@@ -120,13 +120,13 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
 
                 ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
                 ImGui.TableNextColumn();
-                ImGui.Text(string.Empty);
+                ImGui.TextUnformatted(string.Empty);
                 ImGui.TableNextColumn();
-                ImGui.Text(GetLoc("Key"));
+                ImGui.TextUnformatted(GetLoc("Key"));
                 ImGui.TableNextColumn();
-                ImGui.Text(GetLoc("Value"));
+                ImGui.TextUnformatted(GetLoc("Value"));
                 ImGui.TableNextColumn();
-                ImGui.Text(GetLoc("CustomizeInterfaceText-ReplaceMode"));
+                ImGui.TextUnformatted(GetLoc("CustomizeInterfaceText-ReplaceMode"));
 
                 var array = ModuleConfig.ReplacePatterns.ToArray();
                 for (var i = 0; i < ModuleConfig.ReplacePatterns.Count; i++)
@@ -153,7 +153,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
                                 KeyEditInput = replacePattern.Key;
 
                             ImGui.AlignTextToFramePadding();
-                            ImGui.Text($"{GetLoc("Key")}:");
+                            ImGui.TextUnformatted($"{GetLoc("Key")}:");
 
                             ImGui.SameLine();
                             ImGui.SetNextItemWidth(300f * GlobalFontScale);
@@ -192,7 +192,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
                         if (context)
                         {
                             ImGui.AlignTextToFramePadding();
-                            ImGui.Text($"{GetLoc("Value")}:");
+                            ImGui.TextUnformatted($"{GetLoc("Value")}:");
 
                             ImGui.SameLine();
                             ImGui.SetNextItemWidth(300f * GlobalFontScale);
@@ -217,7 +217,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
                         if (context)
                         {
                             ImGui.AlignTextToFramePadding();
-                            ImGui.Text($"{GetLoc("CustomizeInterfaceText-ReplaceMode")}:");
+                            ImGui.TextUnformatted($"{GetLoc("CustomizeInterfaceText-ReplaceMode")}:");
 
                             foreach (var replaceMode in Enum.GetValues<ReplaceMode>())
                             {

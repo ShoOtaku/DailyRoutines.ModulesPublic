@@ -46,7 +46,7 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("AutoRestoreFurnitureTitle"));
             
             ImGui.SameLine();
-            ImGui.Text($"({GetLoc(isOutdoor ? "Outdoors" : "Indoors")})");
+            ImGui.TextUnformatted($"({GetLoc(isOutdoor ? "Outdoors" : "Indoors")})");
 
             ImGui.SameLine();
             ImGui.Spacing();

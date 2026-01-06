@@ -54,7 +54,7 @@ public class MultiTargetTracker : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.Text(GetLoc("MultiTargetTracker-TempTrackHelp"));
+        ImGui.TextUnformatted(GetLoc("MultiTargetTracker-TempTrackHelp"));
         
         ImGui.Spacing();
         
@@ -94,10 +94,10 @@ public class MultiTargetTracker : DailyModuleBase
             }
 
             ImGui.TableNextColumn();
-            ImGui.Text(player.LastSeen.ToShortDateString());
+            ImGui.TextUnformatted(player.LastSeen.ToShortDateString());
 
             ImGui.TableNextColumn();
-            ImGui.Text(player.LastSeenLocation);
+            ImGui.TextUnformatted(player.LastSeenLocation);
 
             var note = player.Note;
             ImGui.TableNextColumn();

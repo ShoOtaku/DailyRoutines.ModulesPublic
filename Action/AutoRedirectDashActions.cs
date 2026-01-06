@@ -65,7 +65,7 @@ public class AutoRedirectDashActions : DailyModuleBase
             
             ImGui.SameLine();
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (2f * GlobalFontScale));
-            ImGui.Text($"{data.Name.ToString()}");
+            ImGui.TextUnformatted($"{data.Name.ToString()}");
         }
     }
 

@@ -125,12 +125,12 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
                 }
             }
             
-            ImGui.Text(ControlModes[ModuleConfig.ControlMode].Desc);
+            ImGui.TextUnformatted(ControlModes[ModuleConfig.ControlMode].Desc);
 
             if (ModuleConfig.ControlMode == ControlMode.KeyRightClick)
             {
                 ImGui.AlignTextToFramePadding();
-                ImGui.Text($"{GetLoc("RightClickToMoveMode-ComboKey")}:");
+                ImGui.TextUnformatted($"{GetLoc("RightClickToMoveMode-ComboKey")}:");
 
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(200f * GlobalFontScale);

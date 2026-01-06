@@ -253,7 +253,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         // 类型
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        ImGui.Text($"{GetLoc("CustomizeGameObject-CustomizeType")}:");
+        ImGui.TextUnformatted($"{GetLoc("CustomizeGameObject-CustomizeType")}:");
 
         ImGui.TableNextColumn();
         if (ImGui.BeginCombo("###CustomizeTypeSelectCombo", typeInput.ToString()))
@@ -273,7 +273,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         // 值
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        ImGui.Text($"{GetLoc("Value")}:");
+        ImGui.TextUnformatted($"{GetLoc("Value")}:");
 
         ImGui.TableNextColumn();
         ImGui.InputText("###CustomizeValueInput", ref valueInput, 128);
@@ -284,7 +284,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         // 缩放
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        ImGui.Text($"{GetLoc("CustomizeGameObject-Scale")}:");
+        ImGui.TextUnformatted($"{GetLoc("CustomizeGameObject-Scale")}:");
 
         ImGui.TableNextColumn();
         ImGui.SliderFloat("###CustomizeScaleSilder", ref scaleInput, 0.1f, 10f, "%.1f");
@@ -298,7 +298,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         // 备注
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        ImGui.Text($"{GetLoc("Note")}:");
+        ImGui.TextUnformatted($"{GetLoc("Note")}:");
 
         ImGui.TableNextColumn();
         ImGui.InputText("###CustomizeNoteInput", ref noteInput, 128);
@@ -313,7 +313,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
     {
         if (gameObject is not ICharacter chara)
         {
-            ImGui.Text(GetLoc("CustomizeGameObject-NoTaretNotice"));
+            ImGui.TextUnformatted(GetLoc("CustomizeGameObject-NoTaretNotice"));
             return;
         }
 
@@ -328,7 +328,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text($"{GetLoc("Name")}");
+        ImGui.TextUnformatted($"{GetLoc("Name")}");
 
         var targetName = chara.Name.ToString();
         ImGui.TableNextColumn();
@@ -339,7 +339,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("Data ID");
+        ImGui.TextUnformatted("Data ID");
 
         var targetDataID = chara.DataID.ToString();
         ImGui.TableNextColumn();
@@ -350,7 +350,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("Object ID");
+        ImGui.TextUnformatted("Object ID");
 
         var targetObjectID = chara.GameObjectID.ToString();
         ImGui.TableNextColumn();
@@ -361,7 +361,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("Model Chara ID");
+        ImGui.TextUnformatted("Model Chara ID");
 
         var targetModelCharaID = chara.ModelCharaID.ToString();
         ImGui.TableNextColumn();
@@ -372,7 +372,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("Model Skeleton ID");
+        ImGui.TextUnformatted("Model Skeleton ID");
 
         var targetSkeletonID = chara.ModelSkeletonID.ToString();
         ImGui.TableNextColumn();
@@ -384,7 +384,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
             ImGui.AlignTextToFramePadding();
-            ImGui.Text("Mount Object ID");
+            ImGui.TextUnformatted("Mount Object ID");
 
             var targetMountObjectID = ((ulong)chara.ToStruct()->Mount.MountObject->GetGameObjectId()).ToString();
             ImGui.TableNextColumn();

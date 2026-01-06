@@ -78,7 +78,7 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
                     title = GetLoc("None");
 
                 ImGui.AlignTextToFramePadding();
-                ImGui.Text($"{i + 1}: {title}");
+                ImGui.TextUnformatted($"{i + 1}: {title}");
                 ImGuiOm.TooltipHover(GetLoc("PartyFinderSettingRecord-Message", title, config.Description));
 
                 ImGui.SameLine();

@@ -195,7 +195,7 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
                     ImGui.SameLine();
                 }
             }
-            ImGui.Text($"{data.Name}");
+            ImGui.TextUnformatted($"{data.Name}");
             
             ImGui.TableNextColumn();
             if (data.JobIcon != null)
@@ -206,10 +206,10 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
                 ImGui.SetCursorPosY(origPosY);
                 ImGui.SameLine();
             }
-            ImGui.Text(data.Job);
+            ImGui.TextUnformatted(data.Job);
             
             ImGui.TableNextColumn();
-            ImGui.Text(data.Location);
+            ImGui.TextUnformatted(data.Location);
             
             ImGui.TableNextColumn();
             using (ImRaii.Disabled())
@@ -237,10 +237,10 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
         }
         
         ImGui.TableNextColumn();
-        ImGui.Text(Lang.Get("Job"));
+        ImGui.TextUnformatted(Lang.Get("Job"));
         
         ImGui.TableNextColumn();
-        ImGui.Text(Lang.Get("FCMemberManagePanel-PositionLastTime"));
+        ImGui.TextUnformatted(Lang.Get("FCMemberManagePanel-PositionLastTime"));
         
         ImGui.TableNextColumn();
         if (ImGuiOm.ButtonIcon("OpenMultiPopup", FontAwesomeIcon.EllipsisH, string.Empty, true))
@@ -271,7 +271,7 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
     {
         if (ImGui.BeginPopupContextItem($"{data.ContentID}_Popup"))
         {
-            ImGui.Text($"{data.Name}");
+            ImGui.TextUnformatted($"{data.Name}");
         
             ImGui.Separator();
             ImGui.Spacing();
@@ -304,7 +304,7 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
     {
         if (ImGui.BeginPopupContextItem("Multi_Popup"))
         {
-            ImGui.Text(Lang.Get("FCMemberManagePanel-SelectedMembers", SelectedMembers.Count));
+            ImGui.TextUnformatted(Lang.Get("FCMemberManagePanel-SelectedMembers", SelectedMembers.Count));
         
             ImGui.Separator();
             ImGui.Spacing();

@@ -107,10 +107,10 @@ public class MoreMessageFilterPresets : DailyModuleBase
         }
 
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("Name"));
+        ImGui.TextUnformatted(GetLoc("Name"));
 
         ImGui.TableNextColumn();
-        ImGui.Text(GetLoc("MoreMessageFilterPresets-TargetTab"));
+        ImGui.TextUnformatted(GetLoc("MoreMessageFilterPresets-TargetTab"));
 
         for (var i = 0; i < ModuleConfig.Presets.Count; i++)
         {

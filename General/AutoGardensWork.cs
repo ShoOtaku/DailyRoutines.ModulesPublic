@@ -103,7 +103,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
             SaveConfig(ModuleConfig);
         
         ImGui.SameLine();
-        ImGui.Text(LuminaWrapper.GetAddonText(6412));
+        ImGui.TextUnformatted(LuminaWrapper.GetAddonText(6412));
 
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
         using (ImRaii.PushId("SoilSelectCombo"))
@@ -131,7 +131,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
         }
         
         ImGui.SameLine();
-        ImGui.Text(LuminaWrapper.GetAddonText(6411));
+        ImGui.TextUnformatted(LuminaWrapper.GetAddonText(6411));
     }
 
     private void DrawAutoGather()
@@ -197,7 +197,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
             ModuleConfig.Save(this);
         
         ImGui.SameLine();
-        ImGui.Text(LuminaWrapper.GetAddonText(6417));
+        ImGui.TextUnformatted(LuminaWrapper.GetAddonText(6417));
     }
     
     private void DrawAutoTend()

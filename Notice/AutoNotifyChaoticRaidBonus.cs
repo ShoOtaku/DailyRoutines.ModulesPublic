@@ -73,7 +73,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
 
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
-            ImGui.Text($"{name}");
+            ImGui.TextUnformatted($"{name}");
             
             var enabled = isEnabled;
             ImGui.TableNextColumn();
@@ -84,7 +84,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
             }
             
             ImGui.TableNextColumn();
-            ImGui.Text($"{DateTimeOffset.FromUnixTimeSeconds(timeUnix).LocalDateTime}");
+            ImGui.TextUnformatted($"{DateTimeOffset.FromUnixTimeSeconds(timeUnix).LocalDateTime}");
         }
     }
 

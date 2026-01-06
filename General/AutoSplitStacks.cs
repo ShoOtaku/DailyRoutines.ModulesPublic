@@ -69,7 +69,7 @@ public unsafe class AutoSplitStacks : DailyModuleBase
         var isOpen = true;
         if (ImGui.BeginPopupModal(popupName, ref isOpen, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar))
         {
-            ImGui.Text($"{Lang.Get("AutoSplitStacks-PleaseInputSplitAmount")}:");
+            ImGui.TextUnformatted($"{Lang.Get("AutoSplitStacks-PleaseInputSplitAmount")}:");
 
             ImGui.SetNextItemWidth(150f * GlobalFontScale);
             if (ImGui.InputInt("###FastSplitAmountInput", ref SplitAmountInput))
@@ -100,7 +100,7 @@ public unsafe class AutoSplitStacks : DailyModuleBase
         ImGui.TextColored(KnownColor.LightBlue.ToVector4(), $"{GetLoc("Command")}:");
 
         ImGui.SameLine();
-        ImGui.Text($"{Command} → {GetLoc("AutoSplitStacks-CommandHelp")}");
+        ImGui.TextUnformatted($"{Command} → {GetLoc("AutoSplitStacks-CommandHelp")}");
 
         ImGui.Spacing();
 

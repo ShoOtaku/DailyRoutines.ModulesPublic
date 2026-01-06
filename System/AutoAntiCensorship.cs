@@ -169,7 +169,7 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
         ImGui.NewLine();
         
         ImGui.AlignTextToFramePadding();
-        ImGui.Text("自定义替换规则");
+        ImGui.TextUnformatted("自定义替换规则");
         
         ImGui.SameLine();
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, "添加"))

@@ -174,10 +174,10 @@ public unsafe class QuickChatPanel : DailyModuleBase
                     using var id = ImRaii.PushId($"{seNote.Key}");
                     
                     ImGui.AlignTextToFramePadding();
-                    ImGui.Text($"<se.{seNote.Key}>{(seNote.Key < 10 ? "  " : "")}");
+                    ImGui.TextUnformatted($"<se.{seNote.Key}>{(seNote.Key < 10 ? "  " : "")}");
 
                     ImGui.SameLine();
-                    ImGui.Text("——>");
+                    ImGui.TextUnformatted("——>");
 
                     var note = seNote.Value;
                     ImGui.SameLine();
@@ -317,7 +317,7 @@ public unsafe class QuickChatPanel : DailyModuleBase
             using var child = ImRaii.Child($"{(isIndividual ? "Individual" : "Shared")}MacroSelectChild", childSize);
             if (!child) return;
 
-            ImGui.Text(GetLoc($"QuickChatPanel-{(isIndividual ? "Individual" : "Shared")}Macros"));
+            ImGui.TextUnformatted(GetLoc($"QuickChatPanel-{(isIndividual ? "Individual" : "Shared")}Macros"));
             ImGui.Separator();
 
             var span = isIndividual ? module->Individual : module->Shared;
@@ -356,7 +356,7 @@ public unsafe class QuickChatPanel : DailyModuleBase
                         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("QuickChatPanel-LastUpdateTime")}:");
 
                         ImGui.SameLine();
-                        ImGui.Text($"{ModuleConfig.SavedMacros.Find(x => x.Equals(currentSavedMacro))?.LastUpdateTime}");
+                        ImGui.TextUnformatted($"{ModuleConfig.SavedMacros.Find(x => x.Equals(currentSavedMacro))?.LastUpdateTime}");
 
                         ImGui.Separator();
 
