@@ -24,13 +24,13 @@ public unsafe class MacroPresets : DailyModuleBase
         Author      = ["Rorinnn"]
     };
 
-    private const int    MacrosPerSet   = 100;
-    private const int    MaxMacroLines  = 15;
-    private static readonly string DefaultOption  = LuminaWrapper.GetAddonText(4764); // 未选择
+    private const           int    MACROS_PER_SET  = 100;
+    private const           int    MAX_MACRO_LINES = 15;
+    private static readonly string DefaultOption = LuminaWrapper.GetAddonText(4764); // 未选择
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        WriteIndented = true,
+        WriteIndented          = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
@@ -40,14 +40,14 @@ public unsafe class MacroPresets : DailyModuleBase
 
     private static AddonController? MacroController;
 
-    private static TextNode? LabelNode;
+    private static TextNode?         LabelNode;
     private static TextDropDownNode? PresetDropdownNode;
-    private static TextButtonNode? LoadButtonNode;
-    private static TextButtonNode? SaveButtonNode;
-    private static TextButtonNode? OverwriteButtonNode;
-    private static TextButtonNode? DeleteButtonNode;
+    private static TextButtonNode?   LoadButtonNode;
+    private static TextButtonNode?   SaveButtonNode;
+    private static TextButtonNode?   OverwriteButtonNode;
+    private static TextButtonNode?   DeleteButtonNode;
 
-    private static MacroPresetsInputAddon? InputDialog;
+    private static MacroPresetsInputAddon?   InputDialog;
     private static MacroPresetsConfirmAddon? ConfirmDialog;
 
     protected override void Init()
@@ -58,24 +58,22 @@ public unsafe class MacroPresets : DailyModuleBase
 
         InputDialog = new MacroPresetsInputAddon
         {
-            Size = new Vector2(300.0f, 150.0f),
+            Size         = new Vector2(300.0f, 150.0f),
             InternalName = "DRMacroPresetsInputDialog",
-            Title = $"Daily Routines {Info.Title}",
-            DepthLayer = 6,
+            Title        = $"Daily Routines {Info.Title}",
+            DepthLayer   = 6
         };
 
         ConfirmDialog = new MacroPresetsConfirmAddon
         {
-            Size = new Vector2(300.0f, 130.0f),
+            Size         = new Vector2(300.0f, 130.0f),
             InternalName = "DRMacroPresetsConfirmDialog",
-            Title = $"Daily Routines {Info.Title}",
-            DepthLayer = 6,
+            Title        = $"Daily Routines {Info.Title}",
+            DepthLayer   = 6
         };
 
         MacroController = new AddonController("Macro");
-
         MacroController.OnAttach += OnAddonAttach;
-
         MacroController.OnDetach += OnAddonDetach;
 
         MacroController.Enable();
@@ -83,6 +81,9 @@ public unsafe class MacroPresets : DailyModuleBase
 
     protected override void Uninit()
     {
+        MacroController?.Dispose();
+        MacroController = null;
+        
         OnAddonDetach(null);
 
         InputDialog?.Dispose();
@@ -91,10 +92,8 @@ public unsafe class MacroPresets : DailyModuleBase
         ConfirmDialog?.Dispose();
         ConfirmDialog = null;
 
-        MacroController?.Dispose();
-        MacroController = null;
-
-        SaveConfig(ModuleConfig);
+        if (ModuleConfig != null)
+            SaveConfig(ModuleConfig);
     }
 
     protected override void ConfigUI()
@@ -113,6 +112,7 @@ public unsafe class MacroPresets : DailyModuleBase
         if (addon == null) return;
 
         var node115 = addon->GetNodeById(115);
+
         if (node115 != null)
         {
             node115->X = 454f;
@@ -120,6 +120,7 @@ public unsafe class MacroPresets : DailyModuleBase
         }
 
         var node116 = addon->GetNodeById(116);
+
         if (node116 != null)
         {
             node116->X = 521f;
@@ -128,67 +129,67 @@ public unsafe class MacroPresets : DailyModuleBase
 
         LabelNode = new TextNode
         {
-            Position = new Vector2(10.0f, 517.0f),
+            Position      = new Vector2(10.0f, 517.0f),
             AlignmentType = AlignmentType.Left,
-            FontSize = 12,
-            FontType = FontType.Axis,
-            TextFlags = TextFlags.Emboss | TextFlags.AutoAdjustNodeSize,
-            TextColor = new Vector4(1, 1, 1, 1),
-            String = $"Daily Routines {Info.Title}",
+            FontSize      = 12,
+            FontType      = FontType.Axis,
+            TextFlags     = TextFlags.Emboss | TextFlags.AutoAdjustNodeSize,
+            TextColor     = new Vector4(1, 1, 1, 1),
+            String        = $"Daily Routines {Info.Title}"
         };
         LabelNode.AttachNode(addon);
 
         PresetDropdownNode = new TextDropDownNode
         {
-            Position = new Vector2(10.0f, 525.0f),
-            Size = new Vector2(130.0f, 26.0f),
-            MaxListOptions = 10,
-            Options = GetPresetNames(),
-            TextTooltip = GetLoc("MacroPresets-Tooltip-SelectPreset"),
-            OnOptionSelected = OnPresetSelected,
+            Position         = new Vector2(10.0f,  525.0f),
+            Size             = new Vector2(130.0f, 26.0f),
+            MaxListOptions   = 10,
+            Options          = GetPresetNames(),
+            TextTooltip      = GetLoc("MacroPresets-Tooltip-SelectPreset"),
+            OnOptionSelected = OnPresetSelected
         };
         PresetDropdownNode.AttachNode(addon);
 
         LoadButtonNode = new TextButtonNode
         {
-            Position = new Vector2(140.0f, 524.0f),
-            Size = new Vector2(60.0f, 30.0f),
-            String = LuminaWrapper.GetAddonText(6140), // 读取
-            OnClick = OnLoadPreset,
-            IsEnabled = false,
+            Position  = new Vector2(140.0f, 524.0f),
+            Size      = new Vector2(60.0f,  30.0f),
+            String    = LuminaWrapper.GetAddonText(6140), // 读取
+            OnClick   = OnLoadPreset,
+            IsEnabled = false
         };
         LoadButtonNode.CollisionNode.TextTooltip = GetLoc("MacroPresets-Tooltip-ActionPreset", LuminaWrapper.GetAddonText(6140));
         LoadButtonNode.AttachNode(addon);
 
         OverwriteButtonNode = new TextButtonNode
         {
-            Position = new Vector2(200.0f, 524.0f),
-            Size = new Vector2(60.0f, 30.0f),
-            String = GetLoc("Overwrite"),
-            OnClick = OnOverwritePreset,
-            IsEnabled = false,
+            Position  = new Vector2(200.0f, 524.0f),
+            Size      = new Vector2(60.0f,  30.0f),
+            String    = GetLoc("Overwrite"),
+            OnClick   = OnOverwritePreset,
+            IsEnabled = false
         };
         OverwriteButtonNode.CollisionNode.TextTooltip = GetLoc("MacroPresets-Tooltip-ActionPreset", GetLoc("Overwrite"));
         OverwriteButtonNode.AttachNode(addon);
 
         DeleteButtonNode = new TextButtonNode
         {
-            Position = new Vector2(260.0f, 524.0f),
-            Size = new Vector2(60.0f, 30.0f),
-            String = LuminaWrapper.GetAddonText(68), // 删除
-            OnClick = OnDeletePreset,
-            IsEnabled = false,
+            Position  = new Vector2(260.0f, 524.0f),
+            Size      = new Vector2(60.0f,  30.0f),
+            String    = LuminaWrapper.GetAddonText(68), // 删除
+            OnClick   = OnDeletePreset,
+            IsEnabled = false
         };
         DeleteButtonNode.CollisionNode.TextTooltip = GetLoc("MacroPresets-Tooltip-ActionPreset", LuminaWrapper.GetAddonText(68));
         DeleteButtonNode.AttachNode(addon);
 
         SaveButtonNode = new TextButtonNode
         {
-            Position = new Vector2(320.0f, 524.0f),
-            Size = new Vector2(60.0f, 30.0f),
-            String = LuminaWrapper.GetAddonText(552), // 保存
-            OnClick = OnSavePreset,
-            IsEnabled = true,
+            Position  = new Vector2(320.0f, 524.0f),
+            Size      = new Vector2(60.0f,  30.0f),
+            String    = LuminaWrapper.GetAddonText(552), // 保存
+            OnClick   = OnSavePreset,
+            IsEnabled = true
         };
         SaveButtonNode.CollisionNode.TextTooltip = GetLoc("MacroPresets-Tooltip-SaveNewPreset");
         SaveButtonNode.AttachNode(addon);
@@ -245,10 +246,10 @@ public unsafe class MacroPresets : DailyModuleBase
         if (InputDialog == null) return;
 
         InputDialog.PlaceholderString = GetLoc("MacroPresets-Input-PresetName");
-        InputDialog.DefaultString = string.Empty;
+        InputDialog.DefaultString     = string.Empty;
         InputDialog.OnInputComplete = newName =>
         {
-            SavePreset(newName, false);
+            SavePreset(newName);
 
             if (PresetDropdownNode != null)
                 PresetDropdownNode.Options = GetPresetNames();
@@ -267,7 +268,7 @@ public unsafe class MacroPresets : DailyModuleBase
 
         if (ModuleConfig.ConfirmOverwrite && ConfirmDialog != null)
         {
-            ConfirmDialog.Message = GetLoc("MacroPresets-Confirm-ActionPreset", GetLoc("Overwrite"), selectedPreset);
+            ConfirmDialog.Message   = GetLoc("MacroPresets-Confirm-ActionPreset", GetLoc("Overwrite"), selectedPreset);
             ConfirmDialog.OnConfirm = () => SavePreset(selectedPreset, true);
             ConfirmDialog.Toggle();
         }
@@ -292,7 +293,7 @@ public unsafe class MacroPresets : DailyModuleBase
 
                 if (PresetDropdownNode != null)
                 {
-                    PresetDropdownNode.Options = GetPresetNames();
+                    PresetDropdownNode.Options        = GetPresetNames();
                     PresetDropdownNode.SelectedOption = DefaultOption;
                 }
 
@@ -311,7 +312,7 @@ public unsafe class MacroPresets : DailyModuleBase
 
             if (PresetDropdownNode != null)
             {
-                PresetDropdownNode.Options = GetPresetNames();
+                PresetDropdownNode.Options        = GetPresetNames();
                 PresetDropdownNode.SelectedOption = DefaultOption;
             }
 
@@ -334,9 +335,10 @@ public unsafe class MacroPresets : DailyModuleBase
         if (macroModule == null) return;
 
         var directory = GetPresetDirectory();
-        var filePath = Path.Combine(directory.FullName, $"{presetName}.json");
+        var filePath  = Path.Combine(directory.FullName, $"{presetName}.json");
 
-        DateTime createdAt = DateTime.Now;
+        var createdAt = DateTime.Now;
+
         if (isOverwrite && File.Exists(filePath))
         {
             try
@@ -354,9 +356,9 @@ public unsafe class MacroPresets : DailyModuleBase
 
         var presetData = new PresetData
         {
-            CreatedAt = createdAt,
+            CreatedAt        = createdAt,
             IndividualMacros = ReadMacrosFromMemory(macroModule, 0),
-            SharedMacros = ReadMacrosFromMemory(macroModule, 1)
+            SharedMacros     = ReadMacrosFromMemory(macroModule, 1)
         };
 
         var json = JsonSerializer.Serialize(presetData, JsonOptions);
@@ -371,11 +373,11 @@ public unsafe class MacroPresets : DailyModuleBase
         if (macroModule == null) return;
 
         var directory = GetPresetDirectory();
-        var filePath = Path.Combine(directory.FullName, $"{presetName}.json");
+        var filePath  = Path.Combine(directory.FullName, $"{presetName}.json");
 
         if (!File.Exists(filePath)) return;
 
-        var json = File.ReadAllText(filePath);
+        var json       = File.ReadAllText(filePath);
         var presetData = JsonSerializer.Deserialize<PresetData>(json);
 
         if (presetData == null) return;
@@ -397,7 +399,7 @@ public unsafe class MacroPresets : DailyModuleBase
         if (presetName == DefaultOption) return;
 
         var directory = GetPresetDirectory();
-        var filePath = Path.Combine(directory.FullName, $"{presetName}.json");
+        var filePath  = Path.Combine(directory.FullName, $"{presetName}.json");
 
         if (!File.Exists(filePath)) return;
 
@@ -408,7 +410,7 @@ public unsafe class MacroPresets : DailyModuleBase
     {
         List<MacroData> macros = [];
 
-        for (uint i = 0; i < MacrosPerSet; i++)
+        for (uint i = 0; i < MACROS_PER_SET; i++)
         {
             var macro = macroModule->GetMacro(set, i);
             if (macro == null) continue;
@@ -416,11 +418,11 @@ public unsafe class MacroPresets : DailyModuleBase
             var macroData = new MacroData
             {
                 IconID = macro->IconId,
-                Name = macro->Name.ToString(),
-                Lines = []
+                Name   = macro->Name.ToString(),
+                Lines  = []
             };
 
-            for (var lineIdx = 0; lineIdx < MaxMacroLines; lineIdx++)
+            for (var lineIdx = 0; lineIdx < MAX_MACRO_LINES; lineIdx++)
             {
                 var line = macro->Lines[lineIdx].ToString();
                 macroData.Lines.Add(line);
@@ -434,7 +436,7 @@ public unsafe class MacroPresets : DailyModuleBase
 
     private static void WriteMacrosToMemory(RaptureMacroModule* macroModule, uint set, List<MacroData> macrosData)
     {
-        for (uint i = 0; i < MacrosPerSet && i < macrosData.Count; i++)
+        for (uint i = 0; i < MACROS_PER_SET && i < macrosData.Count; i++)
         {
             var macro = macroModule->GetMacro(set, i);
             if (macro == null) continue;
@@ -447,7 +449,7 @@ public unsafe class MacroPresets : DailyModuleBase
 
             macro->Name.SetString(data.Name);
 
-            for (var lineIdx = 0; lineIdx < MaxMacroLines && lineIdx < data.Lines.Count; lineIdx++)
+            for (var lineIdx = 0; lineIdx < MAX_MACRO_LINES && lineIdx < data.Lines.Count; lineIdx++)
                 macro->Lines[lineIdx].SetString(data.Lines[lineIdx]);
         }
     }
@@ -461,12 +463,14 @@ public unsafe class MacroPresets : DailyModuleBase
         var directory = GetPresetDirectory();
 
         List<(string Name, DateTime CreatedAt)> presetList = [];
+
         foreach (var file in directory.EnumerateFiles("*.json"))
         {
             try
             {
-                var json = File.ReadAllText(file.FullName);
+                var json   = File.ReadAllText(file.FullName);
                 var preset = JsonSerializer.Deserialize<PresetData>(json);
+
                 if (preset != null)
                 {
                     var fileName = Path.GetFileNameWithoutExtension(file.Name);
@@ -499,25 +503,25 @@ public unsafe class MacroPresets : DailyModuleBase
 
     private class MacroPresetsInputAddon : NativeAddon
     {
-        private TextInputNode? inputNode;
+        private TextInputNode?  inputNode;
         private TextButtonNode? confirmButton;
         private TextButtonNode? cancelButton;
 
-        public Action<string>? OnInputComplete { get; set; }
-        public string PlaceholderString { get; set; } = string.Empty;
-        public string DefaultString { get; set; } = string.Empty;
+        public Action<string>? OnInputComplete   { get; set; }
+        public string          PlaceholderString { get; set; } = string.Empty;
+        public string          DefaultString     { get; set; } = string.Empty;
 
-        protected override unsafe void OnSetup(AtkUnitBase* addon)
+        protected override void OnSetup(AtkUnitBase* addon)
         {
             SetWindowSize(300.0f, 150.0f);
 
             inputNode = new TextInputNode
             {
-                Position = ContentStartPosition + new Vector2(0.0f, ContentPadding.Y),
-                Size = new Vector2(ContentSize.X, 28.0f),
+                Position          = ContentStartPosition + new Vector2(0.0f, ContentPadding.Y),
+                Size              = new Vector2(ContentSize.X, 28.0f),
                 PlaceholderString = PlaceholderString,
-                String = DefaultString,
-                AutoSelectAll = true,
+                String            = DefaultString,
+                AutoSelectAll     = true
             };
             inputNode.AttachNode(this);
 
@@ -527,8 +531,8 @@ public unsafe class MacroPresets : DailyModuleBase
             confirmButton = new TextButtonNode
             {
                 Position = new Vector2(ContentStartPosition.X, targetYPos),
-                Size = buttonSize,
-                String = LuminaWrapper.GetAddonText(1), // 确定
+                Size     = buttonSize,
+                String   = LuminaWrapper.GetAddonText(1), // 确定
                 OnClick = () =>
                 {
                     if (inputNode != null && !string.IsNullOrWhiteSpace(inputNode.String))
@@ -536,16 +540,16 @@ public unsafe class MacroPresets : DailyModuleBase
                         OnInputComplete?.Invoke(inputNode.String);
                         Close();
                     }
-                },
+                }
             };
             confirmButton.AttachNode(this);
 
             cancelButton = new TextButtonNode
             {
                 Position = new Vector2(ContentSize.X - buttonSize.X + ContentPadding.X, targetYPos),
-                Size = buttonSize,
-                String = LuminaWrapper.GetAddonText(2), // 取消
-                OnClick = Close,
+                Size     = buttonSize,
+                String   = LuminaWrapper.GetAddonText(2), // 取消
+                OnClick  = Close
             };
             cancelButton.AttachNode(this);
         }
@@ -553,26 +557,26 @@ public unsafe class MacroPresets : DailyModuleBase
 
     private class MacroPresetsConfirmAddon : NativeAddon
     {
-        private TextNode? messageNode;
+        private TextNode?       messageNode;
         private TextButtonNode? confirmButton;
         private TextButtonNode? cancelButton;
 
         public Action? OnConfirm { get; set; }
-        public string Message { get; set; } = string.Empty;
+        public string  Message   { get; set; } = string.Empty;
 
-        protected override unsafe void OnSetup(AtkUnitBase* addon)
+        protected override void OnSetup(AtkUnitBase* addon)
         {
             SetWindowSize(300.0f, 130.0f);
 
             messageNode = new TextNode
             {
-                Position = ContentStartPosition + new Vector2(0.0f, ContentPadding.Y),
+                Position      = ContentStartPosition + new Vector2(0.0f, ContentPadding.Y),
                 AlignmentType = AlignmentType.Left,
-                FontSize = 14,
-                FontType = FontType.Axis,
-                TextFlags = TextFlags.Emboss | TextFlags.AutoAdjustNodeSize | TextFlags.MultiLine,
-                TextColor = new Vector4(1, 1, 1, 1),
-                String = Message,
+                FontSize      = 14,
+                FontType      = FontType.Axis,
+                TextFlags     = TextFlags.Emboss | TextFlags.AutoAdjustNodeSize | TextFlags.MultiLine,
+                TextColor     = new Vector4(1, 1, 1, 1),
+                String        = Message
             };
             messageNode.AttachNode(this);
 
@@ -582,22 +586,22 @@ public unsafe class MacroPresets : DailyModuleBase
             confirmButton = new TextButtonNode
             {
                 Position = new Vector2(ContentStartPosition.X, targetYPos),
-                Size = buttonSize,
-                String = LuminaWrapper.GetAddonText(1), // 确定
+                Size     = buttonSize,
+                String   = LuminaWrapper.GetAddonText(1), // 确定
                 OnClick = () =>
                 {
                     OnConfirm?.Invoke();
                     Close();
-                },
+                }
             };
             confirmButton.AttachNode(this);
 
             cancelButton = new TextButtonNode
             {
                 Position = new Vector2(ContentSize.X - buttonSize.X + ContentPadding.X, targetYPos),
-                Size = buttonSize,
-                String = LuminaWrapper.GetAddonText(2), // 取消
-                OnClick = Close,
+                Size     = buttonSize,
+                String   = LuminaWrapper.GetAddonText(2), // 取消
+                OnClick  = Close
             };
             cancelButton.AttachNode(this);
         }
