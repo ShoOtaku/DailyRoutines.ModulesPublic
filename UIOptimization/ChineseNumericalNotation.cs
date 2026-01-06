@@ -1,4 +1,6 @@
 ﻿using DailyRoutines.Abstracts;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.System.String;
@@ -31,9 +33,9 @@ public unsafe class ChineseNumericalNotation : DailyModuleBase
             0x90, 0x90, 0x90, 0x90
         ]);
     
-    private static readonly CompSig FormatNumberSig = new("E8 ?? ?? ?? ?? 44 3B F7");
-    private delegate Utf8String* FormatNumberDelegate(ref Utf8String* outNumberString, int number, int baseNumber, int mode, char* seperator);
-    private static Hook<FormatNumberDelegate>? FormatNumberHook;
+    private static readonly CompSig                     FormatNumberSig = new("E8 ?? ?? ?? ?? 44 3B F7");
+    private delegate        Utf8String*                 FormatNumberDelegate(Utf8String* outNumberString, int number, int baseNumber, int mode, void* seperator);
+    private static          Hook<FormatNumberDelegate>? FormatNumberHook;
 
     private static readonly CompSig AtkCounterNodeSetNumberSig =
         new("40 53 48 83 EC ?? 48 8B C2 48 8B D9 48 85 C0");
@@ -142,9 +144,9 @@ public unsafe class ChineseNumericalNotation : DailyModuleBase
     protected override void Uninit() => 
         AtkTextNodeSetNumberCommaPatch.Dispose();
 
-    private static Utf8String* FormatNumberDetour(ref Utf8String* outNumberString, int number, int baseNumber, int mode, char* seperator)
+    private static Utf8String* FormatNumberDetour(Utf8String* outNumberString, int number, int baseNumber, int mode, void* seperator)
     {
-        var ret = FormatNumberHook.Original(ref outNumberString, number, baseNumber, mode, seperator);
+        var ret = FormatNumberHook.Original(outNumberString, number, baseNumber, mode, seperator);
         
         if (baseNumber % 10 == 0)
         {
@@ -160,10 +162,7 @@ public unsafe class ChineseNumericalNotation : DailyModuleBase
                                         ? number.ToChineseSeString(minusColor, unitColor)
                                         : number.ToMyriadString();
 
-                    using var builder = new RentedSeStringBuilder();
-                    
-                    var returnString = Utf8String.FromSequence(builder.Builder.Append(formatted).GetViewAsSpan());
-                    outNumberString = returnString;
+                    outNumberString = Utf8String.FromSequence(formatted.ToDalamudString().EncodeWithNullTerminator());
                     return outNumberString;
                 }
                 case 2 or 3 or 4 or 5:
@@ -172,11 +171,8 @@ public unsafe class ChineseNumericalNotation : DailyModuleBase
                 default:
                 {
                     var formatted = number.ToMyriadString();
-
-                    using var builder = new RentedSeStringBuilder();
-
-                    var returnString = Utf8String.FromSequence(builder.Builder.Append(formatted).GetViewAsSpan());
-                    outNumberString = returnString;
+                    
+                    outNumberString = Utf8String.FromSequence(new SeString(new TextPayload(formatted)).EncodeWithNullTerminator());
                     return outNumberString;
                 }
             }
