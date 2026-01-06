@@ -649,11 +649,11 @@ public unsafe partial class AutoRetainerWork
                     {
                         if (ImGui.MenuItem(GetLoc("AutoRetainerWork-PriceAdjust-ReturnAllToInventory")))
                             Enumerable.Range(0, marketContainer->Size)
-                                      .ForEach(x => ReturnRetainerMarketItemToInventory((ushort)x, true));
+                                      .ForEach(x => TaskHelper.Enqueue(() => ReturnRetainerMarketItemToInventory((ushort)x, true)));
 
                         if (ImGui.MenuItem(GetLoc("AutoRetainerWork-PriceAdjust-ReturnAllToRetainer")))
                             Enumerable.Range(0, marketContainer->Size)
-                                      .ForEach(x => ReturnRetainerMarketItemToInventory((ushort)x, false));
+                                      .ForEach(x => TaskHelper.Enqueue(() => ReturnRetainerMarketItemToInventory((ushort)x, false)));
                         ImGui.EndMenu();
                     }
                 }
