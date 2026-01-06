@@ -6,7 +6,6 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -57,8 +56,8 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
         var cachedData = ContentFinderDataManager.GetCachedData();
         if (cachedData == null || cachedData.Items.Count == 0) return;
 
-        var lineHeight = ImGui.GetTextLineHeight() - (2 * ImGui.GetStyle().FramePadding.Y);
-
+        using var font = FontManager.UIFont60.Push();
+        
         HideLevelNodes();
         foreach (var item in cachedData.Items)
         {
@@ -69,7 +68,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                 {
                     if (DService.Texture.TryGetFromGameIcon(new(61502), out var explorerTexture))
                     {
-                        if (ImGui.ImageButton(explorerTexture.GetWrapOrEmpty().Handle, new(lineHeight)))
+                        if (ImGui.ImageButton(explorerTexture.GetWrapOrEmpty().Handle, new(item.Height)))
                             CancelDutyApply();
                         ImGuiOm.TooltipHover($"{GetLoc("Cancel")}");
                     }
@@ -84,7 +83,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                         {
                             if (DService.Texture.TryGetFromGameIcon(new(60081), out var joinTexture))
                             {
-                                if (ImGui.ImageButton(joinTexture.GetWrapOrEmpty().Handle, new(lineHeight)))
+                                if (ImGui.ImageButton(joinTexture.GetWrapOrEmpty().Handle, new(item.Height)))
                                 {
                                     ChatManager.SendMessage($"/pdrduty {(cachedData.CurrentTab == 0 ? "r" : "n")} {item.CleanName}");
                                     ChatManager.SendMessage($"/pdrduty {(cachedData.CurrentTab != 0 ? "r" : "n")} {item.CleanName}");
@@ -99,9 +98,9 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                                     if (DService.Texture.TryGetFromGameIcon(new(60648), out var explorerTexture))
                                     {
                                         ImGui.SameLine();
-                                        if (ImGui.ImageButton(explorerTexture.GetWrapOrEmpty().Handle, new(lineHeight)))
+                                        if (ImGui.ImageButton(explorerTexture.GetWrapOrEmpty().Handle, new(item.Height)))
                                             ChatManager.SendMessage($"/pdrduty n {item.CleanName} explorer");
-                                        ImGuiOm.TooltipHover($"{sharedPrefix} ({LuminaGetter.GetRow<Addon>(13038)!.Value.Text.ToString()})");
+                                        ImGuiOm.TooltipHover($"{sharedPrefix} ({LuminaWrapper.GetAddonText(13038)})");
                                     }
                                 }
                                 else
@@ -109,9 +108,9 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                                     if (DService.Texture.TryGetFromGameIcon(new(60641), out var unrestTexture))
                                     {
                                         ImGui.SameLine();
-                                        if (ImGui.ImageButton(unrestTexture.GetWrapOrEmpty().Handle, new(lineHeight)))
+                                        if (ImGui.ImageButton(unrestTexture.GetWrapOrEmpty().Handle, new(item.Height)))
                                             ChatManager.SendMessage($"/pdrduty n {item.CleanName} unrest");
-                                        ImGuiOm.TooltipHover($"{sharedPrefix} ({LuminaGetter.GetRow<Addon>(10008)!.Value.Text.ToString()})\n" +
+                                        ImGuiOm.TooltipHover($"{sharedPrefix} ({LuminaWrapper.GetAddonText(10008)})\n" +
                                                              $"[{GetLoc("FastContentsFinderRegister-HoldConflictKeyToToggle")}]");
                                     }
                                 }
@@ -193,6 +192,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
         public string  Name      { get; init; } = string.Empty;
         public string  Level     { get; init; } = string.Empty;
         public Vector2 Position  { get; init; }
+        public float   Height    { get; init; }
         public bool    IsLocked  { get; init; }
         public bool    IsVisible { get; set; }
         public string  CleanName { get; init; } = string.Empty;
@@ -262,9 +262,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                     var nameNode = (AtkTextNode*)listItemComponent->Component->UldManager.SearchNodeById(5);
                     if (nameNode == null) continue;
 
-                    var name = string.Empty;
-                    try { name = nameNode->NodeText.ToString(); }
-                    catch { name = string.Empty; }
+                    var name = nameNode->NodeText.StringPtr.HasValue ? nameNode->NodeText.ToString() : string.Empty;
                     if (string.IsNullOrWhiteSpace(name)) continue;
 
                     var lockNode = (AtkImageNode*)listItemComponent->Component->UldManager.SearchNodeById(3);
@@ -273,17 +271,17 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                     var levelNode = (AtkTextNode*)listItemComponent->Component->UldManager.SearchNodeById(18);
                     if (levelNode == null) continue;
 
-                    var level = string.Empty;
-                    try { level = levelNode->NodeText.ToString(); }
-                    catch { level = string.Empty; }
+                    var level = levelNode->NodeText.StringPtr.HasValue ? levelNode->NodeText.ToString() : string.Empty;
                     if (string.IsNullOrWhiteSpace(level)) continue;
 
+                    var nodeStateLevel = levelNode->AtkResNode.GetNodeState();
                     var itemData = new ContentFinderItemData
                     {
                         NodeID    = listItemComponent->NodeId,
                         Name      = name,
                         Level     = level,
-                        Position  = new(levelNode->ScreenX + (newData.CurrentTab == 0 ? 8f : -7f), levelNode->ScreenY - 8f),
+                        Position  = nodeStateLevel.TopLeft - new Vector2(0, 9f),
+                        Height    = nodeStateLevel.Height * 0.75f,
                         IsLocked  = lockNode->IsVisible(),
                         IsVisible = levelNode->IsVisible(),
                         CleanName = name.Replace(" ", string.Empty)
