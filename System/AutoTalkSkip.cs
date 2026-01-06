@@ -47,37 +47,37 @@ public unsafe class AutoTalkSkip : DailyModuleBase
     {
         var baseAddress0 = TalkBaseSig0.ScanText();
         
-        TalkHook ??= DService.Hook.HookFromAddress<TalkDelegate>(GetLuaFunctionByName(baseAddress0, "Talk"), TalkDetour);
+        TalkHook ??= DService.Hook.HookFromAddress<TalkDelegate>(baseAddress0.GetLuaFunctionByName("Talk"), TalkDetour);
         TalkHook.Enable();
 
-        TalkAsyncHook ??= DService.Hook.HookFromAddress<TalkDelegate>(GetLuaFunctionByName(baseAddress0, "TalkAsync"), TalkDetour);
+        TalkAsyncHook ??= DService.Hook.HookFromAddress<TalkDelegate>(baseAddress0.GetLuaFunctionByName("TalkAsync"), TalkDetour);
         TalkAsyncHook.Enable();
         
         var baseAddress1 = TalkBaseSig1.ScanText();
         
-        SystemTalkHook ??= DService.Hook.HookFromAddress<TalkDelegate>(GetLuaFunctionByName(baseAddress1, "SystemTalk"), TalkDetour);
+        SystemTalkHook ??= DService.Hook.HookFromAddress<TalkDelegate>(baseAddress1.GetLuaFunctionByName("SystemTalk"), TalkDetour);
         SystemTalkHook.Enable();
         
-        LogMessageNoSkipHook ??= DService.Hook.HookFromAddress<LuaFunctionDelegate>(GetLuaFunctionByName(baseAddress1, "LogMessageNoSkip"), LuaStateTalkDetour);
+        LogMessageNoSkipHook ??= DService.Hook.HookFromAddress<LuaFunctionDelegate>(baseAddress1.GetLuaFunctionByName("LogMessageNoSkip"), LuaStateTalkDetour);
         LogMessageNoSkipHook.Enable();
         
         var baseAddress2 = TalkBaseSig2.ScanText();
         
-        ShortTalkHook ??= DService.Hook.HookFromAddress<TalkDelegate>(GetLuaFunctionByName(baseAddress2, "ShortTalk"), TalkDetour);
+        ShortTalkHook ??= DService.Hook.HookFromAddress<TalkDelegate>(baseAddress2.GetLuaFunctionByName("ShortTalk"), TalkDetour);
         ShortTalkHook.Enable();
         
-        ShortTalkWithLineVoiceHook ??= DService.Hook.HookFromAddress<TalkDelegate>(GetLuaFunctionByName(baseAddress2, "ShortTalkWithLineVoice"), TalkDetour);
+        ShortTalkWithLineVoiceHook ??= DService.Hook.HookFromAddress<TalkDelegate>(baseAddress2.GetLuaFunctionByName("ShortTalkWithLineVoice"), TalkDetour);
         ShortTalkWithLineVoiceHook.Enable();
         
         var baseAddress3 = TalkBaseSig3.ScanText();
         
-        CraftLeveTalkHook ??= DService.Hook.HookFromAddress<LuaFunctionDelegate>(GetLuaFunctionByName(baseAddress3, "CraftLeveTalk"), LuaStateTalkDetour);
+        CraftLeveTalkHook ??= DService.Hook.HookFromAddress<LuaFunctionDelegate>(baseAddress3.GetLuaFunctionByName("CraftLeveTalk"), LuaStateTalkDetour);
         CraftLeveTalkHook.Enable();
         
         var baseAddress4 = TalkBaseSig4.ScanText();
 
         GuildleveAssignmentTalkHook ??=
-            DService.Hook.HookFromAddress<LuaFunctionDelegate>(GetLuaFunctionByName(baseAddress4, "GuildleveAssignmentTalk"), LuaStateTalkDetour);
+            DService.Hook.HookFromAddress<LuaFunctionDelegate>(baseAddress4.GetLuaFunctionByName("GuildleveAssignmentTalk"), LuaStateTalkDetour);
         GuildleveAssignmentTalkHook.Enable();
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "Talk", OnAddon);

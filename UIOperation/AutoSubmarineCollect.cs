@@ -769,9 +769,13 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
         public int GetAvailableCount() => 
             new List<int> { ReturnTime1, ReturnTime2, ReturnTime3, ReturnTime4 }.Count(x => x != 0);
-        
-        public DateTime GetLatestReturnTime() => 
-            UnixSecondToDateTime(new List<int> { ReturnTime1, ReturnTime2, ReturnTime3, ReturnTime4 }.Where(x => x != 0).Max());
+
+        public DateTime GetLatestReturnTime() =>
+            new List<int> { ReturnTime1, ReturnTime2, ReturnTime3, ReturnTime4 }
+                .Where(x => x != 0)
+                .Max()
+                .ToUTCDateTimeFromUnixSeconds()
+                .ToLocalTime();
     }
 
     private record FreeCompanyWorkshopInfo

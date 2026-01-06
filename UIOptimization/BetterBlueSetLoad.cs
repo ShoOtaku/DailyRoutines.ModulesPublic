@@ -30,7 +30,7 @@ public unsafe class BetterBlueSetLoad : DailyModuleBase
     {
         AgentAozNotebookReceiveEventHook ??=
             DService.Hook.HookFromAddress<AgentReceiveEventDelegate>(
-                GetVFuncByName(AgentModule.Instance()->GetAgentByInternalId(AgentId.AozNotebook)->VirtualTable, "ReceiveEvent"),
+                AgentModule.Instance()->GetAgentByInternalId(AgentId.AozNotebook)->VirtualTable->GetVFuncByName("ReceiveEvent"),
                 AgentAozNotebookReceiveEventDetour);
         AgentAozNotebookReceiveEventHook.Enable();
 

@@ -26,10 +26,10 @@ public unsafe class IgnoreTurnAndLookAtWait : DailyModuleBase
     {
         var baseAddress = WaitForBaseSig.ScanText();
 
-        WaitForTurnHook ??= DService.Hook.HookFromAddress<EventSceneScriptDelegate>(GetLuaFunctionByName(baseAddress, "WaitForTurn"), EventSceneScriptDetour);
+        WaitForTurnHook ??= DService.Hook.HookFromAddress<EventSceneScriptDelegate>(baseAddress.GetLuaFunctionByName("WaitForTurn"), EventSceneScriptDetour);
         WaitForTurnHook.Enable();
 
-        WaitForLookAtHook ??= DService.Hook.HookFromAddress<EventSceneScriptDelegate>(GetLuaFunctionByName(baseAddress, "WaitForLookAt"), EventSceneScriptDetour);
+        WaitForLookAtHook ??= DService.Hook.HookFromAddress<EventSceneScriptDelegate>(baseAddress.GetLuaFunctionByName("WaitForLookAt"), EventSceneScriptDetour);
         WaitForLookAtHook.Enable();
     }
     

@@ -101,18 +101,18 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
         var currentCID = AgentLookingForGroup.Instance()->ListingContentId;
         if (currentCID == 0) return;
         
-        if (IsInAnyParty())
+        if (LocalPlayerState.IsInAnyParty)
         {
             taskHelper.Enqueue(() =>
             {
                 if (!Throttler.Throttle("FastJoinAnotherPartyRecruitment-Task", 100)) return false;
-                if (!IsInAnyParty()) return true;
+                if (!LocalPlayerState.IsInAnyParty) return true;
                 
                 ChatManager.SendMessage("/leave");
                 ChatManager.SendMessage("/pcmd breakup");
                 AgentId.PartyMember.SendEvent(0, 2, 3);
                 
-                return !IsInAnyParty();
+                return !LocalPlayerState.IsInAnyParty;
             });
         }
         

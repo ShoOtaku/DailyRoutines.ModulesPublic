@@ -53,7 +53,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
         GameObjectSetRotationHook ??= GameObjectSetRotationSig.GetHook<GameObjectSetRotationDelegate>(GameObjectSetRotationDetour);
         GameObjectSetRotationHook.Enable();
 
-        if (!IsPluginEnabled(vnavmeshIPC.InternalName))
+        if (!DService.PI.IsPluginEnabled(vnavmeshIPC.InternalName))
         {
             ModuleConfig.MoveMode = MoveMode.Game;
             SaveConfig(ModuleConfig);
@@ -94,7 +94,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
             foreach (var moveMode in Enum.GetValues<MoveMode>())
             {
                 using var disabled = ImRaii.Disabled(ModuleConfig.MoveMode == moveMode || 
-                                                     (moveMode == MoveMode.vnavmesh && !IsPluginEnabled(vnavmeshIPC.InternalName)));
+                                                     (moveMode == MoveMode.vnavmesh && !DService.PI.IsPluginEnabled(vnavmeshIPC.InternalName)));
 
                 ImGui.SameLine();
                 if (ImGui.RadioButton(moveMode.ToString(), moveMode == ModuleConfig.MoveMode))
@@ -246,7 +246,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
         if (!DService.Gui.ScreenToWorld(ImGui.GetMousePos(), out var worldPos)) return;
         
         var finalWorldPos = Vector3.Zero;
-        if (IsPluginEnabled(vnavmeshIPC.InternalName) &&
+        if (DService.PI.IsPluginEnabled(vnavmeshIPC.InternalName) &&
             vnavmeshIPC.QueryMeshNearestPoint(worldPos, 3, 10) is { } worldPosByNavmesh)
             finalWorldPos = worldPosByNavmesh;
         else if (MovementManager.TryDetectGroundDownwards(worldPos, out var hitInfo, 1024) ?? false)
@@ -267,7 +267,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
                 PathFindHelper.Enabled         = true;
                 break;
             case MoveMode.vnavmesh:
-                if (!IsPluginEnabled(vnavmeshIPC.InternalName))
+                if (!DService.PI.IsPluginEnabled(vnavmeshIPC.InternalName))
                 {
                     ModuleConfig.MoveMode = MoveMode.Game;
                     ModuleConfig.Save(ModuleManager.GetModule<RightClickToMoveMode>());

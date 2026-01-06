@@ -27,6 +27,8 @@ public partial class OccultCrescentHelper
         private static          HashSet<IslandEventData> AllIslandEvents = [];
         private static readonly HashSet<string>          KnownCENames    = [];
 
+        private static readonly Dictionary<long, DateTime> LocalTimes = [];
+
         private static TaskHelper? CETaskHelper;
 
         public override void Init()
@@ -131,7 +133,7 @@ public partial class OccultCrescentHelper
                             if (ModuleConfig.CEHistory.TryGetValue(GetIslandID(), out var history) &&
                                 history.TryGetValue(ceID, out var time))
                             {
-                                var dateTime = UnixSecondToDateTime(time);
+                                var dateTime = LocalTimes.GetOrAdd(time, _ => time.ToUTCDateTimeFromUnixSeconds().ToLocalTime());
                                 ImGui.Text($"{dateTime.TimeAgo()}\t\t\t({dateTime:MM/dd HH:mm:ss})");
                             }
                             else

@@ -459,7 +459,8 @@ public class AutoReplyChatBot : DailyModuleBase
                         {
                             var message = entries[i];
                             var isUser = message.Role.Equals("user", StringComparison.OrdinalIgnoreCase);
-                            var timestamp = UnixSecondToDateTime(message.Timestamp).ToString("HH:mm:ss");
+                            message.LocalTime ??= message.Timestamp.ToUTCDateTimeFromUnixSeconds().ToLocalTime();
+                            var timestamp = message.LocalTime?.ToString("HH:mm:ss") ?? string.Empty;
 
                             using (ImRaii.PushColor(ImGuiCol.Text, new Vector4(0.90f, 0.85f, 1f, 1f), !isUser))
                             using (ImRaii.PushColor(ImGuiCol.Text, new Vector4(0.85f, 0.90f, 1f, 1f), isUser))
@@ -819,8 +820,8 @@ public class AutoReplyChatBot : DailyModuleBase
                             }
                         }
                         
-                        var dateTime = UnixSecondToDateTime(message.Timestamp);
-                        var timeStr  = dateTime.ToString("HH:mm:ss");
+                        message.LocalTime ??= message.Timestamp.ToUTCDateTimeFromUnixSeconds().ToLocalTime();
+                        var timeStr = message.LocalTime?.ToString("HH:mm:ss") ?? string.Empty;
 
                         using (FontManager.UIFont80.Push())
                             ImGui.TextDisabled($"[{timeStr}] {message.Name}");
@@ -1202,6 +1203,9 @@ public class AutoReplyChatBot : DailyModuleBase
         public string Text      { get; set; } = string.Empty;
         public long   Timestamp { get; set; }
         public string Name      { get; set; } = string.Empty;
+        
+        [JsonIgnore]
+        public DateTime? LocalTime { get; set; }
 
         public ChatMessage() => Timestamp = GameState.ServerTimeUnix;
 

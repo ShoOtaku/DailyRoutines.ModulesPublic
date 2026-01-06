@@ -50,7 +50,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
     protected override void Init()
     {
         AgentSatisfactionListReceiveEventHook ??= DService.Hook.HookFromAddress<AgentReceiveEventDelegate>(
-            GetVFuncByName(AgentModule.Instance()->GetAgentByInternalId(AgentId.SatisfactionList)->VirtualTable, "ReceiveEvent"),
+            AgentModule.Instance()->GetAgentByInternalId(AgentId.SatisfactionList)->VirtualTable->GetVFuncByName("ReceiveEvent"),
             AgentSatisfactionListReceiveEventDetour);
         AgentSatisfactionListReceiveEventHook.Enable();
 

@@ -46,12 +46,12 @@ public unsafe class OptimizedQuickPanel : DailyModuleBase
         ChatManager.RegPreExecuteCommandInner(OnPreExecuteCommandInner);
         
         AgentQuickPanelShowHook = DService.Hook.HookFromAddress<AgentShowDelegate>(
-            GetVFuncByName(AgentQuickPanel.Instance()->VirtualTable, "Show"),
+            AgentQuickPanel.Instance()->VirtualTable->GetVFuncByName("Show"),
             AgentQuickPanelShowDetour);
         AgentQuickPanelShowHook.Enable();
         
         ToggleUIHook = DService.Hook.HookFromAddress<ToggleUIDelegate>(
-            GetVFuncByName(UIModule.Instance()->VirtualTable, "ToggleUi"),
+            UIModule.Instance()->VirtualTable->GetVFuncByName("ToggleUi"),
             ToggleUIDetour);
         ToggleUIHook.Enable(); 
         

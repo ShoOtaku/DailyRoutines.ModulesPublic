@@ -30,7 +30,7 @@ public unsafe class AutoRefuseTrade : DailyModuleBase
         ModuleConfig = LoadConfig<Config>() ?? new();
         
         AgentTradeShowHook ??= DService.Hook.HookFromAddress<AgentShowDelegate>(
-            GetVFuncByName(AgentModule.Instance()->GetAgentByInternalId(AgentId.Trade)->VirtualTable, "Show"),
+            AgentModule.Instance()->GetAgentByInternalId(AgentId.Trade)->VirtualTable->GetVFuncByName("Show"),
             AgentTradeShowDetour);
         AgentTradeShowHook.Enable();
 

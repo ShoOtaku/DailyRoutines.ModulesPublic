@@ -177,7 +177,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     };
                     RecipeCaculationButton.OnClick = () =>
                     {
-                        if (!IsPluginEnabled(RaphaelIPC.InternalName))
+                        if (!DService.PI.IsPluginEnabled(RaphaelIPC.InternalName))
                         {
                             PrintInstallRaphaelPluginMessage();
                             return;
@@ -236,7 +236,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     };
                     SwitchJobButton.OnClick = () =>
                     {
-                        if (!IsPluginEnabled(RaphaelIPC.InternalName))
+                        if (!DService.PI.IsPluginEnabled(RaphaelIPC.InternalName))
                         {
                             PrintInstallRaphaelPluginMessage();
                             return;
@@ -273,7 +273,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         IsVisible = true,
                         OnClick = () =>
                         {
-                            if (!IsPluginEnabled(RaphaelIPC.InternalName))
+                            if (!DService.PI.IsPluginEnabled(RaphaelIPC.InternalName))
                             {
                                 PrintInstallRaphaelPluginMessage();
                                 return;
@@ -384,7 +384,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                             Position  = new(-26, 8f),
                             OnClick = () =>
                             {
-                                if (!IsPluginEnabled(RaphaelIPC.InternalName))
+                                if (!DService.PI.IsPluginEnabled(RaphaelIPC.InternalName))
                                 {
                                     PrintInstallRaphaelPluginMessage();
                                     return;
@@ -547,7 +547,7 @@ public class OptimizedRecipeNote : DailyModuleBase
     private static unsafe void UpdateRecipeAddonButton()
     {
         if (InfosOm.RecipeNote == null) return;
-        if (!IsPluginEnabled(RaphaelIPC.InternalName)) return;
+        if (!DService.PI.IsPluginEnabled(RaphaelIPC.InternalName)) return;
         
         ClearSearchButton.IsVisible = AgentRecipeNote.Instance()->RecipeSearchOpen && LastRecipeID != 0;
         

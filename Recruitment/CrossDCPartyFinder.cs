@@ -77,7 +77,7 @@ public class CrossDCPartyFinder : DailyModuleBase
 
         AgentLookingForGroupReceiveEventHook ??=
             DService.Hook.HookFromAddress<AgentReceiveEventDelegate>(
-                GetVFuncByName(AgentLookingForGroup.Instance()->VirtualTable, "ReceiveEvent"), AgentLookingForGroupReceiveEventDetour);
+                AgentLookingForGroup.Instance()->VirtualTable->GetVFuncByName("ReceiveEvent"), AgentLookingForGroupReceiveEventDetour);
         AgentLookingForGroupReceiveEventHook.Enable();
     }
 

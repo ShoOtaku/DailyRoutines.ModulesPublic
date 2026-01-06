@@ -28,14 +28,14 @@ public unsafe class IgnoreTransparencyWait : DailyModuleBase
         var baseAddress = WaitForBaseSig.ScanText();
 
         WaitForTransparencyHook ??=
-            DService.Hook.HookFromAddress<EventSceneScriptDelegate>(GetLuaFunctionByName(baseAddress, "WaitForTransparency"), EventSceneScriptDetour);
+            DService.Hook.HookFromAddress<EventSceneScriptDelegate>(baseAddress.GetLuaFunctionByName("WaitForTransparency"), EventSceneScriptDetour);
         WaitForTransparencyHook.Enable();
         
-        WaitForMoveHook ??= DService.Hook.HookFromAddress<EventSceneScriptDelegate>(GetLuaFunctionByName(baseAddress, "WaitForMove"), EventSceneScriptDetour);
+        WaitForMoveHook ??= DService.Hook.HookFromAddress<EventSceneScriptDelegate>(baseAddress.GetLuaFunctionByName("WaitForMove"), EventSceneScriptDetour);
         WaitForMoveHook.Enable();
 
         WaitForPathMoveHook ??=
-            DService.Hook.HookFromAddress<EventSceneScriptDelegate>(GetLuaFunctionByName(baseAddress, "WaitForPathMove"), EventSceneScriptDetour);
+            DService.Hook.HookFromAddress<EventSceneScriptDelegate>(baseAddress.GetLuaFunctionByName("WaitForPathMove"), EventSceneScriptDetour);
         WaitForPathMoveHook.Enable();
     }
     

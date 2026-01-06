@@ -23,7 +23,7 @@ public unsafe class FastRidePillion : DailyModuleBase
     protected override void Init()
     {
         AgentContextReceiveEventHook ??=
-            DService.Hook.HookFromAddress<AgentReceiveEventDelegate>(GetVFuncByName(AgentContext.Instance()->VirtualTable, "ReceiveEvent"),
+            DService.Hook.HookFromAddress<AgentReceiveEventDelegate>(AgentContext.Instance()->VirtualTable->GetVFuncByName("ReceiveEvent"),
                                                                      AgentContextReceiveEventDetour);
         AgentContextReceiveEventHook.Enable();
 

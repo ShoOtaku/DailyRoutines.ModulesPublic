@@ -79,7 +79,8 @@ public partial class OccultCrescentHelper
             };
 
             AgentMKDSupportJobShowHook ??= DService.Hook.HookFromAddress<AgentShowDelegate>(
-                GetVFuncByName(AgentMKDSupportJob.Instance()->VirtualTable, "Show"), AgentMKDSupportJobShowDetour);
+                AgentMKDSupportJob.Instance()->VirtualTable->GetVFuncByName("Show"),
+                AgentMKDSupportJobShowDetour);
             AgentMKDSupportJobShowHook.Enable();
         }
 
@@ -303,7 +304,7 @@ public partial class OccultCrescentHelper
                     foreach (var plugin in pluginsNames)
                     {
                         if (string.IsNullOrWhiteSpace(plugin)) continue;
-                        if (!IsPluginEnabled(plugin)) continue;
+                        if (!DService.PI.IsPluginEnabled(plugin)) continue;
 
                         ChatManager.SendMessage($"/xldisableplugin {plugin}");
                     }
@@ -349,7 +350,7 @@ public partial class OccultCrescentHelper
                 foreach (var plugin in pluginsNames)
                 {
                     if (string.IsNullOrWhiteSpace(plugin)) continue;
-                    if (IsPluginEnabled(plugin)) continue;
+                    if (DService.PI.IsPluginEnabled(plugin)) continue;
 
                     ChatManager.SendMessage($"/xlenableplugin {plugin}");
                 }

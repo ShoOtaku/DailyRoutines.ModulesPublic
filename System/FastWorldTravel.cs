@@ -556,7 +556,7 @@ public class FastWorldTravel : DailyModuleBase
         private static readonly Version MinDCTravelerXVersion = new("0.2.3.0");
         
         private static bool IsPluginEnabled => 
-            IsPluginEnabled("DCTravelerX", MinDCTravelerXVersion);
+            DService.PI.IsPluginEnabled("DCTravelerX", MinDCTravelerXVersion);
 
         private static bool IsPluginValid => 
             IsPluginEnabled && IsDCTravelerValid;

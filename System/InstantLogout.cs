@@ -33,7 +33,7 @@ public unsafe class InstantLogout : DailyModuleBase
         SystemMenuExecuteHook.Enable();
 
         AgentCloseMessageShowHook ??= DService.Hook.HookFromAddress<AgentShowDelegate>(
-            GetVFuncByName(AgentModule.Instance()->GetAgentByInternalId(AgentId.CloseMessage)->VirtualTable, "Show"),
+            AgentModule.Instance()->GetAgentByInternalId(AgentId.CloseMessage)->VirtualTable->GetVFuncByName("Show"),
             AgentCloseMessageShowDetour);
         AgentCloseMessageShowHook.Enable();
 

@@ -39,7 +39,7 @@ public unsafe class AutoHighlightFlagMarker : DailyModuleBase
         SetFlagMarkerHook.Enable();
 
         AgentMapReceiveEventHook ??= DService.Hook.HookFromAddress<AgentReceiveEventDelegate>(
-            GetVFuncByName(AgentMap.Instance()->VirtualTable, "ReceiveEvent"),
+            AgentMap.Instance()->VirtualTable->GetVFuncByName("ReceiveEvent"),
             AgentMapReceiveEventDetour);
         AgentMapReceiveEventHook.Enable();
 
