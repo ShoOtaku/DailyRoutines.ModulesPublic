@@ -252,7 +252,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
             };
 
             itemNameInputNode.OnInputComplete = UpdateExchangeItem;
-            itemNameInputNode.OnEditComplete  = () => UpdateExchangeItem(itemNameInputNode.SeString);
+            itemNameInputNode.OnEditComplete  = _ => UpdateExchangeItem(itemNameInputNode.SeString);
             itemNameInputNode.OnUnfocused     = () => UpdateExchangeItem(itemNameInputNode.SeString);
             
             itemNameInputNode.CursorNode.ScaleY        =  1.4f;

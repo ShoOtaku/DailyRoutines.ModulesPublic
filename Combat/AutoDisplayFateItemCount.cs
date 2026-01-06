@@ -136,10 +136,8 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
             TableNode.AttachNode(this);
         }
         
-        public override void Update()
+        protected override void OnUpdate()
         {
-            base.Update();
-
             var currentFate = FateManager.Instance()->CurrentFate;
             if (currentFate == null                                                  ||
                 !LuminaGetter.TryGetRow<Fate>(currentFate->FateId, out var fateData) ||

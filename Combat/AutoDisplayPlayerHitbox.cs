@@ -108,10 +108,8 @@ public unsafe class AutoDisplayPlayerHitbox : DailyModuleBase
             imageNode.Origin = new Vector2(ModuleConfig.Size / 2.0f);
         }
 
-        public override void Update()
+        protected override void OnUpdate()
         {
-            base.Update();
-
             Size = new Vector2(ModuleConfig.Size);
 
             imageNode.Color  = ModuleConfig.Color;
