@@ -652,7 +652,7 @@ public class FastWorldTravel : DailyModuleBase
             }
             
             // 都在后台了就不要 DDOS 拂晓服务器了
-            if (Throttler.Throttle("FastWorldTravel-OnAddonUpdate-RequestQueueTime", GameState.IsForeground ? 15_000 : 60_000))
+            if (Throttler.Throttle("FastWorldTravel-OnAddonUpdate-RequestQueueTime", GameState.IsForeground ? 15_000U : 60_000))
                 RequestWaitTimeInfoUpdate();
             
             if (Throttler.Throttle("FastWorldTravel-OnAddonUpdate-UpdateQueueTime", 1_000))
