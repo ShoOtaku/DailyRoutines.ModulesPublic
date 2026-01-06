@@ -81,7 +81,7 @@ public unsafe class AutoHideBanners : DailyModuleBase
     
     private void RenderBannerButton(uint bannerID, Vector2 tableSize)
     {
-        if (!ImageHelper.TryGetGameLangIcon(bannerID, DService.ClientState.ClientLanguage, out var texture)) return;
+        if (!ImageHelper.TryGetGameLangIcon(bannerID, out var texture)) return;
         
         var size      = (texture.Size * 0.2f).WithX(tableSize.X / 2);
         var cursorPos = ImGui.GetCursorPos();
