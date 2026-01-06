@@ -55,8 +55,6 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
 
         var cachedData = ContentFinderDataManager.GetCachedData();
         if (cachedData == null || cachedData.Items.Count == 0) return;
-
-        using var font = FontManager.UIFont60.Push();
         
         HideLevelNodes();
         foreach (var item in cachedData.Items)
