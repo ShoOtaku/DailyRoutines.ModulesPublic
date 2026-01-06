@@ -162,7 +162,7 @@ public unsafe class ChineseNumericalNotation : DailyModuleBase
                                         ? number.ToChineseSeString(minusColor, unitColor)
                                         : number.ToMyriadString();
 
-                    outNumberString = Utf8String.FromSequence(formatted.ToDalamudString().EncodeWithNullTerminator());
+                    outNumberString->SetString(formatted.ToDalamudString().EncodeWithNullTerminator());
                     return outNumberString;
                 }
                 case 2 or 3 or 4 or 5:
@@ -172,7 +172,7 @@ public unsafe class ChineseNumericalNotation : DailyModuleBase
                 {
                     var formatted = number.ToMyriadString();
                     
-                    outNumberString = Utf8String.FromSequence(new SeString(new TextPayload(formatted)).EncodeWithNullTerminator());
+                    outNumberString->SetString(new SeString(new TextPayload(formatted)).EncodeWithNullTerminator());
                     return outNumberString;
                 }
             }
