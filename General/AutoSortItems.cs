@@ -28,7 +28,7 @@ public class AutoSortItems : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new() { TimeLimitMS = 15_000 };
+        TaskHelper   ??= new() { TimeoutMS = 15_000 };
         
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
@@ -108,7 +108,7 @@ public class AutoSortItems : DailyModuleBase
         TaskHelper.Enqueue(CheckCanSort);
     }
 
-    private bool? CheckCanSort()
+    private bool CheckCanSort()
     {
         if (BetweenAreas || !UIModule.IsScreenReady() || OccupiedInEvent) return false;
         
@@ -138,7 +138,7 @@ public class AutoSortItems : DailyModuleBase
         return !isPVP && (contentData == null || !InvalidContentTypes.Contains(contentData.Value.ContentType.RowId));
     }
 
-    private static bool? SendSortCommand()
+    private static bool SendSortCommand()
     {
         if (BetweenAreas || !UIModule.IsScreenReady() || OccupiedInEvent) return false;
         

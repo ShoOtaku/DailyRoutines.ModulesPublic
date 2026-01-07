@@ -25,7 +25,7 @@ public unsafe class AutoJoinExitDuty : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 15_000 };
+        TaskHelper ??= new() { TimeoutMS = 15_000 };
         
         CommandManager.AddSubCommand("joinexitduty",
                                              new CommandInfo(OnCommand) { HelpMessage = GetLoc("AutoJoinExitDutyTitle") });
@@ -63,16 +63,16 @@ public unsafe class AutoJoinExitDuty : DailyModuleBase
     {
         TaskHelper.Enqueue(CheckAndSwitchJob);
         TaskHelper.Enqueue(() => ContentsFinderHelper.RequestDutyNormal(targetContent,
-                                                              new()
-                                                              {
-                                                                  Config817to820 = true,
-                                                                  UnrestrictedParty = true,
-                                                                  ExplorerMode = isExplorerMode
-                                                              }));
+                                                                        new()
+                                                                        {
+                                                                            Config817to820    = true,
+                                                                            UnrestrictedParty = true,
+                                                                            ExplorerMode      = isExplorerMode
+                                                                        }));
         TaskHelper.Enqueue(() => ExitDuty(targetContent));
     }
 
-    private bool? CheckAndSwitchJob()
+    private bool CheckAndSwitchJob()
     {
         var localPlayer = DService.ObjectTable.LocalPlayer;
         if (localPlayer == null)
@@ -102,7 +102,7 @@ public unsafe class AutoJoinExitDuty : DailyModuleBase
         return true;
     }
 
-    private static bool? ExitDuty(uint targetContent)
+    private static bool ExitDuty(uint targetContent)
     {
         if (GameMain.Instance()->CurrentContentFinderConditionId != targetContent) return false;
 

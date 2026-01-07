@@ -60,7 +60,7 @@ public unsafe class AutoMaterialize : DailyModuleBase
         TaskHelper.Enqueue(StartARound, "开始精炼全部装备");
     }
 
-    private bool? StartARound()
+    private bool StartARound()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         

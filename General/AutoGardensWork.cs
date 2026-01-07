@@ -34,7 +34,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new() { TimeLimitMS = 10_000 };
+        TaskHelper   ??= new() { TimeoutMS = 10_000 };
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "HousingGardening", OnAddon);
 
@@ -386,7 +386,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
         return objectIDs.Count > 0;
     }
 
-    private static bool? CheckFertilizerState()
+    private static bool CheckFertilizerState()
     {
         if (SelectString != null) return false;
 
@@ -396,7 +396,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
                !DService.Condition[ConditionFlag.OccupiedInQuestEvent];
     }
 
-    private bool? ClickFertilizer()
+    private bool ClickFertilizer()
     {
         if (SelectString != null) return false;
         if (!DService.Condition[ConditionFlag.OccupiedInQuestEvent]) return true;
@@ -417,7 +417,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
         return true;
     }
 
-    private static bool? ClickGardenEntryByText(string text)
+    private static bool ClickGardenEntryByText(string text)
     {
         if (!SelectString->IsAddonAndNodesReady())
             return false;

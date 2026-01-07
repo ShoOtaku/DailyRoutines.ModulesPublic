@@ -82,7 +82,7 @@ public class AutoMonsterToss : DailyModuleBase
         TaskHelper.Enqueue(EnqueueNewRound);
     }
     
-    private bool? EnqueueNewRound()
+    private bool EnqueueNewRound()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         if (OccupiedInEvent) return false;
@@ -91,7 +91,7 @@ public class AutoMonsterToss : DailyModuleBase
         return true;
     }
     
-    private static unsafe bool? WaitSelectStringAddon() =>
+    private static unsafe bool WaitSelectStringAddon() =>
         SelectString->IsAddonAndNodesReady() && BasketBall->IsAddonAndNodesReady();
     
     private static unsafe void UpdateSelectStringInfo(string info)

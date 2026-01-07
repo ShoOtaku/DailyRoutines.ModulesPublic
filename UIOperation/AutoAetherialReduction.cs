@@ -48,7 +48,7 @@ public unsafe class AutoAetherialReduction : DailyModuleBase
         return true;
     }
     
-    private bool? StartAetherialReduction()
+    private bool StartAetherialReduction()
     {
         if (IsCurrentEnvironmentInvalid()) return true;
         

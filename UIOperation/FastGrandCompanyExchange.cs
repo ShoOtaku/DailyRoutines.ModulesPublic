@@ -94,7 +94,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
         EnqueueByName(splited[0], itemCount);
     }
 
-    public unsafe bool? EnqueueByName(string itemName, int itemCount = -1)
+    public unsafe bool EnqueueByName(string itemName, int itemCount = -1)
     {
         if (!GrandCompanyExchange->IsAddonAndNodesReady()) return false;
         if (SelectYesno->IsAddonAndNodesReady())

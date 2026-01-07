@@ -39,7 +39,7 @@ public class AutoEliminateFishAwareness : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new() { TimeLimitMS = 30_000, ShowDebug = true };
+        TaskHelper   ??= new() { TimeoutMS = 30_000, ShowDebug = true };
         
         ZoneSelectCombo.SelectedZoneIDs = ModuleConfig.BlacklistZones;
 
@@ -101,8 +101,8 @@ public class AutoEliminateFishAwareness : DailyModuleBase
             TaskHelper.DelayNext(5_000, "等待 5 秒");
             TaskHelper.Enqueue(() => !OccupiedInEvent,                                                           "等待不在钓鱼状态");
             TaskHelper.Enqueue(() => ExitDuty(753),                                                              "离开副本");
-            TaskHelper.Enqueue(() => !BoundByDuty && UIModule.IsScreenReady() && GameState.TerritoryType != 939,          "等待离开副本");
-            TaskHelper.Enqueue(() => ChatManager.SendMessage("/pdrfe diadem"),                                    "发送进入指令");
+            TaskHelper.Enqueue(() => !BoundByDuty && UIModule.IsScreenReady() && GameState.TerritoryType != 939, "等待离开副本");
+            TaskHelper.Enqueue(() => ChatManager.SendMessage("/pdrfe diadem"),                                   "发送进入指令");
             TaskHelper.Enqueue(() => GameState.TerritoryType == 939 && DService.ObjectTable.LocalPlayer != null, "等待进入");
             TaskHelper.Enqueue(() => MovementManager.TPSmart_InZone(currentPos),                                 $"传送到原始位置 {currentPos}");
             TaskHelper.DelayNext(500, "等待 500 毫秒");
@@ -113,9 +113,9 @@ public class AutoEliminateFishAwareness : DailyModuleBase
         {
             TaskHelper.Enqueue(ExitFishing, "离开钓鱼状态");
             TaskHelper.DelayNext(5_000);
-            TaskHelper.Enqueue(() => !OccupiedInEvent, "等待离开忙碌状态");
+            TaskHelper.Enqueue(() => !OccupiedInEvent,                                                   "等待离开忙碌状态");
             TaskHelper.Enqueue(() => RequestDutyNormal(TARGET_CONTENT, new() { Config817to820 = true }), "申请目标副本");
-            TaskHelper.Enqueue(() => ExitDuty(TARGET_CONTENT), "离开目标副本");
+            TaskHelper.Enqueue(() => ExitDuty(TARGET_CONTENT),                                           "离开目标副本");
         }
         else
             return;
@@ -134,7 +134,7 @@ public class AutoEliminateFishAwareness : DailyModuleBase
         }, "执行文本指令");
     }
 
-    private static bool? ExitFishing()
+    private static bool ExitFishing()
     {
         if (!Throttler.Throttle("AutoEliminateFishAwareness-ExitFishing")) return false;
         
@@ -142,7 +142,7 @@ public class AutoEliminateFishAwareness : DailyModuleBase
         return !DService.Condition[ConditionFlag.Fishing];
     }
     
-    private static bool? ExitDuty(uint targetContent)
+    private static bool ExitDuty(uint targetContent)
     {
         if (!Throttler.Throttle("AutoEliminateFishAwareness-ExitDuty")) return false;
         if (GameState.ContentFinderCondition != targetContent) return false;
@@ -152,7 +152,7 @@ public class AutoEliminateFishAwareness : DailyModuleBase
         return true;
     }
     
-    private static bool? EnterFishing()
+    private static bool EnterFishing()
     {
         if (!Throttler.Throttle("AutoEliminateFishAwareness-EnterFishing")) return false;
         if (DService.ObjectTable.LocalPlayer == null || BetweenAreas || !UIModule.IsScreenReady()) return false;

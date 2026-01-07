@@ -7,8 +7,6 @@ using DailyRoutines.Managers;
 using DailyRoutines.Windows;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
-using Dalamud.Interface;
-using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI;
@@ -30,9 +28,9 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
-    private static Config ModuleConfig = null!;
+    private static          Config            ModuleConfig      = null!;
     private static readonly Throttler<string> RetainerThrottler = new();
-    private static readonly HashSet<ulong> PlayerRetainers = [];
+    private static readonly HashSet<ulong>    PlayerRetainers   = [];
 
     private static readonly RetainerWorkerBase[] Workers =
     [
@@ -42,11 +40,11 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
 
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new Config();
-        Overlay ??= new Overlay(this);
-        
+        ModuleConfig =   LoadConfig<Config>() ?? new Config();
+        Overlay      ??= new Overlay(this);
+
         // 雇员列表
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerList", OnRetainerList);
+        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "RetainerList", OnRetainerList);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "RetainerList", OnRetainerList);
 
         foreach (var worker in Workers)
@@ -97,7 +95,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     #region 单独操作
 
     /// <summary>
-    /// 打开指定索引对应的雇员
+    ///     打开指定索引对应的雇员
     /// </summary>
     private static bool EnterRetainer(uint index)
     {
@@ -110,7 +108,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     }
 
     /// <summary>
-    /// 离开雇员界面
+    ///     离开雇员界面
     /// </summary>
     private static bool LeaveRetainer()
     {
@@ -131,7 +129,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     }
 
     /// <summary>
-    /// 根据条件获取符合要求的雇员数量
+    ///     根据条件获取符合要求的雇员数量
     /// </summary>
     private static uint GetValidRetainerCount(Func<RetainerManager.Retainer, bool> predicateFunc, out List<uint> validRetainers)
     {
@@ -141,6 +139,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         if (manager == null) return 0;
 
         var counter = 0U;
+
         for (var i = 0U; i < manager->GetRetainerCount(); i++)
         {
             var retainer = manager->GetRetainerBySortedIndex(i);
@@ -155,20 +154,20 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     }
 
     /// <summary>
-    /// 离开雇员背包界面, 防止右键菜单残留
+    ///     离开雇员背包界面, 防止右键菜单残留
     /// </summary>
     private static bool ExitRetainerInventory()
     {
-        var agent = AgentModule.Instance()->GetAgentByInternalId(AgentId.Retainer);
+        var agent  = AgentModule.Instance()->GetAgentByInternalId(AgentId.Retainer);
         var agent2 = AgentModule.Instance()->GetAgentByInternalId(AgentId.Inventory);
         if (agent == null || agent2 == null || !agent->IsAgentActive()) return false;
 
-        var addon = RaptureAtkUnitManager.Instance()->GetAddonById((ushort)agent->GetAddonId());
+        var addon  = RaptureAtkUnitManager.Instance()->GetAddonById((ushort)agent->GetAddonId());
         var addon2 = RaptureAtkUnitManager.Instance()->GetAddonById((ushort)agent2->GetAddonId());
 
-        if (addon != null) 
+        if (addon != null)
             addon->Close(true);
-        if (addon2 != null) 
+        if (addon2 != null)
             addon2->Callback(-1);
 
         AgentId.Retainer.SendEvent(0, -1);
@@ -176,7 +175,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     }
 
     /// <summary>
-    /// 搜索背包物品
+    ///     搜索背包物品
     /// </summary>
     private static bool TrySearchItemInInventory(uint itemID, bool isHQ, out List<InventoryItem> foundItem)
     {
@@ -184,7 +183,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         var inventoryManager = InventoryManager.Instance();
         if (inventoryManager == null) return false;
 
-        foreach (var type in InventoryTypes)
+        foreach (var type in PlayerInventories)
         {
             var container = inventoryManager->GetInventoryContainer(type);
             if (container == null) return false;
@@ -194,7 +193,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                 var slot = container->GetInventorySlot(i);
                 if (slot == null || slot->ItemId == 0) continue;
                 if (slot->ItemId == itemID &&
-                    (!isHQ || (isHQ && slot->Flags.HasFlag(InventoryItem.ItemFlags.HighQuality))))
+                    (!isHQ || isHQ && slot->Flags.HasFlag(InventoryItem.ItemFlags.HighQuality)))
                     foundItem.Add(*slot);
             }
         }
@@ -203,7 +202,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     }
 
     /// <summary>
-    /// 将雇员 ID 添加至列表
+    ///     将雇员 ID 添加至列表
     /// </summary>
     private static void ObtainPlayerRetainers()
     {
@@ -220,7 +219,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     }
 
     /// <summary>
-    /// 是否有其他 Worker 正在运行
+    ///     是否有其他 Worker 正在运行
     /// </summary>
     private static bool IsAnyOtherWorkerBusy(Type current)
     {
@@ -243,9 +242,9 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     {
         Overlay.IsOpen = type switch
         {
-            AddonEvent.PostSetup => true,
+            AddonEvent.PostSetup   => true,
             AddonEvent.PreFinalize => false,
-            _ => Overlay.IsOpen
+            _                      => Overlay.IsOpen
         };
     }
 
@@ -254,12 +253,12 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     public class TownDispatchWorker : RetainerWorkerBase
     {
         public override bool DrawConfigCondition() => true;
+
         public override bool IsWorkerBusy() => TaskHelper?.IsBusy ?? false;
-        public override string RunningMessage() => TaskHelper?.CurrentTaskName ?? string.Empty;
 
         private static TaskHelper? TaskHelper;
 
-        public override void Init() => TaskHelper ??= new() { TimeLimitMS = 15_000 };
+        public override void Init() => TaskHelper ??= new() { TimeoutMS = 15_000 };
 
         public override void Uninit()
         {
@@ -278,6 +277,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                 out var imageHandle);
             ImGui.SameLine();
             ImGui.TextDisabled(FontAwesomeIcon.InfoCircle.ToIconString());
+
             if (ImGui.IsItemHovered())
             {
                 using (ImRaii.Tooltip())
@@ -290,11 +290,11 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
 
             using var indent = ImRaii.PushIndent();
 
-            if (ImGui.Button(GetLoc("Start"))) 
+            if (ImGui.Button(GetLoc("Start")))
                 EnqueueRetainersDispatch();
 
             ImGui.SameLine();
-            if (ImGui.Button(GetLoc("Stop"))) 
+            if (ImGui.Button(GetLoc("Stop")))
                 TaskHelper.Abort();
         }
 
@@ -313,10 +313,10 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             {
                 var tempI = i;
                 TaskHelper.Enqueue(() =>
-                {
-                    if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                    return ClickSelectString(tempI);
-                }, $"点击第 {tempI} 位雇员, 拉起市场变更请求");
+                                   {
+                                       if (InterruptByConflictKey(TaskHelper, Module)) return true;
+                                       return ClickSelectString(tempI);
+                                   }, $"点击第 {tempI} 位雇员, 拉起市场变更请求");
                 TaskHelper.Enqueue(() =>
                 {
                     if (InterruptByConflictKey(TaskHelper, Module)) return true;
@@ -329,13 +329,14 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     public class GilsWithdrawWorker : RetainerWorkerBase
     {
         public override bool DrawConfigCondition() => false;
+
         public override bool DrawOverlayCondition(string activeAddonName) => activeAddonName == "RetainerList";
+
         public override bool IsWorkerBusy() => TaskHelper?.IsBusy ?? false;
-        public override string RunningMessage() => TaskHelper?.CurrentTaskName ?? string.Empty;
 
         private static TaskHelper? TaskHelper;
 
-        public override void Init() => TaskHelper ??= new() { TimeLimitMS = 15_000 };
+        public override void Init() => TaskHelper ??= new() { TimeoutMS = 15_000 };
 
         public override void Uninit()
         {
@@ -392,7 +393,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                         handler.DepositInput((uint)retainerGils);
                         handler.Confirm();
                     }
-                    
+
                     Bank->Close(true);
                     return true;
                 }, "取出所有的金币");
@@ -408,13 +409,14 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     public class GilsShareWorker : RetainerWorkerBase
     {
         public override bool DrawConfigCondition() => false;
+
         public override bool DrawOverlayCondition(string activeAddonName) => activeAddonName == "RetainerList";
+
         public override bool IsWorkerBusy() => TaskHelper?.IsBusy ?? false;
-        public override string RunningMessage() => TaskHelper?.CurrentTaskName ?? string.Empty;
 
         private static TaskHelper? TaskHelper;
 
-        public override void Init() => TaskHelper ??= new() { TimeLimitMS = 15_000 };
+        public override void Init() => TaskHelper ??= new() { TimeoutMS = 15_000 };
 
         public override void Uninit()
         {
@@ -451,7 +453,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             if (IsAnyOtherWorkerBusy(typeof(GilsShareWorker))) return;
 
             var retainerManager = RetainerManager.Instance();
-            var retainerCount = retainerManager->GetRetainerCount();
+            var retainerCount   = retainerManager->GetRetainerCount();
 
             var totalGilAmount = 0U;
             for (var i = 0U; i < GetValidRetainerCount(_ => true, out _); i++)
@@ -491,35 +493,35 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                 return ClickSelectString(["金币管理", "金幣管理", "Entrust or withdraw gil", "ギルの受け渡し"]);
             }, "选择进入金币管理");
             TaskHelper.Enqueue(() =>
-            {
-                if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                if (!Bank->IsAddonAndNodesReady()) return false;
+                               {
+                                   if (InterruptByConflictKey(TaskHelper, Module)) return true;
+                                   if (!Bank->IsAddonAndNodesReady()) return false;
 
-                var retainerGils = Bank->AtkValues[6].Int;
-                var handler = new ClickBank(Bank);
+                                   var retainerGils = Bank->AtkValues[6].Int;
+                                   var handler      = new ClickBank(Bank);
 
-                if (retainerGils == avgAmount) // 金币恰好相等
-                {
-                    handler.Cancel();
-                    Bank->Close(true);
-                    return true;
-                }
+                                   if (retainerGils == avgAmount) // 金币恰好相等
+                                   {
+                                       handler.Cancel();
+                                       Bank->Close(true);
+                                       return true;
+                                   }
 
-                if (retainerGils > avgAmount) // 雇员金币多于平均值
-                {
-                    handler.DepositInput((uint)(retainerGils - avgAmount));
-                    handler.Confirm();
-                    Bank->Close(true);
-                    return true;
-                }
+                                   if (retainerGils > avgAmount) // 雇员金币多于平均值
+                                   {
+                                       handler.DepositInput((uint)(retainerGils - avgAmount));
+                                       handler.Confirm();
+                                       Bank->Close(true);
+                                       return true;
+                                   }
 
-                // 雇员金币少于平均值
-                handler.Switch();
-                handler.DepositInput((uint)(avgAmount - retainerGils));
-                handler.Confirm();
-                Bank->Close(true);
-                return true;
-            }, $"使用 1 号方法均分 {index} 号雇员的金币");
+                                   // 雇员金币少于平均值
+                                   handler.Switch();
+                                   handler.DepositInput((uint)(avgAmount - retainerGils));
+                                   handler.Confirm();
+                                   Bank->Close(true);
+                                   return true;
+                               }, $"使用 1 号方法均分 {index} 号雇员的金币");
             TaskHelper.Enqueue(() =>
             {
                 if (InterruptByConflictKey(TaskHelper, Module)) return true;
@@ -530,34 +532,34 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         private static void EnqueueRetainersGilShareMethodSecond(uint index)
         {
             TaskHelper.Enqueue(() =>
-            {
-                if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                return EnterRetainer(index);
-            }, $"选择进入 {index} 号雇员");
+                               {
+                                   if (InterruptByConflictKey(TaskHelper, Module)) return true;
+                                   return EnterRetainer(index);
+                               }, $"选择进入 {index} 号雇员");
             TaskHelper.Enqueue(() =>
             {
                 if (InterruptByConflictKey(TaskHelper, Module)) return true;
                 return ClickSelectString(["金币管理", "金幣管理", "Entrust or withdraw gil", "ギルの受け渡し"]);
             }, "选择进入金币管理");
             TaskHelper.Enqueue(() =>
-            {
-                if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                if (!Bank->IsAddonAndNodesReady()) return false;
+                               {
+                                   if (InterruptByConflictKey(TaskHelper, Module)) return true;
+                                   if (!Bank->IsAddonAndNodesReady()) return false;
 
-                var retainerGils = Bank->AtkValues[6].Int;
-                var handler = new ClickBank(Bank);
+                                   var retainerGils = Bank->AtkValues[6].Int;
+                                   var handler      = new ClickBank(Bank);
 
-                if (retainerGils == 0)
-                    handler.Cancel();
-                else
-                {
-                    handler.DepositInput((uint)retainerGils);
-                    handler.Confirm();
-                }
+                                   if (retainerGils == 0)
+                                       handler.Cancel();
+                                   else
+                                   {
+                                       handler.DepositInput((uint)retainerGils);
+                                       handler.Confirm();
+                                   }
 
-                Bank->Close(true);
-                return true;
-            }, $"使用 2 号方法取出 {index} 号雇员的金币");
+                                   Bank->Close(true);
+                                   return true;
+                               }, $"使用 2 号方法取出 {index} 号雇员的金币");
 
             // 回到雇员列表
             TaskHelper.Enqueue(() =>
@@ -571,17 +573,18 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     public class EntrustDupsWorker : RetainerWorkerBase
     {
         public override bool DrawConfigCondition() => false;
+
         public override bool DrawOverlayCondition(string activeAddonName) => activeAddonName == "RetainerList";
+
         public override bool IsWorkerBusy() => TaskHelper?.IsBusy ?? false;
-        public override string RunningMessage() => TaskHelper?.CurrentTaskName ?? string.Empty;
 
         private static TaskHelper? TaskHelper;
 
         public override void Init()
         {
-            TaskHelper ??= new() { TimeLimitMS = 15_000 };
+            TaskHelper ??= new() { TimeoutMS = 15_000 };
 
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerItemTransferList", OnEntrustDupsAddons);
+            DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerItemTransferList",     OnEntrustDupsAddons);
             DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerItemTransferProgress", OnEntrustDupsAddons);
         }
 
@@ -654,6 +657,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         private static void OnEntrustDupsAddons(AddonEvent type, AddonArgs args)
         {
             if (!TaskHelper.IsBusy) return;
+
             switch (args.AddonName)
             {
                 case "RetainerItemTransferList":
@@ -667,6 +671,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                         if (!addon->IsAddonAndNodesReady()) return false;
 
                         var progress = addon->AtkValues[2].Float;
+
                         if (progress == 1)
                         {
                             addon->Callback(-2);
@@ -675,7 +680,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                         }
 
                         return false;
-                    }, "等待同类道具合并提交完成", null, null, 2);
+                    }, "等待同类道具合并提交完成", weight: 2);
                     break;
             }
         }
@@ -684,13 +689,14 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     public class RefreshWorker : RetainerWorkerBase
     {
         public override bool DrawConfigCondition() => false;
+
         public override bool DrawOverlayCondition(string activeAddonName) => activeAddonName == "RetainerList";
+
         public override bool IsWorkerBusy() => TaskHelper?.IsBusy ?? false;
-        public override string RunningMessage() => TaskHelper?.CurrentTaskName ?? string.Empty;
 
         private static TaskHelper? TaskHelper;
 
-        public override void Init() => TaskHelper ??= new() { TimeLimitMS = 15_000 };
+        public override void Init() => TaskHelper ??= new() { TimeoutMS = 15_000 };
 
         public override void Uninit()
         {
@@ -722,10 +728,10 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             validRetainers.ForEach(index =>
             {
                 TaskHelper.Enqueue(() =>
-                {
-                    if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                    return EnterRetainer(index);
-                }, $"选择进入 {index} 号雇员");
+                                   {
+                                       if (InterruptByConflictKey(TaskHelper, Module)) return true;
+                                       return EnterRetainer(index);
+                                   }, $"选择进入 {index} 号雇员");
                 TaskHelper.Enqueue(() =>
                 {
                     if (InterruptByConflictKey(TaskHelper, Module)) return true;
@@ -738,20 +744,21 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     public class CollectWorker : RetainerWorkerBase
     {
         public override bool DrawConfigCondition() => false;
+
         public override bool DrawOverlayCondition(string activeAddonName) => activeAddonName == "RetainerList";
+
         public override bool IsWorkerBusy() => TaskHelper?.IsBusy ?? false;
-        public override string RunningMessage() => TaskHelper?.CurrentTaskName ?? string.Empty;
 
         private static TaskHelper? TaskHelper;
-        
+
         private static readonly string[] VentureCompleteTexts = ["结束", "Complete", "完了"];
-        
+
         public override void Init()
         {
-            TaskHelper ??= new() { TimeLimitMS = 15_000 };
+            TaskHelper ??= new() { TimeoutMS = 15_000 };
 
             DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerList", OnRetainerList);
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "RetainerList", OnRetainerList);
+            DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "RetainerList", OnRetainerList);
         }
 
         public override void Uninit()
@@ -770,7 +777,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
 
             if (ImGui.Checkbox(GetLoc("AutoRetainerWork-Collect-AutoCollect"), ref ModuleConfig.AutoRetainerCollect))
             {
-                if (ModuleConfig.AutoRetainerCollect) 
+                if (ModuleConfig.AutoRetainerCollect)
                     EnqueueRetainersCollect();
                 ModuleConfig.Save(Module);
             }
@@ -817,6 +824,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             var count = GetValidRetainerCount(
                 x => x.VentureId != 0 && x.VentureComplete != 0 && x.VentureComplete + 1 <= serverTime,
                 out var validRetainers);
+
             if (count == 0)
             {
                 if (TaskHelper.IsBusy)
@@ -827,22 +835,23 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             foreach (var index in validRetainers)
             {
                 TaskHelper.Enqueue(() =>
-                {
-                    if (InterruptByConflictKey(TaskHelper, Module)) return true;
-                    return EnterRetainer(index);
-                }, $"选择进入 {index} 号雇员");
+                                   {
+                                       if (InterruptByConflictKey(TaskHelper, Module)) return true;
+                                       return EnterRetainer(index);
+                                   }, $"选择进入 {index} 号雇员");
 
                 TaskHelper.Enqueue(() =>
                 {
                     if (InterruptByConflictKey(TaskHelper, Module)) return true;
                     if (!SelectString->IsAddonAndNodesReady()) return false;
+
                     if (!TryScanSelectStringText(VentureCompleteTexts, out var i))
                     {
                         TaskHelper.Abort();
                         TaskHelper.Enqueue(() => LeaveRetainer(), "回到雇员列表");
                         return true;
                     }
-                    
+
                     return ClickSelectString(i);
                 }, "确认雇员探险完成");
 
@@ -850,7 +859,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                 {
                     if (InterruptByConflictKey(TaskHelper, Module)) return true;
                     if (!RetainerTaskResult->IsAddonAndNodesReady()) return false;
-                    
+
                     RetainerTaskResult->Callback(14);
                     return true;
                 }, "重新派遣雇员探险");
@@ -859,7 +868,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                 {
                     if (InterruptByConflictKey(TaskHelper, Module)) return true;
                     if (!RetainerTaskAsk->IsAddonAndNodesReady()) return false;
-                    
+
                     RetainerTaskAsk->Callback(12);
                     return true;
                 }, "确认派遣雇员探险");
@@ -881,8 +890,6 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
 
         public abstract bool IsWorkerBusy();
 
-        public abstract string RunningMessage();
-
         public virtual bool DrawOverlayCondition(string activeAddonName) => true;
 
         public virtual bool DrawConfigCondition() => true;
@@ -895,7 +902,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
 
         public abstract void Uninit();
     }
-    
+
     public class ClickBank(AtkUnitBase* Addon)
     {
         public void Switch() => Addon->Callback(2, 0);
@@ -911,12 +918,6 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
 
     #region 预定义
 
-    private static readonly InventoryType[] InventoryTypes =
-    [
-        InventoryType.Inventory1, InventoryType.Inventory2, InventoryType.Inventory3,
-        InventoryType.Inventory4
-    ];
-
     public enum AdjustBehavior
     {
         固定值,
@@ -926,13 +927,13 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
     [Flags]
     public enum AbortCondition
     {
-        无 = 1,
-        低于最小值 = 2,
-        低于预期值 = 4,
-        低于收购价 = 8,
+        无        = 1,
+        低于最小值    = 2,
+        低于预期值    = 4,
+        低于收购价    = 8,
         大于可接受降价值 = 16,
-        高于预期值 = 32,
-        高于最大值 = 64
+        高于预期值    = 32,
+        高于最大值    = 64
     }
 
     public enum AbortBehavior
@@ -945,64 +946,64 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         改价至预期值,
         改价至最高值
     }
-    
+
     public enum SortOrder
     {
         上架顺序,
         物品ID,
-        物品类型,
+        物品类型
     }
-    
+
     private class PriceCheckCondition(
-        AbortCondition                              condition,
+        AbortCondition                           condition,
         Func<ItemConfig, uint, uint, uint, bool> predicate)
     {
         public AbortCondition                           Condition { get; } = condition;
         public Func<ItemConfig, uint, uint, uint, bool> Predicate { get; } = predicate;
     }
-    
+
     private static class PriceCheckConditions
     {
         private static readonly PriceCheckCondition[] conditions =
         [
-            new(AbortCondition.高于最大值, 
-                (cfg, _, modified, _) => 
+            new(AbortCondition.高于最大值,
+                (cfg, _, modified, _) =>
                     modified > cfg.PriceMaximum),
 
             new(AbortCondition.高于预期值,
-                (cfg, _, modified, _) => 
+                (cfg, _, modified, _) =>
                     modified > cfg.PriceExpected),
 
             new(AbortCondition.大于可接受降价值,
-                (cfg, orig, modified, _) => 
-                    cfg.PriceMaxReduction != 0 && 
-                    orig != 999999999          &&
-                    orig - modified        > 0 && 
-                    orig - modified        > cfg.PriceMaxReduction),
+                (cfg, orig, modified, _) =>
+                    cfg.PriceMaxReduction != 0         &&
+                    orig                  != 999999999 &&
+                    orig - modified       > 0          &&
+                    orig - modified       > cfg.PriceMaxReduction),
 
             new(AbortCondition.低于收购价,
-                (cfg, _, modified, _) => 
-                    LuminaGetter.TryGetRow<Item>(cfg.ItemID, out var itemRow) && 
+                (cfg, _, modified, _) =>
+                    LuminaGetter.TryGetRow<Item>(cfg.ItemID, out var itemRow) &&
                     modified <= itemRow.PriceMid),
 
             new(AbortCondition.低于最小值,
-                (cfg, _, modified, _) => 
+                (cfg, _, modified, _) =>
                     modified < cfg.PriceMinimum),
 
             new(AbortCondition.低于预期值,
-                (cfg, _, modified, _) => 
+                (cfg, _, modified, _) =>
                     modified < cfg.PriceExpected)
         ];
 
         /// <summary>
-        /// 获取所有价格检查条件
+        ///     获取所有价格检查条件
         /// </summary>
         public static IEnumerable<PriceCheckCondition> GetAll() => conditions;
 
         /// <summary>
-        /// 根据条件类型获取特定的检查条件
+        ///     根据条件类型获取特定的检查条件
         /// </summary>
-        public static PriceCheckCondition Get(AbortCondition condition) => 
+        public static PriceCheckCondition Get(AbortCondition condition) =>
             conditions.FirstOrDefault(x => x.Condition == condition);
     }
 
@@ -1011,7 +1012,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         public Dictionary<string, ItemConfig> ItemConfigs = new()
         {
             { new ItemKey(0, false).ToString(), new ItemConfig(0, false) },
-            { new ItemKey(0, true).ToString(), new ItemConfig(0, true) }
+            { new ItemKey(0, true).ToString(), new ItemConfig(0,  true) }
         };
 
         public int GilsShareMethod;
@@ -1031,7 +1032,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         public ItemKey(uint itemID, bool isHQ)
         {
             ItemID = itemID;
-            IsHQ = isHQ;
+            IsHQ   = isHQ;
         }
 
         public uint ItemID { get; set; }
@@ -1067,7 +1068,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         public ItemConfig(uint itemID, bool isHQ)
         {
             ItemID = itemID;
-            IsHQ = isHQ;
+            IsHQ   = isHQ;
             ItemName = itemID == 0
                            ? GetLoc("AutoRetainerWork-PriceAdjust-CommonItemPreset")
                            : LuminaGetter.GetRow<Item>(ItemID)?.Name.ToString() ?? string.Empty;
@@ -1110,9 +1111,9 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         ///     最大可接受降价值 (设置为 0 以禁用)
         /// </summary>
         public int PriceMaxReduction { get; set; }
-        
+
         /// <summary>
-        /// 单次上架数量 (设置为 0 以禁用)
+        ///     单次上架数量 (设置为 0 以禁用)
         /// </summary>
         public int UpshelfCount { get; set; }
 

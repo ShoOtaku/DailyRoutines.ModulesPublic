@@ -28,7 +28,7 @@ public class AutoJumboCactpot : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "LotteryWeeklyInput", OnAddon);
         if (LotteryWeeklyInput->IsAddonAndNodesReady())

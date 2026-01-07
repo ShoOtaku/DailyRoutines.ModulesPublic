@@ -23,7 +23,7 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LotteryDaily", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LotteryDaily", OnAddon);

@@ -22,7 +22,7 @@ public unsafe class AutoClaimPVPRewards : DailyModuleBase
     
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,   "PvpReward", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "PvpReward", OnAddon);

@@ -300,7 +300,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
         // 鲶鱼精local a4: 0
         // if (a4 != (nint?)DService.ObjectTable.LocalPlayer?.GameObjectId)
 
-        TaskHelper.Insert(() => ProcessMarkIconSetted(markingType, (uint)objectID));
+        TaskHelper.Enqueue(() => ProcessMarkIconSetted(markingType, (uint)objectID));
         LocalMarkingHook!.Original(manager, markingType, objectID, entityID);
     }
 
@@ -352,7 +352,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
                             continue;
 
                         var index = (uint)i;
-                        TaskHelper.Insert(() => ProcessMarkIconSetted(index, gameObjectID));
+                        TaskHelper.Enqueue(() => ProcessMarkIconSetted(index, gameObjectID));
                     }
                 }
 

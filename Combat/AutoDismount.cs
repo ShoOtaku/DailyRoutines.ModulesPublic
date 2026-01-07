@@ -23,7 +23,7 @@ public unsafe class AutoDismount : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 1_500 };
+        TaskHelper ??= new() { TimeoutMS = 1_500 };
 
         UseActionManager.RegUseAction(OnUseAction);
     }

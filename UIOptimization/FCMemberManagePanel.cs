@@ -52,7 +52,7 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
 
     protected override void Init()
     {
-        ContextTaskHelper ??= new() { TimeLimitMS = 3000 };
+        ContextTaskHelper ??= new() { TimeoutMS = 3000 };
 
         OpenFCMemberContextMenu ??=
             Marshal.GetDelegateForFunctionPointer<OpenFCMemberContextMenuDelegate>(OpenFCMemberContextMenuSig.ScanText());
@@ -376,7 +376,7 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
     }
 
     private static void EnqueueContentMenuClicks(
-        IEnumerable<FreeCompanyMemberInfo> datas, string text, string? waitAddon = null, Func<bool?>? extraAction = null)
+        IEnumerable<FreeCompanyMemberInfo> datas, string text, string? waitAddon = null, Func<bool>? extraAction = null)
     {
         ContextTaskHelper.Abort();
         foreach (var data in datas)

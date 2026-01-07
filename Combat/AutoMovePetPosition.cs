@@ -35,7 +35,7 @@ public class AutoMovePetPosition : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeoutMS = 30_000 };
         
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.DutyState.DutyRecommenced    += OnDutyRecommenced;

@@ -59,7 +59,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper   ??= new() { TimeoutMS = 5_000 };
 
         MoneyButton = [-ModuleConfig.Step2, -ModuleConfig.Step1, ModuleConfig.Step1, ModuleConfig.Step2];
 

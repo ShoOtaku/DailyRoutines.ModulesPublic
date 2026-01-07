@@ -35,7 +35,7 @@ public class AutoGathererRoleActions : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
 
         DService.ClientState.ClassJobChanged += OnJobChanged;
         OnJobChanged(LocalPlayerState.ClassJob);

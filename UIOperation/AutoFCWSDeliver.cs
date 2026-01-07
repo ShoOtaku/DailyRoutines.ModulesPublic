@@ -30,7 +30,7 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
     
     protected override void Init()
     {
-        TaskHelper ??= new TaskHelper { TimeLimitMS = 30_000 };
+        TaskHelper ??= new TaskHelper { TimeoutMS = 30_000 };
         Overlay    ??= new Overlay(this);
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "SelectYesno",        OnAddonYesno);
@@ -73,7 +73,7 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
             TaskHelper.Abort();
     }
 
-    private bool? EnqueueSubmit()
+    private bool EnqueueSubmit()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         if (!SubmarinePartsMenu->IsAddonAndNodesReady()) return false;
@@ -91,7 +91,7 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
                                    if (InterruptByConflictKey(TaskHelper, this)) return;
                                    var atkValue = new AtkValue()
                                    {
-                                       Type = (ValueType)(item.ItemID % 500000), 
+                                       Type  = (ValueType)(item.ItemID % 500000), 
                                        Int64 = SetHighDword((int)item.ItemCount)
                                    };
                                    AgentId.CompanyCraftMaterial.SendEvent(0, 0, item.Index, item.ItemCount, atkValue);
@@ -151,7 +151,7 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
         if (TargetManager.Target is not { ObjectKind: ObjectKind.EventObj, DataID: 2011588 }) return;
         if (InterruptByConflictKey(TaskHelper, this)) return;
         
-        TaskHelper.RemoveAllTasks(0);
+        TaskHelper.RemoveQueueTasks(0);
 
         ClickSelectString(0);
         
@@ -163,13 +163,13 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
             {
                 var target =
                     DService.ObjectTable.FindNearest(DService.ObjectTable.LocalPlayer.Position,
-                        x => x is { ObjectKind: ObjectKind.EventObj, DataID: 2011588 });
+                                                     x => x is { ObjectKind: ObjectKind.EventObj, DataID: 2011588 });
                 TargetManager.Target = target;
             }
 
             TargetManager.Target.Interact();
             return SubmarinePartsMenu->IsAddonAndNodesReady() || SelectString->IsAddonAndNodesReady();
-        }, "尝试再次交互合建设备", null, null, 1);
+        }, "尝试再次交互合建设备", weight: 1);
     }
     
     private void OnAddonRecipeNote(AddonEvent type, AddonArgs args) => TaskHelper.Abort();

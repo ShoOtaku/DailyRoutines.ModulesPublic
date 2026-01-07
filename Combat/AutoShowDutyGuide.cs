@@ -27,7 +27,7 @@ public class AutoShowDutyGuide : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new TaskHelper { TimeLimitMS = 60_000 };
+        TaskHelper   ??= new TaskHelper { TimeoutMS = 60_000 };
 
         Overlay ??= new Overlay(this);
         Overlay.Flags &= ~ImGuiWindowFlags.NoTitleBar;

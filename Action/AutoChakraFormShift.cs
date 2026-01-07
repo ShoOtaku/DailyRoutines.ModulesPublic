@@ -24,14 +24,14 @@ public class AutoChakraFormShift : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeoutMS = 30_000 };
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
         DService.Condition.ConditionChange    += OnConditionChanged;
     }
 
-    private bool? CheckCurrentJob()
+    private bool CheckCurrentJob()
     {
         if (BetweenAreas || OccupiedInEvent) return false;
         if (LocalPlayerState.ClassJob != 20 || !IsValidPVEDuty())
@@ -40,11 +40,11 @@ public class AutoChakraFormShift : DailyModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, true, 1);
+        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
         return true;
     }
     
-    private unsafe bool? UseRelatedActions()
+    private unsafe bool UseRelatedActions()
     {
         var gauge = DService.JobGauges.Get<MNKGauge>();
 
@@ -70,9 +70,9 @@ public class AutoChakraFormShift : DailyModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, action), $"UseAction_{action}", 2_000, true, 1);
+        TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, action), $"UseAction_{action}", 2_000, weight: 1);
         TaskHelper.DelayNext(500, $"Delay_Use{action}", 1);
-        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, true, 1);
+        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
         return true;
     }
 

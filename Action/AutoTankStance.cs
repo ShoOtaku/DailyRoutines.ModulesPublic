@@ -35,7 +35,7 @@ public class AutoTankStance : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper   ??= new() { TimeoutMS = 30_000 };
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
@@ -69,7 +69,7 @@ public class AutoTankStance : DailyModuleBase
         TaskHelper.Enqueue(CheckCurrentJob);
     }
 
-    private static bool? CheckCurrentJob()
+    private static bool CheckCurrentJob()
     {
         if (BetweenAreas || OccupiedInEvent || !UIModule.IsScreenReady()) return false;
 

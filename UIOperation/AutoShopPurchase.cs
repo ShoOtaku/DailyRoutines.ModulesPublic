@@ -169,11 +169,11 @@ public class AutoShopPurchase : DailyModuleBase
             (!string.IsNullOrWhiteSpace(TargetName) &&
              (TargetManager.Target?.Name.TextValue ?? string.Empty) == TargetName);
 
-        public List<Func<bool?>> GetTasks()
+        public List<Func<bool>> GetTasks()
         {
             try
             {
-                var list = new List<Func<bool?>>();
+                var list = new List<Func<bool>>();
                 if (!IsTargetValid())
                     throw new Exception(GetLoc("AutoShopPurchase-Exception-PresetTargetInvalid"));
                 if (!IsAddonValid())
@@ -553,7 +553,7 @@ public class AutoShopPurchase : DailyModuleBase
 
     public class ShopPresetExecutor : IDisposable
     {
-        private TaskHelper         TaskHelper { get; init; } = new() { TimeLimitMS = 10_000 };
+        private TaskHelper         TaskHelper { get; init; } = new() { TimeoutMS = 10_000 };
         private ShopPurchasePreset Preset     { get; init; }
         private int                LoopCount  { get; init; }
 

@@ -24,7 +24,7 @@ public unsafe class AutoInventoryTransfer : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 2_000 };
+        TaskHelper ??= new() { TimeoutMS = 2_000 };
 
         DService.ContextMenu.OnMenuOpened += OnContextMenuOpened;
     }

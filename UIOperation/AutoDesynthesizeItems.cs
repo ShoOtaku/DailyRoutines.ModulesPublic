@@ -26,7 +26,7 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 10_000 };
+        TaskHelper ??= new() { TimeoutMS = 10_000 };
 
         ModuleConfig = LoadConfig<Config>() ?? new();
 
@@ -122,7 +122,7 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
         TaskHelper.Enqueue(StartDesynthesize, "开始分解全部装备");
     }
 
-    private bool? StartDesynthesize()
+    private bool StartDesynthesize()
     {
         if (OccupiedInEvent) return false;
         if (!SalvageItemSelector->IsAddonAndNodesReady()) return false;

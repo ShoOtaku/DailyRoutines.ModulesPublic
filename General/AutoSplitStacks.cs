@@ -286,7 +286,7 @@ public unsafe class AutoSplitStacks : DailyModuleBase
         TaskHelper.Enqueue(() => EnqueueSplit(itemID, amount));
     }
 
-    private bool? ClickItemToSplit(uint itemID, int amount)
+    private bool ClickItemToSplit(uint itemID, int amount)
     {
         if (InputNumeric != null || itemID == 0 || amount == 0)
         {

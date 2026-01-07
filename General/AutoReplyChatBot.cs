@@ -38,7 +38,7 @@ public class AutoReplyChatBot : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeoutMS = 30_000 };
         
         ModuleConfig = LoadConfig<Config>() ?? new();
         if (ModuleConfig.SystemPrompts is not { Count: > 0 })
@@ -850,8 +850,8 @@ public class AutoReplyChatBot : DailyModuleBase
 
             TaskHelper.Abort();
             TaskHelper.DelayNext(1000, "等待 1 秒收集更多消息");
-            TaskHelper.Enqueue(() => IsCooldownReady());
-            TaskHelper.EnqueueAsync(() => Task.Run(async () =>
+            TaskHelper.Enqueue(IsCooldownReady);
+            TaskHelper.EnqueueAsync(async () =>
             {
                 SetCooldown();
                 
@@ -872,7 +872,7 @@ public class AutoReplyChatBot : DailyModuleBase
                     AppendHistory(historyKey, "assistant", reply);
 
                 currentWindow.IsProcessing = false;
-            }));
+            });
         }
     }
 

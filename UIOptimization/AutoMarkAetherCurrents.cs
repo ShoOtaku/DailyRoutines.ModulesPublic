@@ -80,7 +80,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
 
         AetherCurrentPoint.RefreshUnlockStates();
         
-        TaskHelperMove ??= new() { TimeLimitMS = 30000 };
+        TaskHelperMove ??= new() { TimeoutMS = 30000 };
 
         Overlay ??= new Overlay(this);
         Overlay.Flags &= ~ImGuiWindowFlags.NoTitleBar;

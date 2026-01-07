@@ -72,7 +72,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeoutMS = 30_000 };
         
         CollectSubmarinePayload ??= LinkPayloadManager.Register(OnClickCollectSubmarinePayload, out _);
 
@@ -120,10 +120,10 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     }
     
     // 潜艇收取
-    private bool? EnqueueSubmarineCollect()
+    private bool EnqueueSubmarineCollect()
     {
         TaskHelper.Enqueue(() => !DService.Condition.Any(ConditionFlag.OccupiedInCutSceneEvent, ConditionFlag.WatchingCutscene78), "等待过场动画结束");
-        TaskHelper.Enqueue(() => IsOnValidSubmarineList(), "等待潜水艇列表界面出现");
+        TaskHelper.Enqueue(IsOnValidSubmarineList,                                                                                 "等待潜水艇列表界面出现");
         TaskHelper.Enqueue(() =>
         {
             if (IsLackOfSubmarineItems() || !IsAnySubmarinesAvailable(out var submarineIndex))
@@ -132,9 +132,9 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                 return;
             }
 
-            TaskHelper.Enqueue(() => ClickSelectString(submarineIndex), $"收取 {submarineIndex} 号潜艇", null, null, 1);
+            TaskHelper.Enqueue(() => ClickSelectString(submarineIndex), $"收取 {submarineIndex} 号潜艇", weight: 1);
             TaskHelper.DelayNext(2_000, "延迟 2 秒, 等待远航结果确认", 1);
-            TaskHelper.Enqueue(EnqueueSubmarineStateCheck, "确认潜艇信息, 准备修理和再次出航", null, null, 1);
+            TaskHelper.Enqueue(EnqueueSubmarineStateCheck, "确认潜艇信息, 准备修理和再次出航", weight: 1);
         }, "检测是否有潜艇待收取");
 
         return true;
@@ -329,7 +329,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         if (!FreeCompanyWorkshopInfo.TryGet(out var workshopInfo)) return;
         
         var housingManager = HousingManager.Instance();
-        var tasks          = new List<Func<bool?>>();
+        var tasks          = new List<Func<bool>>();
 
         // 部队工房内, 不需要传
         if (housingManager->WorkshopTerritory != null                 &&
@@ -370,13 +370,13 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             TaskHelper.Enqueue(task);
     }
 
-    private static bool? TeleportToHouseZone()
+    private static bool TeleportToHouseZone()
     {
         if (!Throttler.Throttle("AutoSubmarineCollect-TeleportToHouseZone")) return false;
         return Telepo.Instance()->Teleport(96, 0);
     }
 
-    private static bool? TeleportToHouseEntry()
+    private static bool TeleportToHouseEntry()
     {
         if (!Throttler.Throttle("AutoSubmarineCollect-TeleportToHouseEntry", 100)  ||
             !FreeCompanyWorkshopInfo.TryGet(out var workshopInfo)                  ||
@@ -427,7 +427,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         return entryObject.TargetInteract();
     }
 
-    private static bool? TeleportToRoomSelect()
+    private static bool TeleportToRoomSelect()
     {
         if (!Throttler.Throttle("AutoSubmarineCollect-TeleportToRoomSelect", 100) ||
             !FreeCompanyWorkshopInfo.TryGet(out var workshopInfo)                 ||
@@ -453,7 +453,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         return ClickSelectString(LuminaGetter.GetRowOrDefault<HousingPersonalRoomEntrance>(11).Text.ToString());
     }
 
-    private static bool? TeleportToPanel()
+    private static bool TeleportToPanel()
     {
         if (!Throttler.Throttle("AutoSubmarineCollect-TeleportToPanel", 100)        ||
             !FreeCompanyWorkshopInfo.TryGet(out var workshopInfo)                   ||

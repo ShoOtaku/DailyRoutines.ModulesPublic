@@ -71,10 +71,10 @@ public class AutoCuffACur : DailyModuleBase
         TaskHelper.Enqueue(EnqueueNewRound);
     }
 
-    private static unsafe bool? WaitSelectStringAddon() =>
+    private static unsafe bool WaitSelectStringAddon() =>
         SelectString->IsAddonAndNodesReady() && PunchingMachine->IsAddonAndNodesReady();
 
-    private bool? EnqueueNewRound()
+    private bool EnqueueNewRound()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         if (OccupiedInEvent) return false;

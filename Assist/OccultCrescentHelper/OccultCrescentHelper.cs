@@ -133,9 +133,9 @@ public partial class OccultCrescentHelper : DailyModuleBase
         if (abortBefore)
             taskHelper.Abort();
         
-        taskHelper.Enqueue(() => UseActionManager.UseActionLocation(ActionType.Action, 41343), weight: weight);
-        taskHelper.Enqueue(() => !UIModule.IsScreenReady(),                                             weight: weight);
-        taskHelper.Enqueue(() => DService.ObjectTable.LocalPlayer != null && UIModule.IsScreenReady(),  weight: weight);
+        taskHelper.Enqueue(() => UseActionManager.UseActionLocation(ActionType.Action, 41343),         weight: weight);
+        taskHelper.Enqueue(() => !UIModule.IsScreenReady(),                                            weight: weight);
+        taskHelper.Enqueue(() => DService.ObjectTable.LocalPlayer != null && UIModule.IsScreenReady(), weight: weight);
         taskHelper.Enqueue(() =>
         {
             MovementManager.TPPlayerAddress(pos);

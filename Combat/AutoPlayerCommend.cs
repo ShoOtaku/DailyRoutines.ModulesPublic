@@ -41,7 +41,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        TaskHelper ??= new() { TimeLimitMS = 10_000 };
+        TaskHelper ??= new() { TimeoutMS = 10_000 };
 
         ContentSelectCombo.SelectedContentIDs = ModuleConfig.BlacklistContents;
         
@@ -92,7 +92,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
         TaskHelper.Enqueue(() => MIPDisplayType = orig, "还原原始最优队友推荐设置");
     }
 
-    private static bool? OpenCommendWindow()
+    private static bool OpenCommendWindow()
     {
         var notification    = GetAddonByName("_Notification");
         var notificationMvp = GetAddonByName("_NotificationIcMvp");
@@ -105,7 +105,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
         return true;
     }
     
-    private static bool? EnqueueCommendation()
+    private static bool EnqueueCommendation()
     {
         if (!VoteMvp->IsAddonAndNodesReady()) return false;
         if (!AgentModule.Instance()->GetAgentByInternalId(AgentId.ContentsMvp)->IsAgentActive()) return false;

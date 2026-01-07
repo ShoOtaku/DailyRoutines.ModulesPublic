@@ -31,7 +31,7 @@ public unsafe class AutoHighlightFlagMarker : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        TaskHelper ??= new() { TimeLimitMS = 15_000 };
+        TaskHelper ??= new() { TimeoutMS = 15_000 };
 
         SetFlagMarkerHook ??= DService.Hook.HookFromAddress<SetFlagMarkerDelegate>(
             GetMemberFuncByName(typeof(AgentMap.MemberFunctionPointers), "SetFlagMapMarker"),

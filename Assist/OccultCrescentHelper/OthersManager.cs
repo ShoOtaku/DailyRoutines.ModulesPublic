@@ -46,7 +46,7 @@ public partial class OccultCrescentHelper
 
         public override void Init()
         {
-            OthersTaskHelper ??= new() { TimeLimitMS = 30_000 };
+            OthersTaskHelper ??= new() { TimeoutMS = 30_000 };
 
             var addedJobs        = ModuleConfig.AddonSupportJobOrder.ToHashSet();
             var isAnyNewJobOrder = false;

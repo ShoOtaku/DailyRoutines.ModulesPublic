@@ -18,55 +18,55 @@ public unsafe class AutoDiscard : DailyModuleBase
     {
         Title       = GetLoc("AutoDiscardTitle"),
         Description = GetLoc("AutoDiscardDescription"),
-        Category    = ModuleCategories.General,
+        Category    = ModuleCategories.General
     };
-    
+
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
-    private const string ModuleCommand = "/pdrdiscard";
+    private const string COMMAND = "/pdrdiscard";
 
     private static readonly Dictionary<DiscardBehaviour, string> DiscardBehaviourLoc = new()
     {
         [DiscardBehaviour.Discard] = LuminaWrapper.GetAddonText(91),
-        [DiscardBehaviour.Sell]    = LuminaWrapper.GetAddonText(93),
+        [DiscardBehaviour.Sell]    = LuminaWrapper.GetAddonText(93)
     };
 
     private static readonly InventoryType[] InventoryTypes =
     [
         InventoryType.Inventory1, InventoryType.Inventory2, InventoryType.Inventory3,
-        InventoryType.Inventory4,
+        InventoryType.Inventory4
     ];
-    
+
     private static LuminaSearcher<Item>? ItemSearcher;
     private static Config                ModuleConfig = null!;
 
-    private static string NewGroupNameInput = string.Empty;
+    private static string NewGroupNameInput  = string.Empty;
     private static string EditGroupNameInput = string.Empty;
 
-    private static string ItemSearchInput = string.Empty;
+    private static string ItemSearchInput         = string.Empty;
     private static string SelectedItemSearchInput = string.Empty;
-    
+
     private static string     AddItemsByNameInput  = string.Empty;
     private static List<Item> LastAddedItemsByName = [];
-    
+
     private static uint       AddItemsByCategoryInput  = 61;
     private static List<Item> LastAddedItemsByCategory = [];
 
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new() { TimeLimitMS = 2_000 };
+        TaskHelper   ??= new() { TimeoutMS = 2_000 };
 
         var itemNames = LuminaGetter.Get<Item>()
-                                 .Where(x => !string.IsNullOrEmpty(x.Name.ToString()) &&
-                                             x.ItemSortCategory.RowId != 3 && x.ItemSortCategory.RowId != 4)
-                                 .GroupBy(x => x.Name.ToString())
-                                 .Select(x => x.First())
-                                 .ToList();
+                                    .Where(x => !string.IsNullOrEmpty(x.Name.ToString()) &&
+                                                x.ItemSortCategory.RowId != 3            && x.ItemSortCategory.RowId != 4)
+                                    .GroupBy(x => x.Name.ToString())
+                                    .Select(x => x.First())
+                                    .ToList();
         ItemSearcher ??= new(itemNames, [x => x.Name.ToString(), x => x.RowId.ToString()]);
-        
-        CommandManager.AddCommand(ModuleCommand, new(OnCommand) { HelpMessage = GetLoc("AutoDiscard-CommandHelp") });
-        
+
+        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("AutoDiscard-CommandHelp") });
+
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreSetup, "SelectYesno", OnAddon);
     }
 
@@ -75,16 +75,18 @@ public unsafe class AutoDiscard : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
 
         ImGui.SameLine();
-        ImGui.TextUnformatted($"{ModuleCommand} → {GetLoc("AutoDiscard-CommandHelp")}");
+        ImGui.TextUnformatted($"{COMMAND} → {GetLoc("AutoDiscard-CommandHelp")}");
 
         ImGui.Spacing();
 
         DrawAddNewGroupButton();
 
         ImGui.SameLine();
+
         if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.FileImport, GetLoc("Import")))
         {
             var config = ImportFromClipboard<DiscardItemsGroup>();
+
             if (config != null)
             {
                 ModuleConfig.DiscardGroups.Add(config);
@@ -92,16 +94,16 @@ public unsafe class AutoDiscard : DailyModuleBase
             }
         }
 
-        var tableSize = new Vector2(ImGui.GetContentRegionAvail().X - (8f * GlobalFontScale), 0);
-        using var table = ImRaii.Table("DiscardGroupTable", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg, tableSize);
+        var       tableSize = new Vector2(ImGui.GetContentRegionAvail().X - 8f * GlobalFontScale, 0);
+        using var table     = ImRaii.Table("DiscardGroupTable", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg, tableSize);
         if (!table) return;
 
         var orderColumnWidth = ImGui.CalcTextSize((ModuleConfig.DiscardGroups.Count + 1).ToString()).X + 24;
-        ImGui.TableSetupColumn("Order", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, orderColumnWidth);
-        ImGui.TableSetupColumn("UniqueName", ImGuiTableColumnFlags.None, 20f);
-        ImGui.TableSetupColumn("Items", ImGuiTableColumnFlags.None, 80f);
-        ImGui.TableSetupColumn("Behaviour", ImGuiTableColumnFlags.None, 30f);
-        ImGui.TableSetupColumn("Operations", ImGuiTableColumnFlags.None, 30f);
+        ImGui.TableSetupColumn("Order",      ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, orderColumnWidth);
+        ImGui.TableSetupColumn("UniqueName", ImGuiTableColumnFlags.None,                                        20f);
+        ImGui.TableSetupColumn("Items",      ImGuiTableColumnFlags.None,                                        80f);
+        ImGui.TableSetupColumn("Behaviour",  ImGuiTableColumnFlags.None,                                        30f);
+        ImGui.TableSetupColumn("Operations", ImGuiTableColumnFlags.None,                                        30f);
 
         ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
 
@@ -122,7 +124,7 @@ public unsafe class AutoDiscard : DailyModuleBase
         for (var i = 0; i < ModuleConfig.DiscardGroups.Count; i++)
         {
             using var id = ImRaii.PushId(i);
-            
+
             ImGui.TableNextRow();
 
             ImGui.TableNextColumn();
@@ -141,7 +143,7 @@ public unsafe class AutoDiscard : DailyModuleBase
             OperationColumn(i);
         }
     }
-    
+
     #region Table
 
     private void DrawAddNewGroupButton()
@@ -160,6 +162,7 @@ public unsafe class AutoDiscard : DailyModuleBase
         if (ImGui.Button(GetLoc("Confirm")))
         {
             var info = new DiscardItemsGroup(NewGroupNameInput);
+
             if (!string.IsNullOrWhiteSpace(NewGroupNameInput) && !ModuleConfig.DiscardGroups.Contains(info))
             {
                 ModuleConfig.DiscardGroups.Add(info);
@@ -178,9 +181,9 @@ public unsafe class AutoDiscard : DailyModuleBase
     private void UniqueNameColumn(int index)
     {
         if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
-        
-        var group = ModuleConfig.DiscardGroups[index];
-        using var id = ImRaii.PushId(index);
+
+        var       group = ModuleConfig.DiscardGroups[index];
+        using var id    = ImRaii.PushId(index);
 
         if (ImGuiOm.SelectableFillCell($"{group.UniqueName}"))
         {
@@ -218,11 +221,12 @@ public unsafe class AutoDiscard : DailyModuleBase
     private void ItemsColumn(int index)
     {
         if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
-        
-        var group = ModuleConfig.DiscardGroups[index];
-        using var id = ImRaii.PushId(index);
+
+        var       group = ModuleConfig.DiscardGroups[index];
+        using var id    = ImRaii.PushId(index);
 
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2.5f);
+
         using (ImRaii.Group())
         {
             if (group.Items.Count > 0)
@@ -251,21 +255,22 @@ public unsafe class AutoDiscard : DailyModuleBase
             ImGui.OpenPopup("ItemsEditMenu");
 
         var popupToOpen = string.Empty;
+
         using (var popupMenu = ImRaii.Popup("ItemsEditMenu", ImGuiWindowFlags.AlwaysAutoResize))
         {
             if (popupMenu)
             {
                 ImGui.TextUnformatted(group.UniqueName);
-                
+
                 ImGui.Separator();
                 ImGui.Spacing();
-                
+
                 if (ImGui.MenuItem(GetLoc("AutoDiscard-AddItemsBatch")))
                 {
                     ImGui.CloseCurrentPopup();
                     popupToOpen = "AddItemsBatch";
                 }
-                
+
                 if (ImGui.MenuItem(GetLoc("AutoDiscard-AddItemsManual")))
                 {
                     ImGui.CloseCurrentPopup();
@@ -273,7 +278,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                 }
             }
         }
-        
+
         if (!string.IsNullOrEmpty(popupToOpen))
             ImGui.OpenPopup(popupToOpen);
 
@@ -282,6 +287,7 @@ public unsafe class AutoDiscard : DailyModuleBase
             if (popup)
             {
                 ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("AutoDiscard-AddItemsByName"));
+
                 using (ImRaii.PushIndent())
                 {
                     using (ImRaii.Disabled(string.IsNullOrWhiteSpace(AddItemsByNameInput)))
@@ -299,6 +305,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                     }
 
                     ImGui.SameLine();
+
                     using (ImRaii.Disabled(LastAddedItemsByName.Count == 0))
                     {
                         if (ImGui.Button($"{GetLoc("Cancel")}##AddItemByName"))
@@ -316,6 +323,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                 }
 
                 ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("AutoDiscard-AddItemsByCategory"));
+
                 using (ImRaii.PushIndent())
                 {
                     using (ImRaii.Disabled(!LuminaGetter.TryGetRow<ItemUICategory>(AddItemsByCategoryInput, out _)))
@@ -333,6 +341,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                     }
 
                     ImGui.SameLine();
+
                     using (ImRaii.Disabled(LastAddedItemsByCategory.Count == 0))
                     {
                         if (ImGui.Button($"{GetLoc("Cancel")}##AddItemByCategory"))
@@ -346,6 +355,7 @@ public unsafe class AutoDiscard : DailyModuleBase
 
                     ImGui.SameLine();
                     ImGui.SetNextItemWidth(300f * GlobalFontScale);
+
                     using (var combo = ImRaii.Combo("###AddItemsByCategoryCombo",
                                                     LuminaGetter.TryGetRow<ItemUICategory>(AddItemsByCategoryInput, out var uiCategory)
                                                         ? uiCategory.Name.ToString()
@@ -368,12 +378,13 @@ public unsafe class AutoDiscard : DailyModuleBase
                 }
             }
         }
-        
+
         using (var popup = ImRaii.Popup("AddItemsManual"))
         {
             if (popup)
             {
                 var leftChildSize = new Vector2(300 * GlobalFontScale, 500 * GlobalFontScale);
+
                 using (var leftChild = ImRaii.Child("SelectedItemChild", leftChildSize, true))
                 {
                     if (leftChild)
@@ -382,6 +393,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                         ImGui.InputTextWithHint("###SelectedItemSearchInput", GetLoc("PleaseSearch"), ref SelectedItemSearchInput, 100);
 
                         ImGui.Separator();
+
                         foreach (var item in group.Items)
                         {
                             var specificItemNullable = LuminaGetter.GetRow<Item>(item);
@@ -404,19 +416,21 @@ public unsafe class AutoDiscard : DailyModuleBase
                 }
 
                 ImGui.SameLine();
+
                 using (ImRaii.Group())
                 {
                     using (ImRaii.Disabled())
                     {
                         using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0)))
                         {
-                            ImGui.SetCursorPosY((ImGui.GetContentRegionAvail().Y / 2) - 24f);
+                            ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - 24f);
                             ImGuiOm.ButtonIcon("DecoExchangeIcon", FontAwesomeIcon.ExchangeAlt);
                         }
                     }
                 }
 
                 ImGui.SameLine();
+
                 using (var rightChild = ImRaii.Child("SearchItemChild", leftChildSize, true))
                 {
                     if (rightChild)
@@ -426,6 +440,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                             ItemSearcher.Search(ItemSearchInput);
 
                         ImGui.Separator();
+
                         foreach (var item in ItemSearcher.SearchResult)
                         {
                             if (group.Items.Contains(item.RowId)) continue;
@@ -454,9 +469,9 @@ public unsafe class AutoDiscard : DailyModuleBase
     private void BehaviourColumn(int index)
     {
         if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
-        
-        var group = ModuleConfig.DiscardGroups[index];
-        using var id = ImRaii.PushId(index);
+
+        var       group = ModuleConfig.DiscardGroups[index];
+        using var id    = ImRaii.PushId(index);
 
         foreach (var behaviourPair in DiscardBehaviourLoc)
         {
@@ -465,6 +480,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                 group.Behaviour = behaviourPair.Key;
                 SaveConfig(ModuleConfig);
             }
+
             ImGui.SameLine();
         }
     }
@@ -472,9 +488,9 @@ public unsafe class AutoDiscard : DailyModuleBase
     private void OperationColumn(int index)
     {
         if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
-        
-        var group = ModuleConfig.DiscardGroups[index];
-        using var id = ImRaii.PushId(index);
+
+        var       group = ModuleConfig.DiscardGroups[index];
+        using var id    = ImRaii.PushId(index);
 
         using (ImRaii.Disabled(TaskHelper.IsBusy))
         {
@@ -489,12 +505,13 @@ public unsafe class AutoDiscard : DailyModuleBase
         using (ImRaii.Disabled(TaskHelper.IsBusy))
         {
             ImGui.SameLine();
+
             if (ImGuiOm.ButtonIcon($"Copy_{index}", FontAwesomeIcon.Copy, GetLoc("Copy")))
             {
                 var newGroup = new DiscardItemsGroup(GenerateUniqueName(group.UniqueName))
                 {
                     Behaviour = group.Behaviour,
-                    Items     = group.Items,
+                    Items     = group.Items
                 };
 
                 ModuleConfig.DiscardGroups.Add(newGroup);
@@ -506,6 +523,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                 ExportToClipboard(group);
 
             ImGui.SameLine();
+
             if (ImGuiOm.ButtonIcon($"Delete_{index}", FontAwesomeIcon.TrashAlt, GetLoc("HoldCtrlToDelete")))
             {
                 if (ImGui.IsKeyDown(ImGuiKey.LeftCtrl))
@@ -519,7 +537,7 @@ public unsafe class AutoDiscard : DailyModuleBase
 
     #endregion
 
-    private void OnCommand(string command, string arguments) => 
+    private void OnCommand(string command, string arguments) =>
         EnqueueDiscardGroup(arguments.Trim());
 
     public void EnqueueDiscardGroup(int index)
@@ -542,7 +560,7 @@ public unsafe class AutoDiscard : DailyModuleBase
     {
         foundItem = [];
         if (InventoryExpansion == null) return false;
-        
+
         var inventoryManager = InventoryManager.Instance();
         if (inventoryManager == null) return false;
 
@@ -556,14 +574,14 @@ public unsafe class AutoDiscard : DailyModuleBase
                 var slot       = container->GetInventorySlot(i);
                 var slotItemID = slot->ItemId % 100_0000;
                 if (slotItemID != itemID) continue;
-                
+
                 foundItem.Add(*slot);
             }
         }
 
         return foundItem.Count > 0;
     }
-    
+
     private static string GenerateUniqueName(string baseName)
     {
         var existingNames = ModuleConfig.DiscardGroups.Select(x => x.UniqueName).ToHashSet();
@@ -571,8 +589,9 @@ public unsafe class AutoDiscard : DailyModuleBase
         if (!existingNames.Contains(baseName))
             return baseName;
 
-        var counter = 0;
+        var counter    = 0;
         var numberPart = string.Empty;
+
         foreach (var c in baseName.Reverse())
         {
             if (char.IsDigit(c))
@@ -583,7 +602,7 @@ public unsafe class AutoDiscard : DailyModuleBase
 
         if (numberPart.Length > 0)
         {
-            counter = int.Parse(numberPart) + 1;
+            counter  = int.Parse(numberPart) + 1;
             baseName = baseName[..^numberPart.Length];
         }
 
@@ -597,7 +616,7 @@ public unsafe class AutoDiscard : DailyModuleBase
             counter++;
         }
     }
-    
+
     private void OnAddon(AddonEvent type, AddonArgs args)
     {
         if (!TaskHelper.IsBusy) return;
@@ -607,22 +626,22 @@ public unsafe class AutoDiscard : DailyModuleBase
     protected override void Uninit()
     {
         DService.AddonLifecycle.UnregisterListener(OnAddon);
-        
-        CommandManager.RemoveCommand(ModuleCommand);
+
+        CommandManager.RemoveCommand(COMMAND);
         ItemSearcher = null;
-        
+
         LastAddedItemsByName.Clear();
         LastAddedItemsByCategory.Clear();
     }
 
     [IPCProvider("DailyRoutines.Modules.AutoDiscard.IsBusy")]
-    private bool IsBusy() => 
+    private bool IsBusy() =>
         TaskHelper.IsBusy;
-    
+
     private enum DiscardBehaviour
     {
         Discard,
-        Sell,
+        Sell
     }
 
     private class DiscardItemsGroup : IEquatable<DiscardItemsGroup>
@@ -640,10 +659,11 @@ public unsafe class AutoDiscard : DailyModuleBase
             if (taskHelper == null) return;
 
             var isAny = false;
+
             foreach (var item in Items)
             {
                 if (!TrySearchItemInInventory(item, out var foundItem) || foundItem.Count <= 0) continue;
-                
+
                 foreach (var fItem in foundItem)
                 {
                     var type = fItem.GetInventoryType();
@@ -652,13 +672,14 @@ public unsafe class AutoDiscard : DailyModuleBase
 
                     var itemInventory = InventoryManager.Instance()->GetInventorySlot(type, slot);
                     if (itemInventory == null) continue;
-                    
+
                     isAny = true;
+
                     if (Behaviour == DiscardBehaviour.Discard)
                     {
-                        taskHelper.Enqueue(() => AgentInventoryContext.Instance()->DiscardItem(itemInventory, 
-                                                                                               type, 
-                                                                                               slot, 
+                        taskHelper.Enqueue(() => AgentInventoryContext.Instance()->DiscardItem(itemInventory,
+                                                                                               type,
+                                                                                               slot,
                                                                                                AgentInventory.Instance()->GetActiveAddonID()));
                         taskHelper.Enqueue(() => { ClickSelectYesnoYes(); });
                     }
@@ -677,16 +698,16 @@ public unsafe class AutoDiscard : DailyModuleBase
             }
         }
 
-        private bool? ClickDiscardContextMenu(TaskHelper? taskHelper)
+        private bool ClickDiscardContextMenu(TaskHelper? taskHelper)
         {
-            if (!InfosOm.ContextMenuXIV->IsAddonAndNodesReady()) return false;
+            if (!ContextMenuXIV->IsAddonAndNodesReady()) return false;
 
             switch (Behaviour)
             {
                 case DiscardBehaviour.Discard:
                     if (!ClickContextMenu(LuminaWrapper.GetAddonText(91)))
                     {
-                        InfosOm.ContextMenuXIV->Close(true);
+                        ContextMenuXIV->Close(true);
                         break;
                     }
 
@@ -696,7 +717,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                     if (!ClickContextMenu(LuminaWrapper.GetAddonText(5480)) &&
                         !ClickContextMenu(LuminaWrapper.GetAddonText(93)))
                     {
-                        InfosOm.ContextMenuXIV->Close(true);
+                        ContextMenuXIV->Close(true);
                         ChatError(GetLoc("AutoDiscard-NoSellPage"));
 
                         taskHelper.Abort();

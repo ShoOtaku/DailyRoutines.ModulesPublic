@@ -24,7 +24,7 @@ public class AutoDrawMotifs : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeoutMS = 30_000 };
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
@@ -69,7 +69,7 @@ public class AutoDrawMotifs : DailyModuleBase
         TaskHelper.Enqueue(CheckCurrentJob);
     }
 
-    private bool? CheckCurrentJob()
+    private bool CheckCurrentJob()
     {
         if (BetweenAreas || OccupiedInEvent) return false;
         if (DService.ObjectTable.LocalPlayer is not { ClassJob.RowId: 42, Level: >= 30 } || !IsValidPVEDuty())
@@ -78,11 +78,11 @@ public class AutoDrawMotifs : DailyModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(DrawNeededMotif, "DrawNeededMotif", 5_000, true, 1);
+        TaskHelper.Enqueue(DrawNeededMotif, "DrawNeededMotif", 5_000, weight: 1);
         return true;
     }
 
-    private unsafe bool? DrawNeededMotif()
+    private bool DrawNeededMotif()
     {
         var gauge = DService.JobGauges.Get<PCTGauge>();
 
@@ -108,9 +108,9 @@ public class AutoDrawMotifs : DailyModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, motifAction), $"UseAction_{motifAction}", 2_000, true, 1);
+        TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, motifAction), $"UseAction_{motifAction}", 2_000, weight: 1);
         TaskHelper.DelayNext(500, $"DrawMotif_{motifAction}", 1);
-        TaskHelper.Enqueue(DrawNeededMotif, "DrawNeededMotif", 5_000, true, 1);
+        TaskHelper.Enqueue(DrawNeededMotif, "DrawNeededMotif", 5_000, weight: 1);
         return true;
     }
 

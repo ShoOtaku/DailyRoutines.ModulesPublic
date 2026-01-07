@@ -73,7 +73,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new() { TimeLimitMS = 2_000 };
+        TaskHelper   ??= new() { TimeoutMS = 2_000 };
 
         Addon ??= new()
         {

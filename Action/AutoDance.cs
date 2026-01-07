@@ -20,7 +20,7 @@ public unsafe class AutoDance : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
 
         UseActionManager.RegUseActionLocation(OnPostUseAction);
     }
@@ -43,7 +43,7 @@ public unsafe class AutoDance : DailyModuleBase
         TaskHelper.Enqueue(() => DanceStep(actionID != 15997));
     }
 
-    private bool? DanceStep(bool isTechnicalStep)
+    private bool DanceStep(bool isTechnicalStep)
     {
         var gauge = DService.JobGauges.Get<DNCGauge>();
         if (!gauge.IsDancing)

@@ -94,7 +94,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
             ],
         };
 
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
 
         Overlay = new Overlay(this, $"{GetLoc("FastObjectInteractTitle")}")
         {
@@ -424,10 +424,10 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     
     private void InteractWithObject(GameObject* obj, ObjectKind kind)
     {
-        TaskHelper.RemoveAllTasks(2);
+        TaskHelper.RemoveQueueTasks(2);
 
         if (IsOnMount)
-            TaskHelper.Enqueue(() => MovementManager.Dismount(), "DismountInteract", null, null, 2);
+            TaskHelper.Enqueue(() => MovementManager.Dismount(), "DismountInteract", weight: 2);
 
         TaskHelper.Enqueue(() =>
         {
@@ -435,10 +435,10 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
             
             TargetSystem.Instance()->Target = obj;
             return TargetSystem.Instance()->InteractWithObject(obj) != 0;
-        }, "Interact", null, null, 2);
+        }, "Interact", weight: 2);
 
         if (kind is ObjectKind.EventObj)
-            TaskHelper.Enqueue(() => TargetSystem.Instance()->OpenObjectInteraction(obj), "OpenInteraction", null, null, 2);
+            TaskHelper.Enqueue(() => TargetSystem.Instance()->OpenObjectInteraction(obj), "OpenInteraction", weight: 2);
     }
     
     private void OnUpdate(IFramework framework)

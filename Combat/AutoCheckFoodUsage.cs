@@ -50,7 +50,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
         foreach (var checkPoint in Enum.GetValues<FoodCheckpoint>())
             ModuleConfig.EnabledCheckpoints.TryAdd(checkPoint, false);
 
-        TaskHelper ??= new TaskHelper { TimeLimitMS = 60_000 };
+        TaskHelper ??= new TaskHelper { TimeoutMS = 60_000 };
 
         CountdownInitHook ??= CountdownInitSig.GetHook<CountdownInitDelegate>(CountdownInitDetour);
         CountdownInitHook.Enable();
@@ -362,7 +362,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
         }
     }
 
-    private bool? EnqueueFoodRefresh()
+    private bool EnqueueFoodRefresh()
     {
         if (!IsValidState()) return false;
         if (!IsCooldownElapsed())
@@ -404,7 +404,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
         return true;
     }
 
-    private bool? TakeFoodInternal(uint itemID, bool isHQ)
+    private bool TakeFoodInternal(uint itemID, bool isHQ)
     {
         TaskHelper.Abort();
         if (TryGetWellFedParam(out var itemFoodId, out var remainingTime) &&
@@ -419,7 +419,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
         return true;
     }
     
-    private bool? CheckFoodState(uint itemID, bool isHQ)
+    private bool CheckFoodState(uint itemID, bool isHQ)
     {
         TaskHelper.Abort();
 

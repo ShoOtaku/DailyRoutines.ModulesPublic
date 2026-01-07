@@ -40,7 +40,7 @@ public unsafe class QueueCombatTeleport : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        TeleportHelper ??= new() { TimeLimitMS = 60_000 };
+        TeleportHelper ??= new() { TimeoutMS = 60_000 };
 
         CanUseTeleportPatch.Enable();
         CanUseTeleportMapPatch.Enable();

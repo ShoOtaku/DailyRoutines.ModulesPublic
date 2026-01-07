@@ -23,7 +23,7 @@ public unsafe class AutoRetarget : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new() { TimeLimitMS = 15_000 };
+        TaskHelper   ??= new() { TimeoutMS = 15_000 };
         
         FrameworkManager.Reg(OnUpdate, true, 1000);
     }
@@ -99,16 +99,16 @@ public unsafe class AutoRetarget : DailyModuleBase
         TaskHelper.Abort();
         TaskHelper.Enqueue(() =>
         {
-            var flagPos = new Vector2(targetPos.X, targetPos.Z);
+            var flagPos  = new Vector2(targetPos.X, targetPos.Z);
             var currentY = targetPos.Y;
-            var counter = 0;
+            var counter  = 0;
 
             foreach (var fieldMarkerPoint in Enum.GetValues<FieldMarkerPoint>())
             {
                 MarkingController.Instance()->PlaceFieldMarkerLocal(fieldMarkerPoint, flagPos.ToVector3(currentY - 2 + (counter * 5)));
                 counter++;
             }
-        }, name:"放置标点");
+        }, name: "放置标点");
     }
 
     private static void ClearMarkers()

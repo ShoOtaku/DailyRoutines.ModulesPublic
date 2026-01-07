@@ -65,7 +65,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
 
     protected override void Init()
     {
-        TPHelper ??= new() { TimeLimitMS = 30_000 };
+        TPHelper ??= new() { TimeoutMS = 30_000 };
 
         GamePacketManager.RegPreSendPacket(OnPreSendPacket);
         
@@ -158,7 +158,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
         if (GameState.TerritoryType != 135)
         {
             TPHelper.Enqueue(() => MovementManager.TeleportZone(135));
-            TPHelper.Enqueue(() => GameState.TerritoryType == 135  && UIModule.IsScreenReady() &&
+            TPHelper.Enqueue(() => GameState.TerritoryType == 135             && UIModule.IsScreenReady() &&
                                    !DService.Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy);
         }
 
@@ -169,7 +169,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
                 if (!EventFramework.Instance()->IsEventIDNearby(721694))
                 {
                     TPHelper.Enqueue(() => MovementManager.TPSmart_InZone(LowerLaNosceaDefaultPosition), weight: 2);
-                    TPHelper.Enqueue(() => GameState.TerritoryType == 135  && UIModule.IsScreenReady() &&
+                    TPHelper.Enqueue(() => GameState.TerritoryType == 135             && UIModule.IsScreenReady() &&
                                            !DService.Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy, weight: 2);
                 }
                 return true;
@@ -243,7 +243,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
         if (GameState.TerritoryType != 628)
         {
             TPHelper.Enqueue(() => MovementManager.TPSmart_BetweenZone(628, KuganeDefaultPosition, false, true));
-            TPHelper.Enqueue(() => GameState.TerritoryType == 628  && UIModule.IsScreenReady() &&
+            TPHelper.Enqueue(() => GameState.TerritoryType == 628             && UIModule.IsScreenReady() &&
                                    !DService.Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy);
         }
 
@@ -254,7 +254,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
                 if (!EventFramework.Instance()->IsEventIDNearby(721355))
                 {
                     TPHelper.Enqueue(() => MovementManager.TPSmart_InZone(KuganeDefaultPosition), weight: 2);
-                    TPHelper.Enqueue(() => GameState.TerritoryType == 628  && UIModule.IsScreenReady() &&
+                    TPHelper.Enqueue(() => GameState.TerritoryType == 628             && UIModule.IsScreenReady() &&
                                            !DService.Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy, weight: 2);
                 }
                 
@@ -290,7 +290,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
         if (GameState.TerritoryType != 915)
         {
             TPHelper.Enqueue(() => MovementManager.TeleportZone(915, false, true));
-            TPHelper.Enqueue(() => GameState.TerritoryType == 915  && UIModule.IsScreenReady() &&
+            TPHelper.Enqueue(() => GameState.TerritoryType == 915             && UIModule.IsScreenReady() &&
                                    !DService.Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy);
         }
 
@@ -301,7 +301,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
                 if (!EventFramework.Instance()->IsEventIDNearby(721601))
                 {
                     TPHelper.Enqueue(() => MovementManager.TPSmart_InZone(GangosDefaultPosition), weight: 2);
-                    TPHelper.Enqueue(() => GameState.TerritoryType == 915  && UIModule.IsScreenReady() &&
+                    TPHelper.Enqueue(() => GameState.TerritoryType == 915             && UIModule.IsScreenReady() &&
                                            !DService.Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy, weight: 2);
                 }
                 return true;
@@ -345,7 +345,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
                 if (!EventFramework.Instance()->IsEventIDNearby(327855))
                 {
                     TPHelper.Enqueue(() => MovementManager.TPSmart_InZone(CosmicDefaultPosition), weight: 2);
-                    TPHelper.Enqueue(() => GameState.TerritoryType == 959  && UIModule.IsScreenReady() &&
+                    TPHelper.Enqueue(() => GameState.TerritoryType == 959             && UIModule.IsScreenReady() &&
                                            !DService.Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy, weight: 2);
                 }
                 

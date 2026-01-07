@@ -46,7 +46,7 @@ public unsafe class AutoLogin : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new() { TimeLimitMS = 180_000 };
+        TaskHelper   ??= new() { TimeoutMS = 180_000, ShowDebug = true };
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_TitleMenu", OnTitleMenu);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "Dialogue",   OnDialogue);
@@ -309,7 +309,7 @@ public unsafe class AutoLogin : DailyModuleBase
                            $"选择默认角色_{loginInfo.WorldID}_{loginInfo.CharaIndex}");
     }
 
-    private bool? SelectCharacter(ushort worldID, int charaIndex)
+    private bool SelectCharacter(ushort worldID, int charaIndex)
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         if (!Throttler.Throttle("AutoLogin-SelectCharacter", 100)) return false;
@@ -332,7 +332,7 @@ public unsafe class AutoLogin : DailyModuleBase
         return true;
     }
 
-    private bool? SelectWorld(ushort worldID)
+    private bool SelectWorld(ushort worldID)
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         if (!Throttler.Throttle("AutoLogin-SelectWorld", 100)) return false;

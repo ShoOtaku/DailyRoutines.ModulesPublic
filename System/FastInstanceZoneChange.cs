@@ -43,7 +43,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 30_000, ShowDebug = true };
+        TaskHelper ??= new() { TimeoutMS = 30_000, ShowDebug = true };
         ModuleConfig = LoadConfig<Config>() ?? new();
 
         CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("FastInstanceZoneChange-CommandHelp") });
@@ -293,7 +293,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
 
             var publicInstance = UIState.Instance()->PublicInstance;
             if (!publicInstance.IsInstancedArea() || publicInstance.InstanceId == i)
-                TaskHelper.RemoveAllTasks(2);
+                TaskHelper.RemoveQueueTasks(2);
 
             return true;
         }, "检测切换情况", weight: 2);

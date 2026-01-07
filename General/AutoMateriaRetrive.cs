@@ -49,7 +49,7 @@ public unsafe class AutoMateriaRetrive : DailyModuleBase
         RetriveMateriaHook ??= 
             DService.Hook.HookFromSignature<RetriveMateriaDelegate>(RetriveMateriaSig.Get(), RetriveMateriaDetour);
         RetriveMateriaHook.Enable();
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
     }
 
     protected override void ConfigUI()
@@ -155,7 +155,7 @@ public unsafe class AutoMateriaRetrive : DailyModuleBase
                 return true;
             }
             return !OccupiedInEvent;
-        }, "WaitEventEndBefore", null, null, 1);
+        }, "WaitEventEndBefore", weight: 1);
 
         TaskHelper.Enqueue(() =>
         {
@@ -166,7 +166,7 @@ public unsafe class AutoMateriaRetrive : DailyModuleBase
             }
 
             Retrive(inventoryType, inventorySlot);
-        }, "RetriveWork", null, null, 1);
+        }, "RetriveWork", weight: 1);
 
         TaskHelper.Enqueue(() =>
         {
@@ -176,7 +176,7 @@ public unsafe class AutoMateriaRetrive : DailyModuleBase
                 return true;
             }
             return !OccupiedInEvent;
-        }, "WaitEventEndAfter", null, null, 1);
+        }, "WaitEventEndAfter", weight: 1);
 
         TaskHelper.Enqueue(() =>
         {
@@ -187,10 +187,10 @@ public unsafe class AutoMateriaRetrive : DailyModuleBase
             }
 
             var manager = InventoryManager.Instance();
-            var slot = manager->GetInventorySlot(inventoryType, inventorySlot);
+            var slot    = manager->GetInventorySlot(inventoryType, inventorySlot);
             if (slot == null || slot->ItemId == 0 || slot->Materia.ToArray().All(x => x == 0)) return;
             EnqueueRetriveTask(inventoryType, inventorySlot);
-        }, "EnqueueNewRound_SingleSlot", null, null, 1);
+        }, "EnqueueNewRound_SingleSlot", weight: 1);
     }
 
     private static void Retrive(InventoryType type, short slot)

@@ -19,7 +19,7 @@ public class AutoHummer : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 10000 };
+        TaskHelper ??= new() { TimeoutMS = 10000 };
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "Hummer", OnAddonSetup);
     }
 
@@ -33,13 +33,13 @@ public class AutoHummer : DailyModuleBase
         TaskHelper.Enqueue(ClickGameButton);
     }
 
-    private bool? WaitSelectStringAddon()
+    private bool WaitSelectStringAddon()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         return ClickSelectString(0);
     }
 
-    private unsafe bool? ClickGameButton()
+    private unsafe bool ClickGameButton()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
 
@@ -59,7 +59,7 @@ public class AutoHummer : DailyModuleBase
         return true;
     }
 
-    private unsafe bool? StartAnotherRound()
+    private unsafe bool StartAnotherRound()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         if (OccupiedInEvent) return false;

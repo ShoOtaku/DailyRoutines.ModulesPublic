@@ -33,7 +33,7 @@ public partial class OccultCrescentHelper
 
         public override void Init()
         {
-            CETaskHelper ??= new() { TimeLimitMS = 180_000 };
+            CETaskHelper ??= new() { TimeoutMS = 180_000 };
 
             DService.ClientState.TerritoryChanged += OnZoneChanged;
             ExecuteCommandManager.RegPost(OnPostReceivedCommand);

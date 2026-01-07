@@ -147,7 +147,7 @@ public unsafe class AutoRepair : DailyModuleBase
         // 还是有能自己修的装备的
         if (items.Count > itemsUnableToRepair.Count)
         {
-            TaskHelper.Enqueue(() => IsAbleToRepair(), "等待可以维修状态");
+            TaskHelper.Enqueue(() => IsAbleToRepair(),                                                               "等待可以维修状态");
             TaskHelper.Enqueue(() => NotificationInfo(GetLoc("AutoRepair-RepairNotice"), GetLoc("AutoRepairTitle")), "发送开始维修通知");
             
             // 没有暗物质不足的情况

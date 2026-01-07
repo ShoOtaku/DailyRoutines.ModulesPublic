@@ -39,7 +39,7 @@ public class AutoFateSync : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeoutMS = 30_000 };
         
         ModuleConfig = LoadConfig<Config>() ?? new();
         

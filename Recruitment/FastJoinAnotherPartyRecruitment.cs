@@ -22,7 +22,7 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 10_000 };
+        TaskHelper ??= new() { TimeoutMS = 10_000 };
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "LookingForGroupDetail", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddon);

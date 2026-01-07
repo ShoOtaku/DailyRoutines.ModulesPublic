@@ -46,7 +46,7 @@ public partial class OccultCrescentHelper
 
         public override void Init()
         {
-            TreasureTaskHelper ??= new() { TimeLimitMS = 180_000 };
+            TreasureTaskHelper ??= new() { TimeoutMS = 180_000 };
             
             WindowManager.Draw                    += OnPosDraw;
             DService.ClientState.TerritoryChanged += OnZoneChanged;
@@ -292,7 +292,7 @@ public partial class OccultCrescentHelper
                 OnUpdate();
 
                 // 找到了, 移动过去
-                if (Treasures.FirstOrDefault(x => x.ObjectType == SpecialObjectType.Treasure && 
+                if (Treasures.FirstOrDefault(x => x.ObjectType                                                          == SpecialObjectType.Treasure && 
                                                   Vector2.DistanceSquared(x.Position.ToVector2(), position.ToVector2()) <= 225) is { } obj)
                 {
                     position      = obj.Position;

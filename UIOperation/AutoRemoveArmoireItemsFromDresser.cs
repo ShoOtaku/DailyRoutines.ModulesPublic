@@ -25,7 +25,7 @@ public unsafe class AutoRemoveArmoireItemsFromDresser : DailyModuleBase
                     .ToHashSet();
 
     protected override void Init() => 
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
 
     protected override void ConfigUI()
     {

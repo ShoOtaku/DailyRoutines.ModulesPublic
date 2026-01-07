@@ -30,7 +30,7 @@ public unsafe class AutoNoviceNetwork : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
         
         AfkTimer           ??= new(10_000);
         AfkTimer.Elapsed   +=  OnAfkStateCheck;

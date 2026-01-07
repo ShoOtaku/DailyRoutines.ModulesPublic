@@ -45,7 +45,7 @@ public unsafe class AutoStellarSprint : DailyModuleBase
         TaskHelper.Enqueue(UseSprint);
     }
 
-    private bool? UseSprint()
+    private bool UseSprint()
     {
         if (!UIModule.IsScreenReady() || BetweenAreas || OccupiedInEvent) return false;
 

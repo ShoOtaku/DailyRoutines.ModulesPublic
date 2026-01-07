@@ -29,7 +29,7 @@ public unsafe class AutoMateriaTransmutation : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 15_000 };
+        TaskHelper ??= new() { TimeoutMS = 15_000 };
         ModuleConfig = LoadConfig<Config>() ?? new();
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "TradeMultiple", OnAddon);
@@ -199,7 +199,7 @@ public unsafe class AutoMateriaTransmutation : DailyModuleBase
             }
 
             var leftCount = 5 - agent->GetCurrentSelectedMateriaCount();
-            var item = InventoryManager.Instance()->GetInventorySlot(type, slot);
+            var item      = InventoryManager.Instance()->GetInventorySlot(type, slot);
             if (item == null) return false;
 
             agent->AddMateria(type, slot, item->Quantity >= leftCount ? leftCount : (uint)item->Quantity);

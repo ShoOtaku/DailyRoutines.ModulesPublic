@@ -20,7 +20,7 @@ public class AutoSoulsow : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeoutMS = 30_000 };
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
@@ -54,7 +54,7 @@ public class AutoSoulsow : DailyModuleBase
             TaskHelper.Enqueue(CheckCurrentJob);
     }
 
-    private bool? CheckCurrentJob()
+    private bool CheckCurrentJob()
     {
         if (BetweenAreas || !UIModule.IsScreenReady() || OccupiedInEvent) return false;
         if (DService.Condition[ConditionFlag.InCombat] || LocalPlayerState.ClassJob != 39 || !IsValidPVEDuty())
@@ -63,11 +63,11 @@ public class AutoSoulsow : DailyModuleBase
             return true;
         }
         
-        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, true, 1);
+        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
         return true;
     }
     
-    private bool? UseRelatedActions()
+    private bool UseRelatedActions()
     {
         if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
 
@@ -78,9 +78,9 @@ public class AutoSoulsow : DailyModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, 24387), $"UseAction_{24387}", 5_000, true, 1);
+        TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, 24387), $"UseAction_{24387}", 5_000, weight: 1);
         TaskHelper.DelayNext(2_000);
-        TaskHelper.Enqueue(CheckCurrentJob, "SecondCheck", null, true, 1);
+        TaskHelper.Enqueue(CheckCurrentJob, "二次检查", weight: 1);
         return true;
     }
 

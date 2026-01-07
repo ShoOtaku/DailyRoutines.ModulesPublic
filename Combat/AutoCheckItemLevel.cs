@@ -25,7 +25,7 @@ public unsafe class AutoCheckItemLevel : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 20_000 };
+        TaskHelper ??= new() { TimeoutMS = 20_000 };
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
     }

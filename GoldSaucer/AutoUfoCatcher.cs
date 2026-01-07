@@ -33,13 +33,13 @@ public class AutoUfoCatcher : DailyModuleBase
         TaskHelper.Enqueue(ClickGameButton);
     }
 
-    private unsafe bool? WaitSelectStringAddon()
+    private unsafe bool WaitSelectStringAddon()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         return SelectString->IsAddonAndNodesReady() && ClickSelectString(0);
     }
 
-    private unsafe bool? ClickGameButton()
+    private unsafe bool ClickGameButton()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
 
@@ -59,7 +59,7 @@ public class AutoUfoCatcher : DailyModuleBase
         return true;
     }
 
-    private unsafe bool? StartAnotherRound()
+    private unsafe bool StartAnotherRound()
     {
         if (InterruptByConflictKey(TaskHelper, this)) return true;
         if (OccupiedInEvent) return false;

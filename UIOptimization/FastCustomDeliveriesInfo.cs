@@ -55,7 +55,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
         AgentSatisfactionListReceiveEventHook.Enable();
 
         Overlay    ??= new(this);
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeoutMS = 30_000 };
     }
 
     protected override void OverlayUI()
@@ -179,7 +179,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
     {
         // 不在天穹街 → 先去伊修加德基础层
         TaskHelper.Enqueue(MovementManager.TeleportFirmament);
-        TaskHelper.Enqueue(() => GameState.TerritoryType == 886  && UIModule.IsScreenReady() &&
+        TaskHelper.Enqueue(() => GameState.TerritoryType == 886             && UIModule.IsScreenReady() &&
                                  !DService.Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy);
     }
 

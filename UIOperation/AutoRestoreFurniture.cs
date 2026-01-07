@@ -17,7 +17,7 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 10000 };
+        TaskHelper ??= new() { TimeoutMS = 10000 };
         Overlay ??= new(this);
 
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, OnAddon);
@@ -69,7 +69,7 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
         }
     }
 
-    private bool? EnqueueRestore(uint startInventory, uint endInventory, bool isIndoor, int extraSlotParam = 0)
+    private bool EnqueueRestore(uint startInventory, uint endInventory, bool isIndoor, int extraSlotParam = 0)
     {
         var houseManager = HousingManager.Instance();
         var inventoryManager = InventoryManager.Instance();

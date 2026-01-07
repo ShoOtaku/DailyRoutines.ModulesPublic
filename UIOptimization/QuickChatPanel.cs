@@ -52,7 +52,7 @@ public unsafe class QuickChatPanel : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
         
         Overlay       ??= new(this);
         Overlay.Flags |=  ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollWithMouse;

@@ -28,7 +28,7 @@ public class AutoSummonPet : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new TaskHelper { TimeLimitMS = 30_000 };
+        TaskHelper ??= new TaskHelper { TimeoutMS = 30_000 };
 
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         DService.DutyState.DutyRecommenced += OnDutyRecommenced;
@@ -52,7 +52,7 @@ public class AutoSummonPet : DailyModuleBase
         TaskHelper.Enqueue(CheckCurrentJob);
     }
 
-    private unsafe bool? CheckCurrentJob()
+    private unsafe bool CheckCurrentJob()
     {
         if (BetweenAreas || !UIModule.IsScreenReady() || DService.Condition[ConditionFlag.Casting] ||
             DService.ObjectTable.LocalPlayer is not { IsTargetable: true } localPlayer) return false;

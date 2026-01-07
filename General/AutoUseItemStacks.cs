@@ -19,7 +19,7 @@ public unsafe class AutoUseItemStacks : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
         DService.ContextMenu.OnMenuOpened += OnContextMenuOpened;
     }
 

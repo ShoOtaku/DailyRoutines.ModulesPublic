@@ -37,7 +37,7 @@ public class SastashaHelper : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 30_000 };
+        TaskHelper ??= new() { TimeoutMS = 30_000 };
         
         DService.ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
@@ -67,7 +67,7 @@ public class SastashaHelper : DailyModuleBase
         coral.ToStruct()->Highlight(coral.IsTargetable ? CorrectCoralHighlightColor : ObjectHighlightColor.None);
     }
     
-    private static bool? GetCorrectCoral()
+    private static bool GetCorrectCoral()
     {
         if (DService.ObjectTable.LocalPlayer is null || BetweenAreas || !UIModule.IsScreenReady()) return false;
         

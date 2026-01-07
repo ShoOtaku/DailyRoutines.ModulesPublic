@@ -33,7 +33,7 @@ public unsafe class AutoAttireItems : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper   ??= new() { TimeLimitMS = 5_000 };
+        TaskHelper   ??= new() { TimeoutMS = 5_000 };
         ModuleConfig =   LoadConfig<Config>() ?? new();
 
         LogMessageManager.Register(OnReceiveLogMessage);

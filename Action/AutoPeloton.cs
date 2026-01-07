@@ -77,10 +77,10 @@ public unsafe class AutoPeloton : DailyModuleBase
             return;
         
         TaskHelper.Abort();
-        TaskHelper.Enqueue(UsePeloton, $"UseAction_{PELOTONING_ACTION_ID}", 5_000, true, 1);
+        TaskHelper.Enqueue(UsePeloton, $"UseAction_{PELOTONING_ACTION_ID}", 5_000, weight: 1);
     }
 
-    private bool? UsePeloton()
+    private bool UsePeloton()
     {
         if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
         var actionManager = ActionManager.Instance();
@@ -93,8 +93,7 @@ public unsafe class AutoPeloton : DailyModuleBase
         TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, PELOTONING_ACTION_ID),
                            $"UseAction_{PELOTONING_ACTION_ID}",
                            5_000,
-                           true,
-                           1);
+                           weight: 1);
         return true;
     }
     

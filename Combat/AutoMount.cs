@@ -31,7 +31,7 @@ public unsafe class AutoMount : DailyModuleBase
         MountSelectCombo.SelectedMountID = ModuleConfig.SelectedMount;
         ZoneSelectCombo.SelectedZoneIDs  = ModuleConfig.BlacklistZones;
 
-        TaskHelper ??= new TaskHelper { TimeLimitMS = 20000 };
+        TaskHelper ??= new TaskHelper { TimeoutMS = 20000 };
 
         DService.Condition.ConditionChange += OnConditionChanged;
         DService.ClientState.TerritoryChanged += OnZoneChanged;
@@ -138,7 +138,7 @@ public unsafe class AutoMount : DailyModuleBase
         }
     }
 
-    private bool? UseMount()
+    private bool UseMount()
     {
         if (!Throttler.Throttle("AutoMount-UseMount")) return false;
         if (BetweenAreas) return false;
@@ -153,7 +153,7 @@ public unsafe class AutoMount : DailyModuleBase
         TaskHelper.DelayNext(100);
         TaskHelper.Enqueue(() => ModuleConfig.SelectedMount == 0
                                      ? UseActionManager.UseAction(ActionType.GeneralAction, 9)
-                                     : UseActionManager.UseAction(ActionType.Mount, ModuleConfig.SelectedMount));
+                                     : UseActionManager.UseAction(ActionType.Mount,         ModuleConfig.SelectedMount));
         return true;
     }
 

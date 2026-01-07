@@ -100,7 +100,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         Overlay.Flags      |=  ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
         Overlay.WindowName =   $"{LuminaWrapper.GetAddonText(8513)}###BetterTeleportOverlay";
 
-        TaskHelper ??= new() { TimeLimitMS = 60_000 };
+        TaskHelper ??= new() { TimeoutMS = 60_000 };
 
         ModuleConfig = LoadConfig<Config>() ?? new();
 
@@ -1060,7 +1060,7 @@ public unsafe class BetterTeleport : DailyModuleBase
     private void OnZoneChanged(ushort zone)
     {
         Overlay.IsOpen = false;
-        TaskHelper.RemoveAllTasks(1);
+        TaskHelper.RemoveQueueTasks(1);
 
         if (GameState.TerritoryType == 0 || GameState.ContentFinderCondition != 0 || !DService.ClientState.IsLoggedIn) return;
 

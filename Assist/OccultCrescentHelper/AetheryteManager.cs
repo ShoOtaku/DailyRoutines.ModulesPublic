@@ -25,7 +25,7 @@ public partial class OccultCrescentHelper
 
         public override void Init()
         {
-            MoveTaskHelper ??= new() { TimeLimitMS = 30_000 };
+            MoveTaskHelper ??= new() { TimeoutMS = 30_000 };
 
             DService.ClientState.TerritoryChanged += OnZoneChanged;
             DService.ClientState.Logout           += OnLogout;

@@ -66,7 +66,7 @@ public class OptimizedRecipeNote : DailyModuleBase
     
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeLimitMS = 15_000 };
+        TaskHelper ??= new() { TimeoutMS = 15_000 };
         
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,           "RecipeNote", OnAddon);
         DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "RecipeNote", OnAddon);

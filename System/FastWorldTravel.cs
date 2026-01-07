@@ -66,7 +66,7 @@ public class FastWorldTravel : DailyModuleBase
     protected override unsafe void Init()
     {
         ModuleConfig =   LoadConfig<Config>() ?? new();
-        TaskHelper   ??= new() { TimeLimitMS = int.MaxValue, ShowDebug = true };
+        TaskHelper   ??= new() { TimeoutMS = int.MaxValue, ShowDebug = true };
 
         if (GameState.IsCN)
             WorldStatusMonitor = new(CheckCNDataCenterStatus);
@@ -485,7 +485,7 @@ public class FastWorldTravel : DailyModuleBase
 
     #region 工具
 
-    private static bool? LeaveNonCrossWorldParty()
+    private static bool LeaveNonCrossWorldParty()
     {
         if (DService.PartyList.Length < 2 || DService.Condition[ConditionFlag.ParticipatingInCrossWorldPartyOrAlliance]) 
             return true;

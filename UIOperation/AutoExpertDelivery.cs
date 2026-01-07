@@ -39,7 +39,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        TaskHelper ??= new() { TimeLimitMS = int.MaxValue };
+        TaskHelper ??= new() { TimeoutMS = int.MaxValue };
 
         Addon ??= new(this)
         {
@@ -55,7 +55,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
             OnAddonSupplyList(AddonEvent.PostSetup, null);
     }
     
-    private bool? EnqueueDelivery()
+    private bool EnqueueDelivery()
     {
         if (GrandCompanySupplyReward != null)
         {
@@ -156,7 +156,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
         }
     }
 
-    private static bool? EnqueueRefresh()
+    private static bool EnqueueRefresh()
     {
         if (GrandCompanySupplyReward != null              ||
             !GrandCompanySupplyList->IsAddonAndNodesReady() ||
