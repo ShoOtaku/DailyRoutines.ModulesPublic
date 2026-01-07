@@ -175,7 +175,7 @@ public class OptimizedLetter : DailyModuleBase
                 {
                     button->OwnerNode->ClearEvents();
 
-                    FireRequestEvent ??= new AtkEventWrapper((_, _, _) =>
+                    FireRequestEvent = new AtkEventWrapper((_, _, _, _) =>
                     {
                         if (!LetterList->IsAddonAndNodesReady()) return;
                         
@@ -283,15 +283,15 @@ public class OptimizedLetter : DailyModuleBase
                 Close();
                 return;
             }
-
-
-            this.SetWindowPosition(new(LetterList->RootNode->ScreenX - addon->GetScaledWidth(true),
-                                       LetterList->RootNode->ScreenY));
+            
+            SetWindowPosition(new(LetterList->RootNode->ScreenX - addon->GetScaledWidth(true),
+                                  LetterList->RootNode->ScreenY));
         }
 
         protected override unsafe void OnFinalize(AtkUnitBase* addon) 
         {
             FireRequestEvent?.Dispose();
+            FireRequestEvent = null;
             
             if (LetterList == null) return;
             LetterList->Close(true);

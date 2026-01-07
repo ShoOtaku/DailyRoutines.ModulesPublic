@@ -50,7 +50,7 @@ public unsafe class AutoClaimPVPRewards : DailyModuleBase
                 {
                     closeButton->OwnerNode->ClearEvents();
                     
-                    ClaimAllEvent = new AtkEventWrapper((_, _, _) =>
+                    ClaimAllEvent = new AtkEventWrapper((_, _, _, _) =>
                     {
                         for (var i = 0; i < 30; i++)
                         {
