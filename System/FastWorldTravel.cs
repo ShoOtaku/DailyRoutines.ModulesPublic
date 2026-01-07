@@ -35,17 +35,14 @@ public class FastWorldTravel : DailyModuleBase
         Title = GetLoc("FastWorldTravelTitle"),
         Description = GetLoc("FastWorldTravelDescription", COMMAND) +
                       (!GameState.IsCN ? string.Empty : "\n支持快捷超域旅行并实时显示各服务器超域旅行拥挤度 [国服特供]"),
-        Category         = ModuleCategories.System,
-        ModulesRecommend = ["InstantReturn", "InstantTeleport"]
+        Category            = ModuleCategories.System,
+        ModulesRecommend    = ["InstantReturn", "InstantTeleport"],
+        ModulesPrerequisite = ["InstantLogout"]
     };
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     internal const string COMMAND = "worldtravel";
-
-    private unsafe delegate void ReturnToTitleDelegate(AgentLobby* agent);
-    private static readonly ReturnToTitleDelegate ReturnToTitle =
-        new CompSig("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B F9 33 F6 48 8B 89 ?? ?? ?? ?? 48 85 C9 74 ?? 48 8B 01").GetDelegate<ReturnToTitleDelegate>();
 
     private static readonly HashSet<uint> WorldTravelValidZones = [132, 129, 130];
 

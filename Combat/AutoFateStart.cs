@@ -28,7 +28,10 @@ public class AutoFateStart : DailyModuleBase
         
         try
         {
-            if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.Overworld || GameState.IsInPVPArea) return;
+            if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.Overworld ||
+                GameState.IsInPVPArea                                            ||
+                LocalPlayerState.ClassJobData.DohDolJobIndex != -1)
+                return;
             
             IsOnUpdate = true;
             
