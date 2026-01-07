@@ -58,7 +58,7 @@ public unsafe class AutoClaimPVPRewards : DailyModuleBase
                                                {
                                                    if (!IsTrophyCrystalAboutToReachLimit()) return;
                                                    TaskHelper.Abort();
-                                               }, $"CheckTCAmount_Rank{i}");
+                                               }, $"检查战利水晶数量_等级{i}");
 
                             TaskHelper.Enqueue(
                                 () =>
@@ -66,9 +66,9 @@ public unsafe class AutoClaimPVPRewards : DailyModuleBase
                                     ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.CollectTrophyCrystal);
                                     ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.CollectTrophyCrystal, 1);
                                 },
-                                $"ClaimTC_Rank{i}");
+                                $"领取系列赛奖励_等级{i}");
 
-                            TaskHelper.DelayNext(10, $"Delay_Rank{i}");
+                            TaskHelper.DelayNext(10, $"等待 10 毫秒以便回包_等级{i}");
                         }
                     });
                     ClaimAllEvent.Add(PvpReward, (AtkResNode*)closeButton->OwnerNode, AtkEventType.ButtonClick);

@@ -12,45 +12,44 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
     {
         Title       = GetLoc("AutoRestoreFurnitureTitle"),
         Description = GetLoc("AutoRestoreFurnitureDescription"),
-        Category    = ModuleCategories.UIOperation,
+        Category    = ModuleCategories.UIOperation
     };
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeoutMS = 10000 };
-        Overlay ??= new(this);
+        TaskHelper ??= new();
+        Overlay    ??= new(this);
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, OnAddon);
-        if (HousingGoods != null) 
+        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "HousingGoods", OnAddon);
+        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "HousingGoods", OnAddon);
+        if (HousingGoods != null)
             OnAddon(AddonEvent.PostSetup, null);
     }
 
     protected override void OverlayUI()
     {
-        var addon = HousingGoods;
-        if (addon == null)
+        if (HousingGoods == null)
         {
             Overlay.IsOpen = false;
             return;
         }
 
-        var pos = new Vector2(addon->GetX() - ImGui.GetWindowSize().X, addon->GetY() + 6);
+        var pos = new Vector2(HousingGoods->GetX() - ImGui.GetWindowSize().X, HousingGoods->GetY() + 6);
         ImGui.SetWindowPos(pos);
 
         using (FontManager.UIFont80.Push())
         {
             var isOutdoor = HousingGoods->AtkValues[9].UInt != 6U;
-            
+
             ImGui.AlignTextToFramePadding();
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("AutoRestoreFurnitureTitle"));
-            
+
             ImGui.SameLine();
             ImGui.TextUnformatted($"({GetLoc(isOutdoor ? "Outdoors" : "Indoors")})");
 
             ImGui.SameLine();
             ImGui.Spacing();
-            
+
             ImGui.SameLine();
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Stop, $" {GetLoc("Stop")}"))
                 TaskHelper.Abort();
@@ -71,38 +70,42 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
 
     private bool EnqueueRestore(uint startInventory, uint endInventory, bool isIndoor, int extraSlotParam = 0)
     {
-        var houseManager = HousingManager.Instance();
+        var houseManager     = HousingManager.Instance();
         var inventoryManager = InventoryManager.Instance();
-        if (houseManager == null || inventoryManager == null ||
-            (houseManager->GetCurrentIndoorHouseId() < 0 && houseManager->GetCurrentPlot() < 0))
+
+        if (houseManager     == null ||
+            inventoryManager == null ||
+            houseManager->GetCurrentIndoorHouseId() <= 0 &&
+            houseManager->GetCurrentPlot()          < 0)
         {
             TaskHelper.Abort();
             return true;
         }
 
         var param1 = isIndoor
-                         ? *(long*)((nint)houseManager->IndoorTerritory + 38560) >> 32
+                         ? *(long*)((nint)houseManager->IndoorTerritory  + 38560) >> 32
                          : *(long*)((nint)houseManager->OutdoorTerritory + 38560) >> 32;
         var param2 = isIndoor ? houseManager->IndoorTerritory->HouseId : houseManager->OutdoorTerritory->HouseId;
 
         for (var i = startInventory; i <= endInventory; i++)
         {
-            var type = (InventoryType)i;
+            var type       = (InventoryType)i;
             var contaniner = inventoryManager->GetInventoryContainer(type);
             if (contaniner == null) continue;
+
             for (var d = 0; d < contaniner->Size; d++)
             {
                 var slot = contaniner->GetInventorySlot(d);
                 if (slot == null || slot->ItemId == 0) continue;
 
                 var inventoryTypeFinal = (int)i;
-                var slotFinal = d;
+                var slotFinal          = d;
 
                 TaskHelper.Enqueue(() => ExecuteCommandManager.ExecuteCommand(
-                                       ExecuteCommandFlag.RestoreFurniture, 
-                                       (uint)param1, 
-                                       (uint)param2, 
-                                       (uint)inventoryTypeFinal, 
+                                       ExecuteCommandFlag.RestoreFurniture,
+                                       (uint)param1,
+                                       (uint)param2,
+                                       (uint)inventoryTypeFinal,
                                        (uint)(slotFinal + extraSlotParam)));
                 TaskHelper.Enqueue(() => EnqueueRestore(startInventory, endInventory, isIndoor, extraSlotParam));
                 return true;
@@ -115,20 +118,19 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
 
     private void OnAddon(AddonEvent type, AddonArgs args)
     {
-        var addon = HousingGoods;
-        if (addon == null || !addon->IsAddonAndNodesReady()) return;
+        if (!HousingGoods->IsAddonAndNodesReady()) return;
 
         Overlay.IsOpen = type switch
         {
-            AddonEvent.PostSetup => true,
+            AddonEvent.PostSetup   => true,
             AddonEvent.PreFinalize => true,
-            _ => Overlay.IsOpen,
+            _                      => Overlay.IsOpen
         };
 
-        if (type == AddonEvent.PreFinalize) 
+        if (type == AddonEvent.PreFinalize)
             TaskHelper.Abort();
     }
 
-    protected override void Uninit() => 
+    protected override void Uninit() =>
         DService.AddonLifecycle.UnregisterListener(OnAddon);
 }

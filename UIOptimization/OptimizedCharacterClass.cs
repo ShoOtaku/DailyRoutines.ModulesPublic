@@ -157,7 +157,7 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
 
     private static void ClearEvents()
     {
-        foreach (var atkEvent in Events)
+        foreach (var atkEvent in Events.ToList())
             atkEvent.Dispose();
         
         Events.Clear();
