@@ -17,7 +17,7 @@ public unsafe class AutoClaimItemIgnoringMismatchJobAndLevel : DailyModuleBase
 
     protected override void Init()
     {
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddon);
         if (SelectYesno->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -35,5 +35,5 @@ public unsafe class AutoClaimItemIgnoringMismatchJobAndLevel : DailyModuleBase
         ]);
     }
 
-    protected override void Uninit() => DService.AddonLifecycle.UnregisterListener(OnAddon);
+    protected override void Uninit() => DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 }

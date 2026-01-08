@@ -25,7 +25,7 @@ public class AutoNotifyRecruitmentEnd : DailyModuleBase
     ];
 
     protected override void Init() => 
-        DService.Chat.ChatMessage += OnChatMessage;
+        DService.Instance().Chat.ChatMessage += OnChatMessage;
 
     private static void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool ishandled)
     {
@@ -53,5 +53,5 @@ public class AutoNotifyRecruitmentEnd : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.Chat.ChatMessage -= OnChatMessage;
+        DService.Instance().Chat.ChatMessage -= OnChatMessage;
 }

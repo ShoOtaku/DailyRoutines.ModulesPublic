@@ -131,7 +131,7 @@ public unsafe class ExpandMacroTargetParameters : DailyModuleBase
     
     private static nint LowHPEnemyHandler()
     {
-        var enemy = DService.ObjectTable
+        var enemy = DService.Instance().ObjectTable
                             .Where(x => x is IBattleChara { IsTargetable: true, IsDead: false } chara &&
                                         CanUseActionOnEnemy(x.ToStruct())                             &&
                                         chara.CurrentHp != chara.MaxHp)
@@ -202,7 +202,7 @@ public unsafe class ExpandMacroTargetParameters : DailyModuleBase
         var localPlayer = Control.GetLocalPlayer();
         if (localPlayer == null) return nint.Zero;
 
-        var enemy = DService.ObjectTable
+        var enemy = DService.Instance().ObjectTable
                             .Where(x => CanUseActionOnEnemy(x.ToStruct()))
                             .OrderBy(x => Vector3.DistanceSquared(localPlayer->Position, x.Position))
                             .FirstOrDefault();
@@ -216,7 +216,7 @@ public unsafe class ExpandMacroTargetParameters : DailyModuleBase
         var localPlayer = Control.GetLocalPlayer();
         if (localPlayer == null) return nint.Zero;
 
-        var enemy = DService.ObjectTable
+        var enemy = DService.Instance().ObjectTable
                             .Where(x => CanUseActionOnEnemy(x.ToStruct()))
                             .OrderByDescending(x => Vector3.DistanceSquared(localPlayer->Position, x.Position))
                             .FirstOrDefault();
@@ -331,7 +331,7 @@ public unsafe class ExpandMacroTargetParameters : DailyModuleBase
     
     private static nint EnemyStatusHandler(uint id)
     {
-        var enemy = DService.ObjectTable
+        var enemy = DService.Instance().ObjectTable
                             .Where(x =>
                             {
                                 if (!CanUseActionOnEnemy(x.ToStruct())) return false;

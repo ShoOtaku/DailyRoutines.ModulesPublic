@@ -8,6 +8,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -39,7 +40,7 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
         TaskHelper   ??= new() { TimeoutMS = 30_000 };
         ModuleConfig =   LoadConfig<Config>() ?? new();
 
-        DService.Condition.ConditionChange += OnConditionChanged;
+        DService.Instance().Condition.ConditionChange += OnConditionChanged;
 
         CheckAndEnqueue();
     }
@@ -63,7 +64,7 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
 
     private void OnConditionChanged(ConditionFlag flag, bool value)
     {
@@ -78,7 +79,7 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
         
         if ((ModuleConfig.OnlyInDuty && GameState.ContentFinderCondition == 0) ||
             GameState.IsInPVPArea                                              ||
-            !DService.Condition[ConditionFlag.InCombat])
+            !DService.Instance().Condition[ConditionFlag.InCombat])
             return;
 
         TaskHelper.Enqueue(MainProcess);
@@ -95,7 +96,7 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
             return;
         }
 
-        if (!DService.Condition[ConditionFlag.InCombat]         ||
+        if (!DService.Instance().Condition[ConditionFlag.InCombat]         ||
             !ValidClassJobs.Contains(LocalPlayerState.ClassJob) ||
             !ActionManager.IsActionUnlocked(LUCID_DREAMING_ID))
             return;
@@ -163,7 +164,7 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
                            {
                                if (IsAbilityLocked) return false;
             
-                               var result = UseActionManager.UseActionLocation(ActionType.Action, LUCID_DREAMING_ID);
+                               var result = UseActionManager.Instance().UseActionLocation(ActionType.Action, LUCID_DREAMING_ID);
                                if (result)
                                {
                                    LastLucidDreamingUseTime = capturedTime;

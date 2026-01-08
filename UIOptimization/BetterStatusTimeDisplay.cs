@@ -47,7 +47,7 @@ public class BetterStatusTimeDisplay : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        FrameworkManager.Reg(OnUpdate, throttleMS: 1000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1000);
     }
 
     protected override void ConfigUI()
@@ -72,8 +72,8 @@ public class BetterStatusTimeDisplay : DailyModuleBase
 
     private static unsafe void OnUpdate(IFramework _)
     {
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer ||
-            DService.Condition[ConditionFlag.InCombat]) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer ||
+            DService.Instance().Condition[ConditionFlag.InCombat]) return;
 
         var atkStage = AtkStage.Instance();
         if (atkStage == null) return;
@@ -123,7 +123,7 @@ public class BetterStatusTimeDisplay : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
     public class Config : ModuleConfiguration
     {

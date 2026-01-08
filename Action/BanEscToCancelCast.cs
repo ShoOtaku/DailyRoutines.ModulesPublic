@@ -13,7 +13,7 @@ public class BanEscToCancelCast : DailyModuleBase
     };
 
     protected override void Init() => 
-        ExecuteCommandManager.RegPre(OnPreUseCommand);
+        ExecuteCommandManager.Instance().RegPre(OnPreUseCommand);
 
     private static void OnPreUseCommand(
         ref bool isPrevented, ref ExecuteCommandFlag command, ref uint param1, ref uint param2, ref uint param3, ref uint param4)
@@ -23,5 +23,5 @@ public class BanEscToCancelCast : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        ExecuteCommandManager.Unreg(OnPreUseCommand);
+        ExecuteCommandManager.Instance().Unreg(OnPreUseCommand);
 }

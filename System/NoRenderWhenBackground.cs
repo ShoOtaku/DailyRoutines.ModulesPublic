@@ -53,7 +53,7 @@ public unsafe class NoRenderWhenBackground : DailyModuleBase
     private static void DeviceDX11PostTickDetour(nint instance)
     {
         var framework = Framework.Instance();
-        if (framework == null || !DService.ClientState.IsLoggedIn)
+        if (framework == null || !DService.Instance().ClientState.IsLoggedIn)
         {
             IsOnNoRender = false;
             DeviceDX11PostTickHook.Original(instance);

@@ -17,10 +17,10 @@ public class AutoManagePeloton : DailyModuleBase
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
     
     protected override void Init() => 
-        UseActionManager.RegPreUseAction(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
 
     protected override void Uninit() => 
-        UseActionManager.Unreg(OnPreUseAction);
+        UseActionManager.Instance().Unreg(OnPreUseAction);
 
     private static void OnPreUseAction(
         ref bool                        isPrevented,
@@ -32,6 +32,6 @@ public class AutoManagePeloton : DailyModuleBase
         ref uint                        comboRouteID)
     {
         if (actionType != ActionType.Action || actionID != 7557) return;
-        isPrevented = DService.Condition[ConditionFlag.InCombat];
+        isPrevented = DService.Instance().Condition[ConditionFlag.InCombat];
     }
 }

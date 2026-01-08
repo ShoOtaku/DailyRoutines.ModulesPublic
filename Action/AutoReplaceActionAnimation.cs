@@ -41,14 +41,14 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
             OutputCombo ??= new("Output", source);
         }
 
-        UseActionManager.RegPreCharacterStartCast(OnCharacterStartCast);
-        UseActionManager.RegPreCharacterCompleteCast(OnCharacterCompleteCast);
+        UseActionManager.Instance().RegPreCharacterStartCast(OnCharacterStartCast);
+        UseActionManager.Instance().RegPreCharacterCompleteCast(OnCharacterCompleteCast);
     }
 
     protected override void Uninit()
     {
-        UseActionManager.Unreg(OnCharacterStartCast);
-        UseActionManager.Unreg(OnCharacterCompleteCast);
+        UseActionManager.Instance().Unreg(OnCharacterStartCast);
+        UseActionManager.Instance().Unreg(OnCharacterCompleteCast);
     }
 
     protected override void ConfigUI()

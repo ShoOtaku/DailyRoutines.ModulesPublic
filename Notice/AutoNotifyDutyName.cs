@@ -22,7 +22,7 @@ public class AutoNotifyDutyName : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.ClientState.TerritoryChanged += OnZoneChange;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChange;
     }
 
     protected override void ConfigUI()
@@ -68,7 +68,7 @@ public class AutoNotifyDutyName : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.ClientState.TerritoryChanged -= OnZoneChange;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChange;
 
     private class Config : ModuleConfiguration
     {

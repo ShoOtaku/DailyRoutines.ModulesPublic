@@ -70,20 +70,20 @@ public class CrossDCPartyFinder : DailyModuleBase
         Overlay       ??= new(this);
         Overlay.Flags |=  ImGuiWindowFlags.NoBackground;
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroup", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroup", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroup", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroup", OnAddon);
         if (LookingForGroup->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
 
         AgentLookingForGroupReceiveEventHook ??=
-            DService.Hook.HookFromAddress<AgentReceiveEventDelegate>(
+            DService.Instance().Hook.HookFromAddress<AgentReceiveEventDelegate>(
                 AgentLookingForGroup.Instance()->VirtualTable->GetVFuncByName("ReceiveEvent"), AgentLookingForGroupReceiveEventDetour);
         AgentLookingForGroupReceiveEventHook.Enable();
     }
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
         ClearResources();
 
@@ -225,7 +225,7 @@ public class CrossDCPartyFinder : DailyModuleBase
             ImGui.TableNextRow();
 
             ImGui.TableNextColumn();
-            if (DService.Texture.TryGetFromGameIcon(new(listing.CategoryIcon), out var categoryTexture))
+            if (DService.Instance().Texture.TryGetFromGameIcon(new(listing.CategoryIcon), out var categoryTexture))
             {
                 ImGui.Spacing();
                 
@@ -240,14 +240,14 @@ public class CrossDCPartyFinder : DailyModuleBase
             ImGui.TableNextColumn();
             using (ImRaii.Group())
             {
-                using (FontManager.UIFont120.Push())
+                using (FontManager.Instance().UIFont120.Push())
                 {
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (4f * GlobalFontScale));
                     ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{listing.Duty}");
                 }
                 
                 using (ImRaii.PushColor(ImGuiCol.Text, KnownColor.DarkGray.ToVector4()))
-                using (FontManager.UIFont90.Push())
+                using (FontManager.Instance().UIFont90.Push())
                 using (ImRaii.Group())
                 {
                     ImGui.SameLine(0, 8f * GlobalFontScale);
@@ -267,7 +267,7 @@ public class CrossDCPartyFinder : DailyModuleBase
 
                 var isDescEmpty = string.IsNullOrEmpty(listing.Description);
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (2f * GlobalFontScale));
-                using (FontManager.UIFont80.Push())
+                using (FontManager.Instance().UIFont80.Push())
                     ImGui.TextWrapped(isDescEmpty ? $"({LuminaWrapper.GetAddonText(11100)})" : $"{listing.Description}");
                 ImGui.Spacing();
                 
@@ -294,7 +294,7 @@ public class CrossDCPartyFinder : DailyModuleBase
                         using (ImRaii.PushStyle(ImGuiStyleVar.Alpha, 0.5f, !slot.Filled))
                         {
                             var displayIcon = slot.JobIcons.Count > 1 ? 62146 : slot.JobIcons[0];
-                            if (DService.Texture.TryGetFromGameIcon(new(displayIcon), out var jobTexture))
+                            if (DService.Instance().Texture.TryGetFromGameIcon(new(displayIcon), out var jobTexture))
                             {
                                 ImGui.Image(jobTexture.GetWrapOrEmpty().Handle, jobIconSize);
 
@@ -321,7 +321,7 @@ public class CrossDCPartyFinder : DailyModuleBase
             
             ImGui.SetCursorPosY(lineEndPosY - (3 * ImGui.GetTextLineHeightWithSpacing()) - (4 * ImGui.GetStyle().ItemSpacing.Y));
             using (ImRaii.Group())
-            using (FontManager.UIFont80.Push())
+            using (FontManager.Instance().UIFont80.Push())
             {
                 ImGui.NewLine();
 
@@ -398,7 +398,7 @@ public class CrossDCPartyFinder : DailyModuleBase
 
             NotificationInfo($"获取了 {ListingsDisplay.Count} 条招募信息");
 
-            await DService.Framework.RunOnFrameworkThread(() =>
+            await DService.Instance().Framework.RunOnFrameworkThread(() =>
             {
                 unsafe
                 {
@@ -464,7 +464,7 @@ public class CrossDCPartyFinder : DailyModuleBase
     {
         ClearResources();
         
-        if (DService.ObjectTable.LocalPlayer is { } localPlayer)
+        if (DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
         {
             DataCenters = LuminaGetter.Get<WorldDCGroupType>()
                                       .Where(x => x.Region == localPlayer.HomeWorld.Value.DataCenter.Value.Region)

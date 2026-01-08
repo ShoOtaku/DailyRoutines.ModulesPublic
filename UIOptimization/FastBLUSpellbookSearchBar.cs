@@ -26,8 +26,8 @@ public unsafe class FastBLUSpellbookSearchBar : DailyModuleBase
     {
         TaskHelper ??= new();
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "AOZNotebook", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "AOZNotebook", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "AOZNotebook", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "AOZNotebook", OnAddon);
     }
 
     private void OnAddon(AddonEvent type, AddonArgs args)
@@ -111,7 +111,7 @@ public unsafe class FastBLUSpellbookSearchBar : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
     }
 }

@@ -32,8 +32,8 @@ public unsafe class AutoCollectableExchange : DailyModuleBase
         
         HandInCollectables ??= HandInCollectablesSig.GetDelegate<HandInCollectablesDelegate>();
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "CollectablesShop", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CollectablesShop", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "CollectablesShop", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CollectablesShop", OnAddon);
         if (InfosOm.CollectablesShop != null) 
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -53,7 +53,7 @@ public unsafe class AutoCollectableExchange : DailyModuleBase
         if (buttonNode->IsVisible())
             buttonNode->ToggleVisibility(false);
 
-        using var font = FontManager.UIFont80.Push();
+        using var font = FontManager.Instance().UIFont80.Push();
 
         ImGui.SetWindowPos(new Vector2(addon->X + addon->GetScaledWidth(true), addon->Y + addon->GetScaledHeight(true)) - ImGui.GetWindowSize() -
                            ScaledVector2(12f));
@@ -95,8 +95,8 @@ public unsafe class AutoCollectableExchange : DailyModuleBase
                         InfosOm.CollectablesShop->Close(true);
                 });
                 TaskHelper.Enqueue(() => !OccupiedInEvent);
-                TaskHelper.Enqueue(() => GamePacketManager.SendPackt(
-                                       new EventStartPackt(DService.ObjectTable.LocalPlayer.GameObjectID,
+                TaskHelper.Enqueue(() => GamePacketManager.Instance().SendPackt(
+                                       new EventStartPackt(DService.Instance().ObjectTable.LocalPlayer.GameObjectID,
                                                            GetScriptEventID(GameState.TerritoryType))));
             }
         }
@@ -153,5 +153,5 @@ public unsafe class AutoCollectableExchange : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 }

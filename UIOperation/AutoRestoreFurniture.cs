@@ -20,8 +20,8 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
         TaskHelper ??= new();
         Overlay    ??= new(this);
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "HousingGoods", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "HousingGoods", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "HousingGoods", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "HousingGoods", OnAddon);
         if (HousingGoods != null)
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -37,7 +37,7 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
         var pos = new Vector2(HousingGoods->GetX() - ImGui.GetWindowSize().X, HousingGoods->GetY() + 6);
         ImGui.SetWindowPos(pos);
 
-        using (FontManager.UIFont80.Push())
+        using (FontManager.Instance().UIFont80.Push())
         {
             var isOutdoor = HousingGoods->AtkValues[9].UInt != 6U;
 
@@ -101,7 +101,7 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
                 var inventoryTypeFinal = (int)i;
                 var slotFinal          = d;
 
-                TaskHelper.Enqueue(() => ExecuteCommandManager.ExecuteCommand(
+                TaskHelper.Enqueue(() => ExecuteCommandManager.Instance().ExecuteCommand(
                                        ExecuteCommandFlag.RestoreFurniture,
                                        (uint)param1,
                                        (uint)param2,
@@ -132,5 +132,5 @@ public unsafe class AutoRestoreFurniture : DailyModuleBase
     }
 
     protected override void Uninit() =>
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 }

@@ -29,11 +29,11 @@ public class AutoChangeBattleEffectLevel : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        FrameworkManager.Reg(OnUpdate, throttleMS: 5_000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 5_000);
     }
 
     protected override void Uninit() =>
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
     protected override void ConfigUI()
     {
@@ -61,17 +61,17 @@ public class AutoChangeBattleEffectLevel : DailyModuleBase
         
                 ImGui.NewLine();
 
-                if (ImGui.CollapsingHeader($"＜ {DService.SeStringEvaluator.EvaluateFromAddon(12871, [ModuleConfig.AroundCountThresholdLow])}",
+                if (ImGui.CollapsingHeader($"＜ {DService.Instance().SeStringEvaluator.EvaluateFromAddon(12871, [ModuleConfig.AroundCountThresholdLow])}",
                                            ImGuiTreeNodeFlags.DefaultOpen))
                     DrawBattleEffectSetting("Low", ModuleConfig.OverworldLow);
 
-                if (ImGui.CollapsingHeader($"{DService.SeStringEvaluator.EvaluateFromAddon(12871, [ModuleConfig.AroundCountThresholdLow])}" +
+                if (ImGui.CollapsingHeader($"{DService.Instance().SeStringEvaluator.EvaluateFromAddon(12871, [ModuleConfig.AroundCountThresholdLow])}" +
                                            $" ≤ X ≤ "                                                                                       +
-                                           $"{DService.SeStringEvaluator.EvaluateFromAddon(12871, [ModuleConfig.AroundCountThresholdHigh])}",
+                                           $"{DService.Instance().SeStringEvaluator.EvaluateFromAddon(12871, [ModuleConfig.AroundCountThresholdHigh])}",
                                            ImGuiTreeNodeFlags.DefaultOpen))
                     DrawBattleEffectSetting("Medium", ModuleConfig.OverworldMedium);
 
-                if (ImGui.CollapsingHeader($"＞ {DService.SeStringEvaluator.EvaluateFromAddon(12871, [ModuleConfig.AroundCountThresholdHigh])}",
+                if (ImGui.CollapsingHeader($"＞ {DService.Instance().SeStringEvaluator.EvaluateFromAddon(12871, [ModuleConfig.AroundCountThresholdHigh])}",
                                            ImGuiTreeNodeFlags.DefaultOpen))
                     DrawBattleEffectSetting("High", ModuleConfig.OverworldHigh);
             }
@@ -225,10 +225,10 @@ public class AutoChangeBattleEffectLevel : DailyModuleBase
 
         try
         {
-            DService.GameConfig.UiConfig.Set(nameof(UiConfigOption.BattleEffectSelf),       (uint)settings.Self);
-            DService.GameConfig.UiConfig.Set(nameof(UiConfigOption.BattleEffectParty),      (uint)settings.Party);
-            DService.GameConfig.UiConfig.Set(nameof(UiConfigOption.BattleEffectOther),      (uint)settings.Other);
-            DService.GameConfig.UiConfig.Set(nameof(UiConfigOption.BattleEffectPvPEnemyPc), (uint)settings.Enemy);
+            DService.Instance().GameConfig.UiConfig.Set(nameof(UiConfigOption.BattleEffectSelf),       (uint)settings.Self);
+            DService.Instance().GameConfig.UiConfig.Set(nameof(UiConfigOption.BattleEffectParty),      (uint)settings.Party);
+            DService.Instance().GameConfig.UiConfig.Set(nameof(UiConfigOption.BattleEffectOther),      (uint)settings.Other);
+            DService.Instance().GameConfig.UiConfig.Set(nameof(UiConfigOption.BattleEffectPvPEnemyPc), (uint)settings.Enemy);
 
             LastAppliedSettings = settings.Clone();
         }

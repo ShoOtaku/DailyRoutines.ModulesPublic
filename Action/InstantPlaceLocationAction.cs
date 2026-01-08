@@ -23,7 +23,7 @@ public unsafe class InstantPlaceLocationAction : DailyModuleBase
     ];
 
     protected override void Init() => 
-        UseActionManager.RegPreUseAction(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
 
     public static void OnPreUseAction(
         ref bool                        isPrevented,
@@ -39,17 +39,17 @@ public unsafe class InstantPlaceLocationAction : DailyModuleBase
         var adjustedAction = ActionManager.Instance()->GetAdjustedActionId(actionID);
         if (InvalidActions.Contains(adjustedAction)) return;
 
-        var localPlayer = DService.ObjectTable.LocalPlayer;
+        var localPlayer = DService.Instance().ObjectTable.LocalPlayer;
         if (localPlayer == null) return;
 
         if (!LuminaGetter.TryGetRow<Action>(adjustedAction, out var data)) return;
         if (data is not { TargetArea: true }) return;
 
         if (ActionManager.Instance()->GetActionStatus(actionType, adjustedAction) != 0) return;
-        if (!DService.Gui.ScreenToWorld(ImGui.GetMousePos(), out var pos)) return;
+        if (!DService.Instance().Gui.ScreenToWorld(ImGui.GetMousePos(), out var pos)) return;
 
         pos = AdjustTargetPosition(localPlayer.Position, pos, data.Range);
-        UseActionManager.UseActionLocationCallDetour(ActionType.Action, adjustedAction, 0xE000_0000, pos, extraParam);
+        ActionManager.Instance()->UseActionLocation(ActionType.Action, adjustedAction, 0xE000_0000, &pos, extraParam);
         UIGlobals.PlaySoundEffect(24);
         isPrevented = true;
     }
@@ -71,5 +71,5 @@ public unsafe class InstantPlaceLocationAction : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        UseActionManager.Unreg(OnPreUseAction);
+        UseActionManager.Instance().Unreg(OnPreUseAction);
 }

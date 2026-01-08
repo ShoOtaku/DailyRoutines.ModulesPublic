@@ -13,6 +13,7 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
+using OmenTools.Extensions;
 using TinyPinyin;
 
 namespace DailyRoutines.ModulesPublic;
@@ -86,7 +87,7 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
         TextInputReceiveEventHook ??= TextInputReceiveEventSig.GetHook<TextInputReceiveDelegate>(TextInputReceiveEventDetour);
         TextInputReceiveEventHook.Enable();
 
-        ChatManager.RegPreExecuteCommandInner(OnPreExecuteCommandInner);
+        ChatManager.Instance().RegPreExecuteCommandInner(OnPreExecuteCommandInner);
         
         PartyFinderMessageDisplayHook ??= PartyFinderMessageDisplaySig.GetHook<PartyFinderMessageDisplayDelegate>(PartyFinderMessageDisplayDetour);
         PartyFinderMessageDisplayHook.Enable();
@@ -97,7 +98,7 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        ChatManager.Unreg(OnPreExecuteCommandInner);
+        ChatManager.Instance().Unreg(OnPreExecuteCommandInner);
 
     protected override void ConfigUI()
     {
@@ -139,7 +140,7 @@ public unsafe class AutoAntiCensorship : DailyModuleBase
 
         ImGui.SameLine(0, 8f * GlobalFontScale);
         if (ImGui.Button($"{FontAwesomeIcon.Palette.ToIconChar()} 参考颜色表"))
-            ChatManager.SendCommand("/xldata uicolor");
+            ChatManager.Instance().SendCommand("/xldata uicolor");
     }
     
     private void DrawHandleCensoredText()

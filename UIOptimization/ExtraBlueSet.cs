@@ -34,9 +34,9 @@ public unsafe class ExtraBlueSet : DailyModuleBase
 
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "AOZNotebook", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "AOZNotebook", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "AOZNotebook", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "AOZNotebook", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "AOZNotebook", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "AOZNotebook", OnAddon);
         if (AOZNotebook->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
 
@@ -55,7 +55,7 @@ public unsafe class ExtraBlueSet : DailyModuleBase
         var resNode = addon->GetNodeById(5);
         if (resNode == null) return;
 
-        using var font = FontManager.UIFont80.Push();
+        using var font = FontManager.Instance().UIFont80.Push();
         
         var pos = new Vector2(addon->GetX() - ImGui.GetWindowSize().X + (20f * GlobalFontScale), 
                               addon->GetY()                           + (30 * GlobalFontScale));
@@ -63,7 +63,7 @@ public unsafe class ExtraBlueSet : DailyModuleBase
 
         var origPosY = ImGui.GetCursorPosY();
         ImGui.SetCursorPosY(origPosY + (2f * GlobalFontScale));
-        using (FontManager.UIFont.Push())
+        using (FontManager.Instance().UIFont.Push())
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Info.Title);
         
         ImGui.SameLine(0, 8f * GlobalFontScale);
@@ -129,7 +129,7 @@ public unsafe class ExtraBlueSet : DailyModuleBase
                 {
                     var action = preset.Actions[index];
                     if (!LuminaGetter.TryGetRow<Action>(action, out var actionData)) continue;
-                    if (!DService.Texture.TryGetFromGameIcon(new(actionData.Icon), out var actionIcon)) continue;
+                    if (!DService.Instance().Texture.TryGetFromGameIcon(new(actionData.Icon), out var actionIcon)) continue;
 
                     if (index != 0)
                         ImGui.SameLine();
@@ -214,7 +214,7 @@ public unsafe class ExtraBlueSet : DailyModuleBase
     protected override void Uninit()
     {
         CommandManager.RemoveSubCommand(Command);
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
     }
 
     public class BlueMagePresetEntry

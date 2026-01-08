@@ -53,7 +53,7 @@ public class AutoReuseEmote : DailyModuleBase
         if (!TryParseEmoteByName(emoteName, out var emoteID)) return;
 
         CancelSource = new();
-        DService.Framework.Run(() => UseEmoteByID(emoteID, repeatInterval, CancelSource), CancelSource.Token);
+        DService.Instance().Framework.Run(() => UseEmoteByID(emoteID, repeatInterval, CancelSource), CancelSource.Token);
     }
 
     private static unsafe bool TryParseEmoteByName(string name, out ushort id)
@@ -100,8 +100,8 @@ public class AutoReuseEmote : DailyModuleBase
                 }
             }
             
-            if (DService.ObjectTable.LocalPlayer == null ||
-                BetweenAreas || OccupiedInEvent || DService.Condition[ConditionFlag.InCombat])
+            if (DService.Instance().ObjectTable.LocalPlayer == null ||
+                BetweenAreas || OccupiedInEvent || DService.Instance().Condition[ConditionFlag.InCombat])
             {
                 CancelTokenAndNullify();
                 return;

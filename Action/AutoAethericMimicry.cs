@@ -24,11 +24,11 @@ public class AutoAethericMimicry : DailyModuleBase
     private static readonly HashSet<uint> Status = [2124, 2125, 2126];
     
     protected override void Init() => 
-        UseActionManager.RegPreUseAction(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
 
     protected override void Uninit()
     {
-        UseActionManager.Unreg(OnPreUseAction);
+        UseActionManager.Instance().Unreg(OnPreUseAction);
         
         AddonDRAutoAethericMimicry.Addon?.Dispose();
         AddonDRAutoAethericMimicry.Addon = null;
@@ -87,7 +87,7 @@ public class AutoAethericMimicry : DailyModuleBase
                 OnClick = () =>
                 {
                     if (TryGetChara([1], out var chara))
-                        UseActionManager.UseActionLocation(ActionType.Action, 18322, chara.EntityID);
+                        UseActionManager.Instance().UseActionLocation(ActionType.Action, 18322, chara.EntityID);
                     
                     Notify(chara);
                     Addon.Close();
@@ -105,7 +105,7 @@ public class AutoAethericMimicry : DailyModuleBase
                 OnClick = () =>
                 {
                     if (TryGetChara([4], out var chara))
-                        UseActionManager.UseActionLocation(ActionType.Action, 18322, chara.EntityID);
+                        UseActionManager.Instance().UseActionLocation(ActionType.Action, 18322, chara.EntityID);
                     
                     Notify(chara);
                     Addon.Close();
@@ -123,7 +123,7 @@ public class AutoAethericMimicry : DailyModuleBase
                 OnClick = () =>
                 {
                     if (TryGetChara([2, 3], out var chara))
-                        UseActionManager.UseActionLocation(ActionType.Action, 18322, chara.EntityID);
+                        UseActionManager.Instance().UseActionLocation(ActionType.Action, 18322, chara.EntityID);
                     
                     Notify(chara);
                     Addon.Close();
@@ -141,7 +141,7 @@ public class AutoAethericMimicry : DailyModuleBase
 
         protected override unsafe void OnUpdate(AtkUnitBase* addon)
         {
-            if (LocalPlayerState.ClassJob != 36 || DService.KeyState[VirtualKey.ESCAPE])
+            if (LocalPlayerState.ClassJob != 36 || DService.Instance().KeyState[VirtualKey.ESCAPE])
             {
                 Close();
                 
@@ -161,7 +161,7 @@ public class AutoAethericMimicry : DailyModuleBase
         {
             chara = null;
 
-            chara = DService.ObjectTable
+            chara = DService.Instance().ObjectTable
                             .Where(x => x is IPlayerCharacter player                 &&
                                         player.EntityID != LocalPlayerState.EntityID &&
                                         roles.Contains(player.ClassJob.Value.Role))

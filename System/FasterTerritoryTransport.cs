@@ -48,8 +48,8 @@ public class FasterTerritoryTransport : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        ExecuteCommandManager.RegPost(OnPostUseCommand);
-        UseActionManager.RegUseActionLocation(OnPostUseActionLocation);
+        ExecuteCommandManager.Instance().RegPost(OnPostUseCommand);
+        UseActionManager.Instance().RegPostUseActionLocation(OnPostUseActionLocation);
 
         TeleportToAetheryteHook ??= TeleportToAetheryteSig.GetHook<TeleportToAetheryteDelegate>(TeleportToAetheryteDetour);
         TeleportToAetheryteHook.Enable();
@@ -57,7 +57,7 @@ public class FasterTerritoryTransport : DailyModuleBase
         IsConditionAbleToSetHook ??= IsConditionAbleToSetSig.GetHook<IsConditionAbleToSetDelegate>(IsConditionAbleToSetDetour);
         IsConditionAbleToSetHook.Enable();
 
-        DService.Condition.ConditionChange += OnConditionChanged;
+        DService.Instance().Condition.ConditionChange += OnConditionChanged;
     }
 
     protected override void ConfigUI()
@@ -72,7 +72,7 @@ public class FasterTerritoryTransport : DailyModuleBase
     {
         var ret = IsConditionAbleToSetHook.Original(conditionaddress, flag, a3, a4);
 
-        if (!DService.Condition[ConditionFlag.BetweenAreas] && !DService.Condition[ConditionFlag.Occupied33])
+        if (!DService.Instance().Condition[ConditionFlag.BetweenAreas] && !DService.Instance().Condition[ConditionFlag.Occupied33])
             return ret;
 
         if (BlockedFlags.Contains((uint)flag)) return true;
@@ -92,8 +92,8 @@ public class FasterTerritoryTransport : DailyModuleBase
     {
         if (flag != ConditionFlag.BetweenAreas) return;
 
-        if (!ModuleConfig.OnlyLocal && !DService.ClientState.IsPvPExcludingDen && TransportThrottler.Check("Block"))
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.TerritoryTransport);
+        if (!ModuleConfig.OnlyLocal && !DService.Instance().ClientState.IsPvPExcludingDen && TransportThrottler.Check("Block"))
+            ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.TerritoryTransport);
 
         if (!value) 
             TransportThrottler.Clear();
@@ -121,10 +121,10 @@ public class FasterTerritoryTransport : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
 
-        ExecuteCommandManager.Unreg(OnPostUseCommand);
-        UseActionManager.Unreg(OnPostUseActionLocation);
+        ExecuteCommandManager.Instance().Unreg(OnPostUseCommand);
+        UseActionManager.Instance().Unreg(OnPostUseActionLocation);
         
         TransportThrottler.Clear();
     }

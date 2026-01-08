@@ -158,7 +158,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new Config();
 
-        FrameworkManager.Reg(OnUpdate);
+        FrameworkManager.Instance().Reg(OnUpdate);
     }
 
     protected override void ConfigUI()
@@ -168,11 +168,11 @@ public unsafe class ScrollableTabs : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
     private static void OnUpdate(IFramework _)
     {
-        if (!DService.ClientState.IsLoggedIn)
+        if (!DService.Instance().ClientState.IsLoggedIn)
             return;
 
         WheelState = Math.Clamp(UIInputData.Instance()->CursorInputs.MouseWheel, -1, 1);
@@ -204,7 +204,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
         // InventoryCrystalGrid
         if (originalName == "InventoryCrystalGrid" && 
-            DService.GameConfig.UiConfig.TryGet("ItemInventryWindowSizeType", out uint itemInventryWindowSizeType) && 
+            DService.Instance().GameConfig.UiConfig.TryGet("ItemInventryWindowSizeType", out uint itemInventryWindowSizeType) && 
             itemInventryWindowSizeType == 2)
             mappedName = "InventoryExpansion";
 

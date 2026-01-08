@@ -49,8 +49,8 @@ public unsafe class CustomizeGameObject : DailyModuleBase
 
         CancelSource ??= new();
 
-        FrameworkManager.Reg(OnUpdate, true, 1000);
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        FrameworkManager.Instance().Reg(OnUpdate, true, 1000);
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
     }
 
     protected override void ConfigUI()
@@ -396,10 +396,10 @@ public unsafe class CustomizeGameObject : DailyModuleBase
     private static void OnUpdate(IFramework framework)
     {
         if (ModuleConfig.CustomizePresets.Count == 0 ||
-            BetweenAreas                             || DService.ObjectTable.LocalPlayer == null ||
-            DService.PI.UiBuilder.CutsceneActive) return;
+            BetweenAreas                             || DService.Instance().ObjectTable.LocalPlayer == null ||
+            DService.Instance().PI.UiBuilder.CutsceneActive) return;
 
-        foreach (var obj in DService.ObjectTable)
+        foreach (var obj in DService.Instance().ObjectTable)
         {
             if (obj.ObjectKind == ObjectKind.Player && string.IsNullOrWhiteSpace(obj.Name.ToString())) continue;
             if (obj is not ICharacter chara) continue;
@@ -507,14 +507,14 @@ public unsafe class CustomizeGameObject : DailyModuleBase
 
     protected override void Uninit()
     {
-        FrameworkManager.Unreg(OnUpdate);
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         
         CancelSource?.Cancel();
         CancelSource?.Dispose();
         CancelSource = null;
 
-        if (DService.ObjectTable.LocalPlayer != null)
+        if (DService.Instance().ObjectTable.LocalPlayer != null)
             ResetAllCustomizeFromHistory();
 
         CustomizeHistory.Clear();

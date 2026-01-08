@@ -61,14 +61,14 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         IsActionHighlightedHook = IsActionHighlightedSig.GetHook<IsActionHighlightedDelegate>(IsActionHighlightedDetour);
         IsActionHighlightedHook.Enable();
 
-        UseActionManager.RegPreUseActionLocation(OnPreUseActionLocation);
-        FrameworkManager.Reg(OnUpdate, throttleMS: 500);
+        UseActionManager.Instance().RegPreUseActionLocation(OnPreUseActionLocation);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 500);
     }
 
     protected override void Uninit()
     {
-        UseActionManager.Unreg(OnPreUseActionLocation);
-        FrameworkManager.Unreg(OnUpdate);
+        UseActionManager.Instance().Unreg(OnPreUseActionLocation);
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 
     protected override void ConfigUI()
@@ -139,7 +139,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
 
             ImGui.TableNextColumn();
             if (!LuminaGetter.TryGetRow<Status>(status, out var statusRow) ||
-                !DService.Texture.TryGetFromGameIcon(new GameIconLookup(statusRow.Icon), out var texture))
+                !DService.Instance().Texture.TryGetFromGameIcon(new GameIconLookup(statusRow.Icon), out var texture))
                 continue;
 
             ImGui.SameLine();
@@ -155,7 +155,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
                 foreach (var action in statusConfig.BindActions)
                 {
                     if (!LuminaGetter.TryGetRow<LuminaAction>(action, out var actionRow) ||
-                        !DService.Texture.TryGetFromGameIcon(new GameIconLookup(actionRow.Icon), out var actionTexture))
+                        !DService.Instance().Texture.TryGetFromGameIcon(new GameIconLookup(actionRow.Icon), out var actionTexture))
                         continue;
 
                     ImGuiOm.TextImage(actionRow.Name.ToString(), actionTexture.GetWrapOrEmpty().Handle, new Vector2(ImGui.GetTextLineHeight()));
@@ -185,7 +185,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
 
     private static void OnUpdate(IFramework _)
     {
-        if (GameState.IsInPVPArea || !DService.Condition[ConditionFlag.InCombat] || Control.GetLocalPlayer() == null)
+        if (GameState.IsInPVPArea || !DService.Instance().Condition[ConditionFlag.InCombat] || Control.GetLocalPlayer() == null)
         {
             // clear record when leaving combat
             ActionsToHighlight.Clear();

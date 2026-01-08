@@ -30,9 +30,9 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
 
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "SalvageItemSelector", OnAddonList);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SalvageItemSelector", OnAddonList);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "SalvageDialog",       OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "SalvageItemSelector", OnAddonList);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SalvageItemSelector", OnAddonList);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "SalvageDialog",       OnAddon);
     }
 
     private void OnAddonList(AddonEvent type, AddonArgs? args)
@@ -162,8 +162,8 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddonList);
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonList);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
         OnAddonList(AddonEvent.PreFinalize, null);
     }

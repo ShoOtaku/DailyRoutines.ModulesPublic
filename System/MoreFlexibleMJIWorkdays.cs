@@ -21,8 +21,8 @@ public unsafe class MoreFlexibleMJIWorkdays : DailyModuleBase
     {
         Overlay ??= new(this);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "MJICraftSchedule", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MJICraftSchedule", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "MJICraftSchedule", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MJICraftSchedule", OnAddon);
         if (MJICraftSchedule->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -71,8 +71,8 @@ public unsafe class MoreFlexibleMJIWorkdays : DailyModuleBase
                     while (list.Count < 4)
                         list.Add(0);
                     
-                    ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.MJISetRestCycles,   (uint)list[0], (uint)list[1], (uint)list[2], (uint)list[3]);
-                    ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.MJIWorkshopRequest, agent->Data->CycleDisplayed);
+                    ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.MJISetRestCycles,   (uint)list[0], (uint)list[1], (uint)list[2], (uint)list[3]);
+                    ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.MJIWorkshopRequest, agent->Data->CycleDisplayed);
                 }
                 
                 switch (i)
@@ -137,5 +137,5 @@ public unsafe class MoreFlexibleMJIWorkdays : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 }

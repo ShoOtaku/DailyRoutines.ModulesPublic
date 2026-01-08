@@ -25,7 +25,7 @@ public class FastResetAllSDEnmity : DailyModuleBase
     {
         CancelSource ??= new();
 
-        ExecuteCommandManager.RegPre(OnResetStrikingDummies);
+        ExecuteCommandManager.Instance().RegPre(OnResetStrikingDummies);
         CommandManager.AddSubCommand(Command, new CommandInfo(OnCommand)
         {
             HelpMessage = GetLoc("FastResetAllSDEnmity-CommandHelp"),
@@ -53,22 +53,22 @@ public class FastResetAllSDEnmity : DailyModuleBase
 
     private static void ResetAllStrikingDummies()
     {
-        DService.Framework.RunOnTick(FindAndResetInternal, TimeSpan.Zero,                   0, CancelSource.Token);
-        DService.Framework.RunOnTick(FindAndResetInternal, TimeSpan.FromMilliseconds(500),  0, CancelSource.Token);
-        DService.Framework.RunOnTick(FindAndResetInternal, TimeSpan.FromMilliseconds(1000), 0, CancelSource.Token);
-        DService.Framework.RunOnTick(FindAndResetInternal, TimeSpan.FromMilliseconds(1500), 0, CancelSource.Token);
+        DService.Instance().Framework.RunOnTick(FindAndResetInternal, TimeSpan.Zero,                   0, CancelSource.Token);
+        DService.Instance().Framework.RunOnTick(FindAndResetInternal, TimeSpan.FromMilliseconds(500),  0, CancelSource.Token);
+        DService.Instance().Framework.RunOnTick(FindAndResetInternal, TimeSpan.FromMilliseconds(1000), 0, CancelSource.Token);
+        DService.Instance().Framework.RunOnTick(FindAndResetInternal, TimeSpan.FromMilliseconds(1500), 0, CancelSource.Token);
     }
 
     private static unsafe void FindAndResetInternal()
     {
         var targets = UIState.Instance()->Hater.Haters;
         foreach (var targetID in targets)
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.ResetStrikingDummy, targetID.EntityId);
+            ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.ResetStrikingDummy, targetID.EntityId);
     }
 
     protected override void Uninit()
     {
-        ExecuteCommandManager.Unreg(OnResetStrikingDummies);
+        ExecuteCommandManager.Instance().Unreg(OnResetStrikingDummies);
         CommandManager.RemoveSubCommand(Command);
 
         CancelSource?.Cancel();

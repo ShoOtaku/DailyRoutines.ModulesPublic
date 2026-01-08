@@ -66,17 +66,17 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
         Overlay.Flags &=  ~ImGuiWindowFlags.NoResize;
         Overlay.WindowName = Lang.Get("FCMemberManagePanelTitle");
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "FreeCompanyMember", OnAddonMember);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "FreeCompanyMember", OnAddonMember);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "FreeCompanyMember", OnAddonMember);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "FreeCompanyMember", OnAddonMember);
         if (FreeCompanyMember != null && FreeCompanyMember->IsAddonAndNodesReady()) 
             OnAddonMember(AddonEvent.PostSetup, null);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddonYesno);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddonYesno);
     }
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddonMember);
-        DService.AddonLifecycle.UnregisterListener(OnAddonYesno);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonMember);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonYesno);
 
         ContextTaskHelper?.Abort();
         ContextTaskHelper = null;
@@ -86,7 +86,7 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
 
     protected override void OverlayPreDraw()
     {
-        if (!DService.ClientState.IsLoggedIn) return;
+        if (!DService.Instance().ClientState.IsLoggedIn) return;
         
         if (FCTotalMembersCount == 0 && Throttler.Throttle("GetFCTotalMembersCount", 1_000))
         {
@@ -185,7 +185,7 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
             LuminaGetter.TryGetRow<OnlineStatus>(data.OnlineStatus, out var onlineStatusRow);
             if (data.OnlineStatus != 0)
             {
-                var onlineStatusIcon  = DService.Texture.GetFromGameIcon(new(onlineStatusRow.Icon)).GetWrapOrDefault();
+                var onlineStatusIcon  = DService.Instance().Texture.GetFromGameIcon(new(onlineStatusRow.Icon)).GetWrapOrDefault();
                 if (onlineStatusIcon != null)
                 {
                     var origPosY = ImGui.GetCursorPosY();
@@ -531,7 +531,7 @@ public unsafe class FCMemberManagePanel : DailyModuleBase
                 Index     = index,
                 OnlineStatus = (uint)GetOrigOnlineStatusID(data.State),
                 Name    = string.IsNullOrWhiteSpace(data.NameString) ? LuminaGetter.GetRow<Addon>(964)!.Value.Text.ToString() : data.NameString,
-                JobIcon = data.Job == 0 ? null : DService.Texture.GetFromGameIcon(new(62100U + data.Job)),
+                JobIcon = data.Job == 0 ? null : DService.Instance().Texture.GetFromGameIcon(new(62100U + data.Job)),
                 Job     = data.Job == 0 ? string.Empty : LuminaGetter.GetRow<ClassJob>(data.Job)?.Abbreviation.ToString(),
                 Location = data.Location != 0
                                ? LuminaGetter.TryGetRow<TerritoryType>(data.Location, out var zone) ? zone.PlaceName.Value.Name.ToString() : lastOnlineTime

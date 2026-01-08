@@ -41,9 +41,9 @@ public unsafe class AutoMaterialize : DailyModuleBase
 
         TaskHelper ??= new();
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "Materialize",       OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Materialize",       OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "MaterializeDialog", OnDialogAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "Materialize",       OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Materialize",       OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "MaterializeDialog", OnDialogAddon);
 
         if (MaterializeDialog != null) 
             OnDialogAddon(AddonEvent.PostSetup, null);
@@ -107,7 +107,7 @@ public unsafe class AutoMaterialize : DailyModuleBase
             return false;
         }
 
-        if (DService.Condition[ConditionFlag.Mounted])
+        if (DService.Instance().Condition[ConditionFlag.Mounted])
         {
             TaskHelper.Abort();
             NotificationError(GetLoc("AutoMaterialize-Notice-OnMount"));
@@ -115,7 +115,7 @@ public unsafe class AutoMaterialize : DailyModuleBase
         }
 
         if (OccupiedInEvent) return false;
-        if (DService.Condition[ConditionFlag.InCombat]) return false;
+        if (DService.Instance().Condition[ConditionFlag.InCombat]) return false;
 
         return true;
     }
@@ -210,9 +210,9 @@ public unsafe class AutoMaterialize : DailyModuleBase
     {
         CommandManager.RemoveSubCommand(Command);
         
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
         
-        DService.AddonLifecycle.UnregisterListener(OnDialogAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnDialogAddon);
     }
 }

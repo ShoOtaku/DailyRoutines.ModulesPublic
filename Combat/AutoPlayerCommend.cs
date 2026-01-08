@@ -28,8 +28,8 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
 
     private static uint MIPDisplayType
     {
-        get => DService.GameConfig.UiConfig.GetUInt("MipDispType");
-        set => DService.GameConfig.UiConfig.Set("MipDispType", value);
+        get => DService.Instance().GameConfig.UiConfig.GetUInt("MipDispType");
+        set => DService.Instance().GameConfig.UiConfig.Set("MipDispType", value);
     }
     
     private static Config ModuleConfig = null!;
@@ -45,9 +45,9 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
 
         ContentSelectCombo.SelectedContentIDs = ModuleConfig.BlacklistContents;
         
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.ContextMenu.OnMenuOpened     += OnMenuOpen;
-        DService.DutyState.DutyCompleted      += OnDutyComplete;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ContextMenu.OnMenuOpened     += OnMenuOpen;
+        DService.Instance().DutyState.DutyCompleted      += OnDutyComplete;
     }
 
     protected override void ConfigUI()
@@ -83,7 +83,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
     {
         if (InterruptByConflictKey(TaskHelper, this)) return;
         if (ModuleConfig.BlacklistContents.Contains(GameState.ContentFinderCondition)) return;
-        if (DService.PartyList.Length <= 1) return;
+        if (DService.Instance().PartyList.Length <= 1) return;
 
         var orig = MIPDisplayType;
         TaskHelper.Enqueue(() => MIPDisplayType = 0,    "设置最优队员推荐不显示列表");
@@ -118,7 +118,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
         
         var hudMembers = AgentHUD.Instance()->PartyMembers.ToArray();
         Dictionary<(string Name, uint HomeWorld, uint ClassJob, uint ClassJobCategory, byte RoleRaw, PlayerRole Role, ulong ContentID), int> partyMembers = [];
-        foreach (var member in DService.PartyList)
+        foreach (var member in DService.Instance().PartyList)
         {
             if ((ulong)member.ContentId == LocalPlayerState.ContentID) continue;
 
@@ -277,9 +277,9 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.ContextMenu.OnMenuOpened -= OnMenuOpen;
-        DService.DutyState.DutyCompleted  -= OnDutyComplete;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpen;
+        DService.Instance().DutyState.DutyCompleted  -= OnDutyComplete;
 
         AssignedCommendationContentID = 0;
     }
@@ -307,7 +307,7 @@ public unsafe class AutoPlayerCommend : DailyModuleBase
 
         public override bool IsDisplay(IMenuOpenedArgs args)
         {
-            if (!DService.Condition[ConditionFlag.BoundByDuty]) return false;
+            if (!DService.Instance().Condition[ConditionFlag.BoundByDuty]) return false;
             if (args.MenuType != ContextMenuType.Default    ||
                 args.Target is not MenuTargetDefault target ||
                 (target.TargetCharacter == null && target.TargetContentId == 0)) return false;

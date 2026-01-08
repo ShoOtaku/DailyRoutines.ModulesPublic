@@ -70,7 +70,7 @@ public unsafe class AutoCutsceneSkip : DailyModuleBase
         PlayStaffRollHook       ??= PlayStaffRollSig.GetHook<LuaFunctionDelegate>(LuaFunction2Detour);
         PlayToBeContinuedHook   ??= PlayToBeContinuedSig.GetHook<LuaFunctionDelegate>(LuaFunction2Detour);
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
@@ -122,7 +122,7 @@ public unsafe class AutoCutsceneSkip : DailyModuleBase
 
     private static byte CutsceneHandleInputDetour(nint a1, float a2)
     {
-        if (!DService.Condition[ConditionFlag.OccupiedInCutSceneEvent])
+        if (!DService.Instance().Condition[ConditionFlag.OccupiedInCutSceneEvent])
             return CutsceneHandleInputHook.Original(a1, a2);
 
         if (*(ulong*)(a1 + 56) != 0 && JournalResult == null && SatisfactionSupplyResult == null)
@@ -162,7 +162,7 @@ public unsafe class AutoCutsceneSkip : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         CutsceneUnskippablePatch.Dispose();
     }
 

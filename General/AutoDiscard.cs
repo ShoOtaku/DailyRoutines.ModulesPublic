@@ -67,7 +67,7 @@ public unsafe class AutoDiscard : DailyModuleBase
 
         CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("AutoDiscard-CommandHelp") });
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreSetup, "SelectYesno", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreSetup, "SelectYesno", OnAddon);
     }
 
     protected override void ConfigUI()
@@ -239,7 +239,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                         var itemData = LuminaGetter.GetRow<Item>(item);
                         if (itemData == null) continue;
 
-                        var itemIcon = DService.Texture.GetFromGameIcon(new(itemData.Value.Icon)).GetWrapOrDefault();
+                        var itemIcon = DService.Instance().Texture.GetFromGameIcon(new(itemData.Value.Icon)).GetWrapOrDefault();
                         if (itemIcon == null) continue;
 
                         ImGui.Image(itemIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
@@ -399,7 +399,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                             var specificItemNullable = LuminaGetter.GetRow<Item>(item);
                             if (specificItemNullable == null) continue;
                             var specificItem     = specificItemNullable.Value;
-                            var specificItemIcon = DService.Texture.GetFromGameIcon(new(specificItem.Icon)).GetWrapOrDefault();
+                            var specificItemIcon = DService.Instance().Texture.GetFromGameIcon(new(specificItem.Icon)).GetWrapOrDefault();
                             if (specificItemIcon == null) continue;
 
                             if (!string.IsNullOrWhiteSpace(SelectedItemSearchInput) &&
@@ -445,7 +445,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                         {
                             if (group.Items.Contains(item.RowId)) continue;
 
-                            var itemIcon = DService.Texture.GetFromGameIcon(new(item.Icon)).GetWrapOrDefault();
+                            var itemIcon = DService.Instance().Texture.GetFromGameIcon(new(item.Icon)).GetWrapOrDefault();
                             if (itemIcon == null) continue;
 
                             if (ImGuiOm.SelectableImageWithText(itemIcon.Handle,
@@ -625,7 +625,7 @@ public unsafe class AutoDiscard : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
         CommandManager.RemoveCommand(COMMAND);
         ItemSearcher = null;

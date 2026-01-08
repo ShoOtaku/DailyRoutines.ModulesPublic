@@ -159,10 +159,10 @@ public unsafe class OptimizedInteraction : DailyModuleBase
     
     private ulong InteractWithObjectDetour(TargetSystem* system, GameObject* obj, bool checkLOS)
     {
-        if (obj == null || DService.ObjectTable.LocalPlayer is not { } localPlayer) return 0;
+        if (obj == null || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return 0;
         
         // 咏唱状态
-        MemoryHelper.Write(DService.Condition.Address + 27, false);
+        MemoryHelper.Write(DService.Instance().Condition.Address + 27, false);
         
         // 动画锁
         ActionManager.Instance()->AnimationLock = 0;
@@ -205,8 +205,8 @@ public unsafe class OptimizedInteraction : DailyModuleBase
             MovementManager.Dismount();
             TaskHelper.Enqueue(() =>
             {
-                if (MovementManager.IsManagerBusy || DService.Condition[ConditionFlag.Mounted] ||
-                    DService.Condition[ConditionFlag.Jumping]) return false;
+                if (MovementManager.IsManagerBusy || DService.Instance().Condition[ConditionFlag.Mounted] ||
+                    DService.Instance().Condition[ConditionFlag.Jumping]) return false;
                 new EventStartPackt(localPlayer.GameObjectID, eventID).Send();
                 return true;
             });

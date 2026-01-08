@@ -2,6 +2,7 @@
 using DailyRoutines.Managers;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -23,7 +24,7 @@ public class BrayfloxsLongstopHelper : DailyModuleBase
         ModuleConfig =   LoadConfig<Config>() ?? new();
         TaskHelper   ??= new() { TimeoutMS = 30_000 };
         
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
@@ -41,9 +42,9 @@ public class BrayfloxsLongstopHelper : DailyModuleBase
         
         TaskHelper.Enqueue(() =>
         {
-            if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
+            if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
             if (BetweenAreas || !UIModule.IsScreenReady()) return false;
-            if (ModuleConfig.ValidWhenSolo && (DService.PartyList.Length > 1 || PlayersManager.PlayersAroundCount > 0))
+            if (ModuleConfig.ValidWhenSolo && (DService.Instance().PartyList.Length > 1 || PlayersManager.PlayersAroundCount > 0))
             {
                 TaskHelper.Abort();
                 return true;
@@ -56,7 +57,7 @@ public class BrayfloxsLongstopHelper : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
 
     private class Config : ModuleConfiguration
     {

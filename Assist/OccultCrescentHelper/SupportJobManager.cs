@@ -32,8 +32,8 @@ public partial class OccultCrescentHelper
             CommandManager.AddSubCommand(CommandBuff,
                                          new(OnCommandBuff) { HelpMessage = $"{GetLoc("OccultCrescentHelper-Command-PBuff-Help")}" });
             
-            UseActionManager.RegPreUseAction(OnPreUseAction);
-            UseActionManager.RegPreCharacterCompleteCast(OnCompleteCast);
+            UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
+            UseActionManager.Instance().RegPreCharacterCompleteCast(OnCompleteCast);
         }
         
         public override void Uninit()
@@ -45,8 +45,8 @@ public partial class OccultCrescentHelper
             SupportJobTaskHelper?.Dispose();
             SupportJobTaskHelper = null;
             
-            UseActionManager.Unreg(OnPreUseAction);
-            UseActionManager.Unreg(OnCompleteCast);
+            UseActionManager.Instance().Unreg(OnPreUseAction);
+            UseActionManager.Instance().Unreg(OnCompleteCast);
         }
 
         public override void DrawConfig()
@@ -113,8 +113,8 @@ public partial class OccultCrescentHelper
                 if (actionType != ActionType.Action || actionID != 41592) return;
 
                 if (TargetManager.Target == null)
-                    ChatManager.SendMessage("/tenemy");
-                ChatManager.SendMessage("/facetarget");
+                    ChatManager.Instance().SendMessage("/tenemy");
+                ChatManager.Instance().SendMessage("/facetarget");
             }
         }
         
@@ -131,7 +131,7 @@ public partial class OccultCrescentHelper
             ref int          i,
             ref int          ballistaEntityID)
         {
-            if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
+            if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
             if (battleChara.Address != localPlayer.Address) return;
 
             // 武僧无位移
@@ -220,9 +220,9 @@ public partial class OccultCrescentHelper
             SupportJobTaskHelper.Abort();
             SupportJobTaskHelper.Enqueue(() =>
             {
-                if (!DService.Condition[ConditionFlag.Mounted]) return true;
+                if (!DService.Instance().Condition[ConditionFlag.Mounted]) return true;
 
-                ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.Dismount);
+                ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.Dismount);
                 return true;
             });
 
@@ -240,7 +240,7 @@ public partial class OccultCrescentHelper
                 {
                     if (sJob.IsWithLongTimeStatus()) return true;
 
-                    UseActionManager.UseAction(ActionType.Action, sJob.LongTimeStatusActionID);
+                    UseActionManager.Instance().UseAction(ActionType.Action, sJob.LongTimeStatusActionID);
                     return false;
                 });
             }

@@ -68,15 +68,15 @@ public class OptimizedRecipeNote : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 15_000 };
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,           "RecipeNote", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "RecipeNote", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "RecipeNote", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "RecipeNote", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,           "RecipeNote", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "RecipeNote", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "RecipeNote", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "RecipeNote", OnAddon);
     }
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
         
         AddonActionsPreview.Addon?.Dispose();
@@ -87,13 +87,13 @@ public class OptimizedRecipeNote : DailyModuleBase
         
         CaculationResults.Values.ForEach(x =>
         {
-            LinkPayloadManager.Unregister(x.CopyLinkPayload.CommandId);
-            LinkPayloadManager.Unregister(x.PreviewLinkPayload.CommandId);
+            LinkPayloadManager.Instance().Unreg(x.CopyLinkPayload.CommandId);
+            LinkPayloadManager.Instance().Unreg(x.PreviewLinkPayload.CommandId);
         });
         CaculationResults.Clear();
 
         if (InstallRaphaelLinkPayload != null)
-            LinkPayloadManager.Unregister(InstallRaphaelLinkPayload.CommandId);
+            LinkPayloadManager.Instance().Unreg(InstallRaphaelLinkPayload.CommandId);
         InstallRaphaelTask = null;
     }
     
@@ -177,7 +177,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     };
                     RecipeCaculationButton.OnClick = () =>
                     {
-                        if (!DService.PI.IsPluginEnabled(RaphaelIPC.InternalName))
+                        if (!DService.Instance().PI.IsPluginEnabled(RaphaelIPC.InternalName))
                         {
                             PrintInstallRaphaelPluginMessage();
                             return;
@@ -202,8 +202,8 @@ public class OptimizedRecipeNote : DailyModuleBase
                                 case RaphaelCalculationStatus.Success:
                                     RecipeCaculationButton.IsEnabled = true;
                                     
-                                    var copyLinkPayload    = LinkPayloadManager.Register(OnClickCopyPayload,    out _);
-                                    var previewLinkPayload = LinkPayloadManager.Register(OnClickPreviewPayload, out _);
+                                    var copyLinkPayload    = LinkPayloadManager.Instance().Reg(OnClickCopyPayload,    out _);
+                                    var previewLinkPayload = LinkPayloadManager.Instance().Reg(OnClickPreviewPayload, out _);
                                     CaculationResults[id] = new(response.Actions,
                                                                 recipeID,
                                                                 craftPoint,
@@ -236,7 +236,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     };
                     SwitchJobButton.OnClick = () =>
                     {
-                        if (!DService.PI.IsPluginEnabled(RaphaelIPC.InternalName))
+                        if (!DService.Instance().PI.IsPluginEnabled(RaphaelIPC.InternalName))
                         {
                             PrintInstallRaphaelPluginMessage();
                             return;
@@ -248,14 +248,14 @@ public class OptimizedRecipeNote : DailyModuleBase
                         if (recipe.CraftType.RowId == LocalPlayerState.ClassJob - 8) return;
 
                         // 能直接切换
-                        if (!DService.Condition[ConditionFlag.PreparingToCraft])
+                        if (!DService.Instance().Condition[ConditionFlag.PreparingToCraft])
                         {
                             LocalPlayerState.SwitchGearset(recipe.CraftType.RowId + 8);
                             return;
                         }
                         
                         TaskHelper.Enqueue(() => AgentRecipeNote.Instance()->Hide());
-                        TaskHelper.Enqueue(() => !DService.Condition[ConditionFlag.PreparingToCraft]);
+                        TaskHelper.Enqueue(() => !DService.Instance().Condition[ConditionFlag.PreparingToCraft]);
                         TaskHelper.Enqueue(() => LocalPlayerState.SwitchGearset(recipe.CraftType.RowId + 8));
                         TaskHelper.Enqueue(() => AgentRecipeNote.Instance()->OpenRecipeByRecipeId(recipeID));
                     };
@@ -273,7 +273,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         IsVisible = true,
                         OnClick = () =>
                         {
-                            if (!DService.PI.IsPluginEnabled(RaphaelIPC.InternalName))
+                            if (!DService.Instance().PI.IsPluginEnabled(RaphaelIPC.InternalName))
                             {
                                 PrintInstallRaphaelPluginMessage();
                                 return;
@@ -384,7 +384,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                             Position  = new(-26, 8f),
                             OnClick = () =>
                             {
-                                if (!DService.PI.IsPluginEnabled(RaphaelIPC.InternalName))
+                                if (!DService.Instance().PI.IsPluginEnabled(RaphaelIPC.InternalName))
                                 {
                                     PrintInstallRaphaelPluginMessage();
                                     return;
@@ -405,12 +405,12 @@ public class OptimizedRecipeNote : DailyModuleBase
                                     if (!IsConflictKeyPressed())
                                         AddonShopsPreview.OpenWithData(itemInfo);
                                     else
-                                        ChatManager.SendMessage($"/pdr market {item.Name}");
+                                        ChatManager.Instance().SendMessage($"/pdr market {item.Name}");
                                 }
                                 else if (itemInfo != null)
                                     AddonShopsPreview.OpenWithData(itemInfo);
                                 else if (item.ItemSearchCategory.RowId > 0)
-                                    ChatManager.SendMessage($"/pdr market {item.Name}");
+                                    ChatManager.Instance().SendMessage($"/pdr market {item.Name}");
                             }
                         };
                         
@@ -441,10 +441,10 @@ public class OptimizedRecipeNote : DailyModuleBase
                             var button = InfosOm.RecipeNote->GetComponentButtonById(35);
                             if (button != null)
                             {
-                                DService.Framework.Run(() => button->Click());
-                                DService.Framework.Run(() => button->Click());
-                                DService.Framework.Run(() => button->Click());
-                                DService.Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
                             }
                         }
                     };
@@ -466,10 +466,10 @@ public class OptimizedRecipeNote : DailyModuleBase
                             var button = InfosOm.RecipeNote->GetComponentButtonById(35);
                             if (button != null)
                             {
-                                DService.Framework.Run(() => button->Click());
-                                DService.Framework.Run(() => button->Click());
-                                DService.Framework.Run(() => button->Click());
-                                DService.Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
                             }
                         }
                     };
@@ -491,10 +491,10 @@ public class OptimizedRecipeNote : DailyModuleBase
                             var button = InfosOm.RecipeNote->GetComponentButtonById(35);
                             if (button != null)
                             {
-                                DService.Framework.Run(() => button->Click());
-                                DService.Framework.Run(() => button->Click());
-                                DService.Framework.Run(() => button->Click());
-                                DService.Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
+                                DService.Instance().Framework.Run(() => button->Click());
                             }
                         }
                     };
@@ -511,15 +511,15 @@ public class OptimizedRecipeNote : DailyModuleBase
 
     private static void OnClickInstallRaphaelPayload(uint id, SeString _)
     {
-        if (DService.PI.InstalledPlugins.Any(x => x.InternalName == "Raphael.Dalamud"))
+        if (DService.Instance().PI.InstalledPlugins.Any(x => x.InternalName == "Raphael.Dalamud"))
         {
-            ChatManager.SendMessage("/xlenableplugin Raphael.Dalamud");
+            ChatManager.Instance().SendMessage("/xlenableplugin Raphael.Dalamud");
             return;
         }
         
         if (InstallRaphaelTask != null) return;
 
-        InstallRaphaelTask = DService.Framework
+        InstallRaphaelTask = DService.Instance().Framework
                                      .RunOnTick(async () => await AddPlugin("https://raw.githubusercontent.com/AtmoOmen/DalamudPlugins/main/pluginmaster.json",
                                                                             "Raphael.Dalamud"))
                                      .ContinueWith(_ => InstallRaphaelTask = null);
@@ -547,7 +547,7 @@ public class OptimizedRecipeNote : DailyModuleBase
     private static unsafe void UpdateRecipeAddonButton()
     {
         if (InfosOm.RecipeNote == null) return;
-        if (!DService.PI.IsPluginEnabled(RaphaelIPC.InternalName)) return;
+        if (!DService.Instance().PI.IsPluginEnabled(RaphaelIPC.InternalName)) return;
         
         ClearSearchButton.IsVisible = AgentRecipeNote.Instance()->RecipeSearchOpen && LastRecipeID != 0;
         
@@ -726,7 +726,7 @@ public class OptimizedRecipeNote : DailyModuleBase
 
     private static void PrintInstallRaphaelPluginMessage()
     {
-        InstallRaphaelLinkPayload ??= LinkPayloadManager.Register(OnClickInstallRaphaelPayload, out _);
+        InstallRaphaelLinkPayload ??= LinkPayloadManager.Instance().Reg(OnClickInstallRaphaelPayload, out _);
                             
         var message = new SeStringBuilder().AddIcon(BitmapFontIcon.Warning)
                                            .AddText($" {GetLoc("OptimizedRecipeNote-Message-InstallRapheal")}")
@@ -775,7 +775,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                 Addon = null;
             }
 
-            OpenAddonTask = DService.Framework.RunOnTick(() =>
+            OpenAddonTask = DService.Instance().Framework.RunOnTick(() =>
             {
                 var rowCount = MathF.Ceiling(result.Actions.Count / 10f);
                 Addon ??= new(taskHelper, result)
@@ -874,13 +874,13 @@ public class OptimizedRecipeNote : DailyModuleBase
                         var i = index;
                         taskHelper.Enqueue(() =>
                         {
-                            if (DService.Condition[ConditionFlag.ExecutingCraftingAction]) return true;
+                            if (DService.Instance().Condition[ConditionFlag.ExecutingCraftingAction]) return true;
 
-                            ChatManager.SendMessage($"/ac {LuminaWrapper.GetActionName(x)}");
+                            ChatManager.Instance().SendMessage($"/ac {LuminaWrapper.GetActionName(x)}");
                             return false;
                         });
                         taskHelper.Enqueue(() => Nodes[i].Alpha = 0.2f);
-                        taskHelper.Enqueue(() => !DService.Condition[ConditionFlag.ExecutingCraftingAction]);
+                        taskHelper.Enqueue(() => !DService.Instance().Condition[ConditionFlag.ExecutingCraftingAction]);
                     }
                 }
             };
@@ -974,13 +974,13 @@ public class OptimizedRecipeNote : DailyModuleBase
                 };
                 dragDropNode.OnClicked = _ =>
                 {
-                    if (DService.Condition[ConditionFlag.ExecutingCraftingAction] ||
+                    if (DService.Instance().Condition[ConditionFlag.ExecutingCraftingAction] ||
                         (TaskHelper.TryGetTarget(out var taskHelper) && taskHelper.IsBusy))
                         return;
 
                     if (Synthesis != null)
                         dragDropNode.Alpha = 0.2f;
-                    ChatManager.SendMessage($"/ac {LuminaWrapper.GetActionName(actionID)}");
+                    ChatManager.Instance().SendMessage($"/ac {LuminaWrapper.GetActionName(actionID)}");
                 };
                 Nodes.Add(dragDropNode);
 
@@ -1010,7 +1010,7 @@ public class OptimizedRecipeNote : DailyModuleBase
 
         protected override unsafe void OnUpdate(AtkUnitBase* addon)
         {
-            if (DService.KeyState[VirtualKey.ESCAPE])
+            if (DService.Instance().KeyState[VirtualKey.ESCAPE])
             {
                 Close();
                 
@@ -1043,7 +1043,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                 Addon = null;
             }
 
-            OpenAddonTask = DService.Framework.RunOnTick(() =>
+            OpenAddonTask = DService.Instance().Framework.RunOnTick(() =>
             {
                 Addon ??= new(shopInfo)
                 {
@@ -1099,7 +1099,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     Size        = new(32),
                     Position    = itemInfoRow.Position + new Vector2(itemNameNode.GetTextDrawSize(itemNameNode.SeString).X + itemIconNode.Size.X + 15f, 2),
                     IsVisible   = true,
-                    OnClick     = () => ChatManager.SendMessage($"/pdr market {ShopInfo.GetItem().Name}")
+                    OnClick     = () => ChatManager.Instance().SendMessage($"/pdr market {ShopInfo.GetItem().Name}")
                 };
                 marketButtonNode.AttachNode(this);
             }
@@ -1175,7 +1175,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         {
                             var aetheryte = MovementManager.GetNearestAetheryte(pos, npcInfo.Location.TerritoryID);
                             if (aetheryte != null)
-                                ChatManager.SendMessage($"/pdrtelepo {aetheryte.Name}");
+                                ChatManager.Instance().SendMessage($"/pdrtelepo {aetheryte.Name}");
                         }
                     }
                 };
@@ -1217,7 +1217,7 @@ public class OptimizedRecipeNote : DailyModuleBase
 
         protected override unsafe void OnUpdate(AtkUnitBase* addon)
         {
-            if (DService.KeyState[VirtualKey.ESCAPE])
+            if (DService.Instance().KeyState[VirtualKey.ESCAPE])
             {
                 Close();
                 

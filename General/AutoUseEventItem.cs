@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -41,8 +42,8 @@ public unsafe class AutoUseEventItem : DailyModuleBase
 
     protected override void Init()
     {
-        FrameworkManager.Reg(OnUpdate, throttleMS: 100);
-        LogMessageManager.Register(OnPreReceiveMessage);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 100);
+        LogMessageManager.Instance().RegPre(OnPreReceiveMessage);
     }
 
     private static void OnUpdate(IFramework framework)
@@ -57,7 +58,7 @@ public unsafe class AutoUseEventItem : DailyModuleBase
         OnAddonInventoryEvent();
     }
     
-    private static void OnPreReceiveMessage(ref bool isPrevented, ref uint logMessageID)
+    private static void OnPreReceiveMessage(ref bool isPrevented, ref uint logMessageID, ref Span<LogMessageParam> values)
     {
         if (!InvalidLogMessageID.Contains(logMessageID)) return;
         
@@ -78,9 +79,9 @@ public unsafe class AutoUseEventItem : DailyModuleBase
         
         if (!QuestRowIDToEventItems.TryGetValue(questRowID, out var eventItemList)) return;
 
-        if (DService.Condition[ConditionFlag.OccupiedInQuestEvent])
+        if (DService.Instance().Condition[ConditionFlag.OccupiedInQuestEvent])
         {
-            Marshal.WriteByte(DService.Condition.Address + 32, 0);
+            Marshal.WriteByte(DService.Instance().Condition.Address + 32, 0);
             return;
         }
 
@@ -88,14 +89,14 @@ public unsafe class AutoUseEventItem : DailyModuleBase
         foreach (var eItem in filterItems)
         {
             if (IsCasting) return;
-            UseActionManager.UseActionLocation(ActionType.EventItem, eItem, gameObj.GameObjectID);
+            UseActionManager.Instance().UseActionLocation(ActionType.EventItem, eItem, gameObj.GameObjectID);
         }
     }
 
     private static bool IsAnyQuestNearby(out uint questRowID)
     {
         questRowID = 0;
-        var localPos = DService.ObjectTable.LocalPlayer.Position;
+        var localPos = DService.Instance().ObjectTable.LocalPlayer.Position;
 
         var validMarkers = AgentHUD.Instance()->MapMarkers
                            .AsSpan().ToArray()
@@ -132,7 +133,7 @@ public unsafe class AutoUseEventItem : DailyModuleBase
 
     private static bool IsAnyMTQNearby(out IGameObject gameObj)
     {
-        var gameObjInternal = DService.ObjectTable.FirstOrDefault(obj =>
+        var gameObjInternal = DService.Instance().ObjectTable.FirstOrDefault(obj =>
         {
             if (!obj.IsValid() || !obj.IsTargetable || obj.IsDead)
                 return false;
@@ -170,8 +171,8 @@ public unsafe class AutoUseEventItem : DailyModuleBase
 
     protected override void Uninit()
     {
-        FrameworkManager.Unreg(OnUpdate);
-        LogMessageManager.Unregister(OnPreReceiveMessage);
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        LogMessageManager.Instance().Unreg(OnPreReceiveMessage);
     }
 
     [IPCProvider("DailyRoutines.Modules.AutoUseEventItem.UseEventItem")]

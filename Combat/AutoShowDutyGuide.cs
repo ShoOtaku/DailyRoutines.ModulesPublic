@@ -35,7 +35,7 @@ public class AutoShowDutyGuide : DailyModuleBase
         Overlay.Flags |= ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavInputs;
         Overlay.ShowCloseButton = false;
 
-        DService.ClientState.TerritoryChanged += OnZoneChange;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChange;
         OnZoneChange(0);
     }
 
@@ -81,7 +81,7 @@ public class AutoShowDutyGuide : DailyModuleBase
 
     protected override void OverlayUI()
     {
-        using var font = FontManager.GetUIFont(ModuleConfig.FontScale).Push();
+        using var font = FontManager.Instance().GetUIFont(ModuleConfig.FontScale).Push();
         
         if (ImGuiOm.SelectableImageWithText(ImageHelper.GetGameIcon(61523).Handle, 
                                             ScaledVector2(24f),
@@ -145,7 +145,7 @@ public class AutoShowDutyGuide : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChange;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChange;
         GuideData.Clear();
     }
 

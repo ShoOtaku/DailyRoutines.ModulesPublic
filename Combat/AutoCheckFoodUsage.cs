@@ -12,6 +12,7 @@ using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -55,8 +56,8 @@ public class AutoCheckFoodUsage : DailyModuleBase
         CountdownInitHook ??= CountdownInitSig.GetHook<CountdownInitDelegate>(CountdownInitDetour);
         CountdownInitHook.Enable();
         
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.Condition.ConditionChange    += OnConditionChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().Condition.ConditionChange    += OnConditionChanged;
     }
 
     protected override void ConfigUI()
@@ -412,7 +413,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
             remainingTime.TotalMinutes >= 25)
             return true;
 
-        UseActionManager.UseActionLocation(ActionType.Item, isHQ ? itemID  + 100_0000 : itemID, 0xE0000000, default, 0xFFFF);
+        UseActionManager.Instance().UseActionLocation(ActionType.Item, isHQ ? itemID  + 100_0000 : itemID, 0xE0000000, default, 0xFFFF);
         
         TaskHelper.DelayNext(3_000);
         TaskHelper.Enqueue(() => CheckFoodState(itemID, isHQ));
@@ -441,7 +442,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
         itemFoodRowID = 0;
         remainingTime = TimeSpan.Zero;
 
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
 
         var statusManager = localPlayer.ToStruct()->StatusManager;
         var statusIndex   = statusManager.GetStatusIndex(48);
@@ -487,15 +488,15 @@ public class AutoCheckFoodUsage : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.Condition.ConditionChange -= OnConditionChanged;
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
     }
     
     private static unsafe bool IsValidState() =>
         !BetweenAreas                            &&
         !OccupiedInEvent                         &&
         !IsCasting                               &&
-        DService.ObjectTable.LocalPlayer != null &&
+        DService.Instance().ObjectTable.LocalPlayer != null &&
         UIModule.IsScreenReady()                          &&
         ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 2) == 0;
     
@@ -515,7 +516,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
                            .Where(x => x.Enabled                                            && 
                                        (x.Zones.Count == 0 || x.Zones.Contains(zone)) &&
                                        (x.ClassJobs.Count == 0 || 
-                                        x.ClassJobs.Contains(DService.ObjectTable.LocalPlayer.ClassJob.RowId)) &&
+                                        x.ClassJobs.Contains(DService.Instance().ObjectTable.LocalPlayer.ClassJob.RowId)) &&
                                        instance->GetInventoryItemCount(x.ItemID, x.IsHQ) > 0)
                            .OrderByDescending(x => x.Zones.Contains(zone))
                            .ToList();

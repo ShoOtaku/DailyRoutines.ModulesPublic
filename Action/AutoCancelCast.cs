@@ -33,8 +33,8 @@ public unsafe class AutoCancelCast : DailyModuleBase
 
     protected override void Init()
     {
-        DService.Condition.ConditionChange += OnConditionChanged;
-        FrameworkManager.Reg(OnUpdate);
+        DService.Instance().Condition.ConditionChange += OnConditionChanged;
+        FrameworkManager.Instance().Reg(OnUpdate);
     }
 
     private static void OnConditionChanged(ConditionFlag flag, bool value)
@@ -53,7 +53,7 @@ public unsafe class AutoCancelCast : DailyModuleBase
             return;
         }
 
-        var player = DService.ObjectTable.LocalPlayer;
+        var player = DService.Instance().ObjectTable.LocalPlayer;
         if (player.CastActionType != ActionType.Action      ||
             TargetAreaActions.Contains(player.CastActionID) ||
             !LuminaGetter.TryGetRow(player.CastActionID, out LuminaAction actionRow))
@@ -81,13 +81,13 @@ public unsafe class AutoCancelCast : DailyModuleBase
         void ExecuteCancast()
         {
             if (Throttler.Throttle("AutoCancelCast-CancelCast", 100))
-                ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.CancelCast);
+                ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.CancelCast);
         }
     }
 
     protected override void Uninit()
     {
-        DService.Condition.ConditionChange -= OnConditionChanged;
-        FrameworkManager.Unreg(OnUpdate);
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 }

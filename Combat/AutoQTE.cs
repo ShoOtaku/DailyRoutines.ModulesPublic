@@ -30,7 +30,7 @@ public class AutoQTE : DailyModuleBase
         IsInputIDPressedHook ??= IsInputIDPressedSig.GetHook<IsInputIDPressedDelegate>(IsInputIDPressedDetour);
         IsInputIDPressedHook.Enable();
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, QTETypes, OnQTEAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, QTETypes, OnQTEAddon);
     }
 
     private static unsafe byte IsInputIDPressedDetour(void* data, InputId id)
@@ -53,5 +53,5 @@ public class AutoQTE : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnQTEAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnQTEAddon);
 }

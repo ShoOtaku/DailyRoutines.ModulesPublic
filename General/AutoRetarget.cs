@@ -5,6 +5,7 @@ using System.Numerics;
 using DailyRoutines.Abstracts;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -25,11 +26,11 @@ public unsafe class AutoRetarget : DailyModuleBase
         ModuleConfig =   LoadConfig<Config>() ?? new();
         TaskHelper   ??= new() { TimeoutMS = 15_000 };
         
-        FrameworkManager.Reg(OnUpdate, true, 1000);
+        FrameworkManager.Instance().Reg(OnUpdate, true, 1000);
     }
 
     protected override void Uninit() => 
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
     
     protected override void ConfigUI()
     {
@@ -65,7 +66,7 @@ public unsafe class AutoRetarget : DailyModuleBase
         }
 
         List<IGameObject> found = [];
-        foreach (var igo in DService.ObjectTable)
+        foreach (var igo in DService.Instance().ObjectTable)
         {
             var objName = igo is IPlayerCharacter ipc
                               ? $"{igo.Name}@{ipc.HomeWorld.ValueNullable?.Name}"

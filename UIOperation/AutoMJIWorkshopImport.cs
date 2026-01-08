@@ -54,8 +54,8 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
         Overlay.WindowName =   "自动无人岛工房生产计划";
         Overlay.SizeConstraints = new() { MinimumSize = new(400f * GlobalFontScale, 300f * GlobalFontScale) };
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "MJICraftSchedule", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MJICraftSchedule", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "MJICraftSchedule", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MJICraftSchedule", OnAddon);
         if (MJICraftSchedule != null) 
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -70,7 +70,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
         
         if (!MJICraftSchedule->IsAddonAndNodesReady()) return;
         
-        using var font = FontManager.UIFont80.Push();
+        using var font = FontManager.Instance().UIFont80.Push();
         
         DrawImportSection();
         
@@ -218,7 +218,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
         var iconSize = ImGui.GetTextLineHeight() * 1.5f;
         var iconSizeVec = new Vector2(iconSize, iconSize);
         var craftworkItemIcon = row.Item.Value.Icon;
-        ImGui.Image(DService.Texture.GetFromGameIcon(new(craftworkItemIcon)).GetWrapOrEmpty().Handle,
+        ImGui.Image(DService.Instance().Texture.GetFromGameIcon(new(craftworkItemIcon)).GetWrapOrEmpty().Handle,
             iconSizeVec, Vector2.Zero, Vector2.One);
     }
 
@@ -336,7 +336,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
         };
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
     private class Config : ModuleConfiguration
     {

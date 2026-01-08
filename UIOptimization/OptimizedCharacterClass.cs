@@ -31,20 +31,20 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
     {
         TaskHelper ??= new();
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "CharacterClass", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CharacterClass", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "CharacterClass", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CharacterClass", OnAddon);
         if (CharacterClass->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "PvPCharacter", OnAddonPVP);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "PvPCharacter", OnAddonPVP);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "PvPCharacter", OnAddonPVP);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "PvPCharacter", OnAddonPVP);
         if (PvPCharacter->IsAddonAndNodesReady())
             OnAddonPVP(AddonEvent.PostSetup, null);
     }
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon, OnAddonPVP);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon, OnAddonPVP);
         
         ClearEvents();
     }
@@ -73,7 +73,7 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
         
         var cursorOverEvent = new AtkEventWrapper((_, ownerAddon, _, _) =>
         {
-            DService.AddonEvent.SetCursor(AddonCursorType.Clickable);
+            DService.Instance().AddonEvent.SetCursor(AddonCursorType.Clickable);
             UIGlobals.PlaySoundEffect(0);
             AtkStage.Instance()->TooltipManager.ShowTooltip(ownerAddon->Id,
                                                             (AtkResNode*)iconNode,
@@ -87,7 +87,7 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
         
         var cursorOutEvent = new AtkEventWrapper((_, ownerAddon, _, _) =>
         {
-            DService.AddonEvent.ResetCursor();
+            DService.Instance().AddonEvent.ResetCursor();
             AtkStage.Instance()->TooltipManager.HideTooltip(ownerAddon->Id);
         });
         cursorOutEvent.Add(addon, (AtkResNode*)colNode, AtkEventType.MouseOut);

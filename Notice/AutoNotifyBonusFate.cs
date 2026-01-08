@@ -35,7 +35,7 @@ public class AutoNotifyBonusFate : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
@@ -58,11 +58,11 @@ public class AutoNotifyBonusFate : DailyModuleBase
 
     private static void OnZoneChanged(ushort zone)
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         LastFates.Clear();
 
         if (ValidTerritory.Contains(GameState.TerritoryType))
-            FrameworkManager.Reg(OnUpdate, throttleMS: 5_000);
+            FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 5_000);
     }
 
     private static unsafe void OnUpdate(IFramework _)
@@ -70,17 +70,17 @@ public class AutoNotifyBonusFate : DailyModuleBase
         var zoneID = GameState.TerritoryType;
         if (!ValidTerritory.Contains(zoneID))
         {
-            FrameworkManager.Unreg(OnUpdate);
+            FrameworkManager.Instance().Unreg(OnUpdate);
             return;
         }
         
-        if (BetweenAreas || DService.ObjectTable.LocalPlayer == null) return;
+        if (BetweenAreas || DService.Instance().ObjectTable.LocalPlayer == null) return;
 
-        if (DService.Fate is not { Length: > 0 } fateTable) return;
+        if (DService.Instance().Fate is not { Length: > 0 } fateTable) return;
         if (LastFates.Count != 0 && fateTable.SequenceEqual(LastFates)) return;
         var newFates = LastFates.Count == 0 ? fateTable : fateTable.Except(LastFates);
         
-        var mapID  = DService.ClientState.MapId;
+        var mapID  = DService.Instance().ClientState.MapId;
         if (!LuminaGetter.TryGetRow<Map>(mapID, out var mapRow)) return;
         
         foreach (var fate in newFates)
@@ -118,8 +118,8 @@ public class AutoNotifyBonusFate : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        FrameworkManager.Unreg(OnUpdate);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 
     private class Config : ModuleConfiguration

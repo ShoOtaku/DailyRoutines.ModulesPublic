@@ -6,6 +6,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace DailyRoutines.ModulesPublic;
@@ -39,28 +40,28 @@ public class SastashaHelper : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 30_000 };
         
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
     private void OnZoneChanged(ushort zone)
     {
         TaskHelper?.Abort();
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
         CorrectCoralDataID = 0;
         CorrectCoralHighlightColor = ObjectHighlightColor.None;
         if (GameState.TerritoryType != 1036) return;
         
         TaskHelper.Enqueue(GetCorrectCoral);
-        FrameworkManager.Reg(OnUpdate, throttleMS: 2_000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 2_000);
     }
 
     private static unsafe void OnUpdate(IFramework _)
     {
         if (CorrectCoralDataID == 0 || CorrectCoralHighlightColor == ObjectHighlightColor.None) return;
 
-        var coral = DService.ObjectTable.FirstOrDefault(
+        var coral = DService.Instance().ObjectTable.FirstOrDefault(
             x => x.ObjectKind == ObjectKind.EventObj && x.DataID == CorrectCoralDataID);
         if (coral == null) return;
 
@@ -69,9 +70,9 @@ public class SastashaHelper : DailyModuleBase
     
     private static bool GetCorrectCoral()
     {
-        if (DService.ObjectTable.LocalPlayer is null || BetweenAreas || !UIModule.IsScreenReady()) return false;
+        if (DService.Instance().ObjectTable.LocalPlayer is null || BetweenAreas || !UIModule.IsScreenReady()) return false;
         
-        var book = DService.ObjectTable
+        var book = DService.Instance().ObjectTable
                            .FirstOrDefault(x => x is { IsTargetable: true, ObjectKind: ObjectKind.EventObj } && 
                                                 BookToCoral.ContainsKey(x.DataID));
         if (book == null) return false;
@@ -90,7 +91,7 @@ public class SastashaHelper : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         OnZoneChanged(0);
     }
 }

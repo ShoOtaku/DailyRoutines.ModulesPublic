@@ -53,13 +53,13 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
         GameObjectSetRotationHook ??= GameObjectSetRotationSig.GetHook<GameObjectSetRotationDelegate>(GameObjectSetRotationDetour);
         GameObjectSetRotationHook.Enable();
 
-        if (!DService.PI.IsPluginEnabled(vnavmeshIPC.InternalName))
+        if (!DService.Instance().PI.IsPluginEnabled(vnavmeshIPC.InternalName))
         {
             ModuleConfig.MoveMode = MoveMode.Game;
             SaveConfig(ModuleConfig);
         }
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
 
         if (IsModuleActive) return;
         IsModuleActive = true;
@@ -94,7 +94,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
             foreach (var moveMode in Enum.GetValues<MoveMode>())
             {
                 using var disabled = ImRaii.Disabled(ModuleConfig.MoveMode == moveMode || 
-                                                     (moveMode == MoveMode.vnavmesh && !DService.PI.IsPluginEnabled(vnavmeshIPC.InternalName)));
+                                                     (moveMode == MoveMode.vnavmesh && !DService.Instance().PI.IsPluginEnabled(vnavmeshIPC.InternalName)));
 
                 ImGui.SameLine();
                 if (ImGui.RadioButton(moveMode.ToString(), moveMode == ModuleConfig.MoveMode))
@@ -137,7 +137,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
                 using var combo = ImRaii.Combo("###ComboKeyCombo", ModuleConfig.ComboKey.GetFancyName());
                 if (combo)
                 {
-                    var validKeys = DService.KeyState.GetValidVirtualKeys();
+                    var validKeys = DService.Instance().KeyState.GetValidVirtualKeys();
                     foreach (var keyToSelect in validKeys)
                     {
                         using var disabled = ImRaii.Disabled(DRConfig.Instance().ConflictKey == keyToSelect);
@@ -171,7 +171,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
         if (!IsModuleActive) return;
 
         if (TargetWorldPos == default) return;
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
 
         MovementManager.SetCurrentControlMode(MovementControlMode.Normal);
         
@@ -181,8 +181,8 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
 
         if (!ModuleConfig.DisplayLineToTarget) return;
 
-        if (!DService.Gui.WorldToScreen(TargetWorldPos,       out var screenPos) ||
-            !DService.Gui.WorldToScreen(localPlayer.Position, out var localScreenPos)) 
+        if (!DService.Instance().Gui.WorldToScreen(TargetWorldPos,       out var screenPos) ||
+            !DService.Instance().Gui.WorldToScreen(localPlayer.Position, out var localScreenPos)) 
             return;
 
         var drawList = ImGui.GetForegroundDrawList();
@@ -204,7 +204,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
     private static void GameObjectSetRotationDetour(nint obj, float value)
     {
         if (ModuleConfig.NoChangeFaceDirection                                         &&
-            obj            == (DService.ObjectTable.LocalPlayer?.Address ?? nint.Zero) &&
+            obj            == (DService.Instance().ObjectTable.LocalPlayer?.Address ?? nint.Zero) &&
             TargetWorldPos != default)
             return;
         
@@ -215,10 +215,10 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
     {
         if (IsConflictKeyPressed()) return true;
         if (ModuleConfig.WASDToInterrupt && 
-            (DService.KeyState[VirtualKey.W] || 
-             DService.KeyState[VirtualKey.A] ||
-             DService.KeyState[VirtualKey.S] || 
-             DService.KeyState[VirtualKey.D])) 
+            (DService.Instance().KeyState[VirtualKey.W] || 
+             DService.Instance().KeyState[VirtualKey.A] ||
+             DService.Instance().KeyState[VirtualKey.S] || 
+             DService.Instance().KeyState[VirtualKey.D])) 
             return true;
 
         return false;
@@ -227,7 +227,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
     private static void HandleClickResult()
     {
         if (!IsModuleActive) return;
-        if (DService.ObjectTable.LocalPlayer is null || PathFindHelper == null) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is null || PathFindHelper == null) return;
 
         switch (ModuleConfig.ControlMode)
         {
@@ -238,15 +238,15 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
                 if (!isLeftButtonPressed) return;
                 break;
             case ControlMode.KeyRightClick:
-                var isKeyPressed = DService.KeyState[ModuleConfig.ComboKey];
+                var isKeyPressed = DService.Instance().KeyState[ModuleConfig.ComboKey];
                 if (!isKeyPressed) return;
                 break;
         }
 
-        if (!DService.Gui.ScreenToWorld(ImGui.GetMousePos(), out var worldPos)) return;
+        if (!DService.Instance().Gui.ScreenToWorld(ImGui.GetMousePos(), out var worldPos)) return;
         
         var finalWorldPos = Vector3.Zero;
-        if (DService.PI.IsPluginEnabled(vnavmeshIPC.InternalName) &&
+        if (DService.Instance().PI.IsPluginEnabled(vnavmeshIPC.InternalName) &&
             vnavmeshIPC.QueryMeshNearestPoint(worldPos, 3, 10) is { } worldPosByNavmesh)
             finalWorldPos = worldPosByNavmesh;
         else if (MovementManager.TryDetectGroundDownwards(worldPos, out var hitInfo, 1024) ?? false)
@@ -258,7 +258,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
         TargetWorldPos = finalWorldPos;
 
         if (AgentMap.Instance()->IsPlayerMoving)
-            ChatManager.SendMessage("/automove off");
+            ChatManager.Instance().SendMessage("/automove off");
         
         switch (ModuleConfig.MoveMode)
         {
@@ -267,7 +267,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
                 PathFindHelper.Enabled         = true;
                 break;
             case MoveMode.vnavmesh:
-                if (!DService.PI.IsPluginEnabled(vnavmeshIPC.InternalName))
+                if (!DService.Instance().PI.IsPluginEnabled(vnavmeshIPC.InternalName))
                 {
                     ModuleConfig.MoveMode = MoveMode.Game;
                     ModuleConfig.Save(ModuleManager.GetModule<RightClickToMoveMode>());
@@ -275,7 +275,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
                 }
                 
                 vnavmeshIPC.PathSetTolerance(2f);
-                vnavmeshIPC.PathfindAndMoveTo(TargetWorldPos, DService.Condition[ConditionFlag.InFlight] || DService.Condition[ConditionFlag.Diving]);
+                vnavmeshIPC.PathfindAndMoveTo(TargetWorldPos, DService.Instance().Condition[ConditionFlag.InFlight] || DService.Instance().Condition[ConditionFlag.Diving]);
                 break;
         }
     }
@@ -294,7 +294,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
     {
         if (!IsModuleActive) return;
 
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         WindowManager.Draw               -= OnPosDraw;
 
         Hook?.Dispose();

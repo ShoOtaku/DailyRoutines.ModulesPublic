@@ -29,7 +29,7 @@ public unsafe class BetterBlueSetLoad : DailyModuleBase
     protected override void Init()
     {
         AgentAozNotebookReceiveEventHook ??=
-            DService.Hook.HookFromAddress<AgentReceiveEventDelegate>(
+            DService.Instance().Hook.HookFromAddress<AgentReceiveEventDelegate>(
                 AgentModule.Instance()->GetAgentByInternalId(AgentId.AozNotebook)->VirtualTable->GetVFuncByName("ReceiveEvent"),
                 AgentAozNotebookReceiveEventDetour);
         AgentAozNotebookReceiveEventHook.Enable();

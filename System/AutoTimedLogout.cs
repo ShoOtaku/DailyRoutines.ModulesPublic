@@ -34,7 +34,7 @@ public class AutoTimedLogout : DailyModuleBase
     protected override void Init()
     {
         Abort();
-        FrameworkManager.Reg(OnUpdate, throttleMS: 1_000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1_000);
     }
 
     protected override void ConfigUI()
@@ -129,10 +129,10 @@ public class AutoTimedLogout : DailyModuleBase
         switch (CurrentOperation)
         {
             case OperationMode.Logout:
-                ChatManager.SendMessage("/logout");
+                ChatManager.Instance().SendMessage("/logout");
                 break;
             case OperationMode.ShutdownGame:
-                ChatManager.SendMessage("/shutdown");
+                ChatManager.Instance().SendMessage("/shutdown");
                 break;
             case OperationMode.ShutdownPC:
                 try
@@ -166,7 +166,7 @@ public class AutoTimedLogout : DailyModuleBase
 
     protected override void Uninit()
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         Abort();
     }
     

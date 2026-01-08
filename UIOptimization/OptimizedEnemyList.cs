@@ -46,9 +46,9 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         AgentHudUpdateEnemyListHook ??= AgentHudUpdateEnemyListSig.GetHook<AgentHudUpdateEnemyListDelegate>(AgentHudUpdateEnemyListDetour);
         AgentHudUpdateEnemyListHook.Enable();
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,          "_EnemyList", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "_EnemyList", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,           "_EnemyList", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,          "_EnemyList", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate, "_EnemyList", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,           "_EnemyList", OnAddon);
     }
 
     protected override void ConfigUI()
@@ -254,7 +254,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             var backgroundNode = nodes[i].BackgroundNode;
             var castBarNode    = nodes[i].CastBarNode;
             
-            var gameObj = DService.ObjectTable.SearchByID(gameObjectID);
+            var gameObj = DService.Instance().ObjectTable.SearchByID(gameObjectID);
             if (gameObj is not IBattleChara bc || !HaterInfo.TryGetValue(gameObj.EntityID, out var enmity))
             {
                 textNode.SeString        = string.Empty;
@@ -477,7 +477,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
         ClearTextNodes();
         

@@ -47,8 +47,8 @@ public unsafe class OptimizedFreeShop : DailyModuleBase
         ReceiveEventHook ??= ReceiveEventSig.GetHook<AgentReceiveEventDelegate>(ReceiveEventDetour);
         ReceiveEventHook.Enable();
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "FreeShop", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "FreeShop", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "FreeShop", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "FreeShop", OnAddon);
     }
 
     private static AtkValue* ReceiveEventDetour(AgentInterface* agent, AtkValue* returnValues, AtkValue* values, uint valueCount, ulong eventKind)
@@ -180,7 +180,7 @@ public unsafe class OptimizedFreeShop : DailyModuleBase
     
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
 
         ClickYesnoHelper = null;

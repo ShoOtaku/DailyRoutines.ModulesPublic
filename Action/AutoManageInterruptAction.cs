@@ -17,7 +17,7 @@ public class AutoManageInterruptAction : DailyModuleBase
     private static readonly HashSet<uint> InterruptActions = [7538, 7551];
 
     protected override void Init() => 
-        UseActionManager.RegPreUseAction(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
 
     private static void OnPreUseAction(
         ref bool                        isPrevented,
@@ -35,5 +35,5 @@ public class AutoManageInterruptAction : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        UseActionManager.Unreg(OnPreUseAction);
+        UseActionManager.Instance().Unreg(OnPreUseAction);
 }

@@ -15,7 +15,7 @@ public class AutoQuestAccept : DailyModuleBase
     };
 
     protected override void Init() => 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "JournalAccept", OnAddonSetup);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "JournalAccept", OnAddonSetup);
 
     protected override void ConfigUI() => 
         ConflictKeyText();
@@ -37,5 +37,5 @@ public class AutoQuestAccept : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddonSetup);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSetup);
 }

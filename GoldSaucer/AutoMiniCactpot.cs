@@ -25,8 +25,8 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 5_000 };
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LotteryDaily", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LotteryDaily", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LotteryDaily", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LotteryDaily", OnAddon);
         if (LotteryDaily != null)
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -37,10 +37,10 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
         {
             case AddonEvent.PostSetup:
                 TaskHelper.Abort();
-                FrameworkManager.Reg(OnUpdate);
+                FrameworkManager.Instance().Reg(OnUpdate);
                 break;
             case AddonEvent.PreFinalize:
-                FrameworkManager.Unreg(OnUpdate);
+                FrameworkManager.Instance().Unreg(OnUpdate);
                 TaskHelper.Enqueue(() => ClickSelectYesnoYes());
                 break;
         }
@@ -122,8 +122,8 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
     
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
-        FrameworkManager.Unreg(OnUpdate);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 
     internal sealed class MiniCactpotSolver

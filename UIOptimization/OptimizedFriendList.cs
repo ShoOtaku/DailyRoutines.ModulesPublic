@@ -71,20 +71,20 @@ public unsafe class OptimizedFriendList : DailyModuleBase
 
         ModifyInfoItem = new(TaskHelper);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,           "FriendList", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate,  "FriendList", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "FriendList", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,           "FriendList", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreRequestedUpdate,  "FriendList", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "FriendList", OnAddon);
         if (FriendList->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostSetup, null);
 
-        DService.ContextMenu.OnMenuOpened += OnContextMenu;
+        DService.Instance().ContextMenu.OnMenuOpened += OnContextMenu;
     }
     
     protected override void Uninit()
     {
-        DService.ContextMenu.OnMenuOpened -= OnContextMenu;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnContextMenu;
         
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
         
         RemarkEditAddon?.Dispose();
@@ -174,7 +174,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                         var chara = info->CharDataSpan[i];
                         if (chara.ContentId == 0) continue;
                         
-                        DService.Framework.RunOnTick(() =>
+                        DService.Instance().Framework.RunOnTick(() =>
                         {
                             if (FriendList == null) return;
                             
@@ -186,7 +186,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                     
                     if (validCounter > 0)
                     {
-                        DService.Framework.RunOnTick(() =>
+                        DService.Instance().Framework.RunOnTick(() =>
                         {
                             if (FriendList == null) return;
 
@@ -832,7 +832,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
             };
             if (zoneID == GameState.TerritoryType) return false;
             
-            aetheryteID = DService.AetheryteList
+            aetheryteID = DService.Instance().AetheryteList
                                   .Where(aetheryte => aetheryte.TerritoryID == zoneID)
                                   .Select(aetheryte => aetheryte.AetheryteID)
                                   .FirstOrDefault();
@@ -863,7 +863,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
         }
 
         protected override void OnClicked(IMenuItemClickedArgs args) => 
-            ChatManager.SendMessage($"/pdr worldtravel {LuminaWrapper.GetWorldName(TargetWorldID)}");
+            ChatManager.Instance().SendMessage($"/pdr worldtravel {LuminaWrapper.GetWorldName(TargetWorldID)}");
     }
     
     public class PlayerInfo

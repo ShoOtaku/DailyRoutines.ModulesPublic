@@ -42,7 +42,7 @@ public class CustomActionQueueTime : DailyModuleBase
 
         Overlay.Flags |= ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoMove;
         
-        UseActionManager.RegPreIsActionOffCooldown(OnPreIsActionOffCooldown);
+        UseActionManager.Instance().RegPreIsActionOffCooldown(OnPreIsActionOffCooldown);
 
         if (ModuleConfig.DisplayQueueActionOverlay)
             Overlay.IsOpen = true;
@@ -176,7 +176,7 @@ public class CustomActionQueueTime : DailyModuleBase
 
         ActionSelectCombo.DrawRadio();
         
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
 
         var       contentRegion = ImGui.GetContentRegionAvail();
         var       tableWidth    = contentRegion.X * 0.75f;
@@ -195,7 +195,7 @@ public class CustomActionQueueTime : DailyModuleBase
         {
             if (!LuminaGetter.TryGetRow<Action>(queueTimePair.Key, out var data)) continue;
 
-            var icon = DService.Texture.GetFromGameIcon(new(data.Icon)).GetWrapOrDefault();
+            var icon = DService.Instance().Texture.GetFromGameIcon(new(data.Icon)).GetWrapOrDefault();
             if (icon == null) continue;
 
             using var id = ImRaii.PushId(data.RowId.ToString());
@@ -242,13 +242,13 @@ public class CustomActionQueueTime : DailyModuleBase
 
     protected override unsafe void OverlayUI()
     {
-        if (!DService.Condition[ConditionFlag.InCombat] && 
-            !DService.Condition[ConditionFlag.Casting]) return;
+        if (!DService.Instance().Condition[ConditionFlag.InCombat] && 
+            !DService.Instance().Condition[ConditionFlag.Casting]) return;
         
         var manager = ActionManager.Instance();
         if (manager == null) return;
 
-        using var font  = FontManager.GetUIFont(ModuleConfig.OverlayFontScale).Push();
+        using var font  = FontManager.Instance().GetUIFont(ModuleConfig.OverlayFontScale).Push();
         using var color = ImRaii.PushColor(ImGuiCol.Text, ModuleConfig.OverlayFontColor);
         
         var actionID = manager->QueuedActionId;
@@ -264,7 +264,7 @@ public class CustomActionQueueTime : DailyModuleBase
             {
                 if (!LuminaGetter.TryGetRow<Action>(actionID, out var data)) return;
 
-                var icon = DService.Texture.GetFromGameIcon(new(data.Icon)).GetWrapOrDefault();
+                var icon = DService.Instance().Texture.GetFromGameIcon(new(data.Icon)).GetWrapOrDefault();
                 if (icon == null) return;
                 
                 ImGuiOm.TextImage($"{data.Name.ToString()}", icon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
@@ -282,7 +282,7 @@ public class CustomActionQueueTime : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        UseActionManager.Unreg(OnPreIsActionOffCooldown);
+        UseActionManager.Instance().Unreg(OnPreIsActionOffCooldown);
 
     private static void OnPreIsActionOffCooldown(
         ref bool isPrevented, ActionType actionType, uint actionID, ref float queueTimeSecond)

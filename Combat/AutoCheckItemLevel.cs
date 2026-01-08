@@ -27,7 +27,7 @@ public unsafe class AutoCheckItemLevel : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 20_000 };
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
     }
 
     private void OnZoneChanged(ushort zone)
@@ -40,7 +40,7 @@ public unsafe class AutoCheckItemLevel : DailyModuleBase
             GameState.ContentFinderConditionData.ContentMemberType.Value.MeleesPerParty == 0)
             return;
         
-        TaskHelper.Enqueue(() => !BetweenAreas && DService.ObjectTable.LocalPlayer != null, "WaitForEnteringDuty");
+        TaskHelper.Enqueue(() => !BetweenAreas && DService.Instance().ObjectTable.LocalPlayer != null, "WaitForEnteringDuty");
         TaskHelper.Enqueue(() => CheckMembersItemLevel([LocalPlayerState.EntityID]));
     }
 
@@ -185,5 +185,5 @@ public unsafe class AutoCheckItemLevel : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
 }

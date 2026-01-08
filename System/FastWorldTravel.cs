@@ -23,6 +23,7 @@ using KamiToolKit.Classes;
 using KamiToolKit.Classes.ContextMenu;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 using AgentWorldTravel = OmenTools.Infos.AgentWorldTravel;
 using ContextMenu = KamiToolKit.Classes.ContextMenu.ContextMenu;
 
@@ -84,16 +85,16 @@ public class FastWorldTravel : DailyModuleBase
         if (ModuleConfig.AddDtrEntry)
             HandleDtrEntry(true);
         
-        FrameworkManager.Reg(OnUpdate, throttleMS: 1_000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1_000);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "WorldTravelSelect", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "WorldTravelSelect", OnAddon);
         if (WorldTravelSelect->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
     
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         
         HandleDtrEntry(false);
         
@@ -103,7 +104,7 @@ public class FastWorldTravel : DailyModuleBase
         WorldStatusMonitor?.Dispose();
         WorldStatusMonitor = null;
 
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         CommandManager.RemoveSubCommand(COMMAND);
     }
 
@@ -140,7 +141,7 @@ public class FastWorldTravel : DailyModuleBase
                     Entry = null;
                 }
                 
-                Entry         =  DService.DtrBar.Get("DailyRoutines-FastWorldTravel");
+                Entry         =  DService.Instance().DtrBar.Get("DailyRoutines-FastWorldTravel");
                 Entry.OnClick += _ => Addon.Toggle();
                 Entry.Shown   =  true;
                 Entry.Tooltip =  GetLoc("FastWorldTravel-DtrEntryTooltip");
@@ -169,9 +170,9 @@ public class FastWorldTravel : DailyModuleBase
     {
         if (Entry == null || (TaskHelper?.IsBusy ?? true)) return;
 
-        Entry.Shown = !DService.Condition.Any(InvalidConditions);
+        Entry.Shown = !DService.Instance().Condition.Any(InvalidConditions);
 
-        if (DService.Condition.Any(ConditionFlag.WaitingToVisitOtherWorld, ConditionFlag.ReadyingVisitOtherWorld))
+        if (DService.Instance().Condition.Any(ConditionFlag.WaitingToVisitOtherWorld, ConditionFlag.ReadyingVisitOtherWorld))
             return;
 
         Entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.CrossWorld)
@@ -184,10 +185,10 @@ public class FastWorldTravel : DailyModuleBase
     {
         if (!Throttler.Throttle("FastWorldTravel-OnCommand", 1_000)) return;
 
-        if (!DService.ClientState.IsLoggedIn          ||
-            DService.ObjectTable.LocalPlayer == null  ||
-            DService.Condition.Any(InvalidConditions) ||
-            DService.Condition.Any(ConditionFlag.WaitingToVisitOtherWorld))
+        if (!DService.Instance().ClientState.IsLoggedIn          ||
+            DService.Instance().ObjectTable.LocalPlayer == null  ||
+            DService.Instance().Condition.Any(InvalidConditions) ||
+            DService.Instance().Condition.Any(ConditionFlag.WaitingToVisitOtherWorld))
         {
             NotificationError(GetLoc("FastWorldTravel-Notice-InvalidEnv"));
             return;
@@ -282,7 +283,7 @@ public class FastWorldTravel : DailyModuleBase
 
         if (!WorldTravelValidZones.Contains(GameState.TerritoryType))
         {
-            var nearestAetheryte = DService.AetheryteList
+            var nearestAetheryte = DService.Instance().AetheryteList
                                            .Where(x => WorldTravelValidZones.Contains(x.TerritoryID))
                                            .MinBy(x => x.GilCost);
             if (nearestAetheryte == null) return;
@@ -404,7 +405,7 @@ public class FastWorldTravel : DailyModuleBase
         TaskHelper.EnqueueAsync(() => ModuleManager.UnloadAsync(ModuleManager.GetModuleByName("AutoLogin")), "禁用自动登录");
         
         TaskHelper.DelayNext(500, "等待 500 毫秒");
-        TaskHelper.Enqueue(() => ChatManager.SendCommand("/logout"), "登出游戏");
+        TaskHelper.Enqueue(() => ChatManager.Instance().SendCommand("/logout"), "登出游戏");
 
         TaskHelper.Enqueue(() => Dialogue->IsAddonAndNodesReady(), "等待界面出现");
         
@@ -487,13 +488,13 @@ public class FastWorldTravel : DailyModuleBase
 
     private static bool LeaveNonCrossWorldParty()
     {
-        if (DService.PartyList.Length < 2 || DService.Condition[ConditionFlag.ParticipatingInCrossWorldPartyOrAlliance]) 
+        if (DService.Instance().PartyList.Length < 2 || DService.Instance().Condition[ConditionFlag.ParticipatingInCrossWorldPartyOrAlliance]) 
             return true;
         if (!Throttler.Throttle("FastWorldTravel-LeaveNonCrossWorldParty")) 
             return false;
 
-        ChatManager.SendMessage("/leave");
-        return DService.PartyList.Length < 2;
+        ChatManager.Instance().SendMessage("/leave");
+        return DService.Instance().PartyList.Length < 2;
     }
 
     private static (bool, uint) CheckCNDataCenterStatus(uint dcID)
@@ -553,7 +554,7 @@ public class FastWorldTravel : DailyModuleBase
         private static readonly Version MinDCTravelerXVersion = new("0.2.3.0");
         
         private static bool IsPluginEnabled => 
-            DService.PI.IsPluginEnabled("DCTravelerX", MinDCTravelerXVersion);
+            DService.Instance().PI.IsPluginEnabled("DCTravelerX", MinDCTravelerXVersion);
 
         private static bool IsPluginValid => 
             IsPluginEnabled && IsDCTravelerValid;
@@ -664,7 +665,7 @@ public class FastWorldTravel : DailyModuleBase
 
         private void RequestWaitTimeInfoUpdate()
         {
-            DService.Framework.RunOnTick(async () =>
+            DService.Instance().Framework.RunOnTick(async () =>
             {
                 if (!IsOpen || !IsPluginValid || WorldToButtons is not { Count: > 0 }) return;
                 await RequestDCTravelInfo.InvokeFunc();
@@ -870,7 +871,7 @@ public class FastWorldTravel : DailyModuleBase
                     OnClick = () =>
                     {
                         Addon.Close();
-                        ChatManager.SendMessage($"/pdr worldtravel {worldData.Name.ToString()}");
+                        ChatManager.Instance().SendMessage($"/pdr worldtravel {worldData.Name.ToString()}");
                     },
                     IsEnabled = GameState.CurrentWorld != worldID && (worldData.DataCenter.RowId == GameState.CurrentDataCenter || IsPluginValid)
                 };
@@ -1000,7 +1001,7 @@ public class FastWorldTravel : DailyModuleBase
                     {
                         Chat($"大区 [{LuminaWrapper.GetDataCenterName(dcID)}] 已为可通行状态, 停止监控");
                         if (JustGo)
-                            ChatManager.SendCommand($"/pdr worldtravel {result.Item2}");
+                            ChatManager.Instance().SendCommand($"/pdr worldtravel {result.Item2}");
                         
                         break;
                     }

@@ -60,8 +60,8 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
         Overlay.Flags |= ImGuiWindowFlags.NoResize          | ImGuiWindowFlags.NoScrollbar |
                          ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoMove;
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroupDetail", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroupDetail", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddon);
         if (LookingForGroupDetail->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -88,7 +88,7 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
         var offsetSpacing       = ImGui.GetStyle().ItemSpacing;
         var offsetHeightSpacing = new Vector2(0f, ImGui.GetTextLineHeightWithSpacing());
         
-        using var fontBefore = FontManager.UIFont80.Push();
+        using var fontBefore = FontManager.Instance().UIFont80.Push();
         
         var windowPos = nodeStateInfo.TopLeft - 3 * offsetSpacing - offsetHeightSpacing;
         
@@ -98,7 +98,7 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
         ImGui.SetWindowPos(windowPos);
         ImGui.SetWindowSize(new(width, height));
         
-        using var fontAfter = FontManager.UIFont.Push();
+        using var fontAfter = FontManager.Instance().UIFont.Push();
         ImGuiOm.TextSelectable(SeString.Parse(textNode->NodeText).ToString(), width - 2 * offsetSpacing.X, LinkTypes);
     }
 
@@ -111,5 +111,5 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
         };
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 }

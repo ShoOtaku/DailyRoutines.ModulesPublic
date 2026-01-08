@@ -72,7 +72,7 @@ public unsafe partial class AutoRetainerWork
 
         public override void Init()
         {
-            MoveToRetainerMarketHook ??= DService.Hook.HookFromAddress<MoveToRetainerMarketDelegate>(
+            MoveToRetainerMarketHook ??= DService.Instance().Hook.HookFromAddress<MoveToRetainerMarketDelegate>(
                 GetMemberFuncByName(typeof(InventoryManager.MemberFunctionPointers), "MoveToRetainerMarket"),
                 MoveToRetainerMarketDetour);
             MoveToRetainerMarketHook.Enable();
@@ -81,12 +81,12 @@ public unsafe partial class AutoRetainerWork
 
             TaskHelper ??= new() { TimeoutMS = 30_000, ShowDebug = true };
 
-            DService.MarketBoard.HistoryReceived   += OnHistoryReceived;
-            DService.MarketBoard.OfferingsReceived += OnOfferingReceived;
+            DService.Instance().MarketBoard.HistoryReceived   += OnHistoryReceived;
+            DService.Instance().MarketBoard.OfferingsReceived += OnOfferingReceived;
 
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "RetainerSell",     OnRetainerSell);
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "RetainerSellList", OnRetainerSellList);
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "RetainerSellList", OnRetainerSellList);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "RetainerSell",     OnRetainerSell);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "RetainerSellList", OnRetainerSellList);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "RetainerSellList", OnRetainerSellList);
 
             WindowManager.Draw += DrawMarketListWindow;
             WindowManager.Draw += DrawUpshelfWindow;
@@ -334,7 +334,7 @@ public unsafe partial class AutoRetainerWork
 
             foreach (var item in ItemSearcher.SearchResult)
             {
-                var itemIcon = DService.Texture.GetFromGameIcon(new(item.Icon, NewConfigItemHQ)).GetWrapOrDefault();
+                var itemIcon = DService.Instance().Texture.GetFromGameIcon(new(item.Icon, NewConfigItemHQ)).GetWrapOrDefault();
                 if (itemIcon == null) continue;
 
                 if (ImGuiOm.SelectableImageWithText(itemIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()),
@@ -358,7 +358,7 @@ public unsafe partial class AutoRetainerWork
                                ? GetLoc("AutoRetainerWork-PriceAdjust-CommonItemPreset")
                                : item.Name.ToString() ?? string.Empty;
 
-            var itemLogo = DService.Texture
+            var itemLogo = DService.Instance().Texture
                                    .GetFromGameIcon(new(SelectedItemConfig.ItemID == 0 ? 65002 : (uint)item.Icon, SelectedItemConfig.IsHQ))
                                    .GetWrapOrDefault();
             if (itemLogo == null) return;
@@ -372,7 +372,7 @@ public unsafe partial class AutoRetainerWork
 
             ImGui.SameLine();
 
-            using (FontManager.UIFont140.Push())
+            using (FontManager.Instance().UIFont140.Push())
                 ImGui.TextUnformatted(itemName);
 
             ImGui.SameLine();
@@ -648,7 +648,7 @@ public unsafe partial class AutoRetainerWork
             var marketContainer = inventoryManager->GetInventoryContainer(InventoryType.RetainerMarket);
             if (marketContainer == null || !marketContainer->IsLoaded) return;
 
-            using var font = FontManager.GetUIFont(ModuleConfig.MarketItemsWindowFontScale).Push();
+            using var font = FontManager.Instance().GetUIFont(ModuleConfig.MarketItemsWindowFontScale).Push();
 
             if (ImGui.BeginMenuBar())
             {
@@ -812,7 +812,7 @@ public unsafe partial class AutoRetainerWork
                 if (itemPrice == 0) continue;
 
                 var isItemHQ = item.Inventory.Flags.HasFlag(InventoryItem.ItemFlags.HighQuality);
-                var itemIcon = DService.Texture.GetFromGameIcon(new(item.Data.Icon, isItemHQ)).GetWrapOrDefault();
+                var itemIcon = DService.Instance().Texture.GetFromGameIcon(new(item.Data.Icon, isItemHQ)).GetWrapOrDefault();
                 if (itemIcon == null) continue;
 
                 var itemName = $"{item.Data.Name.ToString()}" + (isItemHQ ? "\ue03c" : string.Empty);
@@ -943,7 +943,7 @@ public unsafe partial class AutoRetainerWork
 
                     using (ImRaii.Group())
                     {
-                        using (FontManager.UIFont140.Push())
+                        using (FontManager.Instance().UIFont140.Push())
                             ImGui.TextUnformatted($"{itemName}");
 
                         ImGui.TextDisabled($"{GetLoc("AutoRetainerWork-PriceAdjust-MarketItemsCount")}: {quantity}");
@@ -992,7 +992,7 @@ public unsafe partial class AutoRetainerWork
 
                     using (ImRaii.Group())
                     {
-                        using (FontManager.UIFont140.Push())
+                        using (FontManager.Instance().UIFont140.Push())
                             ImGui.TextUnformatted($"{itemName}");
 
                         ImGui.TextDisabled($"{GetLoc("AutoRetainerWork-PriceAdjust-MarketItemsCount")}: {quantity}");
@@ -1046,10 +1046,10 @@ public unsafe partial class AutoRetainerWork
 
             if (!LuminaGetter.TryGetRow<Item>(info->SearchItemId, out var itemData)) return;
 
-            var itemIcon = DService.Texture.GetFromGameIcon(new(itemData.Icon)).GetWrapOrDefault();
+            var itemIcon = DService.Instance().Texture.GetFromGameIcon(new(itemData.Icon)).GetWrapOrDefault();
             if (itemIcon == null) return;
 
-            using var font = FontManager.UIFont.Push();
+            using var font = FontManager.Instance().UIFont.Push();
 
             ImGui.Image(itemIcon.Handle, MarketDataTableImageSize with { X = MarketDataTableImageSize.Y });
 
@@ -1057,13 +1057,13 @@ public unsafe partial class AutoRetainerWork
 
             using (ImRaii.Group())
             {
-                using (FontManager.UIFont160.Push())
+                using (FontManager.Instance().UIFont160.Push())
                 {
                     ImGui.AlignTextToFramePadding();
                     ImGui.TextUnformatted($"{itemData.Name}");
                 }
 
-                using (FontManager.UIFont.Push())
+                using (FontManager.Instance().UIFont.Push())
                 {
                     ImGui.TextDisabled($"{GetLoc("AutoRetainerWork-PriceAdjust-OnSaleCount")}: {info->ListingCount}");
 
@@ -1164,11 +1164,11 @@ public unsafe partial class AutoRetainerWork
             if (HistoryListings.Key == 0) return;
             if (!LuminaGetter.TryGetRow<Item>(HistoryListings.Key, out _)) return;
 
-            using var font = FontManager.UIFont.Push();
+            using var font = FontManager.Instance().UIFont.Push();
 
             using (ImRaii.Group())
             {
-                using (FontManager.UIFont160.Push())
+                using (FontManager.Instance().UIFont160.Push())
                     ImGui.TextUnformatted($"{LuminaWrapper.GetAddonText(1165)}");
 
                 ImGui.TextDisabled($"{GetLoc("AutoRetainerWork-PriceAdjust-OnSaleCount")}: {info->ListingCount}");
@@ -1254,15 +1254,15 @@ public unsafe partial class AutoRetainerWork
 
             var isItemHQ = slotData->Flags.HasFlag(InventoryItem.ItemFlags.HighQuality);
 
-            var itemIcon = DService.Texture
+            var itemIcon = DService.Instance().Texture
                                    .GetFromGameIcon(new(itemData.Icon, isItemHQ))
                                    .GetWrapOrDefault();
             if (itemIcon == null) return;
 
             using var id   = ImRaii.PushId($"{SourceUpshelfType}_{SourceUpshelfSlot}");
-            using var font = FontManager.UIFont120.Push();
+            using var font = FontManager.Instance().UIFont120.Push();
 
-            using (FontManager.UIFont80.Push())
+            using (FontManager.Instance().UIFont80.Push())
             {
                 if (ImGuiOm.ButtonSelectable(LuminaWrapper.GetAddonText(2366)))
                     IsNeedToDrawMarketUpshelfWindow = false;
@@ -1276,7 +1276,7 @@ public unsafe partial class AutoRetainerWork
             ImGui.SameLine();
 
             using (ImRaii.Group())
-            using (FontManager.UIFont160.Push())
+            using (FontManager.Instance().UIFont160.Push())
                 ImGui.TextUnformatted($"{itemData.Name.ToString()}" + (isItemHQ ? "\ue03c" : string.Empty));
 
             ManualUnitPriceImageSize = ImGui.GetItemRectSize();
@@ -1327,7 +1327,7 @@ public unsafe partial class AutoRetainerWork
         private static void OnRetainerSellList(AddonEvent type, AddonArgs args)
         {
             // 因为有模特存在
-            if (!DService.Condition[ConditionFlag.OccupiedSummoningBell]) return;
+            if (!DService.Instance().Condition[ConditionFlag.OccupiedSummoningBell]) return;
 
             switch (type)
             {
@@ -1363,7 +1363,7 @@ public unsafe partial class AutoRetainerWork
         // 出售界面
         private static void OnRetainerSell(AddonEvent type, AddonArgs args)
         {
-            if (!DService.Condition[ConditionFlag.OccupiedSummoningBell]) return;
+            if (!DService.Instance().Condition[ConditionFlag.OccupiedSummoningBell]) return;
             if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
             args.Addon.ToStruct()->Callback(0);
         }
@@ -1949,8 +1949,8 @@ public unsafe partial class AutoRetainerWork
             MoveToRetainerMarketHook?.Dispose();
             MoveToRetainerMarketHook = null;
 
-            DService.AddonLifecycle.UnregisterListener(OnRetainerSell);
-            DService.AddonLifecycle.UnregisterListener(OnRetainerSellList);
+            DService.Instance().AddonLifecycle.UnregisterListener(OnRetainerSell);
+            DService.Instance().AddonLifecycle.UnregisterListener(OnRetainerSellList);
 
             WindowManager.Draw           -= DrawMarketListWindow;
             IsNeedToDrawMarketListWindow =  false;
@@ -1958,8 +1958,8 @@ public unsafe partial class AutoRetainerWork
             WindowManager.Draw              -= DrawUpshelfWindow;
             IsNeedToDrawMarketUpshelfWindow =  false;
 
-            DService.MarketBoard.HistoryReceived   -= OnHistoryReceived;
-            DService.MarketBoard.OfferingsReceived -= OnOfferingReceived;
+            DService.Instance().MarketBoard.HistoryReceived   -= OnHistoryReceived;
+            DService.Instance().MarketBoard.OfferingsReceived -= OnOfferingReceived;
 
             TaskHelper?.Abort();
             TaskHelper?.Dispose();

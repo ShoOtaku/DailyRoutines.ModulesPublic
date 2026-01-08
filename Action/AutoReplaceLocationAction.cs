@@ -61,8 +61,8 @@ public class AutoReplaceLocationAction : DailyModuleBase
 
         ContentSelectCombo.SelectedContentIDs = ModuleConfig.BlacklistContents;
 
-        UseActionManager.RegPreUseActionLocation(OnPreUseActionLocation);
-        ExecuteCommandManager.RegPreComplextLocation(OnPreExecuteCommandComplexLocation);
+        UseActionManager.Instance().RegPreUseActionLocation(OnPreUseActionLocation);
+        ExecuteCommandManager.Instance().RegPreComplexLocation(OnPreExecuteCommandComplexLocation);
 
         ParseActionCommandArgHook ??= ParseActionCommandArgSig.GetHook<ParseActionCommandArgDelegate>(ParseActionCommandArgDetour);
         ParseActionCommandArgHook.Enable();
@@ -222,7 +222,7 @@ public class AutoReplaceLocationAction : DailyModuleBase
                 }
             }
 
-            var localPlayer = DService.ObjectTable.LocalPlayer;
+            var localPlayer = DService.Instance().ObjectTable.LocalPlayer;
             using (ImRaii.Disabled(localPlayer == null))
             {
                 ImGui.SameLine();
@@ -350,7 +350,7 @@ public class AutoReplaceLocationAction : DailyModuleBase
             location = modifiedLocation;
             isPrevented = true;
 
-            ExecuteCommandManager.ExecuteCommandComplexLocation(ExecuteCommandComplexFlag.PetAction, modifiedLocation, 3);
+            ExecuteCommandManager.Instance().ExecuteCommandComplexLocation(ExecuteCommandComplexFlag.PetAction, modifiedLocation, 3);
             NotifyLocationRedirect(location);
         }
     }
@@ -375,7 +375,7 @@ public class AutoReplaceLocationAction : DailyModuleBase
 
         var modifiedLocation = markers
                                .MinBy(x => Vector2.DistanceSquared(
-                                            DService.ObjectTable.LocalPlayer.Position.ToVector2(), x))
+                                            DService.Instance().ObjectTable.LocalPlayer.Position.ToVector2(), x))
                                .ToPlayerHeight();
 
         return UpdateLocationIfClose(ref sourceLocation, modifiedLocation);
@@ -430,8 +430,8 @@ public class AutoReplaceLocationAction : DailyModuleBase
 
     protected override void Uninit()
     {
-        UseActionManager.Unreg(OnPreUseActionLocation);
-        ExecuteCommandManager.Unreg(OnPreExecuteCommandComplexLocation);
+        UseActionManager.Instance().Unreg(OnPreUseActionLocation);
+        ExecuteCommandManager.Instance().Unreg(OnPreExecuteCommandComplexLocation);
     }
 
     private class Config : ModuleConfiguration

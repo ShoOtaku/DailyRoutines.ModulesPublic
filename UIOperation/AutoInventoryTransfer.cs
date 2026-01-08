@@ -26,7 +26,7 @@ public unsafe class AutoInventoryTransfer : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 2_000 };
 
-        DService.ContextMenu.OnMenuOpened += OnContextMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened += OnContextMenuOpened;
     }
 
     protected override void ConfigUI() => ConflictKeyText();
@@ -49,5 +49,5 @@ public unsafe class AutoInventoryTransfer : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.ContextMenu.OnMenuOpened -= OnContextMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnContextMenuOpened;
 }

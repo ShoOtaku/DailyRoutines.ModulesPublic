@@ -9,6 +9,7 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -35,10 +36,10 @@ public unsafe class AutoSellCards : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 30_000, ShowDebug = true };
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ShopCardDialog", OnAddonDialog);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ShopCardDialog", OnAddonDialog);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "TripleTriadCoinExchange", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "TripleTriadCoinExchange", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "TripleTriadCoinExchange", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "TripleTriadCoinExchange", OnAddon);
 
         CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("AutoSellCards-CommandHelp") });
     }
@@ -170,7 +171,7 @@ public unsafe class AutoSellCards : DailyModuleBase
         // 附近没有可用的幻卡兑换地点
         if (!EventFramework.Instance()->IsEventIDNearby(721135))
         {
-            TaskHelper.Enqueue(() => ChatManager.SendMessage("/pdrduty n 195"),                  "发送九宫幻卡对局室参加申请");
+            TaskHelper.Enqueue(() => ChatManager.Instance().SendMessage("/pdrduty n 195"),                  "发送九宫幻卡对局室参加申请");
             TaskHelper.Enqueue(() => GameState.TerritoryType == 579 && UIModule.IsScreenReady(), "等待进入九宫幻卡对局室");
         }
 
@@ -181,7 +182,7 @@ public unsafe class AutoSellCards : DailyModuleBase
             if (!TripleTriadCoinExchange->IsAddonAndNodesReady()) return;
             TripleTriadCoinExchange->Callback(-1);
         }, "交换完毕, 关闭界面");
-        TaskHelper.Enqueue(() => ChatManager.SendMessage("/pdr leaveduty"), "离开幻卡对局室");
+        TaskHelper.Enqueue(() => ChatManager.Instance().SendMessage("/pdr leaveduty"), "离开幻卡对局室");
     }
 
     private bool StartHandOver()
@@ -226,9 +227,9 @@ public unsafe class AutoSellCards : DailyModuleBase
     {
         CommandManager.RemoveSubCommand(Command);
         
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
         
-        DService.AddonLifecycle.UnregisterListener(OnAddonDialog);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonDialog);
     }
 }

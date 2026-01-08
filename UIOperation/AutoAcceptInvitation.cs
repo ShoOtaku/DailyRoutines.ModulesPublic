@@ -34,7 +34,7 @@ public unsafe class AutoAcceptInvitation : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnSelectYesno);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnSelectYesno);
     }
 
     protected override void ConfigUI()
@@ -97,7 +97,7 @@ public unsafe class AutoAcceptInvitation : DailyModuleBase
     private static void OnSelectYesno(AddonEvent type, AddonArgs args)
     {
         var addon = (AddonSelectYesno*)SelectYesno;
-        if (addon == null || DService.PartyList.Length > 1) return;
+        if (addon == null || DService.Instance().PartyList.Length > 1) return;
         
         var text = addon->PromptText->NodeText.ToString();
         if (string.IsNullOrWhiteSpace(text)) return;
@@ -129,7 +129,7 @@ public unsafe class AutoAcceptInvitation : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnSelectYesno);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnSelectYesno);
     
     private class Config : ModuleConfiguration
     {

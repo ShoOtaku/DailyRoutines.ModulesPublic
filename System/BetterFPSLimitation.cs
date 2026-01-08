@@ -62,7 +62,7 @@ public class BetterFPSLimitation : DailyModuleBase
         Addon.SetWindowPosition(ModuleConfig.AddonPosition);
 
         HandleDtrEntry(true);
-        FrameworkManager.Reg(OnUpdate, throttleMS: 1_000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1_000);
 
         CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("BetterFPSLimitation-CommandHelp") }); 
     }
@@ -146,7 +146,7 @@ public class BetterFPSLimitation : DailyModuleBase
                     Entry = null;
                 }
                 
-                Entry         ??= DService.DtrBar.Get("DailyRoutines-BetterFPSLimitation");
+                Entry         ??= DService.Instance().DtrBar.Get("DailyRoutines-BetterFPSLimitation");
                 Entry.OnClick +=  _ => Addon.Toggle();
                 Entry.Shown   =   true;
                 Entry.Text    =   LuminaWrapper.GetAddonText(4002);
@@ -162,7 +162,7 @@ public class BetterFPSLimitation : DailyModuleBase
     {
         CommandManager.RemoveSubCommand(Command); 
         
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
         HandleDtrEntry(false);
         

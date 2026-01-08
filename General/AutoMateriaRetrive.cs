@@ -47,7 +47,7 @@ public unsafe class AutoMateriaRetrive : DailyModuleBase
         ItemNamesAnother = ItemNames.Take(10).ToDictionary(x => x.Key, x => x.Value);
 
         RetriveMateriaHook ??= 
-            DService.Hook.HookFromSignature<RetriveMateriaDelegate>(RetriveMateriaSig.Get(), RetriveMateriaDetour);
+            DService.Instance().Hook.HookFromSignature<RetriveMateriaDelegate>(RetriveMateriaSig.Get(), RetriveMateriaDetour);
         RetriveMateriaHook.Enable();
         TaskHelper ??= new() { TimeoutMS = 5_000 };
     }

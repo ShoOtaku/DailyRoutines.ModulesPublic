@@ -39,20 +39,20 @@ public class BetterMountRoulette : DailyModuleBase
 
         ZoneSelector = new ZoneSelectCombo("##BetterMountRouletteZoneSelector");
 
-        UseActionManager.RegPreUseAction(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
 
-        DService.ClientState.Login += OnLogin;
-        if (DService.ClientState.IsLoggedIn)
+        DService.Instance().ClientState.Login += OnLogin;
+        if (DService.Instance().ClientState.IsLoggedIn)
             OnLogin();
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
     }
 
     protected override void Uninit()
     {
-        UseActionManager.Unreg(OnPreUseAction);
-        DService.ClientState.Login            -= OnLogin;
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        UseActionManager.Instance().Unreg(OnPreUseAction);
+        DService.Instance().ClientState.Login            -= OnLogin;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         
         MasterMountsSearcher = null;
         NormalMounts         = null;
@@ -244,7 +244,7 @@ public class BetterMountRoulette : DailyModuleBase
         ref ActionManager.UseActionMode queueState,
         ref uint                        comboRouteID)
     {
-        if (!DService.Condition[ConditionFlag.Mounted] && actionType == ActionType.GeneralAction && MountRouletteActionIDs.Contains(actionID))
+        if (!DService.Instance().Condition[ConditionFlag.Mounted] && actionType == ActionType.GeneralAction && MountRouletteActionIDs.Contains(actionID))
         {
             MountsListToUse = null;
             var currentZone = GameState.TerritoryType;

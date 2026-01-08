@@ -16,7 +16,7 @@ public class AutoConstantlyInspect : DailyModuleBase
     };
 
     protected override void Init() => 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ItemInspectionResult", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ItemInspectionResult", OnAddon);
 
     protected override void ConfigUI() => ConflictKeyText();
 
@@ -39,5 +39,5 @@ public class AutoConstantlyInspect : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 }

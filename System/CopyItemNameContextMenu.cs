@@ -28,10 +28,10 @@ public class CopyItemNameContextMenu : DailyModuleBase
     private static readonly CopyItemNameMenuItem GlamourMenuItem = new($"{CopyItemNameString} ({GlamoursString})");
 
     protected override void Init() => 
-        DService.ContextMenu.OnMenuOpened += OnContextMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened += OnContextMenuOpened;
 
     protected override void Uninit() => 
-        DService.ContextMenu.OnMenuOpened -= OnContextMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnContextMenuOpened;
 
     private static unsafe void OnContextMenuOpened(IMenuOpenedArgs args)
     {
@@ -76,15 +76,15 @@ public class CopyItemNameContextMenu : DailyModuleBase
                 return;
         }
 
-        var prismBoxItem = ContextMenuItemManager.GetPrismBoxItem(args);
+        var prismBoxItem = ContextMenuItemManager.Instance().GetPrismBoxItem(args);
 
-        var itemID = prismBoxItem?.RowId ?? ContextMenuItemManager.CurrentItemID;
+        var itemID = prismBoxItem?.RowId ?? ContextMenuItemManager.Instance().CurrentItemID;
         if (itemID == 0) return;
 
         MenuItem.SetRawItemID(itemID);
         args.AddMenuItem(MenuItem.Get());
 
-        var glamourID = ContextMenuItemManager.CurrentGlamourID;
+        var glamourID = ContextMenuItemManager.Instance().CurrentGlamourID;
         if (glamourID == 0) return;
 
         GlamourMenuItem.SetRawItemID(glamourID);

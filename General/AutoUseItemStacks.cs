@@ -20,14 +20,14 @@ public unsafe class AutoUseItemStacks : DailyModuleBase
     protected override void Init()
     {
         TaskHelper ??= new() { TimeoutMS = 5_000 };
-        DService.ContextMenu.OnMenuOpened += OnContextMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened += OnContextMenuOpened;
     }
 
     protected override void ConfigUI() => 
         ConflictKeyText();
 
     protected override void Uninit() => 
-        DService.ContextMenu.OnMenuOpened -= OnContextMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnContextMenuOpened;
 
     private void OnContextMenuOpened(IMenuOpenedArgs args)
     {
@@ -48,7 +48,7 @@ public unsafe class AutoUseItemStacks : DailyModuleBase
 
         TaskHelper.Enqueue(() => AgentInventoryContext.Instance()->UseItem(itemID));
         TaskHelper.DelayNext(500);
-        TaskHelper.Enqueue(() => !DService.Condition[ConditionFlag.Casting]);
+        TaskHelper.Enqueue(() => !DService.Instance().Condition[ConditionFlag.Casting]);
         TaskHelper.DelayNext(500);
         TaskHelper.Enqueue(() => EnqueueOpenAllCoffers(itemID));
     }

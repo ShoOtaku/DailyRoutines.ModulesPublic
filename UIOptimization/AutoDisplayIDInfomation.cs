@@ -33,27 +33,27 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
     private static IDtrBarEntry? ZoneInfoEntry;
 
-    private static Guid ItemTooltipModityGuid    = Guid.Empty;
-    private static Guid ActionTooltipModityGuid  = Guid.Empty;
-    private static Guid StatuTooltipModityGuid   = Guid.Empty;
-    private static Guid WeatherTooltipModifyGuid = Guid.Empty;
+    private static TooltipModification? ItemModification;
+    private static TooltipModification? ActionModification;
+    private static TooltipModification? StatusModification;
+    private static TooltipModification? WeatherModification;
 
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        ZoneInfoEntry ??= DService.DtrBar.Get("AutoDisplayIDInfomation-ZoneInfo");
+        ZoneInfoEntry ??= DService.Instance().DtrBar.Get("AutoDisplayIDInfomation-ZoneInfo");
 
-        GameTooltipManager.RegGenerateItemTooltipModifier(ModifyItemTooltip);
-        GameTooltipManager.RegGenerateActionTooltipModifier(ModifyActionTooltip);
-        GameTooltipManager.RegTooltipShowModifier(ModifyStatuTooltip);
-        GameTooltipManager.RegTooltipShowModifier(ModifyWeatherTooltip);
+        GameTooltipManager.Instance().RegGenerateItemTooltipModifier(ModifyItemTooltip);
+        GameTooltipManager.Instance().RegGenerateActionTooltipModifier(ModifyActionTooltip);
+        GameTooltipManager.Instance().RegTooltipShowModifier(ModifyStatuTooltip);
+        GameTooltipManager.Instance().RegTooltipShowModifier(ModifyWeatherTooltip);
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,         "ActionDetail", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,           "ItemDetail", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreDraw,           "_TargetInfo", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_TargetInfoMainTarget", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,         "ActionDetail", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,           "ItemDetail", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw,           "_TargetInfo", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_TargetInfoMainTarget", OnAddon);
 
-        FrameworkManager.Reg(OnUpdate, throttleMS: 1000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1000);
     }
 
     private static void OnUpdate(IFramework framework)
@@ -191,10 +191,10 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
     private static void ModifyItemTooltip(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
-        if (ItemTooltipModityGuid != Guid.Empty)
+        if (ItemModification != null)
         {
-            GameTooltipManager.RemoveItemDetailTooltipModify(ItemTooltipModityGuid);
-            ItemTooltipModityGuid = Guid.Empty;
+            GameTooltipManager.Instance().RemoveItemDetail(ItemModification);
+            ItemModification = null;
         }
 
         if (!ModuleConfig.ShowItemID) return;
@@ -212,7 +212,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
             new UIForegroundPayload(0)
         };
 
-        ItemTooltipModityGuid = GameTooltipManager.AddItemDetailTooltipModify(
+        ItemModification = GameTooltipManager.Instance().AddItemDetail(
             itemID,
             TooltipItemType.ItemUICategory,
             new SeString(payloads),
@@ -221,10 +221,10 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
     private static void ModifyActionTooltip(AtkUnitBase* addonActionDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
-        if (ActionTooltipModityGuid != Guid.Empty)
+        if (ActionModification != null)
         {
-            GameTooltipManager.RemoveItemDetailTooltipModify(ActionTooltipModityGuid);
-            ActionTooltipModityGuid = Guid.Empty;
+            GameTooltipManager.Instance().RemoveItemDetail(ActionModification);
+            ActionModification = null;
         }
 
         if (!ModuleConfig.ShowActionID) return;
@@ -248,7 +248,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         payloads.Add(new TextPayload("]"));
         payloads.Add(new UIForegroundPayload(0));
 
-        ActionTooltipModityGuid = GameTooltipManager.AddActionDetailTooltipModify(
+        ActionModification = GameTooltipManager.Instance().AddActionDetail(
             hoveredID,
             TooltipActionType.ActionKind,
             new SeString(payloads),
@@ -262,15 +262,15 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         AtkResNode*                       targetNode,
         AtkTooltipManager.AtkTooltipArgs* args)
     {
-        if (StatuTooltipModityGuid != Guid.Empty)
+        if (StatusModification != null)
         {
-            GameTooltipManager.RemoveItemDetailTooltipModify(StatuTooltipModityGuid);
-            StatuTooltipModityGuid = Guid.Empty;
+            GameTooltipManager.Instance().RemoveItemDetail(StatusModification);
+            StatusModification = null;
         }
 
         if (!ModuleConfig.ShowStatusID) return;
 
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer || targetNode == null) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer || targetNode == null) return;
 
         var imageNode = targetNode->GetAsAtkImageNode();
         if (imageNode == null) return;
@@ -296,7 +296,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
         if (!map.TryGetValue(iconID, out var statuID) || statuID == 0) return;
 
-        StatuTooltipModityGuid = GameTooltipManager.AddstatuTooltipModify(statuID, $"  [{statuID}]", TooltipModifyMode.Regex, @"^(.*?)(?=\(|（|\n|$)");
+        StatusModification = GameTooltipManager.Instance().AddStatus(statuID, $"  [{statuID}]", TooltipModifyMode.Regex, @"^(.*?)(?=\(|（|\n|$)");
 
         return;
 
@@ -311,10 +311,10 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         AtkResNode*                       targetNode,
         AtkTooltipManager.AtkTooltipArgs* args)
     {
-        if (WeatherTooltipModifyGuid != Guid.Empty)
+        if (WeatherModification != null)
         {
-            GameTooltipManager.RemoveWeatherTooltipModify(WeatherTooltipModifyGuid);
-            WeatherTooltipModifyGuid = Guid.Empty;
+            GameTooltipManager.Instance().RemoveWeather(WeatherModification);
+            WeatherModification = null;
         }
 
         if (!ModuleConfig.ShowWeatherID) return;
@@ -322,7 +322,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         var weatherID = WeatherManager.Instance()->WeatherId;
         if (!LuminaGetter.TryGetRow<Weather>(weatherID, out var weather)) return;
 
-        WeatherTooltipModifyGuid = GameTooltipManager.AddWeatherTooltipModify($"{weather.Name} [{weatherID}]");
+        WeatherModification = GameTooltipManager.Instance().AddWeatherTooltipModify($"{weather.Name} [{weatherID}]");
     }
     
     private static void AddStatusToMap(StatusManager statusManager, ref Dictionary<uint, uint> map)
@@ -344,18 +344,18 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         ZoneInfoEntry?.Remove();
         ZoneInfoEntry = null;
 
-        GameTooltipManager.Unreg(generateItemModifiers: ModifyItemTooltip);
-        GameTooltipManager.Unreg(generateActionModifiers: ModifyActionTooltip);
-        GameTooltipManager.Unreg(ModifyStatuTooltip);
-        GameTooltipManager.Unreg(ModifyWeatherTooltip);
+        GameTooltipManager.Instance().Unreg(generateItemModifiers: ModifyItemTooltip);
+        GameTooltipManager.Instance().Unreg(generateActionModifiers: ModifyActionTooltip);
+        GameTooltipManager.Instance().Unreg(ModifyStatuTooltip);
+        GameTooltipManager.Instance().Unreg(ModifyWeatherTooltip);
 
-        GameTooltipManager.RemoveItemDetailTooltipModify(ItemTooltipModityGuid);
-        GameTooltipManager.RemoveItemDetailTooltipModify(ActionTooltipModityGuid);
-        GameTooltipManager.RemoveItemDetailTooltipModify(StatuTooltipModityGuid);
-        GameTooltipManager.RemoveWeatherTooltipModify(WeatherTooltipModifyGuid);
+        GameTooltipManager.Instance().RemoveItemDetail(ItemModification);
+        GameTooltipManager.Instance().RemoveItemDetail(ActionModification);
+        GameTooltipManager.Instance().RemoveItemDetail(StatusModification);
+        GameTooltipManager.Instance().RemoveWeather(WeatherModification);
 
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
-        FrameworkManager.Unreg(OnUpdate);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
     
     public class Config : ModuleConfiguration

@@ -20,32 +20,32 @@ public class TheCuffOfTheFatherHelper : DailyModuleBase
     
     protected override void Init()
     {
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        FrameworkManager.Unreg(OnUpdate);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 
     private static void OnZoneChanged(ushort zone)
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         
         if (GameState.TerritoryType != 443) return;
 
-        FrameworkManager.Reg(OnUpdate, throttleMS: 500);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 500);
     }
 
     private static unsafe void OnUpdate(IFramework _)
     {
-        foreach (var obj in DService.ObjectTable)
+        foreach (var obj in DService.Instance().ObjectTable)
         {
             if (obj.ObjectKind != ObjectKind.BattleNpc || obj.DataID != 3865) continue;
             
-            if (DService.Condition[ConditionFlag.Mounted])
+            if (DService.Instance().Condition[ConditionFlag.Mounted])
                 obj.ToStruct()->TargetableStatus |= ObjectTargetableFlags.IsTargetable;
             else
                 obj.ToStruct()->TargetableStatus &= ~ObjectTargetableFlags.IsTargetable;

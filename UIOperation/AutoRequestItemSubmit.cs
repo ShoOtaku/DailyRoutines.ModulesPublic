@@ -31,9 +31,9 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "Request", OnAddonRequest);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "Request", OnAddonRequest);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Request", OnAddonRequest);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "Request", OnAddonRequest);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "Request", OnAddonRequest);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Request", OnAddonRequest);
     }
 
     protected override void ConfigUI()
@@ -49,13 +49,13 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PostSetup:
-                DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddonSelectYesno);
+                DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddonSelectYesno);
                 break;
             case AddonEvent.PostDraw:
                 OperateOnRequest();
                 break;
             case AddonEvent.PreFinalize:
-                DService.AddonLifecycle.UnregisterListener(OnAddonSelectYesno);
+                DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectYesno);
                 break;
         }
     }
@@ -117,8 +117,8 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddonRequest);
-        DService.AddonLifecycle.UnregisterListener(OnAddonSelectYesno);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonRequest);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectYesno);
     }
 
     private class Config : ModuleConfiguration

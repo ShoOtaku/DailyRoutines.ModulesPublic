@@ -32,16 +32,16 @@ public unsafe class InstantLogout : DailyModuleBase
         SystemMenuExecuteHook ??= SystemMenuExecuteSig.GetHook<SystemMenuExecuteDelegate>(SystemMenuExecuteDetour);
         SystemMenuExecuteHook.Enable();
 
-        AgentCloseMessageShowHook ??= DService.Hook.HookFromAddress<AgentShowDelegate>(
+        AgentCloseMessageShowHook ??= DService.Instance().Hook.HookFromAddress<AgentShowDelegate>(
             AgentModule.Instance()->GetAgentByInternalId(AgentId.CloseMessage)->VirtualTable->GetVFuncByName("Show"),
             AgentCloseMessageShowDetour);
         AgentCloseMessageShowHook.Enable();
 
-        ChatManager.RegPreExecuteCommandInner(OnPreExecuteCommandInner);
+        ChatManager.Instance().RegPreExecuteCommandInner(OnPreExecuteCommandInner);
     }
 
     protected override void Uninit() => 
-        ChatManager.Unreg(OnPreExecuteCommandInner);
+        ChatManager.Instance().Unreg(OnPreExecuteCommandInner);
 
     protected override void ConfigUI()
     {
@@ -104,16 +104,16 @@ public unsafe class InstantLogout : DailyModuleBase
     }
 
     private static void Logout(TaskHelper _) => 
-        RequestDutyNormal(167, DefaultOption);
+        ContentsFinderHelper.RequestDutyNormal(167, ContentsFinderHelper.DefaultOption);
 
     private static void Shutdown(TaskHelper taskHelper)
     {
         taskHelper.Enqueue(() => Logout(taskHelper));
         taskHelper.Enqueue(() =>
         {
-            if (DService.ClientState.IsLoggedIn) return false;
+            if (DService.Instance().ClientState.IsLoggedIn) return false;
 
-            ChatManager.SendMessage("/xlkill");
+            ChatManager.Instance().SendMessage("/xlkill");
             return true;
         });
     }

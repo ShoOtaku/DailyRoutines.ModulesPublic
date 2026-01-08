@@ -22,7 +22,7 @@ public unsafe class NameplateIconAdjustment : DailyModuleBase
     {
         ModuleConfig = new Config().Load(this);
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "NamePlate", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "NamePlate", OnAddon);
     }
 
     protected override void ConfigUI()
@@ -71,7 +71,7 @@ public unsafe class NameplateIconAdjustment : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
     public class Config : ModuleConfiguration
     {

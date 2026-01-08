@@ -22,6 +22,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 using TimeAgo;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
@@ -74,23 +75,23 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
         TaskHelper ??= new() { TimeoutMS = 30_000 };
         
-        CollectSubmarinePayload ??= LinkPayloadManager.Register(OnClickCollectSubmarinePayload, out _);
+        CollectSubmarinePayload ??= LinkPayloadManager.Instance().Reg(OnClickCollectSubmarinePayload, out _);
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno",              OnAddonSelectYesno);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "AirShipExplorationResult", OnExplorationResult);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno",              OnAddonSelectYesno);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "AirShipExplorationResult", OnExplorationResult);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "SelectString", OnAddonSelectString);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SelectString", OnAddonSelectString);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "SelectString", OnAddonSelectString);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SelectString", OnAddonSelectString);
 
         CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("AutoSubmarineCollect-CommandHelp") });
         
-        LogMessageManager.Register(OnPreSendLogMessage);
+        LogMessageManager.Instance().RegPre(OnPreSendLogMessage);
 
         SubmarineReturnTimeHook ??= SubmarineReturnTimeSig.GetHook<SubmarineReturnTimeDelegate>(SubmarineReturnTimeDetour);
         SubmarineReturnTimeHook.Enable();
 
-        FrameworkManager.Reg(OnUpdate, throttleMS: 10 * 60 * 1_000);
-        GameState.Login += OnLogin;
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 10 * 60 * 1_000);
+        GameState.Instance().Login += OnLogin;
     }
 
     protected override void ConfigUI()
@@ -122,7 +123,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     // 潜艇收取
     private bool EnqueueSubmarineCollect()
     {
-        TaskHelper.Enqueue(() => !DService.Condition.Any(ConditionFlag.OccupiedInCutSceneEvent, ConditionFlag.WatchingCutscene78), "等待过场动画结束");
+        TaskHelper.Enqueue(() => !DService.Instance().Condition.Any(ConditionFlag.OccupiedInCutSceneEvent, ConditionFlag.WatchingCutscene78), "等待过场动画结束");
         TaskHelper.Enqueue(IsOnValidSubmarineList,                                                                                 "等待潜水艇列表界面出现");
         TaskHelper.Enqueue(() =>
         {
@@ -150,7 +151,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             if (!IsAnySubmarinePartWaitForRepair(out var parts)) return true;
 
             var currentSubmarineIndex = *CurrentSubmarineIndexSig.GetStatic<int>();
-            parts.ForEach(index => ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairSubmarinePart, (uint)currentSubmarineIndex, (uint)index));
+            parts.ForEach(index => ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RepairSubmarinePart, (uint)currentSubmarineIndex, (uint)index));
             return false;
         }, "检测并修理潜水艇部件");
         
@@ -266,7 +267,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
         var maxCount      = packet->GetAvailableCount();
         var finishedCount = packet->GetFinishCount();
-        if (DService.ClientState.IsClientIdle())
+        if (DService.Instance().ClientState.IsClientIdle())
         {
             if ((ModuleConfig.NotifyWhenLogin && IsJustLogin) ||
                 (ModuleConfig.NotifyCount > 0 && finishedCount >= Math.Min(maxCount, ModuleConfig.NotifyCount)))
@@ -297,7 +298,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         }
 
         if (ModuleConfig.AutoCollectCount > 0 && finishedCount >= Math.Min(maxCount, ModuleConfig.AutoCollectCount))
-            ChatManager.SendMessage("/pdr submarine");
+            ChatManager.Instance().SendMessage("/pdr submarine");
     }
 
     // 发包获取情报
@@ -309,7 +310,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             GameState.HomeWorld != GameState.CurrentWorld) 
             return;
 
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RefreshSubmarineInfo, 1);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RefreshSubmarineInfo, 1);
     }
     
     private static string SantisizeText(string text)
@@ -384,12 +385,12 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             !(HousingManager.Instance()->OutdoorTerritory->HouseId is var houseID) ||
             houseID.WardIndex != workshopInfo.WardIndex                            ||
             GameState.Map     != workshopInfo.Map                                  ||
-            DService.ObjectTable.LocalPlayer is not { } localPlayer)
+            DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
             return false;
 
         // 没找到入口
         if (HousingManager.Instance()->OutdoorTerritory->HouseUnit.PlotIndex != workshopInfo.PlotIndex ||
-            DService.ObjectTable
+            DService.Instance().ObjectTable
                     .Where(x => x is { ObjectKind: ObjectKind.EventObj, DataID: 2002737 })
                     .OrderBy(x => Vector2.DistanceSquared(x.Position.ToVector2(), workshopInfo.Position.ToVector2())).FirstOrDefault() is not { } entryObject)
         {
@@ -404,13 +405,13 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         // 在坐骑上
         if (IsOnMount)
         {
-            if (DService.Condition[ConditionFlag.InFlight])
-                ExecuteCommandManager.ExecuteCommandComplexLocation(
+            if (DService.Instance().Condition[ConditionFlag.InFlight])
+                ExecuteCommandManager.Instance().ExecuteCommandComplexLocation(
                     ExecuteCommandComplexFlag.Dismount,
                     localPlayer.Position,
                     CharaRotationToPacketRotation(localPlayer.Rotation));
             else
-                ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.Dismount);
+                ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.Dismount);
             
             return false;
         }
@@ -435,7 +436,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             !(HousingManager.Instance()->IndoorTerritory->HouseId is var houseID) ||
             houseID.WardIndex != workshopInfo.WardIndex                           ||
             houseID.PlotIndex != workshopInfo.PlotIndex                           ||
-            DService.ObjectTable.LocalPlayer is null)
+            DService.Instance().ObjectTable.LocalPlayer is null)
             return false;
 
         // 没找到入口
@@ -461,7 +462,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             !(HousingManager.Instance()->WorkshopTerritory->HouseId is var houseID) ||
             houseID.WardIndex != workshopInfo.WardIndex                             ||
             houseID.PlotIndex != workshopInfo.PlotIndex                             ||
-            DService.ObjectTable.LocalPlayer is null)
+            DService.Instance().ObjectTable.LocalPlayer is null)
             return false;
 
         // 没找到入口
@@ -472,7 +473,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                                                            out var gameObjectID,
                                                            out _,
                                                            out _) ||
-            DService.ObjectTable.SearchByID(gameObjectID) is not { } panelObject)
+            DService.Instance().ObjectTable.SearchByID(gameObjectID) is not { } panelObject)
         {
             MovementManager.TPSmart_InZone(Vector3.Zero);
             return false;
@@ -622,7 +623,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     }
     
     private static void OnClickCollectSubmarinePayload(uint arg1, SeString arg2) => 
-        ChatManager.SendMessage("/pdr submarine");
+        ChatManager.Instance().SendMessage("/pdr submarine");
     
     private static void OnUpdate(IFramework _) => 
         SendRefreshSubmarineInfo();
@@ -630,7 +631,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     private void OnCommand(string command, string arguments) => 
         EnqueueTeleportTasks();
 
-    private static void OnPreSendLogMessage(ref bool isPrevented, ref uint logMessageID)
+    private static void OnPreSendLogMessage(ref bool isPrevented, ref uint logMessageID, ref Span<LogMessageParam> values)
     {
         if (logMessageID != 4109) return;
         isPrevented = true;
@@ -640,22 +641,22 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
     protected override void Uninit()
     {
-        LogMessageManager.Unregister(OnPreSendLogMessage);
+        LogMessageManager.Instance().Unreg(OnPreSendLogMessage);
         CommandManager.RemoveSubCommand(COMMAND);
 
-        DService.AddonLifecycle.UnregisterListener(OnExplorationResult);
-        DService.AddonLifecycle.UnregisterListener(OnAddonSelectYesno);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnExplorationResult);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectYesno);
         
-        DService.AddonLifecycle.UnregisterListener(OnAddonSelectString);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectString);
         OnAddonSelectString(AddonEvent.PreFinalize, null);
 
-        FrameworkManager.Unreg(OnUpdate);
-        GameState.Login -= OnLogin;
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        GameState.Instance().Login -= OnLogin;
 
         IsJustLogin = false;
         
         if (CollectSubmarinePayload != null)
-            LinkPayloadManager.Unregister(CollectSubmarinePayload.CommandId);
+            LinkPayloadManager.Instance().Unreg(CollectSubmarinePayload.CommandId);
         CollectSubmarinePayload = null;
     }
 

@@ -31,8 +31,8 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
         Overlay       ??= new(this);
         Overlay.Flags |=  ImGuiWindowFlags.NoBackground;
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "ContentsFinder", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "ContentsFinder", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "ContentsFinder", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "ContentsFinder", OnAddon);
         if (ContentsFinder != null) 
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -64,10 +64,10 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
             {
                 if (cachedData.InDutyQueue)
                 {
-                    if (DService.Texture.TryGetFromGameIcon(new(61502), out var explorerTexture))
+                    if (DService.Instance().Texture.TryGetFromGameIcon(new(61502), out var explorerTexture))
                     {
                         if (ImGui.ImageButton(explorerTexture.GetWrapOrEmpty().Handle, new(item.Height)))
-                            CancelDutyApply();
+                            ContentsFinderHelper.CancelDutyApply();
                         ImGuiOm.TooltipHover($"{GetLoc("Cancel")}");
                     }
                 }
@@ -79,12 +79,12 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                     {
                         using (ImRaii.Disabled(item.IsLocked))
                         {
-                            if (DService.Texture.TryGetFromGameIcon(new(60081), out var joinTexture))
+                            if (DService.Instance().Texture.TryGetFromGameIcon(new(60081), out var joinTexture))
                             {
                                 if (ImGui.ImageButton(joinTexture.GetWrapOrEmpty().Handle, new(item.Height)))
                                 {
-                                    ChatManager.SendMessage($"/pdrduty {(cachedData.CurrentTab == 0 ? "r" : "n")} {item.CleanName}");
-                                    ChatManager.SendMessage($"/pdrduty {(cachedData.CurrentTab != 0 ? "r" : "n")} {item.CleanName}");
+                                    ChatManager.Instance().SendMessage($"/pdrduty {(cachedData.CurrentTab == 0 ? "r" : "n")} {item.CleanName}");
+                                    ChatManager.Instance().SendMessage($"/pdrduty {(cachedData.CurrentTab != 0 ? "r" : "n")} {item.CleanName}");
                                 }                                
                                 ImGuiOm.TooltipHover($"{sharedPrefix}");
                             }
@@ -93,21 +93,21 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                             {
                                 if (IsConflictKeyPressed())
                                 {
-                                    if (DService.Texture.TryGetFromGameIcon(new(60648), out var explorerTexture))
+                                    if (DService.Instance().Texture.TryGetFromGameIcon(new(60648), out var explorerTexture))
                                     {
                                         ImGui.SameLine();
                                         if (ImGui.ImageButton(explorerTexture.GetWrapOrEmpty().Handle, new(item.Height)))
-                                            ChatManager.SendMessage($"/pdrduty n {item.CleanName} explorer");
+                                            ChatManager.Instance().SendMessage($"/pdrduty n {item.CleanName} explorer");
                                         ImGuiOm.TooltipHover($"{sharedPrefix} ({LuminaWrapper.GetAddonText(13038)})");
                                     }
                                 }
                                 else
                                 {
-                                    if (DService.Texture.TryGetFromGameIcon(new(60641), out var unrestTexture))
+                                    if (DService.Instance().Texture.TryGetFromGameIcon(new(60641), out var unrestTexture))
                                     {
                                         ImGui.SameLine();
                                         if (ImGui.ImageButton(unrestTexture.GetWrapOrEmpty().Handle, new(item.Height)))
-                                            ChatManager.SendMessage($"/pdrduty n {item.CleanName} unrest");
+                                            ChatManager.Instance().SendMessage($"/pdrduty n {item.CleanName} unrest");
                                         ImGuiOm.TooltipHover($"{sharedPrefix} ({LuminaWrapper.GetAddonText(10008)})\n" +
                                                              $"[{GetLoc("FastContentsFinderRegister-HoldConflictKeyToToggle")}]");
                                     }
@@ -159,7 +159,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         ContentFinderDataManager.ClearCache();
     }
 
@@ -228,7 +228,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                 var newData = new ContentFinderCacheData
                 {
                     CurrentTab     = ContentsFinder->AtkValues[26].UInt,
-                    InDutyQueue    = DService.Condition[ConditionFlag.InDutyQueue],
+                    InDutyQueue    = DService.Instance().Condition[ConditionFlag.InDutyQueue],
                     LastUpdateTime = DateTime.Now
                 };
 

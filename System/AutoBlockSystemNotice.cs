@@ -15,7 +15,7 @@ public class AutoBlockSystemNotice : DailyModuleBase
 
     protected override void Init()
     {
-        DService.Chat.CheckMessageHandled += OnChat;
+        DService.Instance().Chat.CheckMessageHandled += OnChat;
     }
 
     private static void OnChat(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool ishandled)
@@ -26,6 +26,6 @@ public class AutoBlockSystemNotice : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.Chat.CheckMessageHandled -= OnChat;
+        DService.Instance().Chat.CheckMessageHandled -= OnChat;
     }
 }

@@ -6,6 +6,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -58,12 +59,12 @@ public partial class OccultCrescentHelper : DailyModuleBase
         foreach (var module in Modules)
             module.Init();
         
-        FrameworkManager.Reg(OnUpdate, true, throttleMS: 500);
+        FrameworkManager.Instance().Reg(OnUpdate, true, throttleMS: 500);
     }
     
     protected override void Uninit()
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
         foreach (var module in Modules)
             module.Uninit();
@@ -113,7 +114,7 @@ public partial class OccultCrescentHelper : DailyModuleBase
         }
     }
 
-    protected override void OverlayPreDraw() => FontManager.UIFont80.Push();
+    protected override void OverlayPreDraw() => FontManager.Instance().UIFont80.Push();
 
     protected override void OverlayUI()
     {
@@ -126,16 +127,16 @@ public partial class OccultCrescentHelper : DailyModuleBase
         ConfigUI();
     }
 
-    protected override void OverlayPostDraw() => FontManager.UIFont80.Pop();
+    protected override void OverlayPostDraw() => FontManager.Instance().UIFont80.Pop();
 
     private static void TP(Vector3 pos, TaskHelper taskHelper, int weight = 0, bool abortBefore = true)
     {
         if (abortBefore)
             taskHelper.Abort();
         
-        taskHelper.Enqueue(() => UseActionManager.UseActionLocation(ActionType.Action, 41343),         weight: weight);
+        taskHelper.Enqueue(() => UseActionManager.Instance().UseActionLocation(ActionType.Action, 41343),         weight: weight);
         taskHelper.Enqueue(() => !UIModule.IsScreenReady(),                                            weight: weight);
-        taskHelper.Enqueue(() => DService.ObjectTable.LocalPlayer != null && UIModule.IsScreenReady(), weight: weight);
+        taskHelper.Enqueue(() => DService.Instance().ObjectTable.LocalPlayer != null && UIModule.IsScreenReady(), weight: weight);
         taskHelper.Enqueue(() =>
         {
             MovementManager.TPPlayerAddress(pos);

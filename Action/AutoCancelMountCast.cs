@@ -28,8 +28,8 @@ public class AutoCancelMountCast : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.Condition.ConditionChange += OnConditionChanged;
-        UseActionManager.RegPreUseAction(OnPreUseAction);
+        DService.Instance().Condition.ConditionChange += OnConditionChanged;
+        UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
     }
 
     protected override void ConfigUI()
@@ -46,8 +46,8 @@ public class AutoCancelMountCast : DailyModuleBase
     
     protected override void Uninit()
     {
-        DService.Condition.ConditionChange -= OnConditionChanged;
-        UseActionManager.Unreg(OnPreUseAction);
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
+        UseActionManager.Instance().Unreg(OnPreUseAction);
 
         OnConditionChanged(ConditionFlag.Casting, false);
     }
@@ -60,18 +60,18 @@ public class AutoCancelMountCast : DailyModuleBase
                 switch (value)
                 {
                     case true:
-                        if (DService.ObjectTable.LocalPlayer is { } localPlayer &&
+                        if (DService.Instance().ObjectTable.LocalPlayer is { } localPlayer &&
                             (localPlayer.CastActionType == ActionType.Mount ||
                              localPlayer is { CastActionType: ActionType.GeneralAction, CastActionID: 9 }))
                         {
                             IsOnMountCasting = true;
 
                             CancelWhenMoveCancelSource = new();
-                            DService.Framework.RunOnTick(async () =>
+                            DService.Instance().Framework.RunOnTick(async () =>
                             {
                                 while (ModuleConfig.CancelWhenMove && IsOnMountCasting && !CancelWhenMoveCancelSource.IsCancellationRequested)
                                 {
-                                    if (LocalPlayerState.IsMoving) 
+                                    if (LocalPlayerState.Instance().IsMoving) 
                                         ExecuteCancelCast();
 
                                     await Task.Delay(10, CancelWhenMoveCancelSource.Token);
@@ -114,7 +114,7 @@ public class AutoCancelMountCast : DailyModuleBase
     private static void ExecuteCancelCast()
     {
         if (Throttler.Throttle("CancelMountCast-CancelCast", 100))
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.CancelCast);
+            ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.CancelCast);
     }
 
     private class Config : ModuleConfiguration

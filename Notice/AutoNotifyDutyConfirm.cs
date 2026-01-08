@@ -18,7 +18,7 @@ public class AutoNotifyDutyConfirm : DailyModuleBase
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
     
     protected override void Init() => 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ContentsFinderConfirm", OnAddonSetup);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "ContentsFinderConfirm", OnAddonSetup);
 
     private static unsafe void OnAddonSetup(AddonEvent type, AddonArgs args)
     {
@@ -34,5 +34,5 @@ public class AutoNotifyDutyConfirm : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddonSetup);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSetup);
 }

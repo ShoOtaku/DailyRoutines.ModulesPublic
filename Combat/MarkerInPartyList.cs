@@ -14,6 +14,7 @@ using System.Linq;
 using System.Numerics;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -49,17 +50,17 @@ public unsafe class MarkerInPartyList : DailyModuleBase
         LocalMarkingHook = LocalMarkingSig.GetHook<LocalMarkingDelegate>(LocalMarkingDetour);
         LocalMarkingHook.Enable();
 
-        DService.ClientState.TerritoryChanged += ResetMarkedObject;
+        DService.Instance().ClientState.TerritoryChanged += ResetMarkedObject;
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "_PartyList", OnAddonPartyList);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_PartyList", OnAddonPartyList);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "_PartyList", OnAddonPartyList);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_PartyList", OnAddonPartyList);
     }
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddonPartyList);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonPartyList);
         
-        DService.ClientState.TerritoryChanged -= ResetMarkedObject;
+        DService.Instance().ClientState.TerritoryChanged -= ResetMarkedObject;
 
         ResetPartyMemberList();
         ReleaseImageNodes();
@@ -298,7 +299,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
         // 自身标记会触发两回，第一次a4: E000_0000, 第二次a4: 自身GameObjectId
         // 队友标记只会触发一回，a4: 队友GameObjectId
         // 鲶鱼精local a4: 0
-        // if (a4 != (nint?)DService.ObjectTable.LocalPlayer?.GameObjectId)
+        // if (a4 != (nint?)DService.Instance().ObjectTable.LocalPlayer?.GameObjectId)
 
         TaskHelper.Enqueue(() => ProcessMarkIconSetted(markingType, (uint)objectID));
         LocalMarkingHook!.Original(manager, markingType, objectID, entityID);

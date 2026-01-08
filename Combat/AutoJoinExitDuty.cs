@@ -36,7 +36,7 @@ public unsafe class AutoJoinExitDuty : DailyModuleBase
 
     private void OnCommand(string command, string arguments)
     {
-        if (DService.PartyList.Length > 0)
+        if (DService.Instance().PartyList.Length > 0)
         {
             NotificationError(GetLoc("AutoJoinExitDuty-AlreadyInParty"));
             return;
@@ -74,7 +74,7 @@ public unsafe class AutoJoinExitDuty : DailyModuleBase
 
     private bool CheckAndSwitchJob()
     {
-        var localPlayer = DService.ObjectTable.LocalPlayer;
+        var localPlayer = DService.Instance().ObjectTable.LocalPlayer;
         if (localPlayer == null)
         {
             TaskHelper.Abort();
@@ -93,7 +93,7 @@ public unsafe class AutoJoinExitDuty : DailyModuleBase
                 if (gearset->Id != i) continue;
                 if (gearset->ClassJob > 18)
                 {
-                    ChatManager.SendMessage($"/gearset change {gearset->Id + 1}");
+                    ChatManager.Instance().SendMessage($"/gearset change {gearset->Id + 1}");
                     return true;
                 }
             }
@@ -106,8 +106,8 @@ public unsafe class AutoJoinExitDuty : DailyModuleBase
     {
         if (GameMain.Instance()->CurrentContentFinderConditionId != targetContent) return false;
 
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.TerritoryTransportFinish);
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.LeaveDuty);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.TerritoryTransportFinish);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty);
         return true;
     }
 }

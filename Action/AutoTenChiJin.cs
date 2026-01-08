@@ -82,7 +82,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
             Size         = new(430f, 110f),
         };
 
-        UseActionManager.RegPreUseAction(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
 
         IsSlotUsableHook ??= IsSlotUsableSig.GetHook<IsSlotUsableDelegate>(IsSlotUsableDetour);
         IsSlotUsableHook.Enable();
@@ -186,7 +186,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
                 {
                     if (TargetManager.Target is not { } target) return false;
                     if (ActionManager.Instance()->GetActionStatus(ActionType.Action, ninJiTsu) != 0) return false;
-                    UseActionManager.UseActionLocation(ActionType.Action, ninJiTsu, target.EntityID);
+                    UseActionManager.Instance().UseActionLocation(ActionType.Action, ninJiTsu, target.EntityID);
                     return true;
                 });
             }
@@ -242,7 +242,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
                 TaskHelper.Enqueue(() =>
                 {
                     var finalActionID = !isKassatsu || !isNeedTransformed ? actionID : kassatsu;
-                    return UseActionManager.UseActionLocation(ActionType.Action, finalActionID,
+                    return UseActionManager.Instance().UseActionLocation(ActionType.Action, finalActionID,
                                                               row.CanTargetHostile && TargetManager.Target is { } target
                                                                   ? target.EntityID
                                                                   : localPlayer->EntityId);
@@ -254,7 +254,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
 
     protected override void Uninit()
     {
-        UseActionManager.Unreg(OnPreUseAction);
+        UseActionManager.Instance().Unreg(OnPreUseAction);
         
         Addon?.Dispose();
         Addon = null;

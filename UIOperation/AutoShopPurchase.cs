@@ -354,7 +354,7 @@ public class AutoShopPurchase : DailyModuleBase
             if (!IsAddNewPresetWindowOpen) return;
             RefreshWindowInfo();
 
-            using (FontManager.UIFont.Push())
+            using (FontManager.Instance().UIFont.Push())
             {
                 if (ImGui.Begin($"{GetLoc("AutoShopPurchase-UI-AddNewPreset")}###AutoShopPurchase-AddNewPreset", ref IsAddNewPresetWindowOpen))
                 {
@@ -540,7 +540,7 @@ public class AutoShopPurchase : DailyModuleBase
                 using var group    = ImRaii.Group();
                 
                 if (ImGuiOm.ButtonIcon($"RunPreset_{preset}", FontAwesomeIcon.Play, GetLoc("Run")))
-                    DService.Framework.RunOnTick(async () => await ShopPresetExecutor.TryExecuteAsync(preset, TimesInput).ConfigureAwait(false));
+                    DService.Instance().Framework.RunOnTick(async () => await ShopPresetExecutor.TryExecuteAsync(preset, TimesInput).ConfigureAwait(false));
 
                 ImGui.SameLine(0, 2f * GlobalFontScale);
 
@@ -572,8 +572,8 @@ public class AutoShopPurchase : DailyModuleBase
         {
             Preset = preset;
             LoopCount = loopCount;
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, ["SelectYesno", "ShopExchangeItemDialog"], OnAddonYesno);
-            ExecuteCommandManager.RegPost(OnReceiveCommand);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, ["SelectYesno", "ShopExchangeItemDialog"], OnAddonYesno);
+            ExecuteCommandManager.Instance().RegPost(OnReceiveCommand);
         }
 
         public static async Task<bool> TryExecuteAsync(ShopPurchasePreset preset, int loopCount)
@@ -680,8 +680,8 @@ public class AutoShopPurchase : DailyModuleBase
 
         public void Dispose()
         {
-            ExecuteCommandManager.Unreg(OnReceiveCommand);
-            DService.AddonLifecycle.UnregisterListener(OnAddonYesno);
+            ExecuteCommandManager.Instance().Unreg(OnReceiveCommand);
+            DService.Instance().AddonLifecycle.UnregisterListener(OnAddonYesno);
 
             TaskHelper.Abort();
             IsWaitingRefresh = false;

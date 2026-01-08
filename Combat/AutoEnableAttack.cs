@@ -18,7 +18,7 @@ public unsafe class AutoEnableAttack : DailyModuleBase
     private static readonly HashSet<uint> InvalidActions = [7385, 7418, 23288, 23289, 34581, 23273];
     
     protected override void Init() => 
-        UseActionManager.RegUseAction(OnPostUseAction);
+        UseActionManager.Instance().RegPostUseAction(OnPostUseAction);
 
     private static void OnPostUseAction(
         bool                        result,
@@ -33,15 +33,15 @@ public unsafe class AutoEnableAttack : DailyModuleBase
 
 
         if (GameState.IsInPVPArea                       ||
-            !DService.Condition[ConditionFlag.InCombat] ||
-            DService.Condition[ConditionFlag.Casting])
+            !DService.Instance().Condition[ConditionFlag.InCombat] ||
+            DService.Instance().Condition[ConditionFlag.Casting])
             return;
         
         if (UIState.Instance()->WeaponState.AutoAttackState.IsAutoAttacking) return;
 
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.AutoAttack, 1, (uint)targetID);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.AutoAttack, 1, (uint)targetID);
     }
 
     protected override void Uninit() => 
-        UseActionManager.Unreg(OnPostUseAction);
+        UseActionManager.Instance().Unreg(OnPostUseAction);
 }

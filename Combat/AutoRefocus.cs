@@ -20,15 +20,15 @@ public class AutoRefocus : DailyModuleBase
     {
         FocusTarget = 0xE000_0000;
         
-        TargetManager.RegPostSetFocusTarget(OnSetFocusTarget);
-        DService.ClientState.TerritoryChanged += OnZoneChange;
+        TargetManager.Instance().RegPostSetFocusTarget(OnSetFocusTarget);
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChange;
         PlayersManager.ReceivePlayersAround   += OnReceivePlayerAround;
     }
 
-    private static void OnReceivePlayerAround(IReadOnlyList<IPlayerCharacter> characters)
+    private static unsafe void OnReceivePlayerAround(IReadOnlyList<IPlayerCharacter> characters)
     {
         if (GameState.ContentFinderCondition == 0 || FocusTarget == 0xE000_0000 || TargetManager.FocusTarget != null) return;
-        TargetManager.SetFocusTargetCallDetour(FocusTarget);
+        TargetManager.ToStruct()->SetFocusTargetByObjectId(FocusTarget);
     }
 
     private static void OnSetFocusTarget(GameObjectId gameObjectID) => 
@@ -40,7 +40,7 @@ public class AutoRefocus : DailyModuleBase
     protected override void Uninit()
     {
         PlayersManager.ReceivePlayersAround -= OnReceivePlayerAround;
-        DService.ClientState.TerritoryChanged -= OnZoneChange;
-        TargetManager.Unreg(OnSetFocusTarget);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChange;
+        TargetManager.Instance().Unreg(OnSetFocusTarget);
     }
 }

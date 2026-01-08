@@ -22,13 +22,13 @@ public unsafe class AutoDisplayMSQProgress : DailyModuleBase
 
     protected override void Init()
     {
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "ScenarioTree", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "ScenarioTree", OnAddon);
         if (InfosOm.ScenarioTree->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
     private static void OnAddon(AddonEvent type, AddonArgs args)
     {

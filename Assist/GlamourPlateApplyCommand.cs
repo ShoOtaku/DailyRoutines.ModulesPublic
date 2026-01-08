@@ -27,8 +27,8 @@ public unsafe class GlamourPlateApplyCommand : DailyModuleBase
         var mirageManager = MirageManager.Instance();
         if (!mirageManager->GlamourPlatesLoaded)
         {
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RequestGlamourPlates);
-            DService.Framework.RunOnTick(() => ApplyGlamourPlate(index), TimeSpan.FromMilliseconds(500));
+            ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RequestGlamourPlates);
+            DService.Instance().Framework.RunOnTick(() => ApplyGlamourPlate(index), TimeSpan.FromMilliseconds(500));
             return;
         }
 
@@ -37,9 +37,9 @@ public unsafe class GlamourPlateApplyCommand : DailyModuleBase
 
     private static void ApplyGlamourPlate(int index)
     {
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.EnterGlamourPlateState, 1, 1);
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.ApplyGlamourPlate,      (uint)index - 1);
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.EnterGlamourPlateState, 0, 1);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.EnterGlamourPlateState, 1, 1);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.ApplyGlamourPlate,      (uint)index - 1);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.EnterGlamourPlateState, 0, 1);
     }
 
     protected override void Uninit() => 

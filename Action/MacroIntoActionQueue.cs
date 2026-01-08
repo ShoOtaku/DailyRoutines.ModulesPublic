@@ -1,6 +1,7 @@
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -16,7 +17,7 @@ public unsafe class MacroIntoActionQueue : DailyModuleBase
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init() => 
-        UseActionManager.RegPreUseAction(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
 
     private static void OnPreUseAction(
         ref bool                        isPrevented,
@@ -40,5 +41,5 @@ public unsafe class MacroIntoActionQueue : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        UseActionManager.Unreg(OnPreUseAction);
+        UseActionManager.Instance().Unreg(OnPreUseAction);
 }

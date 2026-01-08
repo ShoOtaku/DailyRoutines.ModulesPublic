@@ -80,9 +80,9 @@ public class BaitSwitchCommand : DailyModuleBase
     private static void SwitchBait(uint itemID, bool isBait, int swimBaitIndex = -1)
     {
         if (isBait)
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.Fish, 4, itemID);
+            ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.Fish, 4, itemID);
         else if (swimBaitIndex != -1)
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.Fish, 25, (uint)swimBaitIndex);
+            ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.Fish, 25, (uint)swimBaitIndex);
     }
 
     private static bool TryFindItemByName(
@@ -96,7 +96,7 @@ public class BaitSwitchCommand : DailyModuleBase
         {
             var matchingItems = source
                                 .Where(x => x.Value.NameLower.Contains(itemName, StringComparison.OrdinalIgnoreCase) ||
-                                            (DService.ClientState.ClientLanguage == (ClientLanguage)4 &&
+                                            (DService.Instance().ClientState.ClientLanguage == (ClientLanguage)4 &&
                                              x.Value.NamePinyin.Contains(itemName, StringComparison.OrdinalIgnoreCase)))
                                 .OrderBy(x => x.Value.NameLower)
                                 .ToList();
@@ -140,7 +140,7 @@ public class BaitSwitchCommand : DailyModuleBase
             }
         }
 
-        if (DService.Condition[ConditionFlag.Fishing])
+        if (DService.Instance().Condition[ConditionFlag.Fishing])
         {
             ChatError(GetLoc("BaitSwitchCommand-Notice-FishingNow"));
             return false;

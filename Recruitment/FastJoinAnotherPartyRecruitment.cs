@@ -24,15 +24,15 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 10_000 };
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "LookingForGroupDetail", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "LookingForGroupDetail", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddon);
         if (LookingForGroupDetail->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostDraw, null);
         
         if (LookingForGroup->IsAddonAndNodesReady()) 
             AgentId.LookingForGroup.SendEvent(1, 17);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddonYesno);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddonYesno);
     }
     private void OnAddonYesno(AddonEvent type, AddonArgs args)
     {
@@ -108,8 +108,8 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
                 if (!Throttler.Throttle("FastJoinAnotherPartyRecruitment-Task", 100)) return false;
                 if (!LocalPlayerState.IsInAnyParty) return true;
                 
-                ChatManager.SendMessage("/leave");
-                ChatManager.SendMessage("/pcmd breakup");
+                ChatManager.Instance().SendMessage("/leave");
+                ChatManager.Instance().SendMessage("/pcmd breakup");
                 AgentId.PartyMember.SendEvent(0, 2, 3);
                 
                 return !LocalPlayerState.IsInAnyParty;
@@ -145,8 +145,8 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
-        DService.AddonLifecycle.UnregisterListener(OnAddonYesno);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonYesno);
 
         OnAddon(AddonEvent.PreFinalize, null);
     }

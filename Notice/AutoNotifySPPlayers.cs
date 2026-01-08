@@ -102,7 +102,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
                                  [new(GetLoc("OnlineStatus"), ImGuiTableColumnFlags.WidthStretch, 0)],
                                  [x => () =>
                                  {
-                                     if (!DService.Texture.TryGetFromGameIcon(x.Icon, out var statusIcon)) return;
+                                     if (!DService.Instance().Texture.TryGetFromGameIcon(x.Icon, out var statusIcon)) return;
                                      using var id = ImRaii.PushId($"{x.Name.ToString()}_{x.RowId}");
                                      if (ImGuiOm.SelectableImageWithText(
                                              statusIcon.GetWrapOrEmpty().Handle, new(ImGui.GetTextLineHeightWithSpacing()),
@@ -274,7 +274,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
             foreach (var status in onlineStatus)
             {
                 if (!LuminaGetter.TryGetRow<OnlineStatus>(status, out var row)) continue;
-                if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var texture)) continue;
+                if (!DService.Instance().Texture.TryGetFromGameIcon(new(row.Icon), out var texture)) continue;
 
                 using (ImRaii.Group())
                 {
@@ -302,7 +302,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
     {
         if (ModuleConfig.NotifiedPlayer.Count == 0) 
             return;
-        if (!DService.ClientState.IsLoggedIn || DService.ObjectTable.LocalPlayer is not { } localPlayer) 
+        if (!DService.Instance().ClientState.IsLoggedIn || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) 
             return;
         if (obj == null || obj.Address == localPlayer.Address || obj.ObjectKind != ObjectKind.Player)
             return;
@@ -364,7 +364,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
                 if (!string.IsNullOrWhiteSpace(config.Command))
                 {
                     foreach (var command in config.Command.Split('\n'))
-                        ChatManager.SendMessage(string.Format(command.Trim(), playerName));
+                        ChatManager.Instance().SendMessage(string.Format(command.Trim(), playerName));
                 }
             }
         }

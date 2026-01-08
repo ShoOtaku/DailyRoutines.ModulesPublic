@@ -42,7 +42,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         
         CancelSource ??= new();
 
-        DService.ContextMenu.OnMenuOpened += OnMenuOpen;
+        DService.Instance().ContextMenu.OnMenuOpened += OnMenuOpen;
     }
 
     protected override void ConfigUI() => 
@@ -60,7 +60,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
     {
         if (args.Target is MenuTargetInventory) return false;
         var menuTarget = (MenuTargetDefault)args.Target;
-        var agent = DService.Gui.FindAgentInterface("ChatLog");
+        var agent = DService.Instance().Gui.FindAgentInterface("ChatLog");
         if (agent != nint.Zero && *(uint*)(agent + 0x948 + 8) == 3) return false;
 
         var judgeCriteria0 = menuTarget.TargetCharacter != null;
@@ -155,7 +155,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ContextMenu.OnMenuOpened -= OnMenuOpen;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpen;
         
         CancelSource?.Cancel();
         CancelSource?.Dispose();
@@ -270,7 +270,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
-            DService.Framework.RunOnTick(async () =>
+            DService.Instance().Framework.RunOnTick(async () =>
             {
                 if (TargetChara == null) return;
 
@@ -384,7 +384,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         private const string PlayerInfo = "https://www.lalachievements.com/char/{0}/";
 
         protected override void OnClicked(IMenuItemClickedArgs args) =>
-            DService.Framework.RunOnTick(async () =>
+            DService.Instance().Framework.RunOnTick(async () =>
             {
                 if (TargetChara == null) return;
 
@@ -418,7 +418,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         private const string SearchAPI  = "https://tomestone.gg/search/autocomplete?term={0}"; // 搜索词, 空格 %20
 
         protected override void OnClicked(IMenuItemClickedArgs args) =>
-            DService.Framework.RunOnTick(async () =>
+            DService.Instance().Framework.RunOnTick(async () =>
             {
                 if (TargetChara == null) return;
 

@@ -8,6 +8,7 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -43,7 +44,7 @@ public class AutoEliminateFishAwareness : DailyModuleBase
         
         ZoneSelectCombo.SelectedZoneIDs = ModuleConfig.BlacklistZones;
 
-        DService.Chat.ChatMessage += OnChatMessage;
+        DService.Instance().Chat.ChatMessage += OnChatMessage;
     }
 
     protected override void ConfigUI()
@@ -94,28 +95,28 @@ public class AutoEliminateFishAwareness : DailyModuleBase
         // 云冠群岛
         if (GameState.TerritoryType == 939)
         {
-            var currentPos      = DService.ObjectTable.LocalPlayer.Position;
-            var currentRotation = DService.ObjectTable.LocalPlayer.Rotation;
+            var currentPos      = DService.Instance().ObjectTable.LocalPlayer.Position;
+            var currentRotation = DService.Instance().ObjectTable.LocalPlayer.Rotation;
 
             TaskHelper.Enqueue(ExitFishing, "离开钓鱼状态");
             TaskHelper.DelayNext(5_000, "等待 5 秒");
             TaskHelper.Enqueue(() => !OccupiedInEvent,                                                           "等待不在钓鱼状态");
             TaskHelper.Enqueue(() => ExitDuty(753),                                                              "离开副本");
             TaskHelper.Enqueue(() => !BoundByDuty && UIModule.IsScreenReady() && GameState.TerritoryType != 939, "等待离开副本");
-            TaskHelper.Enqueue(() => ChatManager.SendMessage("/pdrfe diadem"),                                   "发送进入指令");
-            TaskHelper.Enqueue(() => GameState.TerritoryType == 939 && DService.ObjectTable.LocalPlayer != null, "等待进入");
+            TaskHelper.Enqueue(() => ChatManager.Instance().SendMessage("/pdrfe diadem"),                                   "发送进入指令");
+            TaskHelper.Enqueue(() => GameState.TerritoryType == 939 && DService.Instance().ObjectTable.LocalPlayer != null, "等待进入");
             TaskHelper.Enqueue(() => MovementManager.TPSmart_InZone(currentPos),                                 $"传送到原始位置 {currentPos}");
             TaskHelper.DelayNext(500, "等待 500 毫秒");
             TaskHelper.Enqueue(() => !MovementManager.IsManagerBusy,                                            "等待传送完毕");
-            TaskHelper.Enqueue(() => DService.ObjectTable.LocalPlayer.ToStruct()->SetRotation(currentRotation), "设置面向");
+            TaskHelper.Enqueue(() => DService.Instance().ObjectTable.LocalPlayer.ToStruct()->SetRotation(currentRotation), "设置面向");
         }
         else if (!BoundByDuty)
         {
             TaskHelper.Enqueue(ExitFishing, "离开钓鱼状态");
             TaskHelper.DelayNext(5_000);
-            TaskHelper.Enqueue(() => !OccupiedInEvent,                                                   "等待离开忙碌状态");
-            TaskHelper.Enqueue(() => RequestDutyNormal(TARGET_CONTENT, new() { Config817to820 = true }), "申请目标副本");
-            TaskHelper.Enqueue(() => ExitDuty(TARGET_CONTENT),                                           "离开目标副本");
+            TaskHelper.Enqueue(() => !OccupiedInEvent,                                                                           "等待离开忙碌状态");
+            TaskHelper.Enqueue(() => ContentsFinderHelper.RequestDutyNormal(TARGET_CONTENT, ContentsFinderHelper.DefaultOption), "申请目标副本");
+            TaskHelper.Enqueue(() => ExitDuty(TARGET_CONTENT),                                                                   "离开目标副本");
         }
         else
             return;
@@ -130,7 +131,7 @@ public class AutoEliminateFishAwareness : DailyModuleBase
             if (string.IsNullOrWhiteSpace(ModuleConfig.ExtraCommands)) return;
             
             foreach (var command in ModuleConfig.ExtraCommands.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
-                ChatManager.SendMessage(command);
+                ChatManager.Instance().SendMessage(command);
         }, "执行文本指令");
     }
 
@@ -138,8 +139,8 @@ public class AutoEliminateFishAwareness : DailyModuleBase
     {
         if (!Throttler.Throttle("AutoEliminateFishAwareness-ExitFishing")) return false;
         
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.Fish, 1);
-        return !DService.Condition[ConditionFlag.Fishing];
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.Fish, 1);
+        return !DService.Instance().Condition[ConditionFlag.Fishing];
     }
     
     private static bool ExitDuty(uint targetContent)
@@ -147,22 +148,22 @@ public class AutoEliminateFishAwareness : DailyModuleBase
         if (!Throttler.Throttle("AutoEliminateFishAwareness-ExitDuty")) return false;
         if (GameState.ContentFinderCondition != targetContent) return false;
 
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.TerritoryTransportFinish);
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.LeaveDuty);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.TerritoryTransportFinish);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty);
         return true;
     }
     
     private static bool EnterFishing()
     {
         if (!Throttler.Throttle("AutoEliminateFishAwareness-EnterFishing")) return false;
-        if (DService.ObjectTable.LocalPlayer == null || BetweenAreas || !UIModule.IsScreenReady()) return false;
+        if (DService.Instance().ObjectTable.LocalPlayer == null || BetweenAreas || !UIModule.IsScreenReady()) return false;
 
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.Fish);
-        return DService.Condition[ConditionFlag.Fishing];
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.Fish);
+        return DService.Instance().Condition[ConditionFlag.Fishing];
     }
 
     protected override void Uninit() => 
-        DService.Chat.ChatMessage -= OnChatMessage;
+        DService.Instance().Chat.ChatMessage -= OnChatMessage;
 
     private class Config : ModuleConfiguration
     {

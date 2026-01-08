@@ -41,11 +41,11 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
         
         Cooldown = ModuleConfig.RefreshInterval;
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroup",       OnAddonPF);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, "LookingForGroup",       OnAddonPF);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroup",       OnAddonPF);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroupDetail", OnAddonLFGD);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddonLFGD);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroup",       OnAddonPF);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, "LookingForGroup",       OnAddonPF);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroup",       OnAddonPF);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroupDetail", OnAddonLFGD);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddonLFGD);
 
         if (LookingForGroup != null) 
             OnAddonPF(AddonEvent.PostSetup, null);
@@ -108,7 +108,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
         Cooldown = ModuleConfig.RefreshInterval;
         UpdateNextRefreshTime(Cooldown);
 
-        DService.Framework.Run(() => AgentLookingForGroup.Instance()->RequestListingsUpdate());
+        DService.Instance().Framework.Run(() => AgentLookingForGroup.Instance()->RequestListingsUpdate());
     }
 
     private static void CleanNodes()
@@ -200,8 +200,8 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddonPF);
-        DService.AddonLifecycle.UnregisterListener(OnAddonLFGD);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonPF);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonLFGD);
 
         if (PFRefreshTimer != null)
         {

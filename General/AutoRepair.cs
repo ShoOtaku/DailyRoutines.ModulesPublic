@@ -8,6 +8,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -51,11 +52,11 @@ public unsafe class AutoRepair : DailyModuleBase
         ModuleConfig ??= LoadConfig<Config>() ?? new();
         TaskHelper ??= new();
 
-        ExecuteCommandManager.RegPost(OnExecuteCommand);
+        ExecuteCommandManager.Instance().RegPost(OnExecuteCommand);
         
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.Condition.ConditionChange    += OnConditionChanged;
-        DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().Condition.ConditionChange    += OnConditionChanged;
+        DService.Instance().DutyState.DutyRecommenced    += OnDutyRecommenced;
     }
     
     protected override void ConfigUI()
@@ -82,8 +83,8 @@ public unsafe class AutoRepair : DailyModuleBase
     public void EnqueueRepair()
     {
         if (TaskHelper.IsBusy                      ||
-            DService.ClientState.IsPvPExcludingDen ||
-            DService.ObjectTable.LocalPlayer is not { CurrentHp: > 0 })
+            DService.Instance().ClientState.IsPvPExcludingDen ||
+            DService.Instance().ObjectTable.LocalPlayer is not { CurrentHp: > 0 })
             return;
 
         var playerState      = PlayerState.Instance();
@@ -103,7 +104,7 @@ public unsafe class AutoRepair : DailyModuleBase
             TaskHelper.Enqueue(() => NotificationInfo(GetLoc("AutoRepair-RepairNotice"), GetLoc("AutoRepairTitle")));
             TaskHelper.Enqueue(() => new EventStartPackt(LocalPlayerState.EntityID, 720915).Send());
             TaskHelper.Enqueue(() => Repair->IsAddonAndNodesReady());
-            TaskHelper.Enqueue(() => ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, 1000));
+            TaskHelper.Enqueue(() => ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, 1000));
             TaskHelper.Enqueue(() =>
             {
                 if (!Repair->IsAddonAndNodesReady()) return;
@@ -174,7 +175,7 @@ public unsafe class AutoRepair : DailyModuleBase
             TaskHelper.Enqueue(() => NotificationInfo(GetLoc("AutoRepair-RepairNotice"), GetLoc("AutoRepairTitle")));
             TaskHelper.Enqueue(() => new EventStartPackt(LocalPlayerState.EntityID, 720915).Send());
             TaskHelper.Enqueue(() => Repair->IsAddonAndNodesReady());
-            TaskHelper.Enqueue(() => ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, 1000));
+            TaskHelper.Enqueue(() => ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, 1000));
             TaskHelper.Enqueue(() =>
             {
                 if (!Repair->IsAddonAndNodesReady()) return;
@@ -209,17 +210,17 @@ public unsafe class AutoRepair : DailyModuleBase
     {
         if (!ValidRepairFlags.Contains(command)) return;
         
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.InventoryRefresh);
     }
 
     #endregion
 
     protected override void Uninit()
     {
-        ExecuteCommandManager.Unreg(OnExecuteCommand);
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.Condition.ConditionChange -= OnConditionChanged;
-        DService.DutyState.DutyRecommenced -= OnDutyRecommenced;
+        ExecuteCommandManager.Instance().Unreg(OnExecuteCommand);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().DutyState.DutyRecommenced -= OnDutyRecommenced;
     }
 
     private class Config : ModuleConfiguration

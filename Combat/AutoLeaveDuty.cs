@@ -28,10 +28,10 @@ public class AutoLeaveDuty : DailyModuleBase
 
         ContentSelectCombo.SelectedContentIDs = ModuleConfig.BlacklistContent;
         
-        LogMessageManager.Register(OnPreReceiveLogmessage);
+        LogMessageManager.Instance().RegPre(OnPreReceiveLogmessage);
 
-        DService.DutyState.DutyCompleted      += OnDutyComplete;
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().DutyState.DutyCompleted      += OnDutyComplete;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
     }
 
     protected override void ConfigUI()
@@ -80,18 +80,18 @@ public class AutoLeaveDuty : DailyModuleBase
 
         if (!ModuleConfig.ForceToLeave)
         {
-            TaskHelper.Enqueue(() => !DService.Condition[ConditionFlag.InCombat]);
-            TaskHelper.Enqueue(() => ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.LeaveDuty));
+            TaskHelper.Enqueue(() => !DService.Instance().Condition[ConditionFlag.InCombat]);
+            TaskHelper.Enqueue(() => ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty));
         }
         else
-            TaskHelper.Enqueue(() => ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.LeaveDuty, 1U));
+            TaskHelper.Enqueue(() => ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.LeaveDuty, 1U));
     }
     
     private void OnZoneChanged(ushort obj) => 
         TaskHelper.Abort();
     
     // 拦截一下那个信息
-    private static void OnPreReceiveLogmessage(ref bool isPrevented, ref uint logMessageID)
+    private static void OnPreReceiveLogmessage(ref bool isPrevented, ref uint logMessageID, ref Span<LogMessageParam> values)
     {
         if (logMessageID != 914) return;
         isPrevented = true;
@@ -99,10 +99,10 @@ public class AutoLeaveDuty : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.DutyState.DutyCompleted      -= OnDutyComplete;
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().DutyState.DutyCompleted      -= OnDutyComplete;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         
-        LogMessageManager.Unregister(OnPreReceiveLogmessage);
+        LogMessageManager.Instance().Unreg(OnPreReceiveLogmessage);
     }
 
     private class Config : ModuleConfiguration

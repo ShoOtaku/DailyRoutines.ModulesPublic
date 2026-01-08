@@ -42,8 +42,8 @@ public unsafe class AutoUseMountAction : DailyModuleBase
                                           .Select(x => x.First()),
                               [x => x.Singular.ToString()]);
         
-        DService.Condition.ConditionChange += OnConditionChanged;
-        if (DService.Condition[ConditionFlag.Mounted])
+        DService.Instance().Condition.ConditionChange += OnConditionChanged;
+        if (DService.Instance().Condition[ConditionFlag.Mounted])
             OnConditionChanged(ConditionFlag.Mounted, true);
     }
 
@@ -163,29 +163,29 @@ public unsafe class AutoUseMountAction : DailyModuleBase
     {
         if (flag != ConditionFlag.Mounted) return;
 
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         
         if (!value) return;
         
-        FrameworkManager.Reg(OnUpdate, throttleMS: 1500);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1500);
     }
     
     private static void OnUpdate(IFramework framework)
     {
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
-        if (!DService.Condition[ConditionFlag.Mounted]) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
+        if (!DService.Instance().Condition[ConditionFlag.Mounted]) return;
 
         var currentMountID = localPlayer.CurrentMount?.RowId ?? 0;
         if (currentMountID == 0) return;
 
         if (ModuleConfig.MountActions.TryGetValue(currentMountID, out var action) &&
             ActionManager.Instance()->GetActionStatus(ActionType.Action, action.ActionID) == 0)
-            UseActionManager.UseAction(ActionType.Action, action.ActionID);
+            UseActionManager.Instance().UseAction(ActionType.Action, action.ActionID);
     }
 
     protected override void Uninit()
     {
-        DService.Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
         OnConditionChanged(ConditionFlag.Mounted, false);
     }
 

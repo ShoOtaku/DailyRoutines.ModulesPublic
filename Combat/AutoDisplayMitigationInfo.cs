@@ -65,17 +65,17 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
         WindowManager.Draw += Draw;
 
         // refresh mitigation status
-        FrameworkManager.Reg(OnFrameworkUpdateInterval, throttleMS: 500);
+        FrameworkManager.Instance().Reg(OnFrameworkUpdateInterval, throttleMS: 500);
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
     }
 
     protected override void Uninit()
     {
         // refresh mitigation status
-        FrameworkManager.Unreg(OnFrameworkUpdateInterval);
+        FrameworkManager.Instance().Unreg(OnFrameworkUpdateInterval);
         
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         OnZoneChanged(0);
 
         // draw on party list
@@ -154,7 +154,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
         ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch, 20);
         ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthStretch, 20);
 
-        if (!DService.Texture.TryGetFromGameIcon(new(210405), out var barrierIcon))
+        if (!DService.Instance().Texture.TryGetFromGameIcon(new(210405), out var barrierIcon))
             return;
 
         // local status
@@ -223,7 +223,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
     {
         if (!LuminaGetter.TryGetRow<LuminaStatus>(status.Key.ID, out var row))
             return;
-        if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var icon))
+        if (!DService.Instance().Texture.TryGetFromGameIcon(new(row.Icon), out var icon))
             return;
 
         ImGui.TableNextRow();
@@ -275,7 +275,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
         MitigationManager.Update();
 
-        var combatInactive = ModuleConfig.OnlyInCombat && !DService.Condition[ConditionFlag.InCombat];
+        var combatInactive = ModuleConfig.OnlyInCombat && !DService.Instance().Condition[ConditionFlag.InCombat];
         if (combatInactive)
         {
             StatusBarManager.Clear();
@@ -321,7 +321,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
         #region Funcs
 
         public static void Enable()
-            => BarEntry ??= DService.DtrBar.Get("DailyRoutines-AutoDisplayMitigationInfo");
+            => BarEntry ??= DService.Instance().DtrBar.Get("DailyRoutines-AutoDisplayMitigationInfo");
 
         public static void Update()
         {
@@ -475,7 +475,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
             var partyScale = partyListAddon->Scale;
 
-            using var fontPush = FontManager.MiedingerMidFont120.Push();
+            using var fontPush = FontManager.Instance().MiedingerMidFont120.Push();
 
             var text     = $"{mitigationValue:N0}%";
             var textSize = ImGui.CalcTextSize(text);
@@ -535,7 +535,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
             var partyScale = partyListAddon->Scale;
 
-            using var fontPush = FontManager.MiedingerMidFont120.Push();
+            using var fontPush = FontManager.Instance().MiedingerMidFont120.Push();
 
             var text = $"{shieldValue:F0}";
 
@@ -584,7 +584,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
             {
                 var partyShield = new Dictionary<uint, float>();
 
-                var partyList = DService.PartyList;
+                var partyList = DService.Instance().PartyList;
                 if (partyList.Count == 0)
                     return partyShield;
 
@@ -593,7 +593,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
                     if (member.EntityId == 0)
                         continue;
 
-                    if (DService.ObjectTable.SearchByID(member.EntityId) is ICharacter memberChara)
+                    if (DService.Instance().ObjectTable.SearchByID(member.EntityId) is ICharacter memberChara)
                         partyShield[member.EntityId] = ((float)memberChara.ShieldPercentage / 100 * memberChara.CurrentHp);
                 }
 
@@ -683,7 +683,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
                         mitigation.Info.Physical = mitValue;
                         break;
                     }
-                    case 1174 when DService.ObjectTable.SearchByID(targetID) is IBattleChara sourceChara:
+                    case 1174 when DService.Instance().ObjectTable.SearchByID(targetID) is IBattleChara sourceChara:
                     {
                         var sourceStatusIds = sourceChara.StatusList.Select(x => x.StatusID).ToHashSet();
                         var mitValue        = sourceStatusIds.Contains(1191) || sourceStatusIds.Contains(3829) ? 20 : 10;
@@ -719,7 +719,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
             }
 
             // party
-            var partyList = DService.PartyList;
+            var partyList = DService.Instance().PartyList;
             if (partyList.Count != 0)
             {
                 foreach (var member in partyList)
@@ -763,7 +763,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
                 ]);
             }
 
-            if (DService.PartyList.Count == 0 && Control.GetLocalPlayer()->EntityId is { } id)
+            if (DService.Instance().PartyList.Count == 0 && Control.GetLocalPlayer()->EntityId is { } id)
                 PartyMitigationCache.TryAdd(id, FetchLocal());
 
             PartyMitigationSnapshot = PartyMitigationCache.ToArray();

@@ -28,7 +28,7 @@ public class AutoNotifyDiademWeather : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
@@ -46,7 +46,7 @@ public class AutoNotifyDiademWeather : DailyModuleBase
             foreach (var weather in SpecialWeathers)
             {
                 if (!LuminaGetter.TryGetRow<Weather>(weather, out var data)) continue;
-                if (!DService.Texture.TryGetFromGameIcon(new((uint)data.Icon), out var icon)) continue;
+                if (!DService.Instance().Texture.TryGetFromGameIcon(new((uint)data.Icon), out var icon)) continue;
 
                 if (ImGuiOm.SelectableImageWithText(icon.GetWrapOrEmpty().Handle,
                                                     new(ImGui.GetTextLineHeightWithSpacing()), $"{data.Name.ToString()}",
@@ -64,18 +64,18 @@ public class AutoNotifyDiademWeather : DailyModuleBase
 
     private static void OnZoneChanged(ushort zone)
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         
         if (GameState.TerritoryType != 939) return;
 
-        FrameworkManager.Reg(OnUpdate, throttleMS: 10_000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 10_000);
     }
 
     private static unsafe void OnUpdate(IFramework framework)
     {
         if (GameState.TerritoryType != 939)
         {
-            FrameworkManager.Unreg(OnUpdate);
+            FrameworkManager.Instance().Unreg(OnUpdate);
             return;
         }
         
@@ -92,8 +92,8 @@ public class AutoNotifyDiademWeather : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        FrameworkManager.Unreg(OnUpdate);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
         LastWeather = 0;
     }

@@ -31,7 +31,7 @@ public class AutoNotifyCountdown : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.Chat.ChatMessage += OnChatMessage;
+        DService.Instance().Chat.ChatMessage += OnChatMessage;
     }
 
     protected override void ConfigUI()
@@ -54,7 +54,7 @@ public class AutoNotifyCountdown : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.Chat.ChatMessage -= OnChatMessage;
+        DService.Instance().Chat.ChatMessage -= OnChatMessage;
 
     private class Config : ModuleConfiguration
     {

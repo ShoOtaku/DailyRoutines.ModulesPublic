@@ -33,8 +33,8 @@ public unsafe class AutoMount : DailyModuleBase
 
         TaskHelper ??= new TaskHelper { TimeoutMS = 20000 };
 
-        DService.Condition.ConditionChange += OnConditionChanged;
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().Condition.ConditionChange += OnConditionChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
     }
 
     protected override void ConfigUI()
@@ -126,7 +126,7 @@ public unsafe class AutoMount : DailyModuleBase
         switch (flag)
         {
             case ConditionFlag.Gathering when !value && ModuleConfig.MountWhenGatherEnd:
-            case ConditionFlag.InCombat when !value && ModuleConfig.MountWhenCombatEnd && !DService.ClientState.IsPvP &&
+            case ConditionFlag.InCombat when !value && ModuleConfig.MountWhenCombatEnd && !DService.Instance().ClientState.IsPvP &&
                                              (FateManager.Instance()->CurrentFate == null ||
                                               FateManager.Instance()->CurrentFate->Progress == 100):
                 if (!CanUseMountCurrentZone()) return;
@@ -152,8 +152,8 @@ public unsafe class AutoMount : DailyModuleBase
 
         TaskHelper.DelayNext(100);
         TaskHelper.Enqueue(() => ModuleConfig.SelectedMount == 0
-                                     ? UseActionManager.UseAction(ActionType.GeneralAction, 9)
-                                     : UseActionManager.UseAction(ActionType.Mount,         ModuleConfig.SelectedMount));
+                                     ? UseActionManager.Instance().UseAction(ActionType.GeneralAction, 9)
+                                     : UseActionManager.Instance().UseAction(ActionType.Mount,         ModuleConfig.SelectedMount));
         return true;
     }
 
@@ -162,8 +162,8 @@ public unsafe class AutoMount : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
     }
 
     private class Config : ModuleConfiguration

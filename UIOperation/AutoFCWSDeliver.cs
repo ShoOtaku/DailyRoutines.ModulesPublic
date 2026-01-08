@@ -11,6 +11,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using OmenTools.Extensions;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
@@ -33,11 +34,11 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
         TaskHelper ??= new TaskHelper { TimeoutMS = 30_000 };
         Overlay    ??= new Overlay(this);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "SelectYesno",        OnAddonYesno);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "SelectString",       OnAddonString);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "SubmarinePartsMenu", OnAddonMenu);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SubmarinePartsMenu", OnAddonMenu);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "CompanyCraftRecipeNoteBook", OnAddonRecipeNote);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "SelectYesno",        OnAddonYesno);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "SelectString",       OnAddonString);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "SubmarinePartsMenu", OnAddonMenu);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SubmarinePartsMenu", OnAddonMenu);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "CompanyCraftRecipeNoteBook", OnAddonRecipeNote);
         
         if (SubmarinePartsMenu != null) 
             OnAddonMenu(AddonEvent.PostSetup, null);
@@ -158,11 +159,11 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
         TaskHelper.Enqueue(() =>
         {
             if (InterruptByConflictKey(TaskHelper, this)) return true;
-            if (DService.UIBuilder.CutsceneActive || !UIModule.IsScreenReady()) return false;
+            if (DService.Instance().UIBuilder.CutsceneActive || !UIModule.IsScreenReady()) return false;
             if (TargetManager.Target is not { ObjectKind: ObjectKind.EventObj, DataID: 2011588 })
             {
                 var target =
-                    DService.ObjectTable.FindNearest(DService.ObjectTable.LocalPlayer.Position,
+                    DService.Instance().ObjectTable.FindNearest(DService.Instance().ObjectTable.LocalPlayer.Position,
                                                      x => x is { ObjectKind: ObjectKind.EventObj, DataID: 2011588 });
                 TargetManager.Target = target;
             }
@@ -178,10 +179,10 @@ public unsafe class AutoFCWSDeliver : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddonRecipeNote);
-        DService.AddonLifecycle.UnregisterListener(OnAddonYesno);
-        DService.AddonLifecycle.UnregisterListener(OnAddonString);
-        DService.AddonLifecycle.UnregisterListener(OnAddonMenu);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonRecipeNote);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonYesno);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonString);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonMenu);
     }
 
     private record WorkshopCraftItem(uint ItemID, uint ItemCount, uint Index)

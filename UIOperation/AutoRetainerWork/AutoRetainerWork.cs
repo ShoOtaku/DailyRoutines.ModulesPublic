@@ -44,8 +44,8 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         Overlay      ??= new Overlay(this);
 
         // 雇员列表
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "RetainerList", OnRetainerList);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "RetainerList", OnRetainerList);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "RetainerList", OnRetainerList);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "RetainerList", OnRetainerList);
 
         foreach (var worker in Workers)
             worker.Init();
@@ -53,7 +53,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnRetainerList);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnRetainerList);
 
         foreach (var worker in Workers)
             worker.Uninit();
@@ -272,7 +272,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
             ImGui.AlignTextToFramePadding();
             ImGui.TextColored(KnownColor.RoyalBlue.ToVector4(), GetLoc("AutoRetainerWork-Dispatch-Title"));
 
-            var imageState = ImageHelper.TryGetImage(
+            var imageState = ImageHelper.Instance().TryGetImage(
                 "https://gh.atmoomen.top/StaticAssets/main/DailyRoutines/image/AutoRetainersDispatch-1.png",
                 out var imageHandle);
             ImGui.SameLine();
@@ -584,13 +584,13 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         {
             TaskHelper ??= new() { TimeoutMS = 15_000 };
 
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerItemTransferList",     OnEntrustDupsAddons);
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerItemTransferProgress", OnEntrustDupsAddons);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerItemTransferList",     OnEntrustDupsAddons);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerItemTransferProgress", OnEntrustDupsAddons);
         }
 
         public override void Uninit()
         {
-            DService.AddonLifecycle.UnregisterListener(OnEntrustDupsAddons);
+            DService.Instance().AddonLifecycle.UnregisterListener(OnEntrustDupsAddons);
 
             TaskHelper?.Abort();
             TaskHelper?.Dispose();
@@ -757,13 +757,13 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
         {
             TaskHelper ??= new() { TimeoutMS = 15_000 };
 
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerList", OnRetainerList);
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "RetainerList", OnRetainerList);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "RetainerList", OnRetainerList);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "RetainerList", OnRetainerList);
         }
 
         public override void Uninit()
         {
-            DService.AddonLifecycle.UnregisterListener(OnRetainerList);
+            DService.Instance().AddonLifecycle.UnregisterListener(OnRetainerList);
 
             TaskHelper?.Abort();
             TaskHelper?.Dispose();
@@ -807,7 +807,7 @@ public unsafe partial class AutoRetainerWork : DailyModuleBase
                     if (!ModuleConfig.AutoRetainerCollect) break;
                     if (!RetainerThrottler.Throttle("AutoRetainerCollect-AFK", 5_000)) return;
 
-                    DService.Framework.RunOnTick(() =>
+                    DService.Instance().Framework.RunOnTick(() =>
                     {
                         if (TaskHelper.IsBusy) return;
                         EnqueueRetainersCollect();

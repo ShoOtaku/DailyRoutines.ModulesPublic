@@ -14,7 +14,7 @@ public class AutoVeryEasyQuestBattle : DailyModuleBase
     public override ModulePermission Permission { get; } = new() { NeedAuth = true, AllDefaultEnabled = true };
 
     protected override void Init() => 
-        ExecuteCommandManager.RegPre(OnPreUseCommand);
+        ExecuteCommandManager.Instance().RegPre(OnPreUseCommand);
 
     private static unsafe void OnPreUseCommand(
         ref bool               isPrevented,
@@ -36,5 +36,5 @@ public class AutoVeryEasyQuestBattle : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        ExecuteCommandManager.Unreg(OnPreUseCommand);
+        ExecuteCommandManager.Instance().Unreg(OnPreUseCommand);
 }

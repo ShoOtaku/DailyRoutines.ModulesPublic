@@ -71,13 +71,13 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
         SendInventoryRefreshHook ??= SendInventoryRefreshSig.GetHook<SendInventoryRefreshDelegate>(SendInventoryRefreshDetour);
         SendInventoryRefreshHook.Enable();
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "FreeCompanyChest", OnAddonChest);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "FreeCompanyChest", OnAddonChest);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "FreeCompanyChest", OnAddonChest);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "InputNumeric",     OnAddonInput);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreDraw,     "ContextMenu",      OnAddonContextMenu);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "FreeCompanyChest", OnAddonChest);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "FreeCompanyChest", OnAddonChest);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "FreeCompanyChest", OnAddonChest);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "InputNumeric",     OnAddonInput);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw,     "ContextMenu",      OnAddonContextMenu);
         
-        DService.ContextMenu.OnMenuOpened += OnContextMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened += OnContextMenuOpened;
     }
 
     // 打开部队储物柜时请求所有页面数据, 并生成 Node
@@ -91,7 +91,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                 if (ModuleConfig.DefaultPage != InventoryType.Invalid)
                 {
                     if (ModuleConfig.DefaultPage == InventoryType.FreeCompanyCrystals)
-                        DService.Framework.Run(() => ((AtkComponentRadioButton*)FreeCompanyChest->GetComponentByNodeId(15))->Click());
+                        DService.Instance().Framework.Run(() => ((AtkComponentRadioButton*)FreeCompanyChest->GetComponentByNodeId(15))->Click());
                     else
                     {
                         if ((int)ModuleConfig.DefaultPage < 20000) return;
@@ -99,7 +99,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         var index = (int)ModuleConfig.DefaultPage % 20000;
                         if (index > 5) return;
 
-                        DService.Framework.Run(() => ((AtkComponentRadioButton*)FreeCompanyChest->GetComponentByNodeId((uint)(10 + index)))->Click());
+                        DService.Instance().Framework.Run(() => ((AtkComponentRadioButton*)FreeCompanyChest->GetComponentByNodeId((uint)(10 + index)))->Click());
                     }
                 }
                 break;
@@ -315,7 +315,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
     private static bool SendInventoryRefreshDetour(InventoryManager* instance, int inventoryType)
     {
         // 直接返回 true 防锁
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RequestInventory, (uint)inventoryType);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RequestInventory, (uint)inventoryType);
         return true;
     }
 
@@ -452,11 +452,11 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ContextMenu.OnMenuOpened -= OnContextMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnContextMenuOpened;
         
-        DService.AddonLifecycle.UnregisterListener(OnAddonContextMenu);
-        DService.AddonLifecycle.UnregisterListener(OnAddonChest);
-        DService.AddonLifecycle.UnregisterListener(OnAddonInput);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonContextMenu);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonChest);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonInput);
 
         ClearNodes();
         

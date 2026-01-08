@@ -39,7 +39,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
 
         SaveConfig(ModuleConfig);
 
-        UseActionManager.RegPreUseAction(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
     }
 
     protected override void ConfigUI()
@@ -161,7 +161,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
         if (adjustedActionID == 7535)
             canTargetSelf = false;
 
-        var gameObj = DService.ObjectTable.SearchByID(targetID);
+        var gameObj = DService.Instance().ObjectTable.SearchByID(targetID);
 
         var targetIDDetection = targetID;
         if (canTargetSelf && (gameObj == null || !ActionManager.CanUseActionOnTarget(adjustedActionID, gameObj.ToStruct())))
@@ -178,7 +178,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        UseActionManager.Unreg(OnPreUseAction);
+        UseActionManager.Instance().Unreg(OnPreUseAction);
 
     private class Config : ModuleConfiguration
     {
@@ -239,7 +239,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
         private bool IsPermanent => 
             PresetSheet.Statuses.TryGetValue(StatusID, out var statusInfo) && statusInfo.IsPermanent;
 
-        public IDalamudTextureWrap? GetIcon() => !PresetSheet.Statuses.TryGetValue(StatusID, out var rowData) ? null : DService.Texture.GetFromGameIcon(new(rowData.Icon)).GetWrapOrDefault();
+        public IDalamudTextureWrap? GetIcon() => !PresetSheet.Statuses.TryGetValue(StatusID, out var rowData) ? null : DService.Instance().Texture.GetFromGameIcon(new(rowData.Icon)).GetWrapOrDefault();
 
         public string? GetName() => !PresetSheet.Statuses.TryGetValue(StatusID, out var rowData) ? null : rowData.Name.ToString();
 
@@ -253,9 +253,9 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
                     if (TargetManager.Target is not IBattleChara chara) return false;
                     return HasStatus(&chara.ToStruct()->StatusManager);
                 case DetectType.Member:
-                    if (DService.PartyList.Length <= 0) return false;
+                    if (DService.Instance().PartyList.Length <= 0) return false;
                     
-                    foreach (var partyMember in DService.PartyList)
+                    foreach (var partyMember in DService.Instance().PartyList)
                     {
                         if (IBattleChara.Create(partyMember.Address) is not { } member) continue;
                         
@@ -270,7 +270,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
 
         public bool HasStatus(ulong gameObjectID)
         {
-            if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
+            if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
 
             var battleChara = DetectType == DetectType.Self || gameObjectID == 0xE0000000 || gameObjectID == LocalPlayerState.EntityID
                                   ? localPlayer.ToBCStruct()

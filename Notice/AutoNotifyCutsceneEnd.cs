@@ -32,7 +32,7 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
         Stopwatch  ??= new Stopwatch();
         TaskHelper ??= new() { TimeoutMS = 30_000 };
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
@@ -51,13 +51,13 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
     protected override void Uninit()
     {
         OnZoneChanged(0);
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
     }
     
     private void OnZoneChanged(ushort zone)
     {
-        DService.DutyState.DutyCompleted -= OnDutyComplete;
-        FrameworkManager.Unreg(OnUpdate);
+        DService.Instance().DutyState.DutyCompleted -= OnDutyComplete;
+        FrameworkManager.Instance().Unreg(OnUpdate);
         Stopwatch?.Reset();
         Stopwatch = null;
         IsDutyEnd = false;
@@ -70,7 +70,7 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
 
     private void CheckIsDutyStateEligibleThenEnqueue()
     {
-        if (DService.PartyList.Length <= 1)
+        if (DService.Instance().PartyList.Length <= 1)
         {
             TaskHelper.Abort();
             return;
@@ -78,8 +78,8 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
 
         Stopwatch = new();
         
-        DService.DutyState.DutyCompleted += OnDutyComplete;
-        FrameworkManager.Reg(OnUpdate, throttleMS: 500);
+        DService.Instance().DutyState.DutyCompleted += OnDutyComplete;
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 500);
     }
     
     private static void OnDutyComplete(object? sender, ushort zone) => 
@@ -88,7 +88,7 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
     private void OnUpdate(IFramework _)
     {
         // PVP 或不在副本内 → 结束检查
-        if (DService.ClientState.IsPvP || !BoundByDuty)
+        if (DService.Instance().ClientState.IsPvP || !BoundByDuty)
         {
             OnZoneChanged(0);
             return;
@@ -98,9 +98,9 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
         if (IsDutyEnd) return;
         
         // 本地玩家为空, 暂时不检查
-        if (DService.ObjectTable.LocalPlayer is null) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is null) return;
 
-        if (DService.Condition[ConditionFlag.InCombat])
+        if (DService.Instance().Condition[ConditionFlag.InCombat])
         {
             // 进战时还在检查
             if (Stopwatch.IsRunning)
@@ -113,12 +113,12 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
         if (Stopwatch.IsRunning)
         {
             // 副本还未开始 → 先检查是否有玩家没加载出来 → 如有, 不继续检查
-            if (!DService.DutyState.IsDutyStarted &&
-                DService.PartyList.Any(x => x.GameObject is not { IsTargetable: true }))
+            if (!DService.Instance().DutyState.IsDutyStarted &&
+                DService.Instance().PartyList.Any(x => x.GameObject is not { IsTargetable: true }))
                 return;
             
             // 检查是否任一玩家仍在剧情状态
-            if (DService.PartyList.Any(x => x.GameObject != null &&
+            if (DService.Instance().PartyList.Any(x => x.GameObject != null &&
                                             ((Character*)x.GameObject.Address)->CharacterData.OnlineStatus == 15))
                 return;
 
@@ -127,7 +127,7 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
         else
         {
             // 居然无一人正在看剧情
-            if (!DService.PartyList.Any(x => x.GameObject != null &&
+            if (!DService.Instance().PartyList.Any(x => x.GameObject != null &&
                                             ((Character*)x.GameObject.Address)->CharacterData.OnlineStatus == 15))
                 return;
             

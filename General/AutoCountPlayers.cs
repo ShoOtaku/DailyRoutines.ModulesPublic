@@ -60,7 +60,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         Overlay.Flags      &=  ~ImGuiWindowFlags.AlwaysAutoResize;
         Overlay.WindowName =   $"{GetLoc("AutoCountPlayers-PlayersAroundInfo")}###AutoCountPlayers-Overlay";
 
-        Entry ??= DService.DtrBar.Get("DailyRoutines-AutoCountPlayers");
+        Entry ??= DService.Instance().DtrBar.Get("DailyRoutines-AutoCountPlayers");
         Entry.Shown = true;
         Entry.OnClick += _ => Overlay.IsOpen ^= true;
 
@@ -72,8 +72,8 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         InfoProxy24EndRequestHook ??= InfoProxy24EndRequestSig.GetHook<InfoProxy24EndRequestDelegate>(InfoProxy24EndRequestDetour);
         InfoProxy24EndRequestHook.Enable();
 
-        FrameworkManager.Reg(OnFrameworkUpdate, throttleMS: 10_000);
-        OnFrameworkUpdate(DService.Framework);
+        FrameworkManager.Instance().Reg(OnFrameworkUpdate, throttleMS: 10_000);
+        OnFrameworkUpdate(DService.Instance().Framework);
     }
 
     private static void OnFrameworkUpdate(IFramework framework)
@@ -116,7 +116,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         ImGui.SetNextItemWidth(-1f);
         ImGui.InputText("###Search", ref SearchInput, 128);
 
-        if (BetweenAreas || DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
+        if (BetweenAreas || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
 
         var source = PlayersManager.PlayersAround.Where(x => string.IsNullOrWhiteSpace(SearchInput) ||
                                                x.ToString().Contains(SearchInput, StringComparison.OrdinalIgnoreCase))
@@ -144,8 +144,8 @@ public unsafe class AutoCountPlayers : DailyModuleBase
                 Chat(message);
             }
 
-            if (DService.Gui.WorldToScreen(playerAround.Position, out var screenPos) &&
-                DService.Gui.WorldToScreen(localPlayer.Position,  out var localScreenPos))
+            if (DService.Instance().Gui.WorldToScreen(playerAround.Position, out var screenPos) &&
+                DService.Instance().Gui.WorldToScreen(localPlayer.Position,  out var localScreenPos))
             {
                 if (!ImGui.IsAnyItemHovered() || ImGui.IsItemHovered())
                     DrawLine(localScreenPos, screenPos, playerAround);
@@ -176,7 +176,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
                 if (ImGui.Begin($"AutoCountPlayers-{localPlayer->EntityId}", WindowFlags))
                 {
                     ImGui.SetWindowPos(nodeState.Center - (ImGui.GetWindowSize() * 0.75f));
-                    using (FontManager.UIFont140.Push())
+                    using (FontManager.Instance().UIFont140.Push())
                     using (ImRaii.Group())
                     {
                         ImGuiHelpers.SeStringWrapped(new SeStringBuilder().AddIcon(BitmapFontIcon.Warning).Encode());
@@ -187,7 +187,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
 
                         if (GameState.ContentFinderCondition == 0)
                         {
-                            using (FontManager.UIFont80.Push())
+                            using (FontManager.Instance().UIFont80.Push())
                             {
                                 var text = GetLoc("AutoCountPlayers-Notification-SomeoneTargetingMe");
                                 ImGuiOm.TextOutlined(ImGui.GetCursorScreenPos() - new Vector2(ImGui.CalcTextSize(text).X * 0.3f, 0),
@@ -204,11 +204,11 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         }
 
         var currentWindowSize = ImGui.GetMainViewport().Size;
-        if (!DService.Gui.WorldToScreen(localPlayer->Position, out var localScreenPos))
+        if (!DService.Instance().Gui.WorldToScreen(localPlayer->Position, out var localScreenPos))
             localScreenPos = currentWindowSize with { X = currentWindowSize.X / 2 };
         foreach (var playerInfo in PlayersManager.PlayersTargetingMe)
         {
-            if (DService.Gui.WorldToScreen(playerInfo.Player.Position, out var screenPos))
+            if (DService.Instance().Gui.WorldToScreen(playerInfo.Player.Position, out var screenPos))
                 DrawLine(localScreenPos, screenPos, playerInfo.Player, LineColorRed);
         }
     }
@@ -221,7 +221,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         if (GameState.TerritoryIntendedUse == TerritoryIntendedUse.OccultCrescent)
             Entry.Shown = true;
         else
-            Entry.Shown = !DService.Condition[ConditionFlag.InCombat] || GameState.IsInPVPArea;
+            Entry.Shown = !DService.Instance().Condition[ConditionFlag.InCombat] || GameState.IsInPVPArea;
         
         if (!Entry.Shown)
         {
@@ -279,7 +279,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
     private static void OnPlayersTargetingMeUpdate(IReadOnlyList<PlayerTargetingInfo> targetingPlayersInfo)
     {
         if (targetingPlayersInfo.Count > 0 &&
-            (GameState.ContentFinderCondition == 0 || DService.PartyList.Length < 2))
+            (GameState.ContentFinderCondition == 0 || DService.Instance().PartyList.Length < 2))
         {
             var newTargetingPlayers = targetingPlayersInfo.Where(info => info.IsNew).ToList();
             if (newTargetingPlayers.Any(info => Throttler.Throttle($"AutoCountPlayers-Player-{info.Player.EntityID}", 30_000)))
@@ -354,7 +354,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
 
     protected override void Uninit()
     {
-        FrameworkManager.Unreg(OnFrameworkUpdate);
+        FrameworkManager.Instance().Unreg(OnFrameworkUpdate);
         
         WindowManager.Draw -= OnDraw;
         PlayersManager.ReceivePlayersAround -= OnUpdate;

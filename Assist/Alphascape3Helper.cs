@@ -17,37 +17,37 @@ public class Alphascape3Helper : DailyModuleBase
 
     protected override void Init()
     {
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
     private static void OnZoneChanged(ushort zoneID)
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         if (GameState.TerritoryType != 800) return;
         
-        FrameworkManager.Reg(OnUpdate, throttleMS: 100);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 100);
     }
 
     private static void OnUpdate(IFramework framework)
     {
         if (GameState.TerritoryType != 800)
         {
-            FrameworkManager.Unreg(OnUpdate);
+            FrameworkManager.Instance().Unreg(OnUpdate);
             return;
         }
 
-        if (DService.ObjectTable.LocalPlayer is null) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is null) return;
         
-        var obj = DService.ObjectTable.FirstOrDefault(x => x is { ObjectKind: ObjectKind.BattleNpc, DataID: 9638 });
+        var obj = DService.Instance().ObjectTable.FirstOrDefault(x => x is { ObjectKind: ObjectKind.BattleNpc, DataID: 9638 });
         if (obj is not { IsTargetable: true }) return;
 
-        UseActionManager.UseAction(ActionType.Action, 12911, obj.EntityID);
+        UseActionManager.Instance().UseAction(ActionType.Action, 12911, obj.EntityID);
     }
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        FrameworkManager.Unreg(OnUpdate);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 }

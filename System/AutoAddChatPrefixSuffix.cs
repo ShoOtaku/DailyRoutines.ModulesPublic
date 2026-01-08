@@ -51,11 +51,11 @@ public class AutoAddChatPrefixSuffix : DailyModuleBase
                             ]
         };
 
-        ChatManager.RegPreExecuteCommandInner(OnPreExecuteCommandInner);
+        ChatManager.Instance().RegPreExecuteCommandInner(OnPreExecuteCommandInner);
     }
 
     protected override void Uninit() =>
-        ChatManager.Unreg(OnPreExecuteCommandInner);
+        ChatManager.Instance().Unreg(OnPreExecuteCommandInner);
 
     protected override void ConfigUI()
     {

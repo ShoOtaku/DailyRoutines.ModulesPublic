@@ -32,13 +32,13 @@ public unsafe class AutoMateriaTransmutation : DailyModuleBase
         TaskHelper ??= new() { TimeoutMS = 15_000 };
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "TradeMultiple", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "TradeMultiple", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "TradeMultiple", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "TradeMultiple", OnAddon);
     }
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
     }
     
@@ -57,7 +57,7 @@ public unsafe class AutoMateriaTransmutation : DailyModuleBase
                              [
                                  x => () =>
                                  {
-                                     var itemIcon = DService.Texture.GetFromGameIcon(new(x.Icon)).GetWrapOrDefault();
+                                     var itemIcon = DService.Instance().Texture.GetFromGameIcon(new(x.Icon)).GetWrapOrDefault();
                                      if (itemIcon == null) return;
 
                                      if (ImGuiOm.SelectableImageWithText(

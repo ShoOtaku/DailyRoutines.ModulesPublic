@@ -31,7 +31,7 @@ public unsafe class CompanyCreditExchangeMore : DailyModuleBase
         AddonFreeCompanyCreditShopRefreshHook = AddonFreeCompanyCreditShopRefreshSig.GetHook<AddonFreeCompanyCreditShopRefreshDelegate>(AddonRefreshDetour);
         AddonFreeCompanyCreditShopRefreshHook.Enable();
         
-        GamePacketManager.RegPreSendPacket(OnPreSendPacket);
+        GamePacketManager.Instance().RegPreSendPacket(OnPreSendPacket);
     }
 
     private static bool AddonRefreshDetour(AtkUnitBase* addon, uint atkValueCount, AtkValue* atkValues)
@@ -71,7 +71,7 @@ public unsafe class CompanyCreditExchangeMore : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        GamePacketManager.Unreg(OnPreSendPacket);
+        GamePacketManager.Instance().Unreg(OnPreSendPacket);
 
     private class Config : ModuleConfiguration
     {

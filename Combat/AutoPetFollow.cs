@@ -24,7 +24,7 @@ public class AutoPetFollow : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.Condition.ConditionChange += OnConditionChanged;
+        DService.Instance().Condition.ConditionChange += OnConditionChanged;
     }
 
     protected override void ConfigUI()
@@ -38,7 +38,7 @@ public class AutoPetFollow : DailyModuleBase
         if (flag != ConditionFlag.InCombat            ||
             value                                     ||
             GameState.IsInPVPArea                     ||
-            DService.Condition[ConditionFlag.Mounted] ||
+            DService.Instance().Condition[ConditionFlag.Mounted] ||
             !ValidClassJobs.Contains(LocalPlayerState.ClassJob))
             return;
 
@@ -48,14 +48,14 @@ public class AutoPetFollow : DailyModuleBase
         var pet = CharacterManager.Instance()->LookupPetByOwnerObject(localPlayer);
         if (pet == null || !pet->GetIsTargetable()) return;
 
-        ExecuteCommandManager.ExecuteCommandComplex(ExecuteCommandComplexFlag.PetAction, 0xE0000000, 2);
+        ExecuteCommandManager.Instance().ExecuteCommandComplex(ExecuteCommandComplexFlag.PetAction, 0xE0000000, 2);
 
         if (ModuleConfig.SendNotification && Throttler.Throttle("AutoPetFollow-SendNotification", 10_000))
             NotificationInfo(GetLoc("AutoPetFollow-Notification"));
     }
 
     protected override void Uninit() => 
-        DService.Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
 
     public class Config : ModuleConfiguration
     {

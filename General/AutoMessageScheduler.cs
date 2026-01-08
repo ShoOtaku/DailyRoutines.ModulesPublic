@@ -30,11 +30,11 @@ public class AutoMessageScheduler : DailyModuleBase
         
         TaskHelper ??= new TaskHelper();
         
-        FrameworkManager.Reg(OnUpdate, throttleMS: 500);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 500);
     }
 
     protected override void Uninit() => 
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
     protected override void ConfigUI()
     {
@@ -278,7 +278,7 @@ public class AutoMessageScheduler : DailyModuleBase
     {
         foreach (var line in sched.MessageText.Split('\n', StringSplitOptions.RemoveEmptyEntries))
         {
-            TaskHelper.Enqueue(() => ChatManager.SendMessage(line));
+            TaskHelper.Enqueue(() => ChatManager.Instance().SendMessage(line));
             TaskHelper.DelayNext(20);
         }
     }

@@ -24,15 +24,15 @@ public unsafe class AutoClaimPVPRewards : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 5_000 };
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,   "PvpReward", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "PvpReward", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,   "PvpReward", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "PvpReward", OnAddon);
         if (PvpReward != null) 
             OnAddon(AddonEvent.PostSetup, null);
     }
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
     }
 
@@ -63,8 +63,8 @@ public unsafe class AutoClaimPVPRewards : DailyModuleBase
                             TaskHelper.Enqueue(
                                 () =>
                                 {
-                                    ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.CollectTrophyCrystal);
-                                    ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.CollectTrophyCrystal, 1);
+                                    ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.CollectTrophyCrystal);
+                                    ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.CollectTrophyCrystal, 1);
                                 },
                                 $"领取系列赛奖励_等级{i}");
 

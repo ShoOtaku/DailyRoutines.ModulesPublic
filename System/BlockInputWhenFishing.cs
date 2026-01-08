@@ -21,10 +21,10 @@ public unsafe class BlockInputWhenFishing : DailyModuleBase
 
     protected override void Init()
     {
-        IsKeyDownHook ??= DService.Hook.HookFromSignature<IsKeyDownDelegate>(IsKeyDownSig.Get(), IsKeyDownDetour);
-        DService.Condition.ConditionChange += OnConditionChanged;
+        IsKeyDownHook ??= DService.Instance().Hook.HookFromSignature<IsKeyDownDelegate>(IsKeyDownSig.Get(), IsKeyDownDetour);
+        DService.Instance().Condition.ConditionChange += OnConditionChanged;
 
-        if (DService.Condition[ConditionFlag.Gathering]) 
+        if (DService.Instance().Condition[ConditionFlag.Gathering]) 
             IsKeyDownHook.Enable();
     }
 
@@ -44,5 +44,5 @@ public unsafe class BlockInputWhenFishing : DailyModuleBase
         IsConflictKeyPressed() && IsKeyDownHook.Original(data, id);
 
     protected override void Uninit() => 
-        DService.Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
 }

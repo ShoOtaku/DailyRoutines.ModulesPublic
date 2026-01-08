@@ -26,8 +26,8 @@ public class WeeklyBingoClickToOpen : DailyModuleBase
 
     protected override unsafe void Init()
     {
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "WeeklyBingo", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "WeeklyBingo", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "WeeklyBingo", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "WeeklyBingo", OnAddon);
 
         if (WeeklyBingo->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostSetup, null);
@@ -35,7 +35,7 @@ public class WeeklyBingoClickToOpen : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
     }
 
@@ -45,7 +45,7 @@ public class WeeklyBingoClickToOpen : DailyModuleBase
         {
             if (eventHandles[index] is { } handle)
             {
-                DService.AddonEvent.RemoveEvent(handle);
+                DService.Instance().AddonEvent.RemoveEvent(handle);
                 eventHandles[index] = null;
             }
         }
@@ -58,7 +58,7 @@ public class WeeklyBingoClickToOpen : DailyModuleBase
         foreach (var index in Enumerable.Range(0, 16))
         {
             var dutySlot = addon->DutySlotList[index];
-            var handle   = DService.AddonEvent.AddEvent((nint)addon, (nint)dutySlot.DutyButton->OwnerNode, AddonEventType.ButtonClick, OnDutySlotClick);
+            var handle   = DService.Instance().AddonEvent.AddEvent((nint)addon, (nint)dutySlot.DutyButton->OwnerNode, AddonEventType.ButtonClick, OnDutySlotClick);
             eventHandles[index] = handle;
         }
     }

@@ -56,11 +56,11 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_TargetInfo", UpdateTargetInfo);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_TargetInfoMainTarget",
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_TargetInfo", UpdateTargetInfo);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_TargetInfoMainTarget",
                                                 UpdateTargetInfoMainTarget);
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_FocusTargetInfo", UpdateFocusTargetInfo);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_FocusTargetInfo", UpdateFocusTargetInfo);
     }
 
     protected override void ConfigUI()
@@ -116,7 +116,7 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
                 if (ImGui.InputText($"###{categoryTitle}", ref config, 64))
                     SaveConfig(ModuleConfig);
 
-                if (DService.ObjectTable.LocalPlayer != null && DService.ObjectTable.LocalPlayer is ICharacter chara)
+                if (DService.Instance().ObjectTable.LocalPlayer != null && DService.Instance().ObjectTable.LocalPlayer is ICharacter chara)
                 {
                     ImGui.TableNextRow();
 
@@ -193,9 +193,9 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(UpdateTargetInfo);
-        DService.AddonLifecycle.UnregisterListener(UpdateTargetInfoMainTarget);
-        DService.AddonLifecycle.UnregisterListener(UpdateFocusTargetInfo);
+        DService.Instance().AddonLifecycle.UnregisterListener(UpdateTargetInfo);
+        DService.Instance().AddonLifecycle.UnregisterListener(UpdateTargetInfoMainTarget);
+        DService.Instance().AddonLifecycle.UnregisterListener(UpdateFocusTargetInfo);
     }
 
     private class Payload(string placeholder, string description, Func<ICharacter, string> valueFunc)

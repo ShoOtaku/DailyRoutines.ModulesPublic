@@ -60,7 +60,7 @@ public class AutoRisingstoneCheckIn : DailyModuleBase
         TaskHelper ??= new() { TimeLimitMS = 30_000 };
         TaskHelper.EnqueueAsync(() => ExecuteCheckIn(this));
         
-        FrameworkManager.Reg(OnUpdate, throttleMS: 60_000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 60_000);
     }
 
     protected override void ConfigUI()
@@ -111,7 +111,7 @@ public class AutoRisingstoneCheckIn : DailyModuleBase
 
     protected override void Uninit()
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         
         RisingstonePort  = null;
         NextAttemptAfter = null;

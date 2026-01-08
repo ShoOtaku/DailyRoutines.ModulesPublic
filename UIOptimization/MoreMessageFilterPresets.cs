@@ -40,11 +40,11 @@ public class MoreMessageFilterPresets : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        DService.ContextMenu.OnMenuOpened += OnMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened += OnMenuOpened;
     }
 
     protected override void Uninit() =>
-        DService.ContextMenu.OnMenuOpened -= OnMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpened;
 
     protected override void ConfigUI()
     {

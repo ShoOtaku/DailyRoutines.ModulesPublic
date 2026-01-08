@@ -23,7 +23,7 @@ public class AutoRedirectDashActions : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        UseActionManager.RegPreUseActionLocation(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseActionLocation(OnPreUseAction);
     }
 
     protected override void ConfigUI()
@@ -45,7 +45,7 @@ public class AutoRedirectDashActions : DailyModuleBase
         {
             if (!LuminaGetter.TryGetRow<Action>(actionPair.Key, out var data)) continue;
 
-            var actionIcon = DService.Texture.GetFromGameIcon(new(data.Icon)).GetWrapOrDefault();
+            var actionIcon = DService.Instance().Texture.GetFromGameIcon(new(data.Icon)).GetWrapOrDefault();
             if (actionIcon == null) continue;
 
             using var id = ImRaii.PushId($"{actionPair.Key}");
@@ -83,14 +83,14 @@ public class AutoRedirectDashActions : DailyModuleBase
         var adjustedAction = ActionManager.Instance()->GetAdjustedActionId(actionID);
         if (!ModuleConfig.ActionsEnabled.TryGetValue(adjustedAction, out var isEnabled) || !isEnabled) return;
 
-        var localPlayer = DService.ObjectTable.LocalPlayer;
+        var localPlayer = DService.Instance().ObjectTable.LocalPlayer;
         if (localPlayer == null) return;
 
         if (!LuminaGetter.TryGetRow<Action>(adjustedAction, out var data)) return;
         if (data is not { TargetArea: true }) return;
 
         if (ActionManager.Instance()->GetActionStatus(actionType, adjustedAction) != 0) return;
-        if (!DService.Gui.ScreenToWorld(ImGui.GetMousePos(), out var pos)) return;
+        if (!DService.Instance().Gui.ScreenToWorld(ImGui.GetMousePos(), out var pos)) return;
 
         pos      = AdjustTargetPosition(localPlayer.Position, pos, data.Range);
         location = pos;
@@ -113,7 +113,7 @@ public class AutoRedirectDashActions : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        UseActionManager.Unreg(OnPreUseAction);
+        UseActionManager.Instance().Unreg(OnPreUseAction);
 
     private class Config : ModuleConfiguration
     {

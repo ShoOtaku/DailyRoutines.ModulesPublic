@@ -27,7 +27,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        DService.ContextMenu.OnMenuOpened += OnMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened += OnMenuOpened;
     }
 
     protected override void ConfigUI()
@@ -57,7 +57,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
     private static void OnMenuOpened(IMenuOpenedArgs args)
     {
         // 检查是否有有效的物品ID
-        if (!ContextMenuItemManager.IsValidItem) return;
+        if (!ContextMenuItemManager.Instance().IsValidItem) return;
         
         // 添加菜单项
         AddContextMenuItemsByConfig(args);
@@ -77,7 +77,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
     #endregion
 
     protected override void Uninit() => 
-        DService.ContextMenu.OnMenuOpened -= OnMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpened;
 
     private class Config : ModuleConfiguration
     {
@@ -151,10 +151,10 @@ public class ExpandItemMenuSearch : DailyModuleBase
             var itemName = string.Empty;
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
-            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
+            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.Instance().CurrentGlamourID > 0)
+                itemName = ContextMenuItemManager.Instance().CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
+                itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
                 Util.OpenLink(string.Format(Url, itemName));
@@ -174,10 +174,10 @@ public class ExpandItemMenuSearch : DailyModuleBase
             var itemName = string.Empty;
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
-            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
+            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.Instance().CurrentGlamourID > 0)
+                itemName = ContextMenuItemManager.Instance().CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
+                itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
                 Util.OpenLink(string.Format(Url, itemName));
@@ -198,10 +198,10 @@ public class ExpandItemMenuSearch : DailyModuleBase
             var itemName = string.Empty;
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
-            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
+            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.Instance().CurrentGlamourID > 0)
+                itemName = ContextMenuItemManager.Instance().CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
+                itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
                 Util.OpenLink(string.Format(Url, Uri.EscapeDataString(itemName)));
@@ -222,10 +222,10 @@ public class ExpandItemMenuSearch : DailyModuleBase
             var itemID = 0U;
 
             // 优先使用幻化物品ID（如果配置了优先幻化且有幻化物品）
-            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemID = ContextMenuItemManager.CurrentGlamourID;
+            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.Instance().CurrentGlamourID > 0)
+                itemID = ContextMenuItemManager.Instance().CurrentGlamourID;
             else
-                itemID = ContextMenuItemManager.CurrentItemID;
+                itemID = ContextMenuItemManager.Instance().CurrentItemID;
 
             if (itemID != 0)
                 Util.OpenLink(string.Format(Url, itemID));
@@ -246,10 +246,10 @@ public class ExpandItemMenuSearch : DailyModuleBase
             var itemID = 0U;
 
             // 优先使用幻化物品ID（如果配置了优先幻化且有幻化物品）
-            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemID = ContextMenuItemManager.CurrentGlamourID;
+            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.Instance().CurrentGlamourID > 0)
+                itemID = ContextMenuItemManager.Instance().CurrentGlamourID;
             else
-                itemID = ContextMenuItemManager.CurrentItemID;
+                itemID = ContextMenuItemManager.Instance().CurrentItemID;
 
             if (itemID != 0)
                 Util.OpenLink(string.Format(Url, itemID));
@@ -270,10 +270,10 @@ public class ExpandItemMenuSearch : DailyModuleBase
             var itemName = string.Empty;
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
-            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
+            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.Instance().CurrentGlamourID > 0)
+                itemName = ContextMenuItemManager.Instance().CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
+                itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
                 Util.OpenLink(string.Format(Url, itemName));
@@ -294,10 +294,10 @@ public class ExpandItemMenuSearch : DailyModuleBase
             var itemName = string.Empty;
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
-            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
+            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.Instance().CurrentGlamourID > 0)
+                itemName = ContextMenuItemManager.Instance().CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
+                itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
                 Util.OpenLink(string.Format(Url, Uri.EscapeDataString(itemName)));
@@ -317,10 +317,10 @@ public class ExpandItemMenuSearch : DailyModuleBase
             var itemName = string.Empty;
 
             // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
-            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.CurrentGlamourItem?.Name.ToString();
+            if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.Instance().CurrentGlamourID > 0)
+                itemName = ContextMenuItemManager.Instance().CurrentGlamourItem?.Name.ToString();
             else
-                itemName = ContextMenuItemManager.CurrentItem?.Name.ToString();
+                itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
             
             if (!string.IsNullOrWhiteSpace(itemName))
             {
@@ -331,7 +331,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
         }
         
         private static string GetPrefixByLang() =>
-            DService.ClientState.ClientLanguage switch
+            DService.Instance().ClientState.ClientLanguage switch
             {
                 ClientLanguage.English  => "en.",
                 ClientLanguage.Japanese => string.Empty,

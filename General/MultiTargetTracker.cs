@@ -13,6 +13,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -38,16 +39,16 @@ public class MultiTargetTracker : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        FrameworkManager.Reg(OnUpdate, false, 1500);
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.ContextMenu.OnMenuOpened     += OnMenuOpen;
+        FrameworkManager.Instance().Reg(OnUpdate, false, 1500);
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ContextMenu.OnMenuOpened     += OnMenuOpen;
     }
 
     protected override void Uninit()
     {
-        DService.ContextMenu.OnMenuOpened -= OnMenuOpen;
-        FrameworkManager.Unreg(OnUpdate);
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpen;
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
 
         TempTrackedPlayers.Clear();
     }
@@ -129,7 +130,7 @@ public class MultiTargetTracker : DailyModuleBase
 
         Dictionary<ulong, Vector3> validPlayers = [];
 
-        foreach (var player in DService.ObjectTable)
+        foreach (var player in DService.Instance().ObjectTable)
         {
             if (validPlayers.Count >= 8) break;
 

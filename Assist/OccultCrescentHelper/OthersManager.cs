@@ -60,14 +60,14 @@ public partial class OccultCrescentHelper
             if (isAnyNewJobOrder)
                 ModuleConfig.Save(MainModule);
 
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "MKDInfo", OnAddon);
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MKDInfo", OnAddon);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "MKDInfo", OnAddon);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MKDInfo", OnAddon);
 
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "_CharaSelectListMenu", OnLogin);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "_CharaSelectListMenu", OnLogin);
 
-            DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "_ActionContents", OnActionContents);
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "_ActionContents", OnActionContents);
 
-            DService.ClientState.TerritoryChanged += OnZoneChanged;
+            DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
             OnZoneChanged(0);
 
             SupportJobChangeAddon ??= new()
@@ -78,7 +78,7 @@ public partial class OccultCrescentHelper
                 RememberClosePosition = true
             };
 
-            AgentMKDSupportJobShowHook ??= DService.Hook.HookFromAddress<AgentShowDelegate>(
+            AgentMKDSupportJobShowHook ??= DService.Instance().Hook.HookFromAddress<AgentShowDelegate>(
                 AgentMKDSupportJob.Instance()->VirtualTable->GetVFuncByName("Show"),
                 AgentMKDSupportJobShowDetour);
             AgentMKDSupportJobShowHook.Enable();
@@ -196,7 +196,7 @@ public partial class OccultCrescentHelper
                     ImGui.SameLine();
                     if (ImGui.Button($"{GetLoc("Current")}##SetDefaultPositionEnterZoneSouthHorn"))
                     {
-                        ModuleConfig.DefaultPositionEnterZoneSouthHorn = DService.ObjectTable.LocalPlayer?.Position ?? default;
+                        ModuleConfig.DefaultPositionEnterZoneSouthHorn = DService.Instance().ObjectTable.LocalPlayer?.Position ?? default;
                         ModuleConfig.Save(MainModule);
                     }
 
@@ -254,12 +254,12 @@ public partial class OccultCrescentHelper
             AgentMKDSupportJobShowHook?.Dispose();
             AgentMKDSupportJobShowHook = null;
 
-            DService.AddonLifecycle.UnregisterListener(OnActionContents);
+            DService.Instance().AddonLifecycle.UnregisterListener(OnActionContents);
 
-            DService.AddonLifecycle.UnregisterListener(OnLogin);
+            DService.Instance().AddonLifecycle.UnregisterListener(OnLogin);
 
-            DService.ClientState.TerritoryChanged -= OnZoneChanged;
-            DService.AddonLifecycle.UnregisterListener(OnAddon);
+            DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+            DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
             OnAddon(AddonEvent.PreFinalize, null);
 
             OthersTaskHelper?.Abort();
@@ -304,9 +304,9 @@ public partial class OccultCrescentHelper
                     foreach (var plugin in pluginsNames)
                     {
                         if (string.IsNullOrWhiteSpace(plugin)) continue;
-                        if (!DService.PI.IsPluginEnabled(plugin)) continue;
+                        if (!DService.Instance().PI.IsPluginEnabled(plugin)) continue;
 
-                        ChatManager.SendMessage($"/xldisableplugin {plugin}");
+                        ChatManager.Instance().SendMessage($"/xldisableplugin {plugin}");
                     }
                 }
 
@@ -325,7 +325,7 @@ public partial class OccultCrescentHelper
                 Chat(message);
             }
 
-            Entry       ??= DService.DtrBar.Get("DailyRoutines-OccultCrescentHelper-IslandID");
+            Entry       ??= DService.Instance().DtrBar.Get("DailyRoutines-OccultCrescentHelper-IslandID");
             Entry.Text  =   $"{GetLoc("OccultCrescentHelper-OthersManager-IslandID")}: {islandID}";
             Entry.Shown =   ModuleConfig.IsEnabledIslandIDDTR;
 
@@ -336,7 +336,7 @@ public partial class OccultCrescentHelper
                 OthersTaskHelper.Abort();
                 OthersTaskHelper.Enqueue(() =>
                 {
-                    if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
+                    if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
                     if (localPlayer.IsDead) return true;
 
                     MovementManager.TPPlayerAddress(ModuleConfig.DefaultPositionEnterZoneSouthHorn);
@@ -350,9 +350,9 @@ public partial class OccultCrescentHelper
                 foreach (var plugin in pluginsNames)
                 {
                     if (string.IsNullOrWhiteSpace(plugin)) continue;
-                    if (DService.PI.IsPluginEnabled(plugin)) continue;
+                    if (DService.Instance().PI.IsPluginEnabled(plugin)) continue;
 
-                    ChatManager.SendMessage($"/xlenableplugin {plugin}");
+                    ChatManager.Instance().SendMessage($"/xlenableplugin {plugin}");
                 }
             }
         }
@@ -390,7 +390,7 @@ public partial class OccultCrescentHelper
                             IsVisible   = true,
                             SeString    = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementalLevel).Build().Encode(),
                             TextTooltip = GetLoc("OccultCrescentHelper-Command-PBuff-Help"),
-                            OnClick     = () => ChatManager.SendMessage("/pdr pbuff")
+                            OnClick     = () => ChatManager.Instance().SendMessage("/pdr pbuff")
                         };
 
                         BuffButton.AddColor      = new(0, 0.1254902f, 0.5019608f);
@@ -417,7 +417,7 @@ public partial class OccultCrescentHelper
                     }
 
                     if (Throttler.Throttle("OccultCrescentHelper-OthersManager-RefreshBuffButton"))
-                        BuffButton.Alpha = !DService.Condition[ConditionFlag.InCombat] && CrescentSupportJob.TryFindKnowledgeCrystal(out _) ? 1f : 0.6f;
+                        BuffButton.Alpha = !DService.Instance().Condition[ConditionFlag.InCombat] && CrescentSupportJob.TryFindKnowledgeCrystal(out _) ? 1f : 0.6f;
 
                     if (ModuleConfig.IsEnabledModifyInfoHUD && SettingButton == null)
                     {
@@ -483,7 +483,7 @@ public partial class OccultCrescentHelper
                     if (Throttler.Throttle("OthersManager-OthersManager-IslandID-DTR"))
                     {
                         var islandID = GetIslandID();
-                        Entry       ??= DService.DtrBar.Get("DailyRoutines-OccultCrescentHelper-IslandID");
+                        Entry       ??= DService.Instance().DtrBar.Get("DailyRoutines-OccultCrescentHelper-IslandID");
                         Entry.Text  =   $"{GetLoc("OccultCrescentHelper-OthersManager-IslandID")}: {islandID}";
                         Entry.Shown =   ModuleConfig.IsEnabledIslandIDDTR;
                     }
@@ -557,7 +557,7 @@ public partial class OccultCrescentHelper
 
             protected override void OnUpdate(AtkUnitBase* addon)
             {
-                if (MKDInfo == null || DService.KeyState[VirtualKey.ESCAPE])
+                if (MKDInfo == null || DService.Instance().KeyState[VirtualKey.ESCAPE])
                 {
                     Close();
                     return;
@@ -692,7 +692,7 @@ public partial class OccultCrescentHelper
                         TextureSize        = new(28, 28),
                         OnClick = () =>
                         {
-                            if (DService.Condition[ConditionFlag.InCombat] || presetJob.IsThisJob() || presetJob.CurrentLevel == 0) return;
+                            if (DService.Instance().Condition[ConditionFlag.InCombat] || presetJob.IsThisJob() || presetJob.CurrentLevel == 0) return;
                             presetJob.ChangeTo();
                             Close();
                         },

@@ -75,7 +75,7 @@ public unsafe class AutoDisplayPlayerHitbox : DailyModuleBase
 
             ImGui.SameLine();
             if (ImGui.Button($"{FontAwesomeIcon.Icons.ToIconString()}"))
-                ChatManager.SendCommand("/xldata icon");
+                ChatManager.Instance().SendCommand("/xldata icon");
             ImGuiOm.TooltipHover($"{GetLoc("IconBrowser")}\n({GetLoc("IconBrowser-Suggestion")})");
             
             if (ImGui.InputFloat3(GetLoc("Offset"), ref ModuleConfig.Offset, 0.1f, 1f, "%.1f"))
@@ -117,15 +117,15 @@ public unsafe class AutoDisplayPlayerHitbox : DailyModuleBase
 
             Timeline?.PlayAnimation(1);
 
-            if (DService.ObjectTable.LocalPlayer is not { } localPlayer)
+            if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
             {
                 IsVisible = false;
                 return;
             }
 
-            IsVisible = !DService.Condition[ConditionFlag.Occupied38]                                   &&
-                        (!ModuleConfig.OnlyInCombat   || DService.Condition[ConditionFlag.InCombat])    &&
-                        (!ModuleConfig.OnlyInDuty     || DService.Condition[ConditionFlag.BoundByDuty]) &&
+            IsVisible = !DService.Instance().Condition[ConditionFlag.Occupied38]                                   &&
+                        (!ModuleConfig.OnlyInCombat   || DService.Instance().Condition[ConditionFlag.InCombat])    &&
+                        (!ModuleConfig.OnlyInDuty     || DService.Instance().Condition[ConditionFlag.BoundByDuty]) &&
                         (!ModuleConfig.OnlyUnsheathed || IsWeaponUnsheathed());
 
             if (!IsVisible)
@@ -136,7 +136,7 @@ public unsafe class AutoDisplayPlayerHitbox : DailyModuleBase
             float cos    = MathF.Cos(angle), sin = MathF.Sin(angle);
 
             var rotatedOffset = new Vector3((cos * offset.X) - (sin * offset.Z), offset.Y, (sin * offset.X) + (cos * offset.Z));
-            DService.Gui.WorldToScreen(localPlayer.Position + rotatedOffset, out var screenPos);
+            DService.Instance().Gui.WorldToScreen(localPlayer.Position + rotatedOffset, out var screenPos);
 
             Position = screenPos - (imageNode.Size / 2f);
         }

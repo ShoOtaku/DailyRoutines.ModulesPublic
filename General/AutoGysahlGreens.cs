@@ -9,6 +9,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -38,7 +39,7 @@ public unsafe class AutoGysahlGreens : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged((ushort)GameState.TerritoryType);
     }
 
@@ -88,11 +89,11 @@ public unsafe class AutoGysahlGreens : DailyModuleBase
 
     private static void OnZoneChanged(ushort zone)
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         HasNotifiedInCurrentZone = false;
 
         if (ValidTerritory.Contains(zone))
-            FrameworkManager.Reg(OnUpdate, throttleMS: 5_000);
+            FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 5_000);
     }
 
     private static void OnUpdate(IFramework framework)
@@ -140,18 +141,18 @@ public unsafe class AutoGysahlGreens : DailyModuleBase
             return;
         }
 
-        UseActionManager.UseActionLocation(ActionType.Item, GysahlGreens, extraParam: 0xFFFF);
+        UseActionManager.Instance().UseActionLocation(ActionType.Item, GysahlGreens, extraParam: 0xFFFF);
     }
 
     private static void SwitchCommand(ChocoboStance command) =>
-        UseActionManager.UseAction(ActionType.BuddyAction, (uint)command);
+        UseActionManager.Instance().UseAction(ActionType.BuddyAction, (uint)command);
 
     private static bool IsInDuty() => 
         GameState.ContentFinderCondition != 0;
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         OnZoneChanged(0);
     }
 

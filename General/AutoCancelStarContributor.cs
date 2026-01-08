@@ -20,41 +20,41 @@ public unsafe class AutoCancelStarContributor : DailyModuleBase
 
     protected override void Init()
     {
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.ClientState.ClassJobChanged  -= OnClassJobChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.ClassJobChanged  -= OnClassJobChanged;
         
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
     
     private static void OnZoneChanged(ushort zone)
     {
-        FrameworkManager.Unreg(OnUpdate);
-        DService.ClientState.ClassJobChanged -= OnClassJobChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        DService.Instance().ClientState.ClassJobChanged -= OnClassJobChanged;
         
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.CosmicExploration) return;
         
-        FrameworkManager.Reg(OnUpdate, throttleMS: 10_000);
-        DService.ClientState.ClassJobChanged  += OnClassJobChanged;
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 10_000);
+        DService.Instance().ClientState.ClassJobChanged  += OnClassJobChanged;
     }
     
     private static void OnClassJobChanged(uint classJobID) => 
-        OnUpdate(DService.Framework);
+        OnUpdate(DService.Instance().Framework);
 
     private static void OnUpdate(IFramework framework)
     {
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.CosmicExploration)
         {
-            FrameworkManager.Unreg(OnUpdate);
+            FrameworkManager.Instance().Unreg(OnUpdate);
             return;
         }
         
-        if (BetweenAreas || DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
+        if (BetweenAreas || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
         
         var statusManager = localPlayer.ToStruct()->StatusManager;
         if (!statusManager.HasStatus(StarContributorBuffID)) return;

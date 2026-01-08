@@ -30,7 +30,7 @@ public class AutoJumboCactpot : DailyModuleBase
 
         TaskHelper ??= new() { TimeoutMS = 5_000 };
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "LotteryWeeklyInput", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "LotteryWeeklyInput", OnAddon);
         if (LotteryWeeklyInput->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -100,7 +100,7 @@ public class AutoJumboCactpot : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
     private class Config : ModuleConfiguration
     {

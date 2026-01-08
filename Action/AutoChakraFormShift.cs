@@ -5,6 +5,7 @@ using Dalamud.Game.ClientState.JobGauge.Types;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -26,9 +27,9 @@ public class AutoChakraFormShift : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 30_000 };
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
-        DService.Condition.ConditionChange    += OnConditionChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().DutyState.DutyRecommenced    += OnDutyRecommenced;
+        DService.Instance().Condition.ConditionChange    += OnConditionChanged;
     }
 
     private bool CheckCurrentJob()
@@ -46,7 +47,7 @@ public class AutoChakraFormShift : DailyModuleBase
     
     private unsafe bool UseRelatedActions()
     {
-        var gauge = DService.JobGauges.Get<MNKGauge>();
+        var gauge = DService.Instance().JobGauges.Get<MNKGauge>();
 
         var localPlayer = Control.GetLocalPlayer();
         if (localPlayer == null) return false;
@@ -70,7 +71,7 @@ public class AutoChakraFormShift : DailyModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, action), $"UseAction_{action}", 2_000, weight: 1);
+        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, action), $"UseAction_{action}", 2_000, weight: 1);
         TaskHelper.DelayNext(500, $"Delay_Use{action}", 1);
         TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
         return true;
@@ -109,8 +110,8 @@ public class AutoChakraFormShift : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.DutyState.DutyRecommenced -= OnDutyRecommenced;
-        DService.Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().DutyState.DutyRecommenced -= OnDutyRecommenced;
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
     }
 }

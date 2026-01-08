@@ -76,7 +76,7 @@ public class BetterFateProgressUI : DailyModuleBase
         Overlay.SizeConstraints = new() { MinimumSize = ChildSize, };
         Overlay.WindowName = $"{LuminaGetter.GetRow<Addon>(3933)!.Value.Text.ToString()}###BetterFateProgressUI";
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "FateProgress", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "FateProgress", OnAddon);
     }
 
     protected override void ConfigUI()
@@ -105,7 +105,7 @@ public class BetterFateProgressUI : DailyModuleBase
 
     protected override void OverlayUI()
     {
-        using var fontPush = FontManager.UIFont120.Push();
+        using var fontPush = FontManager.Instance().UIFont120.Push();
         DrawBicolorGemComponent();
         DrawFateProgressTabs();
     }
@@ -189,7 +189,7 @@ public class BetterFateProgressUI : DailyModuleBase
 
     private static void RefreshBackgroundTextures()
     {
-        DService.Framework.Run(() =>
+        DService.Instance().Framework.Run(() =>
         {
             const string uldPath = "ui/uld/FateProgress.uld";
             
@@ -199,7 +199,7 @@ public class BetterFateProgressUI : DailyModuleBase
                 
                 for (var i = 0; i < zoneInfos.Count; i++)
                 {
-                    var texture = DService.PI.UiBuilder.LoadUld(uldPath).LoadTexturePart(texturePath, i);
+                    var texture = DService.Instance().PI.UiBuilder.LoadUld(uldPath).LoadTexturePart(texturePath, i);
                     zoneInfos[i].SetBackgroundTexture(texture);
                 }
             }
@@ -209,7 +209,7 @@ public class BetterFateProgressUI : DailyModuleBase
     private static void ObtainAllFateProgress()
     {
         foreach (var achivement in AchievementToZone.Keys)
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.RequestAchievement, achivement);
+            ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RequestAchievement, achivement);
     }
 
     private unsafe void OnAddon(AddonEvent type, AddonArgs args)
@@ -223,7 +223,7 @@ public class BetterFateProgressUI : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         
         CancelSource?.Cancel();
         CancelSource?.Dispose();
@@ -286,7 +286,7 @@ public class BetterFateProgressUI : DailyModuleBase
 
         private void DrawFateProgress()
         {
-            if (!AchievementManager.TryGetAchievement(AchievementID, out var achievement))
+            if (!AchievementManager.Instance().TryGetAchievement(AchievementID, out var achievement))
                 return;
             
             var fateProgress = achievement.Current;

@@ -43,28 +43,28 @@ public unsafe class OptimizedQuickPanel : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        ChatManager.RegPreExecuteCommandInner(OnPreExecuteCommandInner);
+        ChatManager.Instance().RegPreExecuteCommandInner(OnPreExecuteCommandInner);
         
-        AgentQuickPanelShowHook = DService.Hook.HookFromAddress<AgentShowDelegate>(
+        AgentQuickPanelShowHook = DService.Instance().Hook.HookFromAddress<AgentShowDelegate>(
             AgentQuickPanel.Instance()->VirtualTable->GetVFuncByName("Show"),
             AgentQuickPanelShowDetour);
         AgentQuickPanelShowHook.Enable();
         
-        ToggleUIHook = DService.Hook.HookFromAddress<ToggleUIDelegate>(
+        ToggleUIHook = DService.Instance().Hook.HookFromAddress<ToggleUIDelegate>(
             UIModule.Instance()->VirtualTable->GetVFuncByName("ToggleUi"),
             ToggleUIDetour);
         ToggleUIHook.Enable(); 
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "QuickPanel", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "QuickPanel", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "QuickPanel", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "QuickPanel", OnAddon);
 
         UpdateAddonFlags();
     }
 
     protected override void Uninit()
     {
-        ChatManager.Unreg(OnPreExecuteCommandInner);
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        ChatManager.Instance().Unreg(OnPreExecuteCommandInner);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
     }
 

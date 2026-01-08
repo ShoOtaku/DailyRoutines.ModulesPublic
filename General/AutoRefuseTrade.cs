@@ -29,12 +29,12 @@ public unsafe class AutoRefuseTrade : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        AgentTradeShowHook ??= DService.Hook.HookFromAddress<AgentShowDelegate>(
+        AgentTradeShowHook ??= DService.Instance().Hook.HookFromAddress<AgentShowDelegate>(
             AgentModule.Instance()->GetAgentByInternalId(AgentId.Trade)->VirtualTable->GetVFuncByName("Show"),
             AgentTradeShowDetour);
         AgentTradeShowHook.Enable();
 
-        TradeRequestHook ??= DService.Hook.HookFromAddress<TradeRequestDelegate>(
+        TradeRequestHook ??= DService.Instance().Hook.HookFromAddress<TradeRequestDelegate>(
             GetMemberFuncByName(typeof(InventoryManager.MemberFunctionPointers), "SendTradeRequest"),
             TradeRequestDetour);
         TradeRequestHook.Enable();
@@ -92,7 +92,7 @@ public unsafe class AutoRefuseTrade : DailyModuleBase
         if (!string.IsNullOrWhiteSpace(ModuleConfig.ExtraCommands))
         {
             foreach (var command in ModuleConfig.ExtraCommands.Split('\n'))
-                ChatManager.SendMessage(command);
+                ChatManager.Instance().SendMessage(command);
         }
     }
 

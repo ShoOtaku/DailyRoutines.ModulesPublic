@@ -54,7 +54,7 @@ public unsafe class AutoSplitStacks : DailyModuleBase
                              [x => x.Name.ToString(), x => x.RowId.ToString()]);
 
         CommandManager.AddCommand(Command, new(OnCommand) { HelpMessage = GetLoc("AutoSplitStacks-CommandHelp") });
-        DService.ContextMenu.OnMenuOpened += OnMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened += OnMenuOpened;
 
         WindowManager.Draw += OnDraw;
     }
@@ -377,7 +377,7 @@ public unsafe class AutoSplitStacks : DailyModuleBase
         WindowManager.Draw -= OnDraw;
         
         CommandManager.RemoveCommand(Command);
-        DService.ContextMenu.OnMenuOpened -= OnMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpened;
 
         FastSplitItemID = 0;
         IsNeedToOpen    = false;

@@ -65,20 +65,20 @@ public class HealerHelper : DailyModuleBase
         Task.Run(async () => await RemoteRepoManager.FetchAll());
 
         // register hooks
-        UseActionManager.RegPreUseActionLocation(OnPreUseAction);
-        DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.Condition.ConditionChange    += OnConditionChanged;
-        FrameworkManager.Reg(OnUpdate, throttleMS: 5_000);
+        UseActionManager.Instance().RegPreUseActionLocation(OnPreUseAction);
+        DService.Instance().DutyState.DutyRecommenced    += OnDutyRecommenced;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().Condition.ConditionChange    += OnConditionChanged;
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 5_000);
     }
 
     protected override void Uninit()
     {
-        UseActionManager.Unreg(OnPreUseAction);
-        DService.DutyState.DutyRecommenced    -= OnDutyRecommenced;
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.Condition.ConditionChange    -= OnConditionChanged;
-        FrameworkManager.Unreg(OnUpdate);
+        UseActionManager.Instance().Unreg(OnPreUseAction);
+        DService.Instance().DutyState.DutyRecommenced    -= OnDutyRecommenced;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().Condition.ConditionChange    -= OnConditionChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 
     #endregion
@@ -493,7 +493,7 @@ public class HealerHelper : DailyModuleBase
         ref byte       a7
     )
     {
-        if (type != ActionType.Action || GameState.IsInPVPArea || DService.PartyList.Length < 2)
+        if (type != ActionType.Action || GameState.IsInPVPArea || DService.Instance().PartyList.Length < 2)
             return;
 
         // job check
@@ -556,12 +556,12 @@ public class HealerHelper : DailyModuleBase
         // party member changed?
         try
         {
-            var inPvEParty = DService.PartyList.Length > 1 && !GameState.IsInPVPArea;
+            var inPvEParty = DService.Instance().PartyList.Length > 1 && !GameState.IsInPVPArea;
             if (!inPvEParty)
                 return;
 
             // need to update candidates?
-            var ids = DService.PartyList.Select(m => m.EntityId).ToHashSet();
+            var ids = DService.Instance().PartyList.Select(m => m.EntityId).ToHashSet();
             if (!ids.SetEquals(AutoPlayCardService.PartyMemberIdsCache) || AutoPlayCardService.NeedReorder)
             {
                 // party member changed, update candidates
@@ -581,7 +581,7 @@ public class HealerHelper : DailyModuleBase
     #region Utils
 
     private static IPartyMember? FetchMember(uint id)
-        => DService.PartyList.FirstOrDefault(m => m.EntityId == id);
+        => DService.Instance().PartyList.FirstOrDefault(m => m.EntityId == id);
 
     private static unsafe uint? FetchMemberIndex(uint id)
         => (uint)AgentHUD.Instance()->PartyMembers.ToArray()
@@ -767,7 +767,7 @@ public class HealerHelper : DailyModuleBase
             rangeCandidateOrder.Clear();
 
             // find card candidates
-            var partyList = DService.PartyList; // role [1 tank, 2 melee, 3 range, 4 healer]
+            var partyList = DService.Instance().PartyList; // role [1 tank, 2 melee, 3 range, 4 healer]
             var isAST     = LocalPlayerState.ClassJob == 33;
             if (GameState.IsInPVPArea || partyList.Length < 2 || !isAST || config.AutoPlayCard == AutoPlayCardStatus.Disable)
                 return;
@@ -832,14 +832,14 @@ public class HealerHelper : DailyModuleBase
 
             foreach (var member in candidates)
             {
-                var candidate = DService.PartyList.FirstOrDefault(m => m.EntityId == member.id);
+                var candidate = DService.Instance().PartyList.FirstOrDefault(m => m.EntityId == member.id);
                 if (candidate is null)
                     continue;
 
                 // member skip conditions: out of range, dead, or weakened
                 var maxDistance    = ActionManager.GetActionRange(37023);
                 var memberDead     = candidate.GameObject.IsDead || candidate.CurrentHP <= 0;
-                var memberDistance = Vector3.DistanceSquared(candidate.Position, DService.ObjectTable.LocalPlayer.Position);
+                var memberDistance = Vector3.DistanceSquared(candidate.Position, DService.Instance().ObjectTable.LocalPlayer.Position);
                 if (memberDead || memberDistance > maxDistance * maxDistance)
                     continue;
 
@@ -861,7 +861,7 @@ public class HealerHelper : DailyModuleBase
 
         public void OnPrePlayCard(ref ulong targetID, ref uint actionID)
         {
-            var partyMemberIds = DService.PartyList.Select(m => m.EntityId).ToHashSet();
+            var partyMemberIds = DService.Instance().PartyList.Select(m => m.EntityId).ToHashSet();
             if (!partyMemberIds.Contains((uint)targetID))
             {
                 targetID = actionID switch
@@ -995,7 +995,7 @@ public class HealerHelper : DailyModuleBase
 
         private uint TargetNeedHeal(uint actionID)
         {
-            var partyList  = DService.PartyList;
+            var partyList  = DService.Instance().PartyList;
             var lowRatio   = 2f;
             var needHealID = UnspecificTargetID;
 
@@ -1005,7 +1005,7 @@ public class HealerHelper : DailyModuleBase
                     continue;
 
                 var maxDistance = ActionManager.GetActionRange(actionID);
-                var withinRange = Vector3.DistanceSquared(member.Position, DService.ObjectTable.LocalPlayer.Position) <= maxDistance * maxDistance;
+                var withinRange = Vector3.DistanceSquared(member.Position, DService.Instance().ObjectTable.LocalPlayer.Position) <= maxDistance * maxDistance;
                 var memberDead  = member.GameObject.IsDead || member.CurrentHP <= 0;
                 if (memberDead || !withinRange)
                     continue;
@@ -1023,10 +1023,10 @@ public class HealerHelper : DailyModuleBase
 
         private static uint TargetNeedDispel(bool reverse = false)
         {
-            var partyList = DService.PartyList;
+            var partyList = DService.Instance().PartyList;
 
             // first dispel local player
-            var localStatus = DService.ObjectTable.LocalPlayer.StatusList;
+            var localStatus = DService.Instance().ObjectTable.LocalPlayer.StatusList;
             foreach (var status in localStatus)
             {
                 if (PresetSheet.DispellableStatuses.ContainsKey(status.StatusID))
@@ -1043,7 +1043,7 @@ public class HealerHelper : DailyModuleBase
                     continue;
 
                 var maxDistance = ActionManager.GetActionRange(7568);
-                var withinRange = Vector3.DistanceSquared(member.Position, DService.ObjectTable.LocalPlayer.Position) <= maxDistance * maxDistance;
+                var withinRange = Vector3.DistanceSquared(member.Position, DService.Instance().ObjectTable.LocalPlayer.Position) <= maxDistance * maxDistance;
                 var memberDead  = member.GameObject.IsDead || member.CurrentHP <= 0;
                 if (memberDead || !withinRange)
                     continue;
@@ -1060,7 +1060,7 @@ public class HealerHelper : DailyModuleBase
 
         private static uint TargetNeedRaise(uint actionID, bool reverse = false)
         {
-            var partyList = DService.PartyList;
+            var partyList = DService.Instance().PartyList;
 
             // raise in order (or reverse order)
             var sortedPartyList = reverse
@@ -1072,7 +1072,7 @@ public class HealerHelper : DailyModuleBase
                     continue;
 
                 var maxDistance  = ActionManager.GetActionRange(actionID);
-                var withinRange  = Vector3.DistanceSquared(member.Position, DService.ObjectTable.LocalPlayer.Position) <= maxDistance * maxDistance;
+                var withinRange  = Vector3.DistanceSquared(member.Position, DService.Instance().ObjectTable.LocalPlayer.Position) <= maxDistance * maxDistance;
                 var memberRaised = member.Statuses.Any(x => x.StatusId is 148);
                 var memberDead   = member.GameObject.IsDead || member.CurrentHP <= 0;
                 if (memberDead && !memberRaised && withinRange)
@@ -1090,7 +1090,7 @@ public class HealerHelper : DailyModuleBase
 
         public void OnPreHeal(ref ulong targetID, ref uint actionID, ref bool isPrevented)
         {
-            var currentTarget = DService.ObjectTable.SearchByID(targetID);
+            var currentTarget = DService.Instance().ObjectTable.SearchByID(targetID);
             if (targetID == UnspecificTargetID || !IsHealable(currentTarget))
             {
                 // find the target with the lowest HP ratio within range and satisfy the threshold
@@ -1108,12 +1108,12 @@ public class HealerHelper : DailyModuleBase
                             break;
 
                         case OverhealTarget.FirstTank:
-                            var partyList       = DService.PartyList;
+                            var partyList       = DService.Instance().PartyList;
                             var sortedPartyList = partyList.OrderBy(member => FetchMemberIndex(member.EntityId) ?? 0).ToList();
                             var firstTank       = sortedPartyList.FirstOrDefault(m => m.ClassJob.Value.Role == 1);
                             var maxDistance     = ActionManager.GetActionRange(actionID);
                             targetID = firstTank is not null &&
-                                       Vector3.DistanceSquared(firstTank.Position, DService.ObjectTable.LocalPlayer.Position) <= maxDistance * maxDistance
+                                       Vector3.DistanceSquared(firstTank.Position, DService.Instance().ObjectTable.LocalPlayer.Position) <= maxDistance * maxDistance
                                            ? firstTank.EntityId
                                            : LocalPlayerState.EntityID;
                             break;
@@ -1141,7 +1141,7 @@ public class HealerHelper : DailyModuleBase
 
         public void OnPreDispel(ref ulong targetID, ref bool isPrevented)
         {
-            var currentTarget = DService.ObjectTable.SearchByID(targetID);
+            var currentTarget = DService.Instance().ObjectTable.SearchByID(targetID);
             if (currentTarget is IBattleNPC || targetID == UnspecificTargetID)
             {
                 // find target with dispellable status within range
@@ -1170,7 +1170,7 @@ public class HealerHelper : DailyModuleBase
 
         public void OnPreRaise(ref ulong targetID, ref uint actionID, ref bool isPrevented)
         {
-            var currentTarget = DService.ObjectTable.SearchByID(targetID);
+            var currentTarget = DService.Instance().ObjectTable.SearchByID(targetID);
             if (currentTarget is IBattleNPC || targetID == UnspecificTargetID)
             {
                 // find target with dead status within range

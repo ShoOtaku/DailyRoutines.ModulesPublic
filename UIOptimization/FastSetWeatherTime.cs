@@ -91,7 +91,7 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
         UpdateBgmSituationHook ??= UpdateBgmSituationSig.GetHook<UpdateBgmSituationDelegate>(UpdateBgmSituationDetour);
         UpdateBgmSituationHook.Enable();
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         
         AddonDRFastSetWeather.Addon = new()
         {
@@ -100,17 +100,17 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
             Size         = new(254f, 50f),
         };
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "_NaviMap", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_NaviMap", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "_NaviMap", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_NaviMap", OnAddon);
 
         CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("FastSetWeatherTime-CommandHelp") });
     }
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
 
         CommandManager.RemoveSubCommand(Command);
@@ -129,7 +129,7 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
         {
             ImGui.TextUnformatted($"1. /pdr {Command}");
             
-            if (ImageHelper.TryGetImage(NaviMapImageURL, out var image))
+            if (ImageHelper.Instance().TryGetImage(NaviMapImageURL, out var image))
             {
                 ImGui.TextUnformatted($"2. {GetLoc("FastSetWeatherTime-OperationHelp-ClickNaviMap")}");
                 ImGui.Image(image.Handle, image.Size);
@@ -284,7 +284,7 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
         
         try
         {
-            var file = DService.Data.GetFile<LVBFile>($"bg/{LuminaGetter.GetRowOrDefault<TerritoryType>(zoneID).Bg}.lvb");
+            var file = DService.Instance().Data.GetFile<LVBFile>($"bg/{LuminaGetter.GetRowOrDefault<TerritoryType>(zoneID).Bg}.lvb");
             if (file?.WeatherIDs == null || file.WeatherIDs.Length == 0)
                 return ([], string.Empty);
             foreach (var weather in file.WeatherIDs)

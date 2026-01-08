@@ -21,7 +21,7 @@ public class AutoCuffACur : DailyModuleBase
     {
         TaskHelper ??= new();
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "PunchingMachine", OnAddonSetup);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "PunchingMachine", OnAddonSetup);
     }
 
     protected override void ConfigUI()
@@ -110,7 +110,7 @@ public class AutoCuffACur : DailyModuleBase
 
     protected override unsafe void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddonSetup);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSetup);
         
         if (PunchingMachine->IsAddonAndNodesReady())
             new EventCompletePackt(2359300, 14).Send();

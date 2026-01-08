@@ -19,7 +19,7 @@ public class AutoConfirmPortraitUpdate : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "BannerPreview", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "BannerPreview", OnAddon);
         if (BannerPreview != null) 
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -43,7 +43,7 @@ public class AutoConfirmPortraitUpdate : DailyModuleBase
             Chat(GetLoc("AutoConfirmPortraitUpdate-Notification"));
     }
 
-    protected override void Uninit() => DService.AddonLifecycle.UnregisterListener(OnAddon);
+    protected override void Uninit() => DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
     private class Config : ModuleConfiguration
     {

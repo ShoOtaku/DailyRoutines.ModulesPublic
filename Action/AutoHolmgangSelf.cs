@@ -14,7 +14,7 @@ public class AutoHolmgangSelf : DailyModuleBase
     };
 
     protected override void Init() => 
-        UseActionManager.RegPreUseAction(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
 
     private static void OnPreUseAction(
         ref bool                        isPrevented,
@@ -30,5 +30,5 @@ public class AutoHolmgangSelf : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        UseActionManager.Unreg(OnPreUseAction);
+        UseActionManager.Instance().Unreg(OnPreUseAction);
 }

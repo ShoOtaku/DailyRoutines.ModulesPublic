@@ -32,14 +32,14 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
 
     protected override void Init()
     {
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    ["ContentsFinder", "RaidFinder"], OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, ["ContentsFinder", "RaidFinder"], OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, ["ContentsFinder", "RaidFinder"], OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    ["ContentsFinder", "RaidFinder"], OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, ["ContentsFinder", "RaidFinder"], OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, ["ContentsFinder", "RaidFinder"], OnAddon);
     }
     
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
     }
 
@@ -193,18 +193,18 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
         return dutyFinderSetting switch
         {
             DutyFinderSetting.Ja => IsLangConfigReady()
-                                        ? (byte)DService.GameConfig.UiConfig.GetUInt("ContentsFinderUseLangTypeJA")
+                                        ? (byte)DService.Instance().GameConfig.UiConfig.GetUInt("ContentsFinderUseLangTypeJA")
                                         : (byte)0,
             DutyFinderSetting.En => IsLangConfigReady()
-                                        ? (byte)DService.GameConfig.UiConfig.GetUInt("ContentsFinderUseLangTypeEN")
+                                        ? (byte)DService.Instance().GameConfig.UiConfig.GetUInt("ContentsFinderUseLangTypeEN")
                                         : (byte)0,
             DutyFinderSetting.De => IsLangConfigReady()
-                                        ? (byte)DService.GameConfig.UiConfig.GetUInt("ContentsFinderUseLangTypeDE")
+                                        ? (byte)DService.Instance().GameConfig.UiConfig.GetUInt("ContentsFinderUseLangTypeDE")
                                         : (byte)0,
             DutyFinderSetting.Fr => IsLangConfigReady()
-                                        ? (byte)DService.GameConfig.UiConfig.GetUInt("ContentsFinderUseLangTypeFR")
+                                        ? (byte)DService.Instance().GameConfig.UiConfig.GetUInt("ContentsFinderUseLangTypeFR")
                                         : (byte)0,
-            DutyFinderSetting.JoinPartyInProgress     => (byte)DService.GameConfig.UiConfig.GetUInt("ContentsFinderSupplyEnable"),
+            DutyFinderSetting.JoinPartyInProgress     => (byte)DService.Instance().GameConfig.UiConfig.GetUInt("ContentsFinderSupplyEnable"),
             DutyFinderSetting.LootRule                => (byte)option.LootRules,
             DutyFinderSetting.UnrestrictedParty       => option.UnrestrictedParty ? (byte)1 : (byte)0,
             DutyFinderSetting.LevelSync               => option.LevelSync ? (byte)1 : (byte)0,
@@ -272,10 +272,10 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
     {
         try
         {
-            if (DService.GameConfig.UiConfig.TryGet("ContentsFinderUseLangTypeJA", out uint _) &&
-                DService.GameConfig.UiConfig.TryGet("ContentsFinderUseLangTypeEN", out uint _) &&
-                DService.GameConfig.UiConfig.TryGet("ContentsFinderUseLangTypeDE", out uint _) &&
-                DService.GameConfig.UiConfig.TryGet("ContentsFinderUseLangTypeFR", out uint _))
+            if (DService.Instance().GameConfig.UiConfig.TryGet("ContentsFinderUseLangTypeJA", out uint _) &&
+                DService.Instance().GameConfig.UiConfig.TryGet("ContentsFinderUseLangTypeEN", out uint _) &&
+                DService.Instance().GameConfig.UiConfig.TryGet("ContentsFinderUseLangTypeDE", out uint _) &&
+                DService.Instance().GameConfig.UiConfig.TryGet("ContentsFinderUseLangTypeFR", out uint _))
                 return true;
         }
         catch

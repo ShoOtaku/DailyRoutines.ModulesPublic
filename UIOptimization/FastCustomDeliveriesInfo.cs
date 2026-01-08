@@ -9,6 +9,7 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -49,7 +50,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
 
     protected override void Init()
     {
-        AgentSatisfactionListReceiveEventHook ??= DService.Hook.HookFromAddress<AgentReceiveEventDelegate>(
+        AgentSatisfactionListReceiveEventHook ??= DService.Instance().Hook.HookFromAddress<AgentReceiveEventDelegate>(
             AgentModule.Instance()->GetAgentByInternalId(AgentId.SatisfactionList)->VirtualTable->GetVFuncByName("ReceiveEvent"),
             AgentSatisfactionListReceiveEventDetour);
         AgentSatisfactionListReceiveEventHook.Enable();
@@ -66,7 +67,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
             return;
         }
 
-        using var font = FontManager.UIFont.Push();
+        using var font = FontManager.Instance().UIFont.Push();
 
         if (ImGui.IsWindowAppearing() || IsNeedToRefresh)
         {
@@ -77,7 +78,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), LuminaGetter.GetRow<Addon>(8813)!.Value.Text.ToString());
         using (ImRaii.PushIndent())
         {
-            using (FontManager.UIFont120.Push())
+            using (FontManager.Instance().UIFont120.Push())
                 ImGui.TextUnformatted(SelectedInfo?.Value.GetRow().Npc.Value.Singular.ToString());
         }
 
@@ -180,7 +181,7 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
         // 不在天穹街 → 先去伊修加德基础层
         TaskHelper.Enqueue(MovementManager.TeleportFirmament);
         TaskHelper.Enqueue(() => GameState.TerritoryType == 886             && UIModule.IsScreenReady() &&
-                                 !DService.Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy);
+                                 !DService.Instance().Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy);
     }
 
     private record CustomDeliveryInfo(uint Index, string Name, uint Zone, Vector3 Position)

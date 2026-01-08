@@ -4,6 +4,7 @@ using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.JobGauge.Types;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -26,10 +27,10 @@ public class AutoDrawMotifs : DailyModuleBase
 
         TaskHelper ??= new() { TimeoutMS = 30_000 };
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
-        DService.Condition.ConditionChange    += OnConditionChanged;
-        DService.DutyState.DutyCompleted      += OnDutyCompleted;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().DutyState.DutyRecommenced    += OnDutyRecommenced;
+        DService.Instance().Condition.ConditionChange    += OnConditionChanged;
+        DService.Instance().DutyState.DutyCompleted      += OnDutyCompleted;
     }
 
     protected override void ConfigUI()
@@ -72,7 +73,7 @@ public class AutoDrawMotifs : DailyModuleBase
     private bool CheckCurrentJob()
     {
         if (BetweenAreas || OccupiedInEvent) return false;
-        if (DService.ObjectTable.LocalPlayer is not { ClassJob.RowId: 42, Level: >= 30 } || !IsValidPVEDuty())
+        if (DService.Instance().ObjectTable.LocalPlayer is not { ClassJob.RowId: 42, Level: >= 30 } || !IsValidPVEDuty())
         {
             TaskHelper.Abort();
             return true;
@@ -84,11 +85,11 @@ public class AutoDrawMotifs : DailyModuleBase
 
     private bool DrawNeededMotif()
     {
-        var gauge = DService.JobGauges.Get<PCTGauge>();
+        var gauge = DService.Instance().JobGauges.Get<PCTGauge>();
 
-        if (DService.ObjectTable.LocalPlayer == null || BetweenAreas || DService.Condition[ConditionFlag.Casting]) return false;
+        if (DService.Instance().ObjectTable.LocalPlayer == null || BetweenAreas || DService.Instance().Condition[ConditionFlag.Casting]) return false;
 
-        if (DService.Condition.Any(ConditionFlag.InCombat, ConditionFlag.Mounted, ConditionFlag.Mounting, ConditionFlag.InFlight))
+        if (DService.Instance().Condition.Any(ConditionFlag.InCombat, ConditionFlag.Mounted, ConditionFlag.Mounting, ConditionFlag.InFlight))
         {
             TaskHelper.Abort();
             return true;
@@ -108,7 +109,7 @@ public class AutoDrawMotifs : DailyModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, motifAction), $"UseAction_{motifAction}", 2_000, weight: 1);
+        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, motifAction), $"UseAction_{motifAction}", 2_000, weight: 1);
         TaskHelper.DelayNext(500, $"DrawMotif_{motifAction}", 1);
         TaskHelper.Enqueue(DrawNeededMotif, "DrawNeededMotif", 5_000, weight: 1);
         return true;
@@ -121,10 +122,10 @@ public class AutoDrawMotifs : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.DutyState.DutyRecommenced    -= OnDutyRecommenced;
-        DService.Condition.ConditionChange    -= OnConditionChanged;
-        DService.DutyState.DutyCompleted      -= OnDutyCompleted;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().DutyState.DutyRecommenced    -= OnDutyRecommenced;
+        DService.Instance().Condition.ConditionChange    -= OnConditionChanged;
+        DService.Instance().DutyState.DutyCompleted      -= OnDutyCompleted;
     }
 
     private class Config : ModuleConfiguration

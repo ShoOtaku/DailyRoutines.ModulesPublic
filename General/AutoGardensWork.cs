@@ -36,9 +36,9 @@ public unsafe class AutoGardensWork : DailyModuleBase
         ModuleConfig =   LoadConfig<Config>() ?? new();
         TaskHelper   ??= new() { TimeoutMS = 10_000 };
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "HousingGardening", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "HousingGardening", OnAddon);
 
-        TargetManager.RegPostSetHardTarget(OnSetHardTarget);
+        TargetManager.Instance().RegPostSetHardTarget(OnSetHardTarget);
     }
 
     protected override void ConfigUI()
@@ -287,7 +287,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
             TaskHelper.Enqueue(() => new EventStartPackt(garden, 721047).Send(), $"交互园圃: {garden}");
             TaskHelper.Enqueue(() => ClickGardenEntryByText(entryKeyword),       "点击");
             extraAction?.Invoke();
-            TaskHelper.Enqueue(() => !DService.Condition[ConditionFlag.OccupiedInQuestEvent], "等待退出交互状态");
+            TaskHelper.Enqueue(() => !DService.Instance().Condition[ConditionFlag.OccupiedInQuestEvent], "等待退出交互状态");
         }
     }
 
@@ -305,7 +305,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
         {
             TaskHelper.Enqueue(CheckFertilizerState);
             TaskHelper.Enqueue(ClickFertilizer);
-            TaskHelper.Enqueue(() => !DService.Condition[ConditionFlag.OccupiedInQuestEvent]);
+            TaskHelper.Enqueue(() => !DService.Instance().Condition[ConditionFlag.OccupiedInQuestEvent]);
         });
 
     #endregion
@@ -316,7 +316,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
     {
         objectIDs = [];
         
-        if (DService.ObjectTable.LocalPlayer == null) return false;
+        if (DService.Instance().ObjectTable.LocalPlayer == null) return false;
 
         var manager = HousingManager.Instance();
         if (manager == null) return false;
@@ -378,7 +378,7 @@ public unsafe class AutoGardensWork : DailyModuleBase
         if (gardenCenters.Count == 0) return false;
         
         // 园圃家具周围绕一圈的那个实际可交互的坑位
-        objectIDs = DService.ObjectTable
+        objectIDs = DService.Instance().ObjectTable
                             .Where(x => x is { ObjectKind: ObjectKind.EventObj, DataID: 2003757 } &&
                                         gardenCenters.Any(g => Vector3.DistanceSquared(x.Position, g.Position) <= 25))
                             .Select(x => x.GameObjectID)
@@ -393,13 +393,13 @@ public unsafe class AutoGardensWork : DailyModuleBase
         return Inventory->IsVisible          ||
                InventoryLarge->IsVisible     ||
                InventoryExpansion->IsVisible ||
-               !DService.Condition[ConditionFlag.OccupiedInQuestEvent];
+               !DService.Instance().Condition[ConditionFlag.OccupiedInQuestEvent];
     }
 
     private bool ClickFertilizer()
     {
         if (SelectString != null) return false;
-        if (!DService.Condition[ConditionFlag.OccupiedInQuestEvent]) return true;
+        if (!DService.Instance().Condition[ConditionFlag.OccupiedInQuestEvent]) return true;
         if (ModuleConfig.FertilizerSelected == 0 ||
             !PlayerInventories.TryGetFirstItem(x => x.ItemId == ModuleConfig.FertilizerSelected, out var fertilizerItem))
         {
@@ -432,8 +432,8 @@ public unsafe class AutoGardensWork : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
-        TargetManager.Unreg(OnSetHardTarget);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+        TargetManager.Instance().Unreg(OnSetHardTarget);
     }
 
     private class Config : ModuleConfiguration

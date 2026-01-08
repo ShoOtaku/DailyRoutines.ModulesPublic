@@ -90,7 +90,7 @@ public unsafe class RealQueuePosition : DailyModuleBase
             index = 6;
 
         var       position    = *(uint*)(agentData + 0x12C);
-        var       positionStr = DService.SeStringEvaluator.Evaluate(LuminaGetter.GetRowOrDefault<Addon>(10039).Text, [position]);
+        var       positionStr = DService.Instance().SeStringEvaluator.Evaluate(LuminaGetter.GetRowOrDefault<Addon>(10039).Text, [position]);
         using var builder     = new RentedSeStringBuilder();
         a3->SetValue(index, builder.Builder.Append(LuminaWrapper.GetAddonText(12522)).Append(positionStr).GetViewAsSpan());
         

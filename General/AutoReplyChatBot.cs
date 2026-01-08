@@ -53,11 +53,11 @@ public class AutoReplyChatBot : DailyModuleBase
         ModuleConfig.SystemPrompts = ModuleConfig.SystemPrompts.DistinctBy(x => x.Name).ToList();
         SaveConfig(ModuleConfig);
 
-        DService.Chat.ChatMessage += OnChat;
+        DService.Instance().Chat.ChatMessage += OnChat;
     }
 
     protected override void Uninit() =>
-        DService.Chat.ChatMessage -= OnChat;
+        DService.Instance().Chat.ChatMessage -= OnChat;
 
     protected override void ConfigUI()
     {
@@ -578,73 +578,73 @@ public class AutoReplyChatBot : DailyModuleBase
         switch (originalType)
         {
             case XivChatType.TellIncoming:
-                ChatManager.SendMessage($"/tell {target} {reply}");
+                ChatManager.Instance().SendMessage($"/tell {target} {reply}");
                 break;
             case XivChatType.Party:
-                ChatManager.SendMessage($"/p {reply}");
+                ChatManager.Instance().SendMessage($"/p {reply}");
                 break;
             case XivChatType.FreeCompany:
-                ChatManager.SendMessage($"/fc {reply}");
+                ChatManager.Instance().SendMessage($"/fc {reply}");
                 break;
             case XivChatType.Ls1:
-                ChatManager.SendMessage($"/l1 {reply}");
+                ChatManager.Instance().SendMessage($"/l1 {reply}");
                 break;
             case XivChatType.Ls2:
-                ChatManager.SendMessage($"/l2 {reply}");
+                ChatManager.Instance().SendMessage($"/l2 {reply}");
                 break;
             case XivChatType.Ls3:
-                ChatManager.SendMessage($"/l3 {reply}");
+                ChatManager.Instance().SendMessage($"/l3 {reply}");
                 break;
             case XivChatType.Ls4:
-                ChatManager.SendMessage($"/l4 {reply}");
+                ChatManager.Instance().SendMessage($"/l4 {reply}");
                 break;
             case XivChatType.Ls5:
-                ChatManager.SendMessage($"/l5 {reply}");
+                ChatManager.Instance().SendMessage($"/l5 {reply}");
                 break;
             case XivChatType.Ls6:
-                ChatManager.SendMessage($"/l6 {reply}");
+                ChatManager.Instance().SendMessage($"/l6 {reply}");
                 break;
             case XivChatType.Ls7:
-                ChatManager.SendMessage($"/l7 {reply}");
+                ChatManager.Instance().SendMessage($"/l7 {reply}");
                 break;
             case XivChatType.Ls8:
-                ChatManager.SendMessage($"/l8 {reply}");
+                ChatManager.Instance().SendMessage($"/l8 {reply}");
                 break;
             case XivChatType.CrossLinkShell1:
-                ChatManager.SendMessage($"/cwlinkshell1 {reply}");
+                ChatManager.Instance().SendMessage($"/cwlinkshell1 {reply}");
                 break;
             case XivChatType.CrossLinkShell2:
-                ChatManager.SendMessage($"/cwlinkshell2 {reply}");
+                ChatManager.Instance().SendMessage($"/cwlinkshell2 {reply}");
                 break;
             case XivChatType.CrossLinkShell3:
-                ChatManager.SendMessage($"/cwlinkshell3 {reply}");
+                ChatManager.Instance().SendMessage($"/cwlinkshell3 {reply}");
                 break;
             case XivChatType.CrossLinkShell4:
-                ChatManager.SendMessage($"/cwlinkshell4 {reply}");
+                ChatManager.Instance().SendMessage($"/cwlinkshell4 {reply}");
                 break;
             case XivChatType.CrossLinkShell5:
-                ChatManager.SendMessage($"/cwlinkshell5 {reply}");
+                ChatManager.Instance().SendMessage($"/cwlinkshell5 {reply}");
                 break;
             case XivChatType.CrossLinkShell6:
-                ChatManager.SendMessage($"/cwlinkshell6 {reply}");
+                ChatManager.Instance().SendMessage($"/cwlinkshell6 {reply}");
                 break;
             case XivChatType.CrossLinkShell7:
-                ChatManager.SendMessage($"/cwlinkshell7 {reply}");
+                ChatManager.Instance().SendMessage($"/cwlinkshell7 {reply}");
                 break;
             case XivChatType.CrossLinkShell8:
-                ChatManager.SendMessage($"/cwlinkshell8 {reply}");
+                ChatManager.Instance().SendMessage($"/cwlinkshell8 {reply}");
                 break;
             case XivChatType.Say:
-                ChatManager.SendMessage($"/say {reply}");
+                ChatManager.Instance().SendMessage($"/say {reply}");
                 break;
             case XivChatType.Yell:
-                ChatManager.SendMessage($"/yell {reply}");
+                ChatManager.Instance().SendMessage($"/yell {reply}");
                 break;
             case XivChatType.Shout:
-                ChatManager.SendMessage($"/shout {reply}");
+                ChatManager.Instance().SendMessage($"/shout {reply}");
                 break;
             default:
-                ChatManager.SendMessage($"/tell {target} {reply}");
+                ChatManager.Instance().SendMessage($"/tell {target} {reply}");
                 break;
         }
 
@@ -823,7 +823,7 @@ public class AutoReplyChatBot : DailyModuleBase
                         message.LocalTime ??= message.Timestamp.ToUTCDateTimeFromUnixSeconds().ToLocalTime();
                         var timeStr = message.LocalTime?.ToString("HH:mm:ss") ?? string.Empty;
 
-                        using (FontManager.UIFont80.Push())
+                        using (FontManager.Instance().UIFont80.Push())
                             ImGui.TextDisabled($"[{timeStr}] {message.Name}");
                     }
                     

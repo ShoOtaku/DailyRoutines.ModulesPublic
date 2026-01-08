@@ -18,6 +18,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 using Map = Lumina.Excel.Sheets.Map;
 
 namespace DailyRoutines.ModulesPublic;
@@ -90,8 +91,8 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
         Overlay.SizeConstraints = new() { MinimumSize = ChildSize };
         Overlay.WindowName = $"{LuminaWrapper.GetAddonText(2448)}###AutoMarkAetherCurrents";
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "AetherCurrent", OnAddon);
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "AetherCurrent", OnAddon);
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
     }
 
     protected override void ConfigUI()
@@ -120,7 +121,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
 
     protected override void OverlayUI()
     {
-        using var fontPush = FontManager.UIFont120.Push();
+        using var fontPush = FontManager.Instance().UIFont120.Push();
 
         DrawMenuBar();
         
@@ -129,7 +130,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
 
     private static void DrawMenuBar()
     {
-        using var fontPush = FontManager.UIFont.Push();
+        using var fontPush = FontManager.Instance().UIFont.Push();
         
         if (ImGui.BeginMenuBar())
         {
@@ -266,8 +267,8 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         
         TaskHelperMove?.Abort();
         TaskHelperMove = null;
@@ -319,7 +320,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
                 
                 // 3.0 特例
                 var texturePath = $"ui/uld/FlyingPermission{(Version == 0 ? string.Empty : Version + 1)}_hr1.tex";
-                backgroundTexture = DService.PI.UiBuilder.LoadUld(BackgroundUldPath).LoadTexturePart(texturePath, Counter);
+                backgroundTexture = DService.Instance().PI.UiBuilder.LoadUld(BackgroundUldPath).LoadTexturePart(texturePath, Counter);
                 return backgroundTexture;
             }
         }
@@ -356,7 +357,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
 
         private void DrawAetherCurrentProgress()
         {
-            using var fontPush = FontManager.UIFont80.Push();
+            using var fontPush = FontManager.Instance().UIFont80.Push();
             
             var height = (2 * ImGui.GetTextLineHeightWithSpacing()) + (2 * ImGui.GetStyle().FramePadding.Y);
             ImGui.SetCursorPos(new(ImGui.GetCursorPosX(), ImGui.GetContentRegionMax().Y - height));
@@ -547,7 +548,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
 
             ImGui.Separator();
 
-            using (ImRaii.Disabled(!DService.PI.IsPluginEnabled(vnavmeshIPC.InternalName)))
+            using (ImRaii.Disabled(!DService.Instance().PI.IsPluginEnabled(vnavmeshIPC.InternalName)))
             {
                 if (ImGui.MenuItem($"    {GetLoc("AutoMarkAetherCurrents-MoveTo")} (vnavmesh)"))
                     MoveTo(TaskHelperMove);
@@ -558,7 +559,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
             if (ImGui.MenuItem($"    {GetLoc("AutoMarkAetherCurrents-SendLocation")}"))
             {
                 AgentMap.Instance()->SetFlagMapMarker(RealTerritory.RowId, RealTerritory.Map.RowId, Position);
-                ChatManager.SendMessage("<flag>");
+                ChatManager.Instance().SendMessage("<flag>");
             }
 
             return;
@@ -576,7 +577,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
                 if (Type == PointType.Quest && LuminaGetter.TryGetRow<Quest>(ObjectID, out var questRow))
                 {
                     var questName = questRow.Name.ToString();
-                    var questIcon = DService.Texture.GetFromGameIcon(71141);
+                    var questIcon = DService.Instance().Texture.GetFromGameIcon(71141);
 
                     ImGui.AlignTextToFramePadding();
                     ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Quest")}:");
@@ -620,7 +621,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
             {
                 if (!IsOnMount)
                 {
-                    TaskHelperMove.Enqueue(() => UseActionManager.UseAction(ActionType.GeneralAction, 9), weight: 1);
+                    TaskHelperMove.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.GeneralAction, 9), weight: 1);
                     TaskHelperMove.Enqueue(() => IsOnMount,                                               weight: 1);
                 }
             });

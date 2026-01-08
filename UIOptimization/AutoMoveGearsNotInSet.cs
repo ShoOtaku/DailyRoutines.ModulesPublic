@@ -36,13 +36,13 @@ public class AutoMoveGearsNotInSet : DailyModuleBase
     {
         CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("AutoMoveGearsNotInSet-CommandHelp") });
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "ArmouryBoard", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "ArmouryBoard", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "ArmouryBoard", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "ArmouryBoard", OnAddon);
     }
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
         
         CommandManager.RemoveSubCommand(Command);
@@ -81,7 +81,7 @@ public class AutoMoveGearsNotInSet : DailyModuleBase
                         IsVisible   = true,
                         SeString    = new SeStringBuilder().AddIcon(BitmapFontIcon.SwordSheathed).Build().Encode(),
                         TextTooltip = GetLoc("AutoMoveGearsNotInSet-Button"),
-                        OnClick     = () => ChatManager.SendMessage($"/pdr {Command}"),
+                        OnClick     = () => ChatManager.Instance().SendMessage($"/pdr {Command}"),
                         IsEnabled   = true,
                     };
 

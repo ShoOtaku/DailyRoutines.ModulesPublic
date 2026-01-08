@@ -49,8 +49,8 @@ public class AutoStoreToCabinet : DailyModuleBase
         CancelSource ??= new();
         Overlay ??= new Overlay(this);
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "Cabinet", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Cabinet", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "Cabinet", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Cabinet", OnAddon);
     }
 
     protected override unsafe void OverlayPreDraw()
@@ -61,7 +61,7 @@ public class AutoStoreToCabinet : DailyModuleBase
 
     protected override void OverlayUI()
     {
-        using (FontManager.UIFont.Push())
+        using (FontManager.Instance().UIFont.Push())
         {
             unsafe
             {
@@ -81,7 +81,7 @@ public class AutoStoreToCabinet : DailyModuleBase
             if (ImGui.Button(Lang.Get("Start")))
             {
                 IsOnTask = true;
-                DService.Framework.RunOnTick(async () =>
+                DService.Instance().Framework.RunOnTick(async () =>
                 {
                     try
                     {
@@ -90,7 +90,7 @@ public class AutoStoreToCabinet : DailyModuleBase
                         {
                             foreach (var item in list)
                             {
-                                ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.StoreToCabinet, item);
+                                ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.StoreToCabinet, item);
                                 await Task.Delay(100).ConfigureAwait(false);
                             }
                         }

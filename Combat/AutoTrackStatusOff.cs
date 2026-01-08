@@ -13,7 +13,7 @@ using Status = Lumina.Excel.Sheets.Status;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoTrackStatusOff : DailyModuleBase
+public class AutoTrackStatusOff : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
@@ -40,8 +40,8 @@ public unsafe class AutoTrackStatusOff : DailyModuleBase
         if (ModuleConfig.StatusToMonitor.Count > 0)
             StatusSelectCombo.SelectedStatusIDs = ModuleConfig.StatusToMonitor.ToHashSet();
 
-        PlayerStatusManager.RegGainStatus(OnGainStatus);
-        PlayerStatusManager.RegLoseStatus(OnLoseStatus);
+        PlayerStatusManager.Instance().RegGain(OnGainStatus);
+        PlayerStatusManager.Instance().RegLose(OnLoseStatus);
     }
 
     protected override void ConfigUI()
@@ -89,20 +89,19 @@ public unsafe class AutoTrackStatusOff : DailyModuleBase
         }
     }
     
-    private static void OnGainStatus(BattleChara* player, ushort statusID, ushort param, ushort stackCount, TimeSpan remainingTime, ulong sourceID)
+    private static void OnGainStatus(IBattleChara player, ushort statusID, ushort param, ushort stackCount, TimeSpan remainingTime, ulong sourceID)
     {
-        if (player == null || remainingTime.TotalSeconds <= 0) return;
+        if (remainingTime.TotalSeconds <= 0) return;
         if (ModuleConfig.OnlyTrackSpecific && !ModuleConfig.StatusToMonitor.Contains(statusID)) return;
         if (!LuminaGetter.TryGetRow<Status>(statusID, out var status) || !status.CanStatusOff) return;
         
         // 不是自己给的 Status 不记录
         if (sourceID != LocalPlayerState.EntityID) return;
-        Records[statusID] = ((float)remainingTime.TotalSeconds, sourceID, DateTime.Now, player->EntityId);
+        Records[statusID] = ((float)remainingTime.TotalSeconds, sourceID, DateTime.Now, player.EntityID);
     }
 
-    private static void OnLoseStatus(BattleChara* player, ushort statusID, ushort param, ushort stackCount, ulong sourceID)
+    private static void OnLoseStatus(IBattleChara player, ushort statusID, ushort param, ushort stackCount, ulong sourceID)
     {
-        if (player == null) return;
         if (ModuleConfig.OnlyTrackSpecific && !ModuleConfig.StatusToMonitor.Contains(statusID)) return;
         if (!LuminaGetter.TryGetRow<Status>(statusID, out var status) || !status.CanStatusOff) return;
         
@@ -115,13 +114,23 @@ public unsafe class AutoTrackStatusOff : DailyModuleBase
             var actualDuration   = (DateTime.Now - buffInfo.GainTime).TotalSeconds;
 
             // 死了当然全没了啊
-            if (actualDuration < expectedDuration * TimeThreshold && !player->IsDead())
+            if (actualDuration < expectedDuration * TimeThreshold && !player.IsDead)
             {
-                var job = LuminaGetter.GetRow<ClassJob>(player->ClassJob).GetValueOrDefault();
                 if (ModuleConfig.SendChat)
-                    Chat(GetSLoc("AutoTrackStatusOff-Notification",
-                                 LuminaWrapper.GetStatusName(statusID),                    statusID,               $"{expectedDuration:F1}", $"{actualDuration:F1}",
-                                 new PlayerPayload(player->NameString, player->HomeWorld), job.ToBitmapFontIcon(), job.Name.ToString()));
+                    Chat
+                    (
+                        GetSLoc
+                        (
+                            "AutoTrackStatusOff-Notification",
+                            LuminaWrapper.GetStatusName(statusID),
+                            statusID,
+                            $"{expectedDuration:F1}",
+                            $"{actualDuration:F1}",
+                            new PlayerPayload(player.Name.ToString(), player.HomeWorld.RowId),
+                            player.ClassJob.Value.ToBitmapFontIcon(),
+                            player.ClassJob.Value.Name.ToString()
+                        )
+                    );
             }
 
             Records.Remove(statusID);
@@ -130,8 +139,8 @@ public unsafe class AutoTrackStatusOff : DailyModuleBase
 
     protected override void Uninit()
     {
-        PlayerStatusManager.Unreg(OnGainStatus);
-        PlayerStatusManager.Unreg(OnLoseStatus);
+        PlayerStatusManager.Instance().Unreg(OnGainStatus);
+        PlayerStatusManager.Instance().Unreg(OnLoseStatus);
 
         Records.Clear();
     }

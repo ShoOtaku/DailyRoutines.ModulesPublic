@@ -4,6 +4,7 @@ using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -57,8 +58,8 @@ public unsafe class AutoReplaceActionLowLevel : DailyModuleBase
             var action1Data = LuminaGetter.GetRow<Action>(action1);
             if (action0Data == null || action1Data == null) continue;
 
-            var action0Icon = DService.Texture.GetFromGameIcon(new(action0Data.Value.Icon)).GetWrapOrDefault();
-            var action1Icon = DService.Texture.GetFromGameIcon(new(action1Data.Value.Icon)).GetWrapOrDefault();
+            var action0Icon = DService.Instance().Texture.GetFromGameIcon(new(action0Data.Value.Icon)).GetWrapOrDefault();
+            var action1Icon = DService.Instance().Texture.GetFromGameIcon(new(action1Data.Value.Icon)).GetWrapOrDefault();
             if (action0Icon == null || action1Icon == null) continue;
 
             ImGui.TableNextRow();

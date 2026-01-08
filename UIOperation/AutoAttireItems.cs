@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.Addon.Lifecycle;
@@ -36,14 +37,14 @@ public unsafe class AutoAttireItems : DailyModuleBase
         TaskHelper   ??= new() { TimeoutMS = 5_000 };
         ModuleConfig =   LoadConfig<Config>() ?? new();
 
-        LogMessageManager.Register(OnReceiveLogMessage);
+        LogMessageManager.Instance().RegPost(OnReceiveLogMessage);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, "MiragePrismPrismSetConvert", OnAddonMiragePrismPrismSetConvert);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MiragePrismPrismSetConvert", OnAddonMiragePrismPrismSetConvert);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, "MiragePrismPrismSetConvert", OnAddonMiragePrismPrismSetConvert);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MiragePrismPrismSetConvert", OnAddonMiragePrismPrismSetConvert);
         if (MiragePrismPrismSetConvert->IsAddonAndNodesReady()) 
             OnAddonMiragePrismPrismSetConvert(AddonEvent.PostRefresh, null);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "MiragePrismPrismSetConvertC", OnAddonMiragePrismPrismSetConvertC);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "MiragePrismPrismSetConvertC", OnAddonMiragePrismPrismSetConvertC);
         if (MiragePrismPrismSetConvertC->IsAddonAndNodesReady()) 
             OnAddonMiragePrismPrismSetConvertC(AddonEvent.PostSetup, null);
     }
@@ -72,13 +73,13 @@ public unsafe class AutoAttireItems : DailyModuleBase
 
     protected override void Uninit()
     {
-        LogMessageManager.Unregister(OnReceiveLogMessage);
+        LogMessageManager.Instance().Unreg(OnReceiveLogMessage);
         
-        DService.AddonLifecycle.UnregisterListener(OnAddonMiragePrismPrismSetConvert);
-        DService.AddonLifecycle.UnregisterListener(OnAddonMiragePrismPrismSetConvertC);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonMiragePrismPrismSetConvert);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonMiragePrismPrismSetConvertC);
     }
 
-    private void OnReceiveLogMessage(uint logMessageID)
+    private void OnReceiveLogMessage(uint logMessageID, Span<LogMessageParam> values)
     {
         if (logMessageID != 4280) return;
         TaskHelper.Abort();

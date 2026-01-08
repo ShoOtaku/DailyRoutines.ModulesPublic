@@ -48,7 +48,7 @@ public unsafe class AutoNumericInputMax : DailyModuleBase
 
         NumericSetValue ??= Marshal.GetDelegateForFunctionPointer<NumericSetValueDelegate>(NumericSetValueSig.ScanText());
 
-        UldUpdateHook ??= DService.Hook.HookFromSignature<UldUpdateDelegate>(UldUpdateSig.Get(), UldUpdateDetour);
+        UldUpdateHook ??= DService.Instance().Hook.HookFromSignature<UldUpdateDelegate>(UldUpdateSig.Get(), UldUpdateDetour);
         UldUpdateHook.Enable();
     }
 

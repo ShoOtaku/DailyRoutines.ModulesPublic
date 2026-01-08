@@ -54,7 +54,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         PlaytimeTracker ??= new(path);
         PlaytimeQuery   ??= new(path);
 
-        Entry         ??= DService.DtrBar.Get("DailyRoutines-GameTimeLeft");
+        Entry         ??= DService.Instance().DtrBar.Get("DailyRoutines-GameTimeLeft");
         Entry.OnClick =   OnDTREntryClick;
 
         UpdateEntryAndTimeInfo();
@@ -62,15 +62,15 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         AgentLobbyOnLoginHook ??= AgentLobbyOnLoginSig.GetHook<AgentLobbyOnLoginDelegate>(AgentLobbyOnLoginDetour);
         AgentLobbyOnLoginHook.Enable();
 
-        DService.ClientState.Login  += OnLogin;
-        DService.ClientState.Logout += OnLogout;
+        DService.Instance().ClientState.Login  += OnLogin;
+        DService.Instance().ClientState.Logout += OnLogout;
 
-        FrameworkManager.Reg(OnUpdate, throttleMS: 5_000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 5_000);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "CharaSelect",        OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "CharaSelect",        OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_CharaSelectRemain", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "_CharaSelectRemain", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "CharaSelect",        OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "CharaSelect",        OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_CharaSelectRemain", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "_CharaSelectRemain", OnAddon);
     }
 
     protected override void ConfigUI()
@@ -106,9 +106,9 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
         Entry?.Remove();
         Entry = null;
@@ -118,8 +118,8 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
         PlaytimeQuery = null;
 
-        DService.ClientState.Login  -= OnLogin;
-        DService.ClientState.Logout -= OnLogout;
+        DService.Instance().ClientState.Login  -= OnLogin;
+        DService.Instance().ClientState.Logout -= OnLogout;
     }
 
     private void OnLogin()
@@ -242,7 +242,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
     private static void UpdateEntryAndTimeInfo(ulong contentID = 0)
     {
-        if (DService.ClientState.IsLoggedIn)
+        if (DService.Instance().ClientState.IsLoggedIn)
             PlaytimeTracker.Start();
         else
             PlaytimeTracker.Stop();
@@ -253,7 +253,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             contentID = LocalPlayerState.ContentID;
 
         if (contentID == 0                                           ||
-            DService.Condition[ConditionFlag.InCombat]               ||
+            DService.Instance().Condition[ConditionFlag.InCombat]               ||
             !ModuleConfig.Infos.TryGetValue(contentID, out var info) ||
             info.Record == DateTime.MinValue                         ||
             (info.LeftMonth == TimeSpan.MinValue && info.LeftTime == TimeSpan.MinValue))
@@ -310,7 +310,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         switch (eventData.ClickType)
         {
             case MouseClickType.Left:
-                ChatManager.SendMessage($"/pdr search {nameof(AutoRecordSubTimeLeft)}");
+                ChatManager.Instance().SendMessage($"/pdr search {nameof(AutoRecordSubTimeLeft)}");
                 break;
             case MouseClickType.Right:
                 Util.OpenLink("https://pay.sdo.com/item/GWPAY-100001900");

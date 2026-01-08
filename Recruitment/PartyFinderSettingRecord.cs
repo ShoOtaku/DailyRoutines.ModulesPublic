@@ -38,12 +38,12 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
         AgentReceiveEventHook = AddonFireCallBackSig.GetHook<AddonFireCallBackDelegate>(AddonFireCallBackDetour);
         AgentReceiveEventHook.Enable();
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroupCondition", OnLookingForGroupConditionAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupCondition", OnLookingForGroupConditionAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroupCondition", OnLookingForGroupConditionAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupCondition", OnLookingForGroupConditionAddon);
     }
 
     protected override void Uninit() =>
-        DService.AddonLifecycle.UnregisterListener(OnLookingForGroupConditionAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnLookingForGroupConditionAddon);
 
     protected override void OverlayUI()
     {

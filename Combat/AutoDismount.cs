@@ -25,7 +25,7 @@ public unsafe class AutoDismount : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 1_500 };
 
-        UseActionManager.RegUseAction(OnUseAction);
+        UseActionManager.Instance().RegPostUseAction(OnUseAction);
     }
 
     private void OnUseAction(bool result, ActionType actionType, uint actionID, ulong targetID, uint extraParam,
@@ -42,15 +42,15 @@ public unsafe class AutoDismount : DailyModuleBase
         TaskHelper.Enqueue(
             () =>
             {
-                if (MovementManager.IsManagerBusy || DService.Condition[ConditionFlag.Mounted]) return false;
-                return UseActionManager.UseAction(actionType, actionID, targetID, extraParam, 
+                if (MovementManager.IsManagerBusy || DService.Instance().Condition[ConditionFlag.Mounted]) return false;
+                return UseActionManager.Instance().UseAction(actionType, actionID, targetID, extraParam, 
                                                   queueState, comboRouteID);
             });
     }
 
     private static bool IsNeedToDismount(ActionType actionType, uint actionID, ulong actionTargetID)
     {
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
         if (!LuminaGetter.TryGetRow<Action>(actionID, out var actionRow)) return false;
         
         var actionManager = ActionManager.Instance();
@@ -69,7 +69,7 @@ public unsafe class AutoDismount : DailyModuleBase
         // 可以自身或地面为目标的技能
         if (actionRow is { CanTargetSelf: true } or { TargetArea: true }) return true;
 
-        var actionObject = DService.ObjectTable.SearchByID(actionTargetID);
+        var actionObject = DService.Instance().ObjectTable.SearchByID(actionTargetID);
         // 技能必须要有目标
         if (actionRow.Range != 0)
         {
@@ -90,5 +90,5 @@ public unsafe class AutoDismount : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        UseActionManager.Unreg(OnUseAction);
+        UseActionManager.Instance().Unreg(OnUseAction);
 }

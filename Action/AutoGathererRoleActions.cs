@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using DailyRoutines.Abstracts;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -37,7 +38,7 @@ public class AutoGathererRoleActions : DailyModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 5_000 };
 
-        DService.ClientState.ClassJobChanged += OnJobChanged;
+        DService.Instance().ClientState.ClassJobChanged += OnJobChanged;
         OnJobChanged(LocalPlayerState.ClassJob);
     }
 
@@ -68,7 +69,7 @@ public class AutoGathererRoleActions : DailyModuleBase
                     
                     if (localPlayer->StatusManager.HasStatus(status) || !ActionManager.IsActionUnlocked(action)) return true;
                     
-                    UseActionManager.UseActionLocation(ActionType.Action, action);
+                    UseActionManager.Instance().UseActionLocation(ActionType.Action, action);
                     return localPlayer->StatusManager.HasStatus(status);
                 });
             }
@@ -76,5 +77,5 @@ public class AutoGathererRoleActions : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.ClientState.ClassJobChanged -= OnJobChanged;
+        DService.Instance().ClientState.ClassJobChanged -= OnJobChanged;
 }

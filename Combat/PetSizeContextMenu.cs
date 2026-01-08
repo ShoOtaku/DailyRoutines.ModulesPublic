@@ -20,7 +20,7 @@ public unsafe class PetSizeContextMenu : DailyModuleBase
     private static readonly UpperContainerItem ContainerItem = new();
 
     protected override void Init() => 
-        DService.ContextMenu.OnMenuOpened += OnMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened += OnMenuOpened;
 
     private static void OnMenuOpened(IMenuOpenedArgs args)
     {
@@ -29,7 +29,7 @@ public unsafe class PetSizeContextMenu : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.ContextMenu.OnMenuOpened -= OnMenuOpened;
+        DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpened;
 
     private class UpperContainerItem : MenuItemBase
     {
@@ -46,24 +46,24 @@ public unsafe class PetSizeContextMenu : DailyModuleBase
             new()
             {
                 Name      = $"{GetLoc("Adjust")}: {LuminaWrapper.GetAddonText(6371)}",
-                OnClicked = _ => ChatManager.SendMessage("/petsize all large")
+                OnClicked = _ => ChatManager.Instance().SendMessage("/petsize all large")
             },
             new()
             {
                 Name      = $"{GetLoc("Adjust")}: {LuminaWrapper.GetAddonText(6372)}",
-                OnClicked = _ => ChatManager.SendMessage("/petsize all medium")
+                OnClicked = _ => ChatManager.Instance().SendMessage("/petsize all medium")
             },
             new()
             {
                 Name      = $"{GetLoc("Adjust")}: {LuminaWrapper.GetAddonText(6373)}",
-                OnClicked = _ => ChatManager.SendMessage("/petsize all small")
+                OnClicked = _ => ChatManager.Instance().SendMessage("/petsize all small")
             }
         ];
 
         public override bool IsDisplay(IMenuOpenedArgs args)
         {
             if (args.Target is not MenuTargetDefault defautTarget) return false;
-            if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
+            if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
 
             var pet = CharacterManager.Instance()->LookupPetByOwnerObject(localPlayer.ToStruct());
             if (pet == null || defautTarget.TargetObjectId != pet->GetGameObjectId()) return false;

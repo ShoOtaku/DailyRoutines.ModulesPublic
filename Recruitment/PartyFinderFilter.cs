@@ -39,10 +39,10 @@ public class PartyFinderFilter : DailyModuleBase
         ModuleConfig = LoadConfig<Config>() ?? new Config();
         Overlay ??= new Overlay(this);
 
-        DService.PartyFinder.ReceiveListing += OnReceiveListing;
+        DService.Instance().PartyFinder.ReceiveListing += OnReceiveListing;
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "LookingForGroup", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroup", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "LookingForGroup", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroup", OnAddon);
         if (LookingForGroup->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -224,7 +224,7 @@ public class PartyFinderFilter : DailyModuleBase
     private static bool FilterByHighEndSameJob(IPartyFinderListing listing)
     {
         if (!ModuleConfig.HighEndFilterSameJob) return true;
-        if (!IsRaid || DService.ObjectTable.LocalPlayer is not { } localPlayer) return true;
+        if (!IsRaid || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return true;
 
         var job = localPlayer.ClassJob.Value;
         if (job.Role == 0)
@@ -242,7 +242,7 @@ public class PartyFinderFilter : DailyModuleBase
     private static bool FilterByHighEndSameRole(IPartyFinderListing listing)
     {
         if (!ModuleConfig.HighEndFilterRoleCount) return true;
-        if (!IsRaid || DService.ObjectTable.LocalPlayer is not { } localPlayer) return true;
+        if (!IsRaid || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return true;
 
         var job = localPlayer.ClassJob.Value;
 
@@ -325,8 +325,8 @@ public class PartyFinderFilter : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
-        DService.PartyFinder.ReceiveListing -= OnReceiveListing;
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().PartyFinder.ReceiveListing -= OnReceiveListing;
     }
 
     private class Config : ModuleConfiguration

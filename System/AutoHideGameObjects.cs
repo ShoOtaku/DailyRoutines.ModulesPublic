@@ -40,8 +40,8 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
 
         UpdateAllObjects(GameObjectManager.Instance());
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        FrameworkManager.Reg(OnUpdate, throttleMS: 1_000);
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1_000);
     }
 
     protected override void ConfigUI()
@@ -71,8 +71,8 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
 
     protected override void Uninit()
     {
-        FrameworkManager.Unreg(OnUpdate);
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         
         ResetAllObjects();
     }
@@ -87,7 +87,7 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
     private static void UpdateAllObjects(GameObjectManager* manager)
     {
         if (manager == null) return;
-        if (!DService.ClientState.IsLoggedIn) return;
+        if (!DService.Instance().ClientState.IsLoggedIn) return;
         
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent)
         {
@@ -212,7 +212,7 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
 
     private static void ResetAllObjects()
     {
-        if (!DService.ClientState.IsLoggedIn || ProcessedObjects.Count == 0) return;
+        if (!DService.Instance().ClientState.IsLoggedIn || ProcessedObjects.Count == 0) return;
         
         var manager = GameObjectManager.Instance();
         if (manager == null) return;

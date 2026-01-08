@@ -42,8 +42,8 @@ public class DungeonLoggerUploader : DailyModuleBase
         Cookies            = new();
         HttpClientInstance = HttpClientHelper.Get(new HttpClientHandler { CookieContainer = Cookies }, "DungeonLoggerUploader-Client");
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.DutyState.DutyCompleted      += OnDutyCompleted;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().DutyState.DutyCompleted      += OnDutyCompleted;
 
         if (!string.IsNullOrEmpty(ModuleConfig.Username) && !string.IsNullOrEmpty(ModuleConfig.Password))
             Task.Run(() => LoginAsync());
@@ -240,8 +240,8 @@ public class DungeonLoggerUploader : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.DutyState.DutyCompleted      -= OnDutyCompleted;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().DutyState.DutyCompleted      -= OnDutyCompleted;
 
         HttpClientInstance = null;
         Cookies            = null;

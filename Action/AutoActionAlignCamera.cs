@@ -26,7 +26,7 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new() { ActionReversed = [94, 29494, 24402] };
         
-        UseActionManager.RegPreUseActionLocation(OnPreUseAction);
+        UseActionManager.Instance().RegPreUseActionLocation(OnPreUseAction);
     }
 
     protected override void ConfigUI()
@@ -53,7 +53,7 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
         {
             if (!LuminaGetter.TryGetRow<Action>(actionPair.Key, out var data)) continue;
             
-            var actionIcon = DService.Texture.GetFromGameIcon(new(data.Icon)).GetWrapOrDefault();
+            var actionIcon = DService.Instance().Texture.GetFromGameIcon(new(data.Icon)).GetWrapOrDefault();
             if (actionIcon == null) continue;
 
             using var id = ImRaii.PushId($"{actionPair.Key}");
@@ -100,7 +100,7 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
         var adjustedID = ActionManager.Instance()->GetAdjustedActionId(actionID);
         if (!ModuleConfig.ActionEnabled.TryGetValue(adjustedID, out var enabled) || !enabled) return;
 
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
 
         var transformedRotation = CameraDirHToCharaRotation(((CameraEx*)CameraManager.Instance()->Camera)->DirH);
         if (ModuleConfig.ActionReversed.Contains(adjustedID))

@@ -40,7 +40,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
         AllDataCenters.ForEach(x => ModuleConfig.DataCentersNotifyTime.TryAdd(x, 0));
         SaveConfig(ModuleConfig);
         
-        FrameworkManager.Reg(OnUpdate, throttleMS: 60_000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 60_000);
         
         RunCheck(true);
     }
@@ -113,7 +113,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
                 return;
 
             // 不在副本内且当前就在目标大区
-            if (DService.ClientState.IsLoggedIn && !GameState.IsInInstanceArea && 
+            if (DService.Instance().ClientState.IsLoggedIn && !GameState.IsInInstanceArea && 
                 GameState.CurrentDataCenterData.Name.ToString() == dcName)
             {
                 var isBonusNow = GameState.IsChaoticRaidBonusActive;
@@ -155,7 +155,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
             Speak(text);
     }
 
-    protected override void Uninit() => FrameworkManager.Unreg(OnUpdate);
+    protected override void Uninit() => FrameworkManager.Instance().Unreg(OnUpdate);
 
     private class Config : ModuleConfiguration
     {

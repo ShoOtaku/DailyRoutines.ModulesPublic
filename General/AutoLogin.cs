@@ -48,12 +48,12 @@ public unsafe class AutoLogin : DailyModuleBase
         ModuleConfig =   LoadConfig<Config>() ?? new();
         TaskHelper   ??= new() { TimeoutMS = 180_000, ShowDebug = true };
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_TitleMenu", OnTitleMenu);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "Dialogue",   OnDialogue);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "_TitleMenu", OnTitleMenu);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "Dialogue",   OnDialogue);
         OnTitleMenu(AddonEvent.PostSetup, null);
 
         CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("AutoLogin-CommandHelp") });
-        DService.ClientState.Login += OnLogin;
+        DService.Instance().ClientState.Login += OnLogin;
     }
 
     protected override void ConfigUI()
@@ -231,7 +231,7 @@ public unsafe class AutoLogin : DailyModuleBase
     private void OnCommand(string command, string args)
     {
         args = args.Trim();
-        if (string.IsNullOrWhiteSpace(args) || !DService.ClientState.IsLoggedIn || BoundByDuty)
+        if (string.IsNullOrWhiteSpace(args) || !DService.Instance().ClientState.IsLoggedIn || BoundByDuty)
             return;
 
         var parts = args.Split(' ');
@@ -260,7 +260,7 @@ public unsafe class AutoLogin : DailyModuleBase
         }
 
         TaskHelper.Abort();
-        TaskHelper.Enqueue(() => ChatManager.SendMessage("/logout"));
+        TaskHelper.Enqueue(() => ChatManager.Instance().SendMessage("/logout"));
     }
 
     private void OnTitleMenu(AddonEvent eventType, AddonArgs? args)
@@ -269,7 +269,7 @@ public unsafe class AutoLogin : DailyModuleBase
             (ModuleConfig.Mode == BehaviourMode.Once && HasLoginOnce) ||
             InterruptByConflictKey(TaskHelper, this)                  ||
             LobbyDKT->IsAddonAndNodesReady()                            ||
-            DService.ClientState.IsLoggedIn)
+            DService.Instance().ClientState.IsLoggedIn)
             return;
         
         TaskHelper.Abort();
@@ -381,11 +381,11 @@ public unsafe class AutoLogin : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.Login -= OnLogin;
+        DService.Instance().ClientState.Login -= OnLogin;
         CommandManager.RemoveCommand(COMMAND);
         
-        DService.AddonLifecycle.UnregisterListener(OnTitleMenu);
-        DService.AddonLifecycle.UnregisterListener(OnDialogue);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnTitleMenu);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnDialogue);
         
         ResetStates();
         HasLoginOnce = false;

@@ -18,6 +18,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 using Map = Lumina.Excel.Sheets.Map;
 
 namespace DailyRoutines.ModulesPublic;
@@ -50,14 +51,14 @@ public unsafe class BetterTeleport : DailyModuleBase
 
     private static uint TicketUsageType
     {
-        get => DService.GameConfig.UiConfig.GetUInt("TelepoTicketUseType");
-        set => DService.GameConfig.UiConfig.Set("TelepoTicketUseType", value);
+        get => DService.Instance().GameConfig.UiConfig.GetUInt("TelepoTicketUseType");
+        set => DService.Instance().GameConfig.UiConfig.Set("TelepoTicketUseType", value);
     }
 
     private static uint TicketUsageGilSetting
     {
-        get => DService.GameConfig.UiConfig.GetUInt("TelepoTicketGilSetting");
-        set => DService.GameConfig.UiConfig.Set("TelepoTicketGilSetting", value);
+        get => DService.Instance().GameConfig.UiConfig.GetUInt("TelepoTicketGilSetting");
+        set => DService.Instance().GameConfig.UiConfig.Set("TelepoTicketGilSetting", value);
     }
 
     private static Config ModuleConfig = null!;
@@ -104,12 +105,12 @@ public unsafe class BetterTeleport : DailyModuleBase
 
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
 
         CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("BetterTeleport-CommandHelp") });
 
-        UseActionManager.RegPreUseAction(OnPostUseAction);
+        UseActionManager.Instance().RegPreUseAction(OnPostUseAction);
     }
 
     protected override void ConfigUI()
@@ -133,7 +134,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                 return;
         }
 
-        if (DService.KeyState[VirtualKey.ESCAPE])
+        if (DService.Instance().KeyState[VirtualKey.ESCAPE])
         {
             Overlay.IsOpen = false;
             if (SystemMenu != null)
@@ -320,7 +321,7 @@ public unsafe class BetterTeleport : DailyModuleBase
 
     private void DrawAetheryte(AetheryteRecord aetheryte)
     {
-        if (ModuleConfig.HideAethernetInParty && !aetheryte.IsAetheryte && DService.PartyList.Length > 1)
+        if (ModuleConfig.HideAethernetInParty && !aetheryte.IsAetheryte && DService.Instance().PartyList.Length > 1)
             return;
 
         var hasRemark   = ModuleConfig.Remarks.TryGetValue(aetheryte.RowID, out var remark);
@@ -382,7 +383,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                 ImGui.TextUnformatted(GetLoc("Position"));
 
                 var hasPosition = ModuleConfig.Positions.TryGetValue(aetheryte.RowID, out var position);
-                using (FontManager.UIFont60.Push())
+                using (FontManager.Instance().UIFont60.Push())
                     ImGui.TextUnformatted($"{(hasPosition ? position : aetheryte.Position):F1}");
                 if (ImGui.MenuItem(GetLoc("BetterTeleport-RedirectedToCurrentPos")))
                 {
@@ -486,7 +487,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         var titleY = startPos.Y + padding;
         drawList.AddText(new Vector2(contentStartX, titleY), ImGui.GetColorU32(ImGuiCol.Text), displayName);
 
-        using (FontManager.UIFont80.Push())
+        using (FontManager.Instance().UIFont80.Push())
         {
             var subY = titleY + lineHeight + (2f * GlobalFontScale);
             drawList.AddText(new Vector2(contentStartX, subY), ImGui.GetColorU32(ImGuiCol.TextDisabled), aetheryte.GetZone().ExtractPlaceName());
@@ -530,7 +531,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                             ImGuiWindowFlags.AlwaysAutoResize   |
                             ImGuiWindowFlags.NoSavedSettings))
             {
-                DrawAetheryteMap(DService.Texture.GetFromGame(PinnedAetheryte.GetMap().GetTexturePath()), PinnedAetheryte, true);
+                DrawAetheryteMap(DService.Instance().Texture.GetFromGame(PinnedAetheryte.GetMap().GetTexturePath()), PinnedAetheryte, true);
 
                 if (!ImGui.IsWindowFocused() && !ImGui.IsPopupOpen("BetterTeleport_Map_ContextMenu"))
                 {
@@ -560,7 +561,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         using (ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, Vector2.Zero))
         using (ImRaii.PushColor(ImGuiCol.PopupBg, ImGui.GetColorU32(ImGuiCol.WindowBg)))
         using (ImRaii.Tooltip())
-            DrawAetheryteMap(DService.Texture.GetFromGame(HoveredAetheryte.GetMap().GetTexturePath()), HoveredAetheryte, false);
+            DrawAetheryteMap(DService.Instance().Texture.GetFromGame(HoveredAetheryte.GetMap().GetTexturePath()), HoveredAetheryte, false);
     }
 
     private void DrawAetheryteMap(ISharedImmediateTexture tex, AetheryteRecord aetheryte, bool isPinned)
@@ -623,11 +624,11 @@ public unsafe class BetterTeleport : DailyModuleBase
                         TaskHelper.Enqueue(() => MovementManager.TPSmart_BetweenZone(ContextMenuTargetZone, ContextMenuTargetPos));
                         TaskHelper.Enqueue(() =>
                         {
-                            if (MovementManager.IsManagerBusy || DService.ObjectTable.LocalPlayer == null)
+                            if (MovementManager.IsManagerBusy || DService.Instance().ObjectTable.LocalPlayer == null)
                                 return false;
 
                             MovementManager.TPGround();
-                            if (BetweenAreas || DService.Condition[ConditionFlag.Jumping]) return false;
+                            if (BetweenAreas || DService.Instance().Condition[ConditionFlag.Jumping]) return false;
 
                             return true;
                         });
@@ -635,7 +636,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                     else
                     {
                         TaskHelper.Enqueue(() => MovementManager.TeleportNearestAetheryte(ContextMenuTargetPos, ContextMenuTargetZone));
-                        TaskHelper.Enqueue(() => BetweenAreas && DService.ObjectTable.LocalPlayer != null);
+                        TaskHelper.Enqueue(() => BetweenAreas && DService.Instance().ObjectTable.LocalPlayer != null);
                         TaskHelper.Enqueue(() =>
                         {
                             if (!BetweenAreas) return true;
@@ -651,7 +652,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         
         if (ImGui.IsPopupOpen("BetterTeleport_Map_ContextMenu"))
         {
-            var texFlag = DService.Texture.GetFromGameIcon(new(60561)).GetWrapOrEmpty();
+            var texFlag = DService.Instance().Texture.GetFromGameIcon(new(60561)).GetWrapOrEmpty();
             if (texFlag.Handle != nint.Zero)
             {
                 var flagPos       = WorldToTexture(ContextMenuTargetPos, aetheryte.GetMap()) * scale;
@@ -668,8 +669,8 @@ public unsafe class BetterTeleport : DailyModuleBase
         var mapID    = aetheryte.GetMap().RowId;
         var siblings = AllRecords.Where(x => x.GetMap().RowId == mapID).ToList();
 
-        var texAetheryte = DService.Texture.GetFromGameIcon(new(60453)).GetWrapOrEmpty();
-        var texAethernet = DService.Texture.GetFromGameIcon(new(60430)).GetWrapOrEmpty();
+        var texAetheryte = DService.Instance().Texture.GetFromGameIcon(new(60453)).GetWrapOrEmpty();
+        var texAethernet = DService.Instance().Texture.GetFromGameIcon(new(60430)).GetWrapOrEmpty();
         
         var sizeNormal = ScaledVector2(18f * ModuleConfig.MapZoom);
         var sizeTarget = ScaledVector2(24f * ModuleConfig.MapZoom);
@@ -784,7 +785,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         void DrawItem(uint itemID)
         {
             if (!LuminaGetter.TryGetRow<Item>(itemID, out var row)) return;
-            if (!DService.Texture.TryGetFromGameIcon(new(row.Icon), out var texture)) return;
+            if (!DService.Instance().Texture.TryGetFromGameIcon(new(row.Icon), out var texture)) return;
 
             var iconSize = new Vector2(ImGui.GetTextLineHeight());
             ImGui.Image(texture.GetWrapOrEmpty().Handle, iconSize);
@@ -838,7 +839,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                 TaskHelper.Enqueue(() => MovementManager.TPSmart_InZone(aetherytePos), "区域内TP");
                 TaskHelper.Enqueue(() =>
                 {
-                    if (MovementManager.IsManagerBusy || DService.ObjectTable.LocalPlayer == null)
+                    if (MovementManager.IsManagerBusy || DService.Instance().ObjectTable.LocalPlayer == null)
                         return false;
 
                     MovementManager.TPGround();
@@ -858,7 +859,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                     TaskHelper.Enqueue(() =>
                     {
                         if (MovementManager.IsManagerBusy || BetweenAreas || !UIModule.IsScreenReady() ||
-                            DService.Condition.Any(ConditionFlag.Mounted))
+                            DService.Instance().Condition.Any(ConditionFlag.Mounted))
                             return false;
                         MovementManager.TPGround();
                         return true;
@@ -887,7 +888,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                 TaskHelper.Enqueue(() =>
                 {
                     if (MovementManager.IsManagerBusy || BetweenAreas || !UIModule.IsScreenReady() ||
-                        DService.Condition.Any(ConditionFlag.Mounted))
+                        DService.Instance().Condition.Any(ConditionFlag.Mounted))
                         return false;
                     MovementManager.TPGround();
                     return true;
@@ -906,7 +907,7 @@ public unsafe class BetterTeleport : DailyModuleBase
             aetheryteInThisZone.Group != aetheryte.Group ||
             !EventFramework.Instance()->TryGetNearestEventID(x => x.EventId.ContentId is EventHandlerContent.Aetheryte,
                                                              _ => true,
-                                                             DService.ObjectTable.LocalPlayer.Position,
+                                                             DService.Instance().ObjectTable.LocalPlayer.Position,
                                                              out var eventIDAetheryte))
         {
             // 大水晶直接传
@@ -928,7 +929,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                 TaskHelper.Enqueue(() =>
                 {
                     if (MovementManager.IsManagerBusy || BetweenAreas || !UIModule.IsScreenReady() ||
-                        DService.Condition.Any(ConditionFlag.Mounted))
+                        DService.Instance().Condition.Any(ConditionFlag.Mounted))
                         return false;
                     MovementManager.TPGround();
                     return true;
@@ -976,7 +977,7 @@ public unsafe class BetterTeleport : DailyModuleBase
     private static void RefreshHouseInfo()
     {
         HouseRecords.Clear();
-        foreach (var aetheryte in DService.AetheryteList)
+        foreach (var aetheryte in DService.Instance().AetheryteList)
         {
             if (!HouseZones.Contains(aetheryte.TerritoryID)) continue;
             if (!LuminaGetter.TryGetRow<Aetheryte>(aetheryte.AetheryteID, out var aetheryteRow)) continue;
@@ -1062,7 +1063,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         Overlay.IsOpen = false;
         TaskHelper.RemoveQueueTasks(1);
 
-        if (GameState.TerritoryType == 0 || GameState.ContentFinderCondition != 0 || !DService.ClientState.IsLoggedIn) return;
+        if (GameState.TerritoryType == 0 || GameState.ContentFinderCondition != 0 || !DService.Instance().ClientState.IsLoggedIn) return;
 
         TaskHelper.Enqueue(() =>
         {
@@ -1070,7 +1071,7 @@ public unsafe class BetterTeleport : DailyModuleBase
             {
                 IsRefreshing = true;
 
-                if (DService.ObjectTable.LocalPlayer is null || BetweenAreas) return false;
+                if (DService.Instance().ObjectTable.LocalPlayer is null || BetweenAreas) return false;
 
                 var instance = Telepo.Instance();
                 if (instance == null) return false;
@@ -1154,10 +1155,10 @@ public unsafe class BetterTeleport : DailyModuleBase
 
     protected override void Uninit()
     {
-        UseActionManager.Unreg(OnPostUseAction);
+        UseActionManager.Instance().Unreg(OnPostUseAction);
         CommandManager.RemoveCommand(COMMAND);
 
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
     }
 
     private class Config : ModuleConfiguration

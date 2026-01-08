@@ -34,8 +34,8 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
 
         Overlay ??= new(this);
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "WeeklyPuzzle", OnWeeklyPuzzleEvent);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "WeeklyPuzzle", OnWeeklyPuzzleEvent);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "WeeklyPuzzle", OnWeeklyPuzzleEvent);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "WeeklyPuzzle", OnWeeklyPuzzleEvent);
         if (WeeklyPuzzle != null) 
             OnWeeklyPuzzleEvent(AddonEvent.PostSetup, null);
     }
@@ -69,19 +69,19 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnWeeklyPuzzleEvent);
-        FrameworkManager.Unreg(OnUpdate);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnWeeklyPuzzleEvent);
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
     
     private void OnWeeklyPuzzleEvent(AddonEvent type, AddonArgs? args)
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         
         switch (type)
         {
             case AddonEvent.PostSetup:
                 Overlay.IsOpen = true;
-                FrameworkManager.Reg(OnUpdate, throttleMS: 1000);
+                FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1000);
                 break;
 
             case AddonEvent.PreFinalize:

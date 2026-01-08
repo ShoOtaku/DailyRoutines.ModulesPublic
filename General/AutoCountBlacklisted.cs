@@ -40,10 +40,10 @@ public unsafe class AutoCountBlacklisted : DailyModuleBase
         InfoProxyBlackListUpdateHook ??= InfoProxyBlackListUpdateSig.GetHook<InfoProxyBlackListUpdateDelegate>(InfoProxyBlackListUpdateDetour);
         InfoProxyBlackListUpdateHook.Enable();
 
-        DtrEntry ??= DService.DtrBar.Get("DailyRoutines-AutoCountBlacklisted");
+        DtrEntry ??= DService.Instance().DtrBar.Get("DailyRoutines-AutoCountBlacklisted");
         DtrEntry.Shown = true;
 
-        FrameworkManager.Reg(OnUpdate, throttleMS: 500);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 500);
     }
 
     protected override void ConfigUI()
@@ -96,13 +96,13 @@ public unsafe class AutoCountBlacklisted : DailyModuleBase
     private static void OnUpdate(IFramework _)
     {
         if (DtrEntry is null) return;
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
 
         var tooltip = new StringBuilder();
         var blackNum = 0;
         var myPos = localPlayer.Position;
         var checkRange = ModuleConfig.CheckRange * ModuleConfig.CheckRange;
-        foreach (var obj in DService.ObjectTable)
+        foreach (var obj in DService.Instance().ObjectTable)
         {
             if (obj.ObjectKind != ObjectKind.Player || obj is not IPlayerCharacter chara) continue;
             
@@ -138,7 +138,7 @@ public unsafe class AutoCountBlacklisted : DailyModuleBase
 
     protected override void Uninit()
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
         DtrEntry?.Remove();
         DtrEntry = null;

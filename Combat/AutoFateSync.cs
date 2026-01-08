@@ -45,7 +45,7 @@ public class AutoFateSync : DailyModuleBase
         
         CancelSource ??= new();
 
-        GameState.EnterFate += OnEnterFate;
+        GameState.Instance().EnterFate += OnEnterFate;
     }
 
     protected override void ConfigUI()
@@ -73,9 +73,9 @@ public class AutoFateSync : DailyModuleBase
 
     private unsafe void HandleFateEnter()
     {
-        if (ModuleConfig.IgnoreMounting && (DService.Condition[ConditionFlag.InFlight] || IsOnMount))
+        if (ModuleConfig.IgnoreMounting && (DService.Instance().Condition[ConditionFlag.InFlight] || IsOnMount))
         {
-            FrameworkManager.Reg(OnFlying, throttleMS: 500);
+            FrameworkManager.Instance().Reg(OnFlying, throttleMS: 500);
             return;
         }
 
@@ -83,9 +83,9 @@ public class AutoFateSync : DailyModuleBase
         
         if (ModuleConfig.Delay > 0)
         {
-            DService.Framework.RunOnTick(() =>
+            DService.Instance().Framework.RunOnTick(() =>
             {
-                if (manager->CurrentFate == null || DService.ObjectTable.LocalPlayer == null) return;
+                if (manager->CurrentFate == null || DService.Instance().ObjectTable.LocalPlayer == null) return;
 
                 ExecuteFateLevelSync(manager->CurrentFate->FateId);
             }, TimeSpan.FromSeconds(ModuleConfig.Delay), 0, CancelSource.Token);
@@ -99,34 +99,34 @@ public class AutoFateSync : DailyModuleBase
     private unsafe void OnFlying(IFramework _)
     {
         var currentFate = FateManager.Instance()->CurrentFate;
-        if (currentFate == null || DService.ObjectTable.LocalPlayer == null)
+        if (currentFate == null || DService.Instance().ObjectTable.LocalPlayer == null)
         {
-            FrameworkManager.Unreg(OnFlying);
+            FrameworkManager.Instance().Unreg(OnFlying);
             return;
         }
 
-        if (DService.Condition[ConditionFlag.InFlight] || IsOnMount) return;
+        if (DService.Instance().Condition[ConditionFlag.InFlight] || IsOnMount) return;
 
         ExecuteFateLevelSync(currentFate->FateId);
-        FrameworkManager.Unreg(OnFlying);
+        FrameworkManager.Instance().Unreg(OnFlying);
     }
 
     private unsafe void ExecuteFateLevelSync(ushort fateID)
     {
-        ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.FateLevelSync, fateID, 1);
+        ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.FateLevelSync, fateID, 1);
         
         TaskHelper.Abort();
         if (ModuleConfig.AutoTankStance)
         {
             TaskHelper.Enqueue(() => !IsOnMount                                 &&
-                                     !DService.Condition[ConditionFlag.Jumping] &&
+                                     !DService.Instance().Condition[ConditionFlag.Jumping] &&
                                      ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 2) == 0);
             TaskHelper.Enqueue(() =>
             {
                 if (FateManager.Instance()->CurrentFate == null ||
                     !LuminaGetter.TryGetRow<Fate>(fateID, out var data))
                     return true;
-                if (DService.ObjectTable.LocalPlayer is not { } localPlayer)
+                if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
                     return false;
                 if (!TankStanceActions.TryGetValue(localPlayer.ClassJob.RowId, out var jobInfo))
                     return false;
@@ -135,7 +135,7 @@ public class AutoFateSync : DailyModuleBase
                 if (LocalPlayerState.HasStatus(jobInfo.StatusID, out _)) 
                     return true;
                 
-                UseActionManager.UseAction(ActionType.Action, jobInfo.ActionID);
+                UseActionManager.Instance().UseAction(ActionType.Action, jobInfo.ActionID);
                 return true;
             });
         }
@@ -143,7 +143,7 @@ public class AutoFateSync : DailyModuleBase
 
     protected override void Uninit()
     {
-        GameState.EnterFate -= OnEnterFate;
+        GameState.Instance().EnterFate -= OnEnterFate;
         
         CancelSource?.Cancel();
         CancelSource?.Dispose();

@@ -126,7 +126,7 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
         switch (eventType)
         {
             case AtkEventType.FocusStart: // 聚焦
-                DService.Framework.RunOnTick(() => CheckSlashAndSwitchLayout(component), TimeSpan.FromMilliseconds(50));
+                DService.Instance().Framework.RunOnTick(() => CheckSlashAndSwitchLayout(component), TimeSpan.FromMilliseconds(50));
                 break;
             case AtkEventType.FocusStop: // 失焦
                 var unfocusLayout = InputMethodController.FindKeyboardLayout(ModuleConfig.UnfocusLayoutLangID);

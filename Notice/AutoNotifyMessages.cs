@@ -30,7 +30,7 @@ public class AutoNotifyMessages : DailyModuleBase
 
         KnownChatTypes = [.. Enum.GetValues<XivChatType>()];
 
-        DService.Chat.ChatMessage += OnChatMessage;
+        DService.Instance().Chat.ChatMessage += OnChatMessage;
     }
 
     protected override void ConfigUI()
@@ -143,7 +143,7 @@ public class AutoNotifyMessages : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.Chat.ChatMessage -= OnChatMessage;
+        DService.Instance().Chat.ChatMessage -= OnChatMessage;
     }
 
     private class Config : ModuleConfiguration

@@ -21,7 +21,7 @@ public class AutoMonsterToss : DailyModuleBase
     {
         TaskHelper ??= new();
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "BasketBall", OnAddonSetup);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "BasketBall", OnAddonSetup);
     }
 
     protected override void ConfigUI()
@@ -121,7 +121,7 @@ public class AutoMonsterToss : DailyModuleBase
 
     protected override unsafe void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddonSetup);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSetup);
         
         if (BasketBall->IsAddonAndNodesReady())
             new EventCompletePackt(0x240001, 14).Send();

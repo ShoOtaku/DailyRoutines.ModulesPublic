@@ -60,7 +60,7 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.Chat.ChatMessage += OnChat;
+        DService.Instance().Chat.ChatMessage += OnChat;
     }
 
     protected override void ConfigUI()
@@ -106,7 +106,7 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
                 senderStr = $"{playerPayload.PlayerName}@{playerPayload.World.Value.Name.ToString()}";
         }
 
-        var linkPayload = LinkPayloadManager.Register(OnClickRepeat, out var id);
+        var linkPayload = LinkPayloadManager.Instance().Reg(OnClickRepeat, out var id);
         SavedPayload.TryAdd(id, (channel, message.Encode(), senderStr));
         
         message.Append(new UIForegroundPayload(24))
@@ -145,7 +145,7 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
             switch (info.Channel)
             {
                 case 0:
-                    ChatManager.SendMessage($"/tell {info.Sender}");
+                    ChatManager.Instance().SendMessage($"/tell {info.Sender}");
                     break;
                 default:
                     instance->ChangeChatChannel(info.Channel, linkshellIndex, Utf8String.FromString(string.Empty), true);
@@ -153,7 +153,7 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
             }
         }
         
-        ChatManager.SendCommand(info.Message);
+        ChatManager.Instance().SendCommand(info.Message);
         
         if (info.Channel != -1                                                     && 
             ModuleConfig is { AutoSwitchChannel: true, AutoSwitchOrigChannel: true })
@@ -170,7 +170,7 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.Chat.ChatMessage -= OnChat;
+        DService.Instance().Chat.ChatMessage -= OnChat;
         SavedPayload.Clear();
     }
 

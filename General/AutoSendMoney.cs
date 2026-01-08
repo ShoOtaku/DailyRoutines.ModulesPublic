@@ -69,7 +69,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         TradeStatusUpdateHook = TradeStatusUpdateSig.GetHook<TradeStatusUpdateDelegate>(TradeStatusDetour);
         TradeStatusUpdateHook.Enable();
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "Trade", OnTrade);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "Trade", OnTrade);
 
         SelectPlayerTimer         ??= new(1_000) { AutoReset = true };
         SelectPlayerTimer.Elapsed +=  AutoRequestTradeTick;
@@ -97,7 +97,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         SelectPlayerTimer?.Dispose();
         SelectPlayerTimer = null;
 
-        DService.AddonLifecycle.UnregisterListener(AddonEvent.PostSetup, "Trade", OnTrade);
+        DService.Instance().AddonLifecycle.UnregisterListener(AddonEvent.PostSetup, "Trade", OnTrade);
     }
 
     #region UI
@@ -371,7 +371,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
     {
         var target = TargetSystem.Instance()->GetTargetObject();
         if (target is not null &&
-            DService.ObjectTable.SearchByEntityID(target->EntityId) is ICharacter { ObjectKind: ObjectKind.Player } player)
+            DService.Instance().ObjectTable.SearchByEntityID(target->EntityId) is ICharacter { ObjectKind: ObjectKind.Player } player)
         {
             if (MemberList.Any(p => p.EntityID == player.EntityID))
                 return;
@@ -528,7 +528,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
         if (LastTradeEntityID != 0 && TradePlan.ContainsKey(LastTradeEntityID))
         {
-            var target = DService.ObjectTable.SearchByEntityID(LastTradeEntityID);
+            var target = DService.Instance().ObjectTable.SearchByEntityID(LastTradeEntityID);
             if (target is null || !IsDistanceEnough(target.Position))
                 return;
 
@@ -537,7 +537,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
         TradePlan.Keys.ToList().ForEach(entityID =>
         {
-            var target = DService.ObjectTable.SearchByEntityID(entityID);
+            var target = DService.Instance().ObjectTable.SearchByEntityID(entityID);
             if (target is null || !IsDistanceEnough(target.Position))
                 return;
 
@@ -548,7 +548,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
     private static bool IsDistanceEnough(Vector3 pos2)
     {
-        var pos = DService.ObjectTable.LocalPlayer.Position;
+        var pos = DService.Instance().ObjectTable.LocalPlayer.Position;
         return Math.Pow(pos.X - pos2.X, 2) + Math.Pow(pos.Z - pos2.Z, 2) < 16;
     }
 

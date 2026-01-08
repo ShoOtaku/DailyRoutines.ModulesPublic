@@ -59,8 +59,8 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         CameraUpdateRotationHook ??= CameraUpdateRotationSig.GetHook<CameraUpdateRotationDelegate>(CameraUpdateRotationDetour);
         CameraUpdateRotationHook.Enable();
         
-        UseActionManager.RegUseActionLocation(OnPostUseAction);
-        FrameworkManager.Reg(OnUpdate, throttleMS: 10);
+        UseActionManager.Instance().RegPostUseActionLocation(OnPostUseAction);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 10);
 
         CommandManager.AddCommand(Command, new(OnCommand) { HelpMessage = GetLoc("AutoFaceCameraDirection-CommandHelp", Command) });
     }
@@ -100,7 +100,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
             ImGui.TextUnformatted($"camera ({GetLoc("AutoFaceCameraDirection-CameraRotation")})");
         }
         
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
         using (ImRaii.Group())
         {
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoFaceCameraDirection-GroundDirection")}:");
@@ -151,8 +151,8 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
 
     protected override void Uninit()
     {
-        FrameworkManager.Unreg(OnUpdate);
-        UseActionManager.Unreg(OnPostUseAction);
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        UseActionManager.Instance().Unreg(OnPostUseAction);
         
         CommandManager.RemoveCommand(Command);
     }
@@ -167,7 +167,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         }
         
         var arguments = args.Split(' ');
-        if (arguments.Length is not (1 or 2) || DService.ObjectTable.LocalPlayer is not { } localPlayer)
+        if (arguments.Length is not (1 or 2) || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
         {
             NotifyCommandError();
             return;
@@ -260,7 +260,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         if (MovementManager.IsManagerBusy ||
             BetweenAreas                  ||
             OccupiedInEvent               ||
-            DService.ObjectTable.LocalPlayer is not { CurrentHp: > 0 } localPlayer)
+            DService.Instance().ObjectTable.LocalPlayer is not { CurrentHp: > 0 } localPlayer)
             return;
         
         switch (ModuleConfig.WorkMode)
@@ -279,7 +279,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
                 localPlayer.ToStruct()->SetRotation(targetRotation);
                 if (BoundByDuty)
                 {
-                    if (!isRotationChanged && !DService.Condition[ConditionFlag.InCombat]) break;
+                    if (!isRotationChanged && !DService.Instance().Condition[ConditionFlag.InCombat]) break;
                     if (!Throttler.Throttle("AutoFaceCameraDirection-UpdateRotationInstance", 10)) break;
 
                     var moveType = (PositionUpdateInstancePacket.MoveType)(currentMoveState * 0x10000);
@@ -287,7 +287,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
                 }
                 else
                 {
-                    if (!isRotationChanged && !DService.Condition[ConditionFlag.InCombat]) break;
+                    if (!isRotationChanged && !DService.Instance().Condition[ConditionFlag.InCombat]) break;
                     if (!Throttler.Throttle("AutoFaceCameraDirection-UpdateRotation", 20)) break;
                     
                     var moveType = (PositionUpdatePacket.MoveType)(currentMoveState * 0x10000);

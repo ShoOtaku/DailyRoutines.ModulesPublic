@@ -47,19 +47,19 @@ public class OptimizedLetter : DailyModuleBase
             Size         = new(290f, 200f),
         };
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddonSelectYesNo);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", OnAddonSelectYesNo);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "LetterAddress", OnAddonLetterAddress);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LetterAddress", OnAddonLetterAddress);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "LetterAddress", OnAddonLetterAddress);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LetterAddress", OnAddonLetterAddress);
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "LetterList",  OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "LetterList",  OnAddon);
     }
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddonSelectYesNo);
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
-        DService.AddonLifecycle.UnregisterListener(OnAddonLetterAddress);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectYesNo);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonLetterAddress);
         OnAddonLetterAddress(AddonEvent.PreFinalize, null);
         
         Addon?.Dispose();

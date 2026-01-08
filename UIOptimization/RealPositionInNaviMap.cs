@@ -25,8 +25,8 @@ public class RealPositionInNaviMap : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "_NaviMap", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_NaviMap", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "_NaviMap", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_NaviMap", OnAddon);
     }
 
     protected override void ConfigUI()
@@ -41,7 +41,7 @@ public class RealPositionInNaviMap : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
     }
 
@@ -69,7 +69,7 @@ public class RealPositionInNaviMap : DailyModuleBase
                         SeString  = string.Empty,
                         OnClick = () =>
                         {
-                            if (DService.ObjectTable.LocalPlayer is not { } player) return;
+                            if (DService.Instance().ObjectTable.LocalPlayer is not { } player) return;
 
                             var agent = AgentMap.Instance();
                             agent->SetFlagMapMarker(GameState.TerritoryType, GameState.Map, player.Position);
@@ -86,7 +86,7 @@ public class RealPositionInNaviMap : DailyModuleBase
                         }
                     };
 
-                    if (DService.ObjectTable.LocalPlayer is { } localPlayer)
+                    if (DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
                         PositionButton.String = $"X:{localPlayer.Position.X:F1} Y:{localPlayer.Position.Y:F1} Z:{localPlayer.Position.Z:F1}";
 
                     PositionButton.BackgroundNode.IsVisible = false;
@@ -101,7 +101,7 @@ public class RealPositionInNaviMap : DailyModuleBase
                 }
 
             {
-                if (LocalPlayerState.IsMoving && DService.ObjectTable.LocalPlayer is { } localPlayer)
+                if (LocalPlayerState.Instance().IsMoving && DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
                     PositionButton.String = $"X:{localPlayer.Position.X:F1} Y:{localPlayer.Position.Y:F1} Z:{localPlayer.Position.Z:F1}";
             }
 

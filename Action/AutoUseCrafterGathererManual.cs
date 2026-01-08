@@ -7,6 +7,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -47,10 +48,10 @@ public unsafe class AutoUseCrafterGathererManual : DailyModuleBase
         ModuleConfig = LoadConfig<Config>() ?? new();
         TaskHelper ??= new() { TimeoutMS = 15_000 };
 
-        DService.Condition.ConditionChange    += OnConditionChanged;
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.ClientState.ClassJobChanged  += OnClassJobChanged;
-        DService.ClientState.LevelChanged     += OnLevelChanged;
+        DService.Instance().Condition.ConditionChange    += OnConditionChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.ClassJobChanged  += OnClassJobChanged;
+        DService.Instance().ClientState.LevelChanged     += OnLevelChanged;
         
         EnqueueCheck();
     }
@@ -63,10 +64,10 @@ public unsafe class AutoUseCrafterGathererManual : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.Condition.ConditionChange    -= OnConditionChanged;
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.ClientState.ClassJobChanged  -= OnClassJobChanged;
-        DService.ClientState.LevelChanged     -= OnLevelChanged;
+        DService.Instance().Condition.ConditionChange    -= OnConditionChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.ClassJobChanged  -= OnClassJobChanged;
+        DService.Instance().ClientState.LevelChanged     -= OnLevelChanged;
     }
 
     private void OnConditionChanged(ConditionFlag flag, bool value)
@@ -89,7 +90,7 @@ public unsafe class AutoUseCrafterGathererManual : DailyModuleBase
         TaskHelper.Abort();
         TaskHelper.Enqueue(() =>
         {
-            if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
+            if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
             if (localPlayer.Level >= PlayerState.Instance()->MaxLevel) return true;
             if (BetweenAreas || OccupiedInEvent || IsCasting || !UIModule.IsScreenReady() ||
                 ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 2) != 0)
@@ -110,7 +111,7 @@ public unsafe class AutoUseCrafterGathererManual : DailyModuleBase
                 itemID = crafterManual;
             if (itemID == 0 || !LuminaGetter.TryGetRow<Item>(itemID, out var itemRow)) return true;
             
-            UseActionManager.UseActionLocation(ActionType.Item, itemID, 0xE0000000, default, 0xFFFF);
+            UseActionManager.Instance().UseActionLocation(ActionType.Item, itemID, 0xE0000000, default, 0xFFFF);
             if (ModuleConfig.SendNotification)
                 NotificationInfo(GetLoc("AutoUseCrafterGathererManual-Notification", itemRow.Name.ToString()));
             return true;

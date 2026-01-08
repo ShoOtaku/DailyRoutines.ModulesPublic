@@ -5,6 +5,7 @@ using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -30,8 +31,8 @@ public class AutoSummonPet : DailyModuleBase
     {
         TaskHelper ??= new TaskHelper { TimeoutMS = 30_000 };
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.DutyState.DutyRecommenced += OnDutyRecommenced;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().DutyState.DutyRecommenced += OnDutyRecommenced;
     }
 
     // 重新挑战
@@ -54,8 +55,8 @@ public class AutoSummonPet : DailyModuleBase
 
     private unsafe bool CheckCurrentJob()
     {
-        if (BetweenAreas || !UIModule.IsScreenReady() || DService.Condition[ConditionFlag.Casting] ||
-            DService.ObjectTable.LocalPlayer is not { IsTargetable: true } localPlayer) return false;
+        if (BetweenAreas || !UIModule.IsScreenReady() || DService.Instance().Condition[ConditionFlag.Casting] ||
+            DService.Instance().ObjectTable.LocalPlayer is not { IsTargetable: true } localPlayer) return false;
 
         if (!SummonActions.TryGetValue(LocalPlayerState.ClassJob, out var actionID))
         {
@@ -70,7 +71,7 @@ public class AutoSummonPet : DailyModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, actionID));
+        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, actionID));
         TaskHelper.DelayNext(1_000);
         TaskHelper.Enqueue(CheckCurrentJob);
         return true;
@@ -83,7 +84,7 @@ public class AutoSummonPet : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.DutyState.DutyRecommenced -= OnDutyRecommenced;
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().DutyState.DutyRecommenced -= OnDutyRecommenced;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
     }
 }

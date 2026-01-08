@@ -23,11 +23,11 @@ public unsafe class FastRidePillion : DailyModuleBase
     protected override void Init()
     {
         AgentContextReceiveEventHook ??=
-            DService.Hook.HookFromAddress<AgentReceiveEventDelegate>(AgentContext.Instance()->VirtualTable->GetVFuncByName("ReceiveEvent"),
+            DService.Instance().Hook.HookFromAddress<AgentReceiveEventDelegate>(AgentContext.Instance()->VirtualTable->GetVFuncByName("ReceiveEvent"),
                                                                      AgentContextReceiveEventDetour);
         AgentContextReceiveEventHook.Enable();
 
-        DService.Condition.ConditionChange += OnCondition;
+        DService.Instance().Condition.ConditionChange += OnCondition;
     }
 
     private static void OnCondition(ConditionFlag flag, bool value)
@@ -67,5 +67,5 @@ public unsafe class FastRidePillion : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.Condition.ConditionChange -= OnCondition;
+        DService.Instance().Condition.ConditionChange -= OnCondition;
 }

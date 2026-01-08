@@ -49,8 +49,8 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
             RememberClosePosition = true
         };
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "GrandCompanySupplyList", OnAddonSupplyList);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "GrandCompanySupplyList", OnAddonSupplyList);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "GrandCompanySupplyList", OnAddonSupplyList);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "GrandCompanySupplyList", OnAddonSupplyList);
         if (GrandCompanySupplyList->IsAddonAndNodesReady()) 
             OnAddonSupplyList(AddonEvent.PostSetup, null);
     }
@@ -106,7 +106,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
             return true;
         }
 
-        if (!DService.Condition[ConditionFlag.OccupiedInQuestEvent])
+        if (!DService.Instance().Condition[ConditionFlag.OccupiedInQuestEvent])
         {
             TaskHelper.Abort();
             return true;
@@ -132,7 +132,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
             return false;
         });
 
-        TaskHelper.Enqueue(() => new EventStartPackt(DService.ObjectTable.LocalPlayer.GameObjectID, info.EventID).Send());
+        TaskHelper.Enqueue(() => new EventStartPackt(DService.Instance().ObjectTable.LocalPlayer.GameObjectID, info.EventID).Send());
         TaskHelper.Enqueue(() => GrandCompanyExchange->IsAddonAndNodesReady());
 
         if (isAutoExchange && ModuleManager.IsModuleEnabled(typeof(FastGrandCompanyExchange)))
@@ -147,7 +147,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
         if (GrandCompanySupplyList->AtkValues[8].UInt != 0)
         {
             TaskHelper.Enqueue(() => !GrandCompanyExchange->IsAddonAndNodesReady() && !OccupiedInEvent);
-            TaskHelper.Enqueue(() => DService.ObjectTable
+            TaskHelper.Enqueue(() => DService.Instance().ObjectTable
                                              .FirstOrDefault(x => x.ObjectKind == ObjectKind.EventNpc && x.DataID == info.DataID)
                                              .TargetInteract());
             TaskHelper.Enqueue(() => ClickSelectString(0));
@@ -177,7 +177,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
 
         var buffMultiplier = 1f;
         if (LocalPlayerState.HasStatus(1078, out var index) || LocalPlayerState.HasStatus(414, out index))
-            buffMultiplier += DService.ObjectTable.LocalPlayer.StatusList[index].Param / 100f;
+            buffMultiplier += DService.Instance().ObjectTable.LocalPlayer.StatusList[index].Param / 100f;
         
         var companySeals   = InventoryManager.Instance()->GetCompanySeals(grandCompany);
         var capAmount      = rank.MaxSeals;
@@ -210,7 +210,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddonSupplyList);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSupplyList);
         
         Addon?.Dispose();
         Addon = null;

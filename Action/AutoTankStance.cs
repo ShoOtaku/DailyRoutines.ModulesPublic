@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using DailyRoutines.Abstracts;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -37,8 +38,8 @@ public class AutoTankStance : DailyModuleBase
         ModuleConfig =   LoadConfig<Config>() ?? new();
         TaskHelper   ??= new() { TimeoutMS = 30_000 };
 
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
-        DService.DutyState.DutyRecommenced    += OnDutyRecommenced;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().DutyState.DutyRecommenced    += OnDutyRecommenced;
     }
 
     protected override void ConfigUI()
@@ -73,13 +74,13 @@ public class AutoTankStance : DailyModuleBase
     {
         if (BetweenAreas || OccupiedInEvent || !UIModule.IsScreenReady()) return false;
 
-        if (DService.ObjectTable.LocalPlayer is not { ClassJob.RowId: var job, IsTargetable: true } || job == 0) 
+        if (DService.Instance().ObjectTable.LocalPlayer is not { ClassJob.RowId: var job, IsTargetable: true } || job == 0) 
             return false;
 
         if (!TankStanceActions.TryGetValue(job, out var info)) return true;
         if (LocalPlayerState.HasStatus(info.Status, out _)) return true;
 
-        return UseActionManager.UseAction(ActionType.Action, info.Action);
+        return UseActionManager.Instance().UseAction(ActionType.Action, info.Action);
     }
 
     private static bool IsValidPVEDuty() =>
@@ -90,8 +91,8 @@ public class AutoTankStance : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.DutyState.DutyRecommenced -= OnDutyRecommenced;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().DutyState.DutyRecommenced -= OnDutyRecommenced;
     }
 
     private class Config : ModuleConfiguration

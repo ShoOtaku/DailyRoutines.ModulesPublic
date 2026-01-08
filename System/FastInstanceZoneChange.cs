@@ -12,6 +12,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 using TerritoryIntendedUse = FFXIVClientStructs.FFXIV.Client.Enums.TerritoryIntendedUse;
 
 namespace DailyRoutines.ModulesPublic;
@@ -54,7 +55,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         if (ModuleConfig.AddDtrEntry)
             HandleDtrEntry(true);
 
-        FrameworkManager.Reg(OnUpdate, throttleMS: 5_000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 5_000);
     }
 
     protected override void ConfigUI()
@@ -95,7 +96,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
             return;
         }
 
-        if (DService.KeyState[VirtualKey.ESCAPE])
+        if (DService.Instance().KeyState[VirtualKey.ESCAPE])
         {
             Overlay.IsOpen = false;
             if (SystemMenu != null)
@@ -111,16 +112,16 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         
         ImGui.SetWindowPos((ImGui.GetMainViewport().Size / 2) - new Vector2(0.5f));
         
-        var count = InstancesManager.GetInstancesCount();
+        var count = InstancesManager.Instance().GetInstancesCount();
         for (uint i = 1; i <= count; i++)
         {
             if (i == InstancesManager.CurrentInstance) continue;
             
             if (ImGui.Button($"{GetLoc("FastInstanceZoneChange-SwitchInstance", i.ToSESquareCount())}") |
-                DService.KeyState[(VirtualKey)(48 + i)])
+                DService.Instance().KeyState[(VirtualKey)(48 + i)])
             {
-                if (TaskHelper.IsBusy || BetweenAreas || DService.Condition[ConditionFlag.Casting]) continue;
-                ChatManager.SendMessage($"/pdr insc {i}");
+                if (TaskHelper.IsBusy || BetweenAreas || DService.Instance().Condition[ConditionFlag.Casting]) continue;
+                ChatManager.Instance().SendMessage($"/pdr insc {i}");
                 if (ModuleConfig.CloseAfterUsage) 
                     Overlay.IsOpen = false;
             }
@@ -142,12 +143,12 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
     {
         if (isAdd && Entry == null)
         {
-            Entry         ??= DService.DtrBar.Get("DailyRoutines-FastInstanceZoneChange");
+            Entry         ??= DService.Instance().DtrBar.Get("DailyRoutines-FastInstanceZoneChange");
             Entry.OnClick +=  _ => Overlay.IsOpen ^= true;
             Entry.Shown   =   false;
             Entry.Tooltip =   GetLoc("FastInstanceZoneChange-DtrEntryTooltip");
 
-            FrameworkManager.Reg(OnUpdate, throttleMS: 5_000);
+            FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 5_000);
             return;
         }
 
@@ -156,7 +157,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
             Entry.Remove();
             Entry = null;
             
-            FrameworkManager.Unreg(OnUpdate);
+            FrameworkManager.Instance().Unreg(OnUpdate);
         }
     }
 
@@ -221,23 +222,23 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
         }
 
         var currentMountID = 0U;
-        if (DService.Condition[ConditionFlag.Mounted])
-            currentMountID = DService.ObjectTable.LocalPlayer.CurrentMount?.RowId ?? 0;
+        if (DService.Instance().Condition[ConditionFlag.Mounted])
+            currentMountID = DService.Instance().ObjectTable.LocalPlayer.CurrentMount?.RowId ?? 0;
 
         TaskHelper.Enqueue(() =>
         {
-            if (!DService.Condition[ConditionFlag.Mounted]) return true;
+            if (!DService.Instance().Condition[ConditionFlag.Mounted]) return true;
             if (!Throttler.Throttle("FastInstanceZoneChange-WaitDismount", 100)) return false;
 
-            ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.Dismount);
-            if (MovementManager.TryDetectGroundDownwards(DService.ObjectTable.LocalPlayer.Position.WithY(300),
+            ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.Dismount);
+            if (MovementManager.TryDetectGroundDownwards(DService.Instance().ObjectTable.LocalPlayer.Position.WithY(300),
                                                          out var hitInfo) ?? false)
             {
                 MovementManager.TPMountAddress(hitInfo.Point with { Y = hitInfo.Point.Y - 0.5f });
-                UseActionManager.UseAction(ActionType.GeneralAction, 9);
+                UseActionManager.Instance().UseAction(ActionType.GeneralAction, 9);
             }
 
-            return !DService.Condition[ConditionFlag.Mounted];
+            return !DService.Instance().Condition[ConditionFlag.Mounted];
         }, "下坐骑", weight: 2);
 
         if (ModuleConfig.ConstantlyTry)
@@ -251,7 +252,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
                 BetweenAreas)
                 return false;
             
-            OnUpdate(DService.Framework);
+            OnUpdate(DService.Instance().Framework);
             return true;
         }, "等待切换完毕, 更新副本区信息");
         
@@ -267,9 +268,9 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
                     return true;
                 
                 if (currentMountID != 0)
-                    UseActionManager.UseAction(ActionType.Mount, currentMountID);
+                    UseActionManager.Instance().UseAction(ActionType.Mount, currentMountID);
                 else
-                    UseActionManager.UseAction(ActionType.GeneralAction, 9);
+                    UseActionManager.Instance().UseAction(ActionType.GeneralAction, 9);
 
                 return true;
             }, "切换完毕后上坐骑");
@@ -279,15 +280,15 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
     public void EnqueueInstanceChange(uint i, uint tryTimes)
     {
         // 等待上一次切换完成
-        TaskHelper.Enqueue(() => SelectString->IsAddonAndNodesReady() || !DService.Condition[ConditionFlag.BetweenAreas], "等待上一次切换完毕", weight: 2);
+        TaskHelper.Enqueue(() => SelectString->IsAddonAndNodesReady() || !DService.Instance().Condition[ConditionFlag.BetweenAreas], "等待上一次切换完毕", weight: 2);
 
         // 检测切换情况
         TaskHelper.Enqueue(() =>
         {
             if (!Throttler.Throttle("FastInstanceZoneChange-DetectInstances")) return false;
-            if (DService.Condition[ConditionFlag.BetweenAreas])
+            if (DService.Instance().Condition[ConditionFlag.BetweenAreas])
             {
-                ExecuteCommandManager.ExecuteCommand(ExecuteCommandFlag.TerritoryTransport);
+                ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.TerritoryTransport);
                 return false;
             }
 

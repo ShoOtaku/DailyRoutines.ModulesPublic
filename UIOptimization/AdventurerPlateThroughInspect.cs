@@ -21,8 +21,8 @@ public unsafe class AdventurerPlateThroughInspect : DailyModuleBase
 
     protected override void Init()
     {
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "CharacterInspect", OnAddon);
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CharacterInspect", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "CharacterInspect", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CharacterInspect", OnAddon);
         if (CharacterInspect->IsAddonAndNodesReady()) 
             OnAddon(AddonEvent.PostSetup, null);
     }
@@ -59,7 +59,7 @@ public unsafe class AdventurerPlateThroughInspect : DailyModuleBase
     
     protected override void Uninit()
     {
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
     }
 }

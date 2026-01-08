@@ -45,20 +45,20 @@ public class HullbreakerIsleHelper : DailyModuleBase
 
     protected override void Init()
     {
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
     private static void OnZoneChanged(ushort zone)
     {
         WindowManager.Draw -= OnDraw;
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         TrapPositions.Clear();
         FakeTreasurePositions.Clear();
         
         if (GameState.TerritoryType != 361) return;
         
-        FrameworkManager.Reg(OnUpdate, throttleMS: 2000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 2000);
         WindowManager.Draw += OnDraw;
     }
 
@@ -66,13 +66,13 @@ public class HullbreakerIsleHelper : DailyModuleBase
     {
         foreach (var trap in TrapPositions)
         {
-            if (!DService.Gui.WorldToScreen(trap, out var screenPos)) continue;
+            if (!DService.Instance().Gui.WorldToScreen(trap, out var screenPos)) continue;
             ImGui.GetBackgroundDrawList().AddText(screenPos, KnownColor.Yellow.ToVector4().ToUInt(), TrapNames.First());
         }
         
         foreach (var fakeTreasure in FakeTreasurePositions)
         {
-            if (!DService.Gui.WorldToScreen(fakeTreasure, out var screenPos)) continue;
+            if (!DService.Instance().Gui.WorldToScreen(fakeTreasure, out var screenPos)) continue;
             ImGui.GetBackgroundDrawList().AddText(screenPos, KnownColor.Yellow.ToVector4().ToUInt(), FakeTreasureNames.First());
         }
     }
@@ -82,7 +82,7 @@ public class HullbreakerIsleHelper : DailyModuleBase
         HashSet<Vector3> trapCollect = [];
         HashSet<Vector3> fakeTreasureCollect = [];
         
-        foreach (var obj in DService.ObjectTable)
+        foreach (var obj in DService.Instance().ObjectTable)
         {
             switch (obj.ObjectKind)
             {
@@ -107,7 +107,7 @@ public class HullbreakerIsleHelper : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         OnZoneChanged(0);
     }
 }

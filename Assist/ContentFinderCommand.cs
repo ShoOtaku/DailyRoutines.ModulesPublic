@@ -99,13 +99,13 @@ public class ContentFinderCommand : DailyModuleBase
         switch (dutyType)
         {
             case DutyType.Normal:
-                RequestDutyNormal(contentIDs, options);
+                ContentsFinderHelper.RequestDutyNormal(contentIDs, options);
                 break;
             case DutyType.Roulette:
-                RequestDutyRoulette((ushort)contentIDs[0], options);
+                ContentsFinderHelper.RequestDutyRoulette((ushort)contentIDs[0], options);
                 break;
             case DutyType.Support:
-                RequestDutySupport(contentIDs[0]);
+                ContentsFinderHelper.RequestDutySupport(contentIDs[0]);
                 break;
         }
     }

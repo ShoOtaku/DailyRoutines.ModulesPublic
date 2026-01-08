@@ -27,10 +27,10 @@ public unsafe class AutoHideNeedlessPopups : DailyModuleBase
     ];
 
     protected override void Init() => 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreDraw, AddonNames, OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw, AddonNames, OnAddon);
     
     protected override void Uninit() => 
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
     private static void OnAddon(AddonEvent type, AddonArgs args)
     {

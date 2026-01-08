@@ -4,6 +4,7 @@ using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -29,14 +30,14 @@ public unsafe class AutoPeloton : DailyModuleBase
         TaskHelper   ??= new();
         ModuleConfig =   LoadConfig<Config>() ?? new();
 
-        LocalPlayerState.PlayerMoveStateChanged += OnMoveStateChanged;
-        PlayerStatusManager.RegLoseStatus(OnLoseStatus);
+        LocalPlayerState.Instance().PlayerMoveStateChanged += OnMoveStateChanged;
+        PlayerStatusManager.Instance().RegLose(OnLoseStatus);
     }
 
     protected override void Uninit()
     {
-        LocalPlayerState.PlayerMoveStateChanged -= OnMoveStateChanged;
-        PlayerStatusManager.Unreg(OnLoseStatus);
+        LocalPlayerState.Instance().PlayerMoveStateChanged -= OnMoveStateChanged;
+        PlayerStatusManager.Instance().Unreg(OnLoseStatus);
     }
 
     protected override void ConfigUI()
@@ -48,9 +49,9 @@ public unsafe class AutoPeloton : DailyModuleBase
             SaveConfig(ModuleConfig);
     }
     
-    private void OnLoseStatus(BattleChara* player, ushort id, ushort param, ushort stackCount, ulong sourceID)
+    private void OnLoseStatus(IBattleChara player, ushort id, ushort param, ushort stackCount, ulong sourceID)
     {
-        if ((nint)player != LocalPlayerState.Object?.Address) return;
+        if (player.Address != LocalPlayerState.Object?.Address) return;
         if (id != 1199 && id != 50) return;
         
         CheckAndUsePeloton();
@@ -66,8 +67,8 @@ public unsafe class AutoPeloton : DailyModuleBase
     {
         if (ModuleConfig.OnlyInDuty && GameState.ContentFinderCondition == 0) return;
         if (GameState.IsInPVPArea) return;
-        if (DService.Condition[ConditionFlag.InCombat]) return;
-        if (BetweenAreas || !UIModule.IsScreenReady() || OccupiedInEvent || DService.ObjectTable.LocalPlayer is not { } localPlayer)
+        if (DService.Instance().Condition[ConditionFlag.InCombat]) return;
+        if (BetweenAreas || !UIModule.IsScreenReady() || OccupiedInEvent || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
             return;
         if (!ValidClassJobs.Contains(localPlayer.ClassJob.RowId))
             return;
@@ -82,15 +83,15 @@ public unsafe class AutoPeloton : DailyModuleBase
 
     private bool UsePeloton()
     {
-        if (DService.ObjectTable.LocalPlayer is not { } localPlayer) return false;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
         var actionManager = ActionManager.Instance();
         var statusManager = localPlayer.ToStruct()->StatusManager;
 
         if (actionManager->GetActionStatus(ActionType.Action, PELOTONING_ACTION_ID) != 0) return false;
         if (statusManager.HasStatus(1199) || statusManager.HasStatus(50)) return true;
-        if (!LocalPlayerState.IsMoving) return true;
+        if (!LocalPlayerState.Instance().IsMoving) return true;
 
-        TaskHelper.Enqueue(() => UseActionManager.UseAction(ActionType.Action, PELOTONING_ACTION_ID),
+        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, PELOTONING_ACTION_ID),
                            $"UseAction_{PELOTONING_ACTION_ID}",
                            5_000,
                            weight: 1);

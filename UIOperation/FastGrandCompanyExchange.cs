@@ -48,7 +48,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
             RememberClosePosition = true,
         };
 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "GrandCompanyExchange", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "GrandCompanyExchange", OnAddon);
 
         CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("FastGrandCompanyExchange-CommandHelp") });
     }
@@ -56,7 +56,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
     protected override void Uninit()
     {
         CommandManager.RemoveSubCommand(Command);
-        DService.AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         
         Addon?.Dispose();
         Addon = null;

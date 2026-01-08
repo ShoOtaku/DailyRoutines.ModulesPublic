@@ -19,7 +19,7 @@ public class AutoSwitchGlamourJobCategory : DailyModuleBase
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init() => 
-        DService.AddonLifecycle.RegisterListener(AddonEvent.PreSetup, "MiragePrismPrismBox", OnMiragePrismPrismBox);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreSetup, "MiragePrismPrismBox", OnMiragePrismPrismBox);
 
     private static unsafe void OnMiragePrismPrismBox(AddonEvent type, AddonArgs args)
     {
@@ -30,5 +30,5 @@ public class AutoSwitchGlamourJobCategory : DailyModuleBase
     }
 
     protected override void Uninit() =>
-        DService.AddonLifecycle.UnregisterListener(AddonEvent.PreSetup, "MiragePrismPrismBox");
+        DService.Instance().AddonLifecycle.UnregisterListener(AddonEvent.PreSetup, "MiragePrismPrismBox");
 }

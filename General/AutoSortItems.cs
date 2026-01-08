@@ -4,6 +4,7 @@ using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -30,7 +31,7 @@ public class AutoSortItems : DailyModuleBase
         ModuleConfig =   LoadConfig<Config>() ?? new();
         TaskHelper   ??= new() { TimeoutMS = 15_000 };
         
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
@@ -79,7 +80,7 @@ public class AutoSortItems : DailyModuleBase
     }
 
     protected override void Uninit() => 
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
 
     private void DrawTableRow(string id, string label, ref int value, string[] options, string note = "")
     {
@@ -112,7 +113,7 @@ public class AutoSortItems : DailyModuleBase
     {
         if (BetweenAreas || !UIModule.IsScreenReady() || OccupiedInEvent) return false;
         
-        var isInNormalConditions = DService.ClientState.IsClientIdle();
+        var isInNormalConditions = DService.Instance().ClientState.IsClientIdle();
         if (!isInNormalConditions || !IsInNormalMap())
         {
             TaskHelper.Abort();
@@ -125,7 +126,7 @@ public class AutoSortItems : DailyModuleBase
 
     private static unsafe bool IsInNormalMap()
     {
-        var currentMapDataNullable = LuminaGetter.GetRow<Map>(DService.ClientState.MapId);
+        var currentMapDataNullable = LuminaGetter.GetRow<Map>(DService.Instance().ClientState.MapId);
         if (currentMapDataNullable == null) return false;
         var currentMapData = currentMapDataNullable.Value;
         if (currentMapData.TerritoryType.RowId == 0 ||
@@ -145,7 +146,7 @@ public class AutoSortItems : DailyModuleBase
         SendSortCondition("armourychest", "id", ModuleConfig.ArmouryChestID);
         SendSortCondition("armourychest", "itemlevel", ModuleConfig.ArmouryItemLevel);
         SendSortCondition("armourychest", "category", ModuleConfig.ArmouryCategory);
-        ChatManager.SendMessage("/itemsort execute armourychest");
+        ChatManager.Instance().SendMessage("/itemsort execute armourychest");
 
         SendSortCondition("inventory", "hq", ModuleConfig.InventoryHQ);
         SendSortCondition("inventory", "id", ModuleConfig.InventoryID);
@@ -153,9 +154,9 @@ public class AutoSortItems : DailyModuleBase
         SendSortCondition("inventory", "category", ModuleConfig.InventoryCategory);
 
         if (ModuleConfig.InventoryTab == 0)
-            ChatManager.SendMessage("/itemsort condition inventory tab");
+            ChatManager.Instance().SendMessage("/itemsort condition inventory tab");
 
-        ChatManager.SendMessage("/itemsort execute inventory");
+        ChatManager.Instance().SendMessage("/itemsort execute inventory");
 
         if (ModuleConfig.SendNotification)
             NotificationInfo(GetLoc("AutoSortItems-SortMessage"));
@@ -165,7 +166,7 @@ public class AutoSortItems : DailyModuleBase
         return true;
 
         void SendSortCondition(string target, string condition, int setting)
-            => ChatManager.SendMessage($"/itemsort condition {target} {condition} {SortOptionsCommand[setting]}");
+            => ChatManager.Instance().SendMessage($"/itemsort condition {target} {condition} {SortOptionsCommand[setting]}");
     }
 
     public class Config : ModuleConfiguration

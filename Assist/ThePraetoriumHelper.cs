@@ -22,16 +22,16 @@ public unsafe class ThePraetoriumHelper : DailyModuleBase
 
     protected override void Init()
     {
-        DService.ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
 
     private static void OnZoneChanged(ushort zoneID)
     {
-        FrameworkManager.Unreg(OnUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
         if (GameState.TerritoryType != 1044) return;
         
-        FrameworkManager.Reg(OnUpdate, throttleMS: 1000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1000);
     }
 
     private static void OnUpdate(IFramework framework)
@@ -39,30 +39,30 @@ public unsafe class ThePraetoriumHelper : DailyModuleBase
         if (!Throttler.Throttle("ThePraetoriumHelper-OnUpdate", 1_000)) return;
         if (GameState.TerritoryType != 1044)
         {
-            FrameworkManager.Unreg(OnUpdate);
+            FrameworkManager.Instance().Unreg(OnUpdate);
             return;
         }
         
-        if (!DService.Condition[ConditionFlag.Mounted] || DService.ObjectTable.LocalPlayer == null ||
+        if (!DService.Instance().Condition[ConditionFlag.Mounted] || DService.Instance().ObjectTable.LocalPlayer == null ||
             ActionManager.Instance()->GetActionStatus(ActionType.Action, 1128)             != 0)
             return;
 
         var target = GetMostCanTargetObjects();
         if (target == null) return;
         
-        UseActionManager.UseActionLocation(ActionType.Action, 1128, location: target.Position);
+        UseActionManager.Instance().UseActionLocation(ActionType.Action, 1128, location: target.Position);
     }
 
     private static IGameObject? GetMostCanTargetObjects()
     {
-        var allTargets = DService.ObjectTable.Where(o => o.IsTargetable && ActionManager.CanUseActionOnTarget(7, o.ToStruct())).ToList();
+        var allTargets = DService.Instance().ObjectTable.Where(o => o.IsTargetable && ActionManager.CanUseActionOnTarget(7, o.ToStruct())).ToList();
         if (allTargets.Count <= 0) return null;
 
         IGameObject? preObjects = null;
         var preObjectsAoECount = 0;
         foreach (var b in allTargets)
         {
-            if (Vector3.DistanceSquared(DService.ObjectTable.LocalPlayer.Position, b.Position) - b.HitboxRadius > 900) continue;
+            if (Vector3.DistanceSquared(DService.Instance().ObjectTable.LocalPlayer.Position, b.Position) - b.HitboxRadius > 900) continue;
             
             var aoeCount = GetTargetAoECount(b, allTargets);
             if (aoeCount > preObjectsAoECount)
@@ -88,7 +88,7 @@ public unsafe class ThePraetoriumHelper : DailyModuleBase
 
     protected override void Uninit()
     {
-        DService.ClientState.TerritoryChanged -= OnZoneChanged;
-        FrameworkManager.Unreg(OnUpdate);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 }
