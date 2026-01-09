@@ -42,26 +42,33 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-
+        
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_TargetInfo", OnAddonTargetInfo);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "_TargetInfo", OnAddonTargetInfo);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_TargetInfo", OnAddonTargetInfo);
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_TargetInfoMainTarget", OnAddonTargetInfoSplitTarget);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "_TargetInfoMainTarget", OnAddonTargetInfoSplitTarget);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_TargetInfoMainTarget", OnAddonTargetInfoSplitTarget);
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_FocusTargetInfo", OnAddonFocusTargetInfo);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "_FocusTargetInfo", OnAddonFocusTargetInfo);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_FocusTargetInfo", OnAddonFocusTargetInfo);
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_TargetInfoCastBar", OnAddonTargetInfoCastBar);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "_TargetInfoCastBar", OnAddonTargetInfoCastBar);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_TargetInfoCastBar", OnAddonTargetInfoCastBar);
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_TargetInfoCastBar", OnAddonTargetInfoCastBar);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "_TargetInfoCastBar", OnAddonTargetInfoCastBar);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_TargetInfoCastBar", OnAddonTargetInfoCastBar);
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_TargetInfoBuffDebuff", OnAddonTargetInfoBuffDebuff);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "_TargetInfoBuffDebuff", OnAddonTargetInfoBuffDebuff);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_TargetInfoBuffDebuff", OnAddonTargetInfoBuffDebuff);
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "CastBarEnemy", OnAddonCastBarEnemy);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "CastBarEnemy", OnAddonCastBarEnemy);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "CastBarEnemy", OnAddonCastBarEnemy);
     }
 
@@ -365,6 +372,13 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
     private static void OnAddonCastBarEnemy(AddonEvent type, AddonArgs args)
     {
+        if (type == AddonEvent.PostDraw)
+        {
+            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
+                !Throttler.Throttle("OptimizedTargetInfo-OnAddonCastBarEnemy", 10))
+                return;
+        }
+        
         switch (type)
         {
             case AddonEvent.PreFinalize:
@@ -383,6 +397,8 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                 }
 
                 break;
+            
+            case AddonEvent.PostDraw:
             case AddonEvent.PostRequestedUpdate:
                 if (CastBarEnemy == null) return;
 
@@ -418,6 +434,13 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
     private static void OnAddonTargetInfo(AddonEvent type, AddonArgs args)
     {
         if (ModuleConfig == null) return;
+        
+        if (type == AddonEvent.PostDraw)
+        {
+            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
+                !Throttler.Throttle("OptimizedTargetInfo-OnAddonTargetInfo", 10))
+                return;
+        }
 
         HandleAddonEventTargetInfo
         (
@@ -451,6 +474,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
             ModuleConfig.CastBarFontSize,
             ModuleConfig.CastBarCustomColor,
             ModuleConfig.CastBarOutlineColor,
+            12,
             () => (TargetManager.SoftTarget ?? TargetManager.Target) as IBattleChara,
             (width, height) => new Vector2(width - 5, height)
         );
@@ -480,6 +504,8 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
                 CurrentSecondRowOffset = 41;
                 break;
+            
+            case AddonEvent.PostDraw:
             case AddonEvent.PostRequestedUpdate:
                 if (!ModuleConfig.StatusIsEnabled ||
                     TargetInfo == null            ||
@@ -545,6 +571,13 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
     {
         if (ModuleConfig == null) return;
 
+        if (type == AddonEvent.PostDraw)
+        {
+            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
+                !Throttler.Throttle("OptimizedTargetInfo-OnAddonTargetInfoSplitTarget", 10))
+                return;
+        }
+        
         HandleAddonEventTargetInfo
         (
             type,
@@ -568,6 +601,13 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
     private static void OnAddonFocusTargetInfo(AddonEvent type, AddonArgs args)
     {
         if (ModuleConfig == null) return;
+        
+        if (type == AddonEvent.PostDraw)
+        {
+            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
+                !Throttler.Throttle("OptimizedTargetInfo-OnAddonFocusTargetInfo", 10))
+                return;
+        }
 
         HandleAddonEventTargetInfo
         (
@@ -601,6 +641,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
             ModuleConfig.FocusCastBarFontSize,
             ModuleConfig.FocusCastBarCustomColor,
             ModuleConfig.FocusCastBarOutlineColor,
+            5,
             () => TargetManager.FocusTarget as IBattleChara,
             (width, height) => new Vector2(width - 5, height)
         );
@@ -612,6 +653,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                 ClearFocusButtonNode = null;
                 break;
             
+            case AddonEvent.PostDraw:
             case AddonEvent.PostRequestedUpdate:
                 if (FocusTargetInfo == null) return;
 
@@ -640,6 +682,13 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
     private static void OnAddonTargetInfoCastBar(AddonEvent type, AddonArgs args)
     {
         if (ModuleConfig == null) return;
+        
+        if (type == AddonEvent.PostDraw)
+        {
+            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
+                !Throttler.Throttle("OptimizedTargetInfo-OnAddonTargetInfoCastBar", 10))
+                return;
+        }
 
         HandleAddonEventCastBar
         (
@@ -654,6 +703,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
             ModuleConfig.CastBarFontSize,
             ModuleConfig.CastBarCustomColor,
             ModuleConfig.CastBarOutlineColor,
+            4,
             () => (TargetManager.SoftTarget ?? TargetManager.Target) as IBattleChara,
             (width, height) => new Vector2(width - 5, height)
         );
@@ -663,6 +713,13 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
     {
         if (ModuleConfig == null) return;
 
+        if (type == AddonEvent.PostDraw)
+        {
+            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
+                !Throttler.Throttle("OptimizedTargetInfo-OnAddonTargetInfoBuffDebuff", 10))
+                return;
+        }
+        
         switch (type)
         {
             case AddonEvent.PreFinalize:
@@ -689,6 +746,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                 CurrentSecondRowOffset = 41;
                 break;
             
+            case AddonEvent.PostDraw:
             case AddonEvent.PostRequestedUpdate:
                 if (!ModuleConfig.StatusIsEnabled ||
                     TargetInfoBuffDebuff == null  ||
@@ -771,6 +829,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
     {
         switch (type)
         {
+            case AddonEvent.PostDraw:
             case AddonEvent.PostRequestedUpdate:
                 if (addon == null) return;
 
@@ -850,12 +909,14 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
         byte                      fontSize,
         Vector4                   customColor,
         Vector4                   outlineColor,
+        uint actionNameTextNodeID,
         Func<IGameObject?>        getTarget,
         Func<uint, uint, Vector2> getSizeFunc
     )
     {
         switch (type)
         {
+            case AddonEvent.PostDraw:
             case AddonEvent.PostRequestedUpdate:
                 if (addon == null) return;
 
@@ -886,12 +947,20 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                 {
                     var sourceTextNode = addon->GetTextNodeById(textNodeID);
                     if (sourceTextNode == null) return;
+                    
+                    var actionNameNode = addon->GetTextNodeById(actionNameTextNodeID);
+                    if (actionNameNode == null) return;
+
+                    var actionProgressBorderNode = addon->GetImageNodeById(actionNameTextNodeID + 3);
+                    if (actionProgressBorderNode == null) return;
 
                     var leftCastTime = target.TotalCastTime - target.CurrentCastTime;
 
                     textNode.IsVisible = target.CurrentCastTime > 0 && leftCastTime > 0;
+                    actionNameNode->ToggleVisibility(textNode.IsVisible);
+                    actionProgressBorderNode->ToggleVisibility(textNode.IsVisible);
                     if (!textNode.IsVisible) return;
-
+                    
                     textNode.Position         = position + new Vector2(4, -12);
                     textNode.Size             = getSizeFunc(sourceTextNode->Width, sourceTextNode->Height);
                     textNode.AlignmentType    = alignLeft ? AlignmentType.TopLeft : AlignmentType.TopRight;
@@ -900,6 +969,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                     textNode.TextOutlineColor = outlineColor.W == 0 ? sourceTextNode->EdgeColor.ToVector4() : outlineColor;
 
                     textNode.String = $"{leftCastTime:F2}";
+                    actionNameNode->SetText(LuminaWrapper.GetActionName(target.CastActionID));
                 }
 
                 break;
