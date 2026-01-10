@@ -133,6 +133,8 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
     private static void OnAddon(AddonEvent type, AddonArgs args)
     {
+        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
+        
         switch (type)
         {
             case AddonEvent.PostRequestedUpdate:
@@ -168,7 +170,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             CreateTextNodes();
             return;
         }
-
+        
         var enemyListArray = AtkStage.Instance()->GetNumberArrayData(NumberArrayType.EnemyList);
         if (enemyListArray == null) return;
 
@@ -190,7 +192,6 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             var statusNodes    = nodes[i].StatusNodes;
 
             var gameObj = DService.Instance().ObjectTable.SearchByID(gameObjectID);
-
             if (gameObj is not IBattleChara bc || !HaterInfo.TryGetValue(gameObj.EntityID, out var enmity))
             {
                 textNode.SeString           = string.Empty;
@@ -200,7 +201,6 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             }
 
             var componentNode = EnemyList->GetComponentNodeById(nodes[i].ComponentNodeID);
-
             if (componentNode == null)
             {
                 CreateTextNodes();

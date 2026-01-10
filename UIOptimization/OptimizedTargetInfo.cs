@@ -372,6 +372,8 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
     private static void OnAddonCastBarEnemy(AddonEvent type, AddonArgs args)
     {
+        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
+        
         if (type == AddonEvent.PostDraw)
         {
             if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
@@ -433,7 +435,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
     private static void OnAddonTargetInfo(AddonEvent type, AddonArgs args)
     {
-        if (ModuleConfig == null) return;
+        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
         
         if (type == AddonEvent.PostDraw)
         {
@@ -569,7 +571,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
     private static void OnAddonTargetInfoSplitTarget(AddonEvent type, AddonArgs args)
     {
-        if (ModuleConfig == null) return;
+        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
 
         if (type == AddonEvent.PostDraw)
         {
@@ -600,7 +602,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
     private static void OnAddonFocusTargetInfo(AddonEvent type, AddonArgs args)
     {
-        if (ModuleConfig == null) return;
+        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
         
         if (type == AddonEvent.PostDraw)
         {
@@ -681,7 +683,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
     private static void OnAddonTargetInfoCastBar(AddonEvent type, AddonArgs args)
     {
-        if (ModuleConfig == null) return;
+        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
         
         if (type == AddonEvent.PostDraw)
         {
@@ -711,7 +713,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
     private static void OnAddonTargetInfoBuffDebuff(AddonEvent type, AddonArgs args)
     {
-        if (ModuleConfig == null) return;
+        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
 
         if (type == AddonEvent.PostDraw)
         {
