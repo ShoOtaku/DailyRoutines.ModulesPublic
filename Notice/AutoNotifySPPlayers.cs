@@ -5,7 +5,6 @@ using System.Numerics;
 using System.Text.RegularExpressions;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
-using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Lumina.Excel.Sheets;
 

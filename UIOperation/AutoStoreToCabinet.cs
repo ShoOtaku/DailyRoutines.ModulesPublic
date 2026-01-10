@@ -55,7 +55,7 @@ public class AutoStoreToCabinet : DailyModuleBase
 
     protected override unsafe void OverlayPreDraw()
     {
-        if (InfosOm.Cabinet == null)
+        if (CabinetAddon == null)
             Overlay.IsOpen = false;
     }
 
@@ -65,7 +65,7 @@ public class AutoStoreToCabinet : DailyModuleBase
         {
             unsafe
             {
-                var addon = InfosOm.Cabinet;
+                var addon = CabinetAddon;
                 var pos   = new Vector2(addon->GetX() + 6, addon->GetY() - ImGui.GetWindowHeight() + 6);
                 ImGui.SetWindowPos(pos);
             }

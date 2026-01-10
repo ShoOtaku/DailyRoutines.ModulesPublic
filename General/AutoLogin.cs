@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
-using DailyRoutines.Widgets;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Interface.Colors;

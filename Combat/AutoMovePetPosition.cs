@@ -4,7 +4,6 @@ using System.Linq;
 using System.Numerics;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
-using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using Lumina.Excel.Sheets;

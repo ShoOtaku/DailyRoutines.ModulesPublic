@@ -700,14 +700,14 @@ public unsafe class AutoDiscard : DailyModuleBase
 
         private bool ClickDiscardContextMenu(TaskHelper? taskHelper)
         {
-            if (!ContextMenuXIV->IsAddonAndNodesReady()) return false;
+            if (!ContextMenuAddon->IsAddonAndNodesReady()) return false;
 
             switch (Behaviour)
             {
                 case DiscardBehaviour.Discard:
                     if (!ClickContextMenu(LuminaWrapper.GetAddonText(91)))
                     {
-                        ContextMenuXIV->Close(true);
+                        ContextMenuAddon->Close(true);
                         break;
                     }
 
@@ -717,7 +717,7 @@ public unsafe class AutoDiscard : DailyModuleBase
                     if (!ClickContextMenu(LuminaWrapper.GetAddonText(5480)) &&
                         !ClickContextMenu(LuminaWrapper.GetAddonText(93)))
                     {
-                        ContextMenuXIV->Close(true);
+                        ContextMenuAddon->Close(true);
                         ChatError(GetLoc("AutoDiscard-NoSellPage"));
 
                         taskHelper.Abort();

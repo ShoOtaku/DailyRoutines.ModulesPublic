@@ -34,8 +34,8 @@ public unsafe class FastRidePillion : DailyModuleBase
     {
         if (flag != ConditionFlag.RidingPillion || !value) return;
 
-        if (InfosOm.ContextMenuXIV != null && InfosOm.ContextMenuXIV->IsAddonAndNodesReady())
-            InfosOm.ContextMenuXIV->Close(true);
+        if (ContextMenuAddon != null && ContextMenuAddon->IsAddonAndNodesReady())
+            ContextMenuAddon->Close(true);
     }
 
     private static AtkValue* AgentContextReceiveEventDetour(AgentInterface* agent, AtkValue* returnValues, AtkValue* values, uint valueCount, ulong eventKind)

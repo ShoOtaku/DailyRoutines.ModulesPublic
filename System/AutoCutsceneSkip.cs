@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using Dalamud.Interface.Components;

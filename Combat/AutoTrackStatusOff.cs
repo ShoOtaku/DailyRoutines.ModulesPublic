@@ -4,7 +4,6 @@ using System.Linq;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Infos;
 using DailyRoutines.Managers;
-using DailyRoutines.Widgets;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;

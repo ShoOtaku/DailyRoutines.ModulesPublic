@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Conditions;
 using Lumina.Excel.Sheets;
 

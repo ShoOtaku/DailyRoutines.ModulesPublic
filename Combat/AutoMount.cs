@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Fate;

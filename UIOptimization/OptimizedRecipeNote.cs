@@ -132,17 +132,17 @@ public class OptimizedRecipeNote : DailyModuleBase
                 MasterRecipeButton?.DetachNode();
                 MasterRecipeButton = null;
 
-                if (InfosOm.RecipeNote != null)
+                if (RecipeNoteAddon != null)
                 {
-                    var resNode0 = InfosOm.RecipeNote->GetNodeById(95);
+                    var resNode0 = RecipeNoteAddon->GetNodeById(95);
                     if (resNode0 != null)
                         resNode0->SetXFloat(46);
 
-                    var resNode1 = InfosOm.RecipeNote->GetNodeById(88);
+                    var resNode1 = RecipeNoteAddon->GetNodeById(88);
                     if (resNode1 != null)
                         resNode1->SetXFloat(0);
                     
-                    var resNode2 = InfosOm.RecipeNote->GetNodeById(84);
+                    var resNode2 = RecipeNoteAddon->GetNodeById(84);
                     if (resNode2 != null)
                         resNode2->SetXFloat(0);
                 }
@@ -165,7 +165,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                 }
                 break;
             case AddonEvent.PostDraw:
-                if (InfosOm.RecipeNote == null) return;
+                if (RecipeNoteAddon == null) return;
 
                 if (RecipeCaculationButton == null)
                 {
@@ -223,7 +223,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         }, "请求技能数据");
                     };
                     
-                    RecipeCaculationButton.AttachNode(InfosOm.RecipeNote->GetNodeById(57));
+                    RecipeCaculationButton.AttachNode(RecipeNoteAddon->GetNodeById(57));
                 }
 
                 if (SwitchJobButton == null)
@@ -260,7 +260,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         TaskHelper.Enqueue(() => AgentRecipeNote.Instance()->OpenRecipeByRecipeId(recipeID));
                     };
                     
-                    SwitchJobButton.AttachNode(InfosOm.RecipeNote->GetNodeById(57));
+                    SwitchJobButton.AttachNode(RecipeNoteAddon->GetNodeById(57));
                 }
 
                 if (DisplayOthersButton == null)
@@ -294,7 +294,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     while (labelNode.FontSize > 1 && labelNode.GetTextDrawSize(labelNode.SeString).X > labelNode.Size.X)
                         labelNode.FontSize--;
                     
-                    DisplayOthersButton.AttachNode(InfosOm.RecipeNote->GetNodeById(57));
+                    DisplayOthersButton.AttachNode(RecipeNoteAddon->GetNodeById(57));
                 }
 
                 if (DisplayOthersIconsLayout == null)
@@ -342,7 +342,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         DisplayOthersIconsLayout.AddNode(iconButtonNode);
                     }
                     
-                    DisplayOthersIconsLayout.AttachNode(InfosOm.RecipeNote->GetNodeById(57));
+                    DisplayOthersIconsLayout.AttachNode(RecipeNoteAddon->GetNodeById(57));
                 }
 
                 if (ClearSearchButton == null)
@@ -366,14 +366,14 @@ public class OptimizedRecipeNote : DailyModuleBase
                         }
                     };
                     
-                    ClearSearchButton.AttachNode(InfosOm.RecipeNote->GetNodeById(24));
+                    ClearSearchButton.AttachNode(RecipeNoteAddon->GetNodeById(24));
                 }
 
                 if (GetShopInfoButtons.Count == 0)
                 {
                     for (var i = 0U; i < 6; i++)
                     {
-                        var componentNode = InfosOm.RecipeNote->GetComponentNodeById(89 + i);
+                        var componentNode = RecipeNoteAddon->GetComponentNodeById(89 + i);
 
                         var index = i;
                         var buttonNode = new IconButtonNode
@@ -438,7 +438,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         OnClick = () =>
                         {
                             AgentRecipeNote.Instance()->SelectedRecipeCategoryPage = 2;
-                            var button = InfosOm.RecipeNote->GetComponentButtonById(35);
+                            var button = RecipeNoteAddon->GetComponentButtonById(35);
                             if (button != null)
                             {
                                 DService.Instance().Framework.Run(() => button->Click());
@@ -449,7 +449,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         }
                     };
                     LevelRecipeButton.BackgroundNode.IsVisible = false;
-                    LevelRecipeButton.AttachNode(InfosOm.RecipeNote->GetNodeById(32));
+                    LevelRecipeButton.AttachNode(RecipeNoteAddon->GetNodeById(32));
                 }
                 
                 if (SpecialRecipeButton == null)
@@ -463,7 +463,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         OnClick = () =>
                         {
                             AgentRecipeNote.Instance()->SelectedRecipeCategoryPage = 0;
-                            var button = InfosOm.RecipeNote->GetComponentButtonById(35);
+                            var button = RecipeNoteAddon->GetComponentButtonById(35);
                             if (button != null)
                             {
                                 DService.Instance().Framework.Run(() => button->Click());
@@ -474,7 +474,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         }
                     };
                     SpecialRecipeButton.BackgroundNode.IsVisible = false;
-                    SpecialRecipeButton.AttachNode(InfosOm.RecipeNote->GetNodeById(32));
+                    SpecialRecipeButton.AttachNode(RecipeNoteAddon->GetNodeById(32));
                 }
                 
                 if (MasterRecipeButton == null)
@@ -488,7 +488,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         OnClick = () =>
                         {
                             AgentRecipeNote.Instance()->SelectedRecipeCategoryPage = 1;
-                            var button = InfosOm.RecipeNote->GetComponentButtonById(35);
+                            var button = RecipeNoteAddon->GetComponentButtonById(35);
                             if (button != null)
                             {
                                 DService.Instance().Framework.Run(() => button->Click());
@@ -499,7 +499,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         }
                     };
                     MasterRecipeButton.BackgroundNode.IsVisible = false;
-                    MasterRecipeButton.AttachNode(InfosOm.RecipeNote->GetNodeById(32));
+                    MasterRecipeButton.AttachNode(RecipeNoteAddon->GetNodeById(32));
                 }
 
                 if (Throttler.Throttle("OptimizedRecipeNote-UpdateAddon", 1000))
@@ -546,7 +546,7 @@ public class OptimizedRecipeNote : DailyModuleBase
 
     private static unsafe void UpdateRecipeAddonButton()
     {
-        if (InfosOm.RecipeNote == null) return;
+        if (RecipeNoteAddon == null) return;
         if (!DService.Instance().PI.IsPluginEnabled(RaphaelIPC.InternalName)) return;
         
         ClearSearchButton.IsVisible = AgentRecipeNote.Instance()->RecipeSearchOpen && LastRecipeID != 0;
@@ -571,19 +571,19 @@ public class OptimizedRecipeNote : DailyModuleBase
         
         var appendOffset = maxIngredientAmount >= 10 ? 30 : 10;
         
-        var resNode0 = InfosOm.RecipeNote->GetNodeById(95);
+        var resNode0 = RecipeNoteAddon->GetNodeById(95);
         if (resNode0 != null)
             resNode0->SetXFloat(46 + appendOffset);
 
-        var resNode1 = InfosOm.RecipeNote->GetNodeById(88);
+        var resNode1 = RecipeNoteAddon->GetNodeById(88);
         if (resNode1 != null)
             resNode1->SetXFloat(0 + appendOffset);
                     
-        var resNode2 = InfosOm.RecipeNote->GetNodeById(84);
+        var resNode2 = RecipeNoteAddon->GetNodeById(84);
         if (resNode2 != null)
             resNode2->SetXFloat(0 + appendOffset);
         
-        var resNodeProgress = InfosOm.RecipeNote->GetNodeById(2);
+        var resNodeProgress = RecipeNoteAddon->GetNodeById(2);
         if (resNodeProgress != null)
             resNodeProgress->SetAlpha(0);
         
@@ -669,7 +669,7 @@ public class OptimizedRecipeNote : DailyModuleBase
 
             for (var i = 102U; i < 105; i++)
             {
-                var buttonNode = InfosOm.RecipeNote->GetComponentButtonById(i);
+                var buttonNode = RecipeNoteAddon->GetComponentButtonById(i);
                 if (buttonNode != null)
                     buttonNode->SetEnabledState(false);
             }
@@ -681,7 +681,7 @@ public class OptimizedRecipeNote : DailyModuleBase
             
             for (var i = 102U; i < 105; i++)
             {
-                var buttonNode = InfosOm.RecipeNote->GetComponentButtonById(i);
+                var buttonNode = RecipeNoteAddon->GetComponentButtonById(i);
                 if (buttonNode != null)
                     buttonNode->SetEnabledState(true);
             }

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Widgets;
 using Dalamud.Hooking;
 using Dalamud.Interface.Components;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;

@@ -34,20 +34,20 @@ public unsafe class AutoCollectableExchange : DailyModuleBase
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "CollectablesShop", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CollectablesShop", OnAddon);
-        if (InfosOm.CollectablesShop != null) 
+        if (CollectablesShopAddon != null) 
             OnAddon(AddonEvent.PostSetup, null);
     }
 
     protected override void OverlayUI()
     {
-        var addon = InfosOm.CollectablesShop;
+        var addon = CollectablesShopAddon;
         if (addon == null)
         {
             Overlay.IsOpen = false;
             return;
         }
         
-        var buttonNode = InfosOm.CollectablesShop->GetNodeById(51);
+        var buttonNode = CollectablesShopAddon->GetNodeById(51);
         if (buttonNode == null) return;
         
         if (buttonNode->IsVisible())
@@ -91,8 +91,8 @@ public unsafe class AutoCollectableExchange : DailyModuleBase
             {
                 TaskHelper.Enqueue(() =>
                 {
-                    if (InfosOm.CollectablesShop->IsAddonAndNodesReady())
-                        InfosOm.CollectablesShop->Close(true);
+                    if (CollectablesShopAddon->IsAddonAndNodesReady())
+                        CollectablesShopAddon->Close(true);
                 });
                 TaskHelper.Enqueue(() => !OccupiedInEvent);
                 TaskHelper.Enqueue(() => GamePacketManager.Instance().SendPackt(
@@ -106,13 +106,13 @@ public unsafe class AutoCollectableExchange : DailyModuleBase
     {
         TaskHelper.Enqueue(() =>
         {
-            if (InfosOm.CollectablesShop == null || SelectYesno->IsAddonAndNodesReady())
+            if (CollectablesShopAddon == null || SelectYesno->IsAddonAndNodesReady())
             {
                 TaskHelper.Abort();
                 return true;
             }
 
-            var list = InfosOm.CollectablesShop->GetComponentNodeById(31)->GetAsAtkComponentList();
+            var list = CollectablesShopAddon->GetComponentNodeById(31)->GetAsAtkComponentList();
             if (list == null) return false;
 
             if (list->ListLength <= 0)

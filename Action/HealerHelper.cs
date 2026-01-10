@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Helpers;
 using DailyRoutines.Managers;
-using DailyRoutines.Widgets;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Party;
 using Dalamud.Plugin.Services;

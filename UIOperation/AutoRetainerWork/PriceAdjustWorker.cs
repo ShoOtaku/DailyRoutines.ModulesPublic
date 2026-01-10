@@ -1621,7 +1621,7 @@ public unsafe partial class AutoRetainerWork
                             var foundItem = foundItems.FirstOrDefault();
                             return foundItem.OpenContext();
                         }, "找到物品并打开其右键菜单", weight: 3);
-                        TaskHelper.Enqueue(() => ContextMenuXIV->IsAddonAndNodesReady(),             "等待右键菜单出现",  weight: 3);
+                        TaskHelper.Enqueue(() => ContextMenuAddon->IsAddonAndNodesReady(),             "等待右键菜单出现",  weight: 3);
                         TaskHelper.Enqueue(() => ClickContextMenu(LuminaWrapper.GetAddonText(5480)), "出售物品至系统商店", weight: 3);
                         break;
                 }
