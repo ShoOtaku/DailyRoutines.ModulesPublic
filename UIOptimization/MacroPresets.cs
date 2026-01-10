@@ -1,3 +1,5 @@
+// TODO: 等待检查
+/*
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -594,3 +596,4 @@ public unsafe class MacroPresets : DailyModuleBase
         public Dictionary<string, PresetData> Presets          = [];
     }
 }
+*/
