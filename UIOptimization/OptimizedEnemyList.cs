@@ -526,7 +526,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         protected override void OnUpdate() =>
-            IsVisible = ShouldBeVisible;
+            IsVisible = ShouldBeVisible && EnemyList->IsAddonAndNodesReady();
     }
 
     private class IconTextNode : SimpleComponentNode
