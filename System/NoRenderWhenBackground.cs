@@ -19,7 +19,7 @@ public unsafe class NoRenderWhenBackground : DailyModuleBase
     };
 
     private static readonly CompSig                           DeviceDX11PostTickSig = new("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 41 54 41 55 41 56 41 57 B8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 2B E0 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 8B 15");
-    private delegate        void                              DeviceDX11PostTickDelegate(void* instance);
+    private delegate        void                              DeviceDX11PostTickDelegate(nint instance);
     private static          Hook<DeviceDX11PostTickDelegate>? DeviceDX11PostTickHook;
 
     private static readonly CompSig                      NamePlateDrawSig = new("0F B7 81 ?? ?? ?? ?? 81 A1 ?? ?? ?? ?? ?? ?? ?? ?? 81 A1 ?? ?? ?? ?? ?? ?? ?? ?? 66 C1 E0 06 0F B7 D0 66 89 91 ?? ?? ?? ?? C1 E2 0D 09 91 ?? ?? ?? ?? 09 91 ?? ?? ?? ?? E9 ?? ?? ?? ?? CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC CC 33 C0");
@@ -50,10 +50,10 @@ public unsafe class NoRenderWhenBackground : DailyModuleBase
     protected override void Uninit() => 
         IsOnNoRender = false;
 
-    private static void DeviceDX11PostTickDetour(void* instance)
+    private static void DeviceDX11PostTickDetour(nint instance)
     {
         var framework = Framework.Instance();
-        if (framework == null || !GameState.IsLoggedIn)
+        if (framework == null || !DService.Instance().ClientState.IsLoggedIn)
         {
             IsOnNoRender = false;
             DeviceDX11PostTickHook.Original(instance);
