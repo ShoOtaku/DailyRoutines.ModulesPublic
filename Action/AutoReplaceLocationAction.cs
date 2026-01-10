@@ -325,11 +325,19 @@ public class AutoReplaceLocationAction : DailyModuleBase
         }
     }
 
-    private static void OnPreExecuteCommandComplexLocation(
-        ref bool isPrevented, ref ExecuteCommandComplexFlag command, ref Vector3 location, ref uint param1,
-        ref uint param2,      ref uint                      param3,  ref uint    param4)
+    private static void OnPreExecuteCommandComplexLocation
+    (
+        ref bool                      isPrevented,
+        ref ExecuteCommandComplexFlag command,
+        ref Vector3                   location,
+        ref uint                      param1,
+        ref uint                      param2,
+        ref uint                      param3,
+        ref uint                      param4
+    )
     {
         if (command != ExecuteCommandComplexFlag.PetAction || param1 != 3) return;
+
         if (!ModuleConfig.EnabledPetActions.TryGetValue(3, out var isEnabled) || (!isEnabled && !IsNeedToReplace))
         {
             IsNeedToReplace = false;
@@ -343,11 +351,12 @@ public class AutoReplaceLocationAction : DailyModuleBase
             markers = [];
 
         var modifiedLocation = location;
-        if (HandleCustomLocation(ref modifiedLocation) ||
+
+        if (HandleCustomLocation(ref modifiedLocation)       ||
             HandleMapLocation(markers, ref modifiedLocation) ||
             HandlePresetCenterLocation(ref modifiedLocation))
         {
-            location = modifiedLocation;
+            location    = modifiedLocation;
             isPrevented = true;
 
             ExecuteCommandManager.Instance().ExecuteCommandComplexLocation(ExecuteCommandComplexFlag.PetAction, modifiedLocation, 3);
