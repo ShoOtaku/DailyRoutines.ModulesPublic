@@ -42,9 +42,9 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
 
         private GridNode TableNode { get; }
         
-        private HorizontalListNode LeftHeaderNode { get; }
-        private IconImageNode      IconLeftNode   { get; }
-        private TextNode           NameLeftNode   { get; }
+        private HorizontalListNode HeaderNode { get; }
+        private IconImageNode      IconNode   { get; }
+        private TextNode           NameNode   { get; }
 
         private TextNode      HoldLabelNode   { get; }
         private TextNode      HoldCountNode   { get; }
@@ -56,24 +56,24 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
             Scale = new(1.5f);
             Size  = new(200, 76);
             
-            LeftHeaderNode = new HorizontalListNode
+            HeaderNode = new HorizontalListNode
             {
                 Size      = new(200, 36),
                 IsVisible = false
             };
 
-            IconLeftNode = new()
+            IconNode = new()
             {
                 Size       = new(32),
                 IconId     = 60498,
                 FitTexture = true,
-                IsVisible  = true
+                IsVisible  = true,
             };
-            LeftHeaderNode.AddNode(IconLeftNode);
+            HeaderNode.AddNode(IconNode);
 
-            LeftHeaderNode.AddDummy(3f);
+            HeaderNode.AddDummy(3f);
 
-            NameLeftNode = new()
+            NameNode = new()
             {
                 Size             = new(160, 64),
                 SeString         = "测试物品",
@@ -81,13 +81,13 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
                 Position         = new(2),
                 TextFlags        = TextFlags.Edge,
                 AlignmentType    = AlignmentType.TopLeft,
+                TextColor        = ColorHelper.GetColor(50),
                 TextOutlineColor = ColorHelper.GetColor(30),
             };
-            LeftHeaderNode.AddNode(NameLeftNode);
+            HeaderNode.AddNode(NameNode);
             
-            LeftHeaderNode.AttachNode(this);
+            HeaderNode.AttachNode(this);
             
-
             TableNode = new()
             {
                 Position = new(0, 40),
@@ -101,6 +101,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
                 FontSize         = 14,
                 TextFlags        = TextFlags.Edge,
                 TextOutlineColor = ColorHelper.GetColor(37),
+                TextColor        = ColorHelper.GetColor(50),
             };
             HoldLabelNode.AttachNode(TableNode[0, 0]);
             
@@ -111,6 +112,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
                 TextFlags        = TextFlags.Edge,
                 FontType         = FontType.Miedinger,
                 TextOutlineColor = ColorHelper.GetColor(30),
+                TextColor        = ColorHelper.GetColor(50),
             };
             HoldCountNode.AttachNode(TableNode[0, 1]);
             
@@ -120,6 +122,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
                 FontSize         = 14,
                 TextFlags        = TextFlags.Edge,
                 TextOutlineColor = ColorHelper.GetColor(37),
+                TextColor        = ColorHelper.GetColor(50),
             };
             HandInLabelNode.AttachNode(TableNode[1, 0]);
             
@@ -130,6 +133,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
                 TextFlags        = TextFlags.Edge,
                 FontType         = FontType.Miedinger,
                 TextOutlineColor = ColorHelper.GetColor(30),
+                TextColor        = ColorHelper.GetColor(50),
             };
             HandInCountNode.AttachNode(TableNode[1, 1]);
             
@@ -187,12 +191,12 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
 
         private void UpdateFateItemHeader(EventItem item)
         {
-            LeftHeaderNode.IsVisible  = true;
+            HeaderNode.IsVisible  = true;
             
-            IconLeftNode.IconId   = item.Icon;
-            NameLeftNode.SeString = $"{item.Singular}";
-            while (NameLeftNode.FontSize > 1 && NameLeftNode.GetTextDrawSize(NameLeftNode.SeString).X > NameLeftNode.Size.X)
-                NameLeftNode.FontSize--;
+            IconNode.IconId   = item.Icon;
+            NameNode.SeString = $"{item.Singular}";
+            while (NameNode.FontSize > 1 && NameNode.GetTextDrawSize(NameNode.SeString).X > NameNode.Size.X)
+                NameNode.FontSize--;
         }
     }
 }
