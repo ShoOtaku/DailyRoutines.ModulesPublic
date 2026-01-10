@@ -198,7 +198,7 @@ public partial class OccultCrescentHelper
                                 if (!ActionManager.Instance()->IsActionOffCooldown(ActionType.Action, 3) ||
                                     LocalPlayerState.HasStatus(50, out _)) return true;
 
-                                return ActionManager.Instance()->UseActionLocation(ActionType.Action, 3);
+                                return ActionManager.Instance()->UseAction(ActionType.Action, 3);
                             }, weight: 1);
 
                             return true;

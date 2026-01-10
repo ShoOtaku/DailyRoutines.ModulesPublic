@@ -49,7 +49,7 @@ public unsafe class InstantPlaceLocationAction : DailyModuleBase
         if (!DService.Instance().Gui.ScreenToWorld(ImGui.GetMousePos(), out var pos)) return;
 
         pos = AdjustTargetPosition(localPlayer.Position, pos, data.Range);
-        ActionManager.Instance()->UseActionLocation(ActionType.Action, adjustedAction, 0xE000_0000, &pos, extraParam);
+        UseActionManager.Instance().UseActionLocation(ActionType.Action, adjustedAction, 0xE000_0000, pos, extraParam);
         UIGlobals.PlaySoundEffect(24);
         isPrevented = true;
     }
