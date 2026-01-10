@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using DailyRoutines.Abstracts;
 using FFXIVClientStructs.FFXIV.Client.Game.Fate;
 using FFXIVClientStructs.FFXIV.Component.GUI;

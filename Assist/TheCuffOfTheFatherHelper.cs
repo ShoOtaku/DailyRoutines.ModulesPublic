@@ -1,4 +1,4 @@
-﻿using DailyRoutines.Abstracts;
+using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;

@@ -1,4 +1,4 @@
-﻿using DailyRoutines.Abstracts;
+using DailyRoutines.Abstracts;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;

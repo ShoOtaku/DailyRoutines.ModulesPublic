@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using DailyRoutines.Abstracts;
 using Dalamud.Interface.Components;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;

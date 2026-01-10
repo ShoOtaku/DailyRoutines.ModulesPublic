@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using DailyRoutines.Abstracts;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;

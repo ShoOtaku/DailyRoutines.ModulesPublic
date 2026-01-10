@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using DailyRoutines.Abstracts;
 using Dalamud.Hooking;

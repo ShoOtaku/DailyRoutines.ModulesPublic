@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DailyRoutines.Abstracts;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;

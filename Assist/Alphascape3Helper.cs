@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Plugin.Services;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.ClientState.Conditions;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;

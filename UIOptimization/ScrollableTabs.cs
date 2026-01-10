@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;

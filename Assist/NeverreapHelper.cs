@@ -1,4 +1,4 @@
-﻿using DailyRoutines.Abstracts;
+using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.UI;

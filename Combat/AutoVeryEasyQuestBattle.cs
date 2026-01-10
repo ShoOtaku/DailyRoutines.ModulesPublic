@@ -1,4 +1,4 @@
-﻿using DailyRoutines.Abstracts;
+using DailyRoutines.Abstracts;
 
 namespace DailyRoutines.ModulesPublic;
 
