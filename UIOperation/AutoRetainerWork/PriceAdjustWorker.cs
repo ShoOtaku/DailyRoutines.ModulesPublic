@@ -806,8 +806,9 @@ public unsafe partial class AutoRetainerWork
             var isTooltip     = false;
             var tooltipItemID = 0U;
 
-            foreach (var item in itemSource)
+            for (var index = 0; index < itemSource.Length; index++)
             {
+                var item      = itemSource[index];
                 var itemPrice = GetRetainerMarketPrice(item.Slot);
                 if (itemPrice == 0) continue;
 
@@ -820,7 +821,7 @@ public unsafe partial class AutoRetainerWork
                 ImGui.TableNextRow();
 
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted($"{item.Slot + 1}");
+                ImGui.TextUnformatted($"{index + 1}");
 
                 DrawItemColumn(item.Slot, item.Inventory.ItemId, itemName, itemIcon, ref isTooltip, ref tooltipItemID);
 
