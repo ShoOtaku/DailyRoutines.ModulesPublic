@@ -627,28 +627,28 @@ public partial class OccultCrescentHelper
 
             private void CreateJobContainer()
             {
-                const int   maxRowsPerPage = 4;
-                const int   maxItemsPerRow = 5;
-                const float rowHeight      = 53f;
-                const float containerWidth = 500f;
-                const float rowSpacing     = 30f;
+                const int   MAX_ROWS_PER_PAGE = 4;
+                const int   MAX_ITEMS_PER_ROW = 5;
+                const float ROW_HEIGHT        = 53f;
+                const float CONTAINER_WIDTH   = 500f;
+                const float ROW_SPACING       = 30f;
 
                 JobContainer = new VerticalListNode
                 {
-                    Position  = new(0, 0),
-                    Size      = new(containerWidth, 478),
+                    Position  = new(10, 0),
+                    Size      = new(CONTAINER_WIDTH, 478),
                     IsVisible = true,
                 };
 
                 JobContainer.AddDummy(65);
 
                 var rows = new List<HorizontalFlexNode>();
-                for (var i = 0; i < maxRowsPerPage; i++)
+                for (var i = 0; i < MAX_ROWS_PER_PAGE; i++)
                 {
                     var row = new HorizontalFlexNode
                     {
                         Position       = new(10, 0),
-                        Size           = new(containerWidth, rowHeight),
+                        Size           = new(CONTAINER_WIDTH, ROW_HEIGHT),
                         IsVisible      = true,
                         AlignmentFlags = FlexFlags.CenterHorizontally | FlexFlags.FitContentHeight
                     };
@@ -660,8 +660,8 @@ public partial class OccultCrescentHelper
                 {
                     counter++;
 
-                    var rowIndex = counter / maxItemsPerRow;
-                    if (rowIndex >= maxRowsPerPage) continue;
+                    var rowIndex = counter / MAX_ITEMS_PER_ROW;
+                    if (rowIndex >= MAX_ROWS_PER_PAGE) continue;
 
                     var presetJob = CrescentSupportJob.AllJobs[(int)data.RowId];
 
@@ -829,6 +829,7 @@ public partial class OccultCrescentHelper
                         IsVisible     = true,
                         Size          = new(53f, 24),
                         Position      = new(0, 50),
+                        TextColor     = ColorHelper.GetColor(50),
                         AlignmentType = AlignmentType.Center,
                         TextFlags     = TextFlags.Glare
                     };
@@ -855,10 +856,11 @@ public partial class OccultCrescentHelper
                                    .AddUiGlowOff()
                                    .Build()
                                    .Encode(),
-                        FontSize      = 12,
+                        FontSize      = 14,
                         IsVisible     = presetJob.CurrentLevel > 0 && presetJob.CurrentLevel != presetJob.MaxLevel,
                         Size          = new(53f, 24),
-                        Position      = new(0, -17),
+                        Position      = new(0, -19),
+                        TextColor     = ColorHelper.GetColor(50),
                         AlignmentType = AlignmentType.Center,
                         FontType      = FontType.JupiterLarge
                     };
@@ -871,7 +873,7 @@ public partial class OccultCrescentHelper
                 {
                     JobContainer.AddNode(rows[i]);
                     if (i < rows.Count - 1)
-                        JobContainer.AddDummy(rowSpacing);
+                        JobContainer.AddDummy(ROW_SPACING);
                 }
 
                 JobContainer.AttachNode(this);
@@ -1138,6 +1140,7 @@ public partial class OccultCrescentHelper
                             IsVisible        = true,
                             Size             = new(Size.X - 20f, 40f),
                             AlignmentType    = AlignmentType.Left,
+                            TextColor        = ColorHelper.GetColor(50),
                             TextOutlineColor = ColorHelper.GetColor((uint)(presetJob.CurrentLevel >= jobLevel ? 32 : 4)),
                             TextFlags        = TextFlags.Glare
                         };
@@ -1189,6 +1192,7 @@ public partial class OccultCrescentHelper
                             IsVisible        = true,
                             Size             = new(Size.X - 20f, 44f),
                             AlignmentType    = AlignmentType.Left,
+                            TextColor        = ColorHelper.GetColor(50),
                             TextOutlineColor = ColorHelper.GetColor((uint)(presetJob.CurrentLevel >= jobLevel ? 32 : 4)),
                             TextFlags        = TextFlags.Glare
                         };
