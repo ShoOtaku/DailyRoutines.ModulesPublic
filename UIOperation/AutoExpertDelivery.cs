@@ -50,7 +50,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
         };
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "GrandCompanySupplyList", OnAddonSupplyList);
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "GrandCompanySupplyList", OnAddonSupplyList);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "GrandCompanySupplyList", OnAddonSupplyList);
         if (GrandCompanySupplyList->IsAddonAndNodesReady()) 
             OnAddonSupplyList(AddonEvent.PostSetup, null);
     }
@@ -241,7 +241,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
             {
                 IsVisible = true,
                 Size      = new(275, 28),
-                Position  = ContentStartPosition - new Vector2(0, 10),
+                Position  = ContentStartPosition,
             };
 
             var tabContentPosition = tabNode.Position + new Vector2(0, tabNode.Size.Y + 5f);
