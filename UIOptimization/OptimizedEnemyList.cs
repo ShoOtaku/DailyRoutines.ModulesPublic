@@ -121,7 +121,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             {
                 ImGui.InputText($"{GetLoc("General")}##CustomizeTextPatternInput", ref ModuleConfig.CustomTextPattern);
                 if (ImGui.IsItemDeactivatedAfterEdit())
-                    UpdateTextNodes();
+                    ModuleConfig.Save(this);
                 
                 ImGui.InputText($"{LuminaWrapper.GetAddonText(1032)}##CustomizeCastTextPatternInput", ref ModuleConfig.CustomCastTextPattern);
                 if (ImGui.IsItemDeactivatedAfterEdit())
@@ -133,8 +133,6 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
     private static void OnAddon(AddonEvent type, AddonArgs args)
     {
-        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
-        
         switch (type)
         {
             case AddonEvent.PostRequestedUpdate:
@@ -163,8 +161,9 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
     private static void UpdateTextNodes()
     {
+        if (!EnemyList->IsAddonAndNodesReady()) return;
+        
         var nodes = TextNodes;
-
         if (nodes is not { Count: > 0 })
         {
             CreateTextNodes();
@@ -388,6 +387,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
             foreach (var statusNode in statusNodes)
                 statusNode?.DetachNode();
+            statusNodes.DetachNode();
         }
 
         TextNodes.Clear();

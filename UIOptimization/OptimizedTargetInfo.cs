@@ -34,7 +34,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
     private static TextNode? FocusTargetCastBarTextNode;
 
     private static TextButtonNode? ClearFocusButtonNode;
-
+    
     private static int NumberPreview = 12345678;
 
     private static int CurrentSecondRowOffset = 41;
@@ -70,6 +70,27 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "CastBarEnemy", OnAddonCastBarEnemy);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "CastBarEnemy", OnAddonCastBarEnemy);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "CastBarEnemy", OnAddonCastBarEnemy);
+    }
+    
+    protected override void Uninit()
+    {
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonTargetInfo);
+        OnAddonTargetInfo(AddonEvent.PreFinalize, null);
+
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonTargetInfoSplitTarget);
+        OnAddonTargetInfoSplitTarget(AddonEvent.PreFinalize, null);
+
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonFocusTargetInfo);
+        OnAddonFocusTargetInfo(AddonEvent.PreFinalize, null);
+
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonTargetInfoCastBar);
+        OnAddonTargetInfoCastBar(AddonEvent.PreFinalize, null);
+
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonTargetInfoBuffDebuff);
+        OnAddonTargetInfoBuffDebuff(AddonEvent.PreFinalize, null);
+
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonCastBarEnemy);
+        OnAddonCastBarEnemy(AddonEvent.PreFinalize, null);
     }
 
     protected override void ConfigUI()
@@ -263,28 +284,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
             }
         }
     }
-
-    protected override void Uninit()
-    {
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonTargetInfo);
-        OnAddonTargetInfo(AddonEvent.PreFinalize, null);
-
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonTargetInfoSplitTarget);
-        OnAddonTargetInfoSplitTarget(AddonEvent.PreFinalize, null);
-
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonFocusTargetInfo);
-        OnAddonFocusTargetInfo(AddonEvent.PreFinalize, null);
-
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonTargetInfoCastBar);
-        OnAddonTargetInfoCastBar(AddonEvent.PreFinalize, null);
-
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonTargetInfoBuffDebuff);
-        OnAddonTargetInfoBuffDebuff(AddonEvent.PreFinalize, null);
-
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonCastBarEnemy);
-        OnAddonCastBarEnemy(AddonEvent.PreFinalize, null);
-    }
-
+    
     private void DrawTargetConfigSection
     (
         string      sectionTitle,
@@ -370,80 +370,14 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
             SaveConfig(ModuleConfig);
     }
 
-    private static void OnAddonCastBarEnemy(AddonEvent type, AddonArgs args)
-    {
-        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
-        
-        if (type == AddonEvent.PostDraw)
-        {
-            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
-                !Throttler.Throttle("OptimizedTargetInfo-OnAddonCastBarEnemy", 10))
-                return;
-        }
-        
-        switch (type)
-        {
-            case AddonEvent.PreFinalize:
-                if (CastBarEnemy == null) return;
+    
+    #region 事件
 
-                for (var i = 10; i > 0; i--)
-                {
-                    var node = (AtkComponentNode*)CastBarEnemy->UldManager.NodeList[i];
-                    if (node == null) continue;
-
-                    var textNode = node->Component->GetTextNodeById(4);
-                    if (textNode == null) continue;
-
-                    textNode->SetText(LuminaWrapper.GetAddonText(16482));
-                    textNode->FontSize = 12;
-                }
-
-                break;
-            
-            case AddonEvent.PostDraw:
-            case AddonEvent.PostRequestedUpdate:
-                if (CastBarEnemy == null) return;
-
-                var addon = (AddonCastBarEnemy*)CastBarEnemy;
-
-                var maxCount     = AtkStage.Instance()->GetNumberArrayData(NumberArrayType.CastBarEnemy)->IntArray[1];
-                var currentCount = 0;
-
-                foreach (var nodeInfo in addon->CastBarNodes)
-                {
-                    var componentNode = (AtkComponentNode*)nodeInfo.CastBarNode;
-                    if (!componentNode->IsVisible() || !nodeInfo.ProgressBarNode->IsVisible()) continue;
-
-                    if (DService.Instance().ObjectTable.SearchByID(nodeInfo.ObjectId.Id) is not IBattleChara { CurrentCastTime: > 0 } target)
-                        continue;
-
-                    currentCount++;
-
-                    var textNode     = componentNode->Component->GetTextNodeById(4);
-                    var leftCastTime = target.TotalCastTime - target.CurrentCastTime;
-
-                    textNode->SetText($"{leftCastTime:F2}");
-                    textNode->FontSize = 16;
-
-                    if (currentCount >= maxCount)
-                        break;
-                }
-
-                break;
-        }
-    }
+    private static void OnAddonCastBarEnemy(AddonEvent type, AddonArgs args) =>
+        HandleAddonEventCastBarEnemy(type);
 
     private static void OnAddonTargetInfo(AddonEvent type, AddonArgs args)
     {
-        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
-        
-        if (type == AddonEvent.PostDraw)
-        {
-            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
-                !Throttler.Throttle("OptimizedTargetInfo-OnAddonTargetInfo", 10))
-                return;
-        }
-
         HandleAddonEventTargetInfo
         (
             type,
@@ -481,105 +415,11 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
             (width, height) => new Vector2(width - 5, height)
         );
 
-        switch (type)
-        {
-            case AddonEvent.PreFinalize:
-                if (TargetInfo == null) return;
-
-                for (var i = 0; i < 15; i++)
-                {
-                    var node = TargetInfo->UldManager.NodeList[32 - i];
-                    node->ScaleX    =  1.0f;
-                    node->ScaleY    =  1.0f;
-                    node->X         =  i * 25;
-                    node->Y         =  0;
-                    node->DrawFlags |= 0x1;
-                }
-
-                for (var i = 18; i >= 3; i--)
-                {
-                    TargetInfo->UldManager.NodeList[i]->Y         =  41;
-                    TargetInfo->UldManager.NodeList[i]->DrawFlags |= 0x1;
-                }
-
-                TargetInfo->UldManager.NodeList[2]->DrawFlags |= 0x4;
-
-                CurrentSecondRowOffset = 41;
-                break;
-            
-            case AddonEvent.PostDraw:
-            case AddonEvent.PostRequestedUpdate:
-                if (!ModuleConfig.StatusIsEnabled ||
-                    TargetInfo == null            ||
-                    TargetManager.Target is not IBattleChara target)
-                    return;
-
-                var playerStatusCount = 0;
-                foreach (var status in target.StatusList)
-                {
-                    if (status.SourceID == LocalPlayerState.EntityID)
-                        playerStatusCount++;
-                }
-
-                var adjustOffsetY = -(int)(41 * (ModuleConfig.StatusScale - 1.0f) / 4.5);
-                var xIncrement    = (int)((ModuleConfig.StatusScale - 1.0f) * 25);
-
-                var growingOffsetX = 0;
-
-                for (var i = 0; i < 15; i++)
-                {
-                    var node = TargetInfo->UldManager.NodeList[32 - i];
-                    if (!node->IsVisible()) return;
-                    
-                    node->X = i * 25 + growingOffsetX;
-
-                    if (i < playerStatusCount)
-                    {
-                        node->ScaleX   =  ModuleConfig.StatusScale;
-                        node->ScaleY   =  ModuleConfig.StatusScale;
-                        node->Y        =  adjustOffsetY;
-                        growingOffsetX += xIncrement;
-                    }
-                    else
-                    {
-                        node->ScaleX = 1.0f;
-                        node->ScaleY = 1.0f;
-                        node->Y      = 0;
-                    }
-
-                    node->DrawFlags |= 0x1;
-                }
-
-                var newSecondRowOffset = playerStatusCount > 0 ? (int)(ModuleConfig.StatusScale * 41) : 41;
-
-                if (newSecondRowOffset != CurrentSecondRowOffset)
-                {
-                    for (var i = 17; i >= 3; i--)
-                    {
-                        TargetInfo->UldManager.NodeList[i]->Y         =  newSecondRowOffset;
-                        TargetInfo->UldManager.NodeList[i]->DrawFlags |= 0x1;
-                    }
-
-                    CurrentSecondRowOffset = newSecondRowOffset;
-                }
-
-                TargetInfo->UldManager.NodeList[2]->DrawFlags |= 0x4;
-                TargetInfo->UldManager.NodeList[2]->DrawFlags |= 0x1;
-                break;
-        }
+        HandleAddonEventTargetStatus(type, TargetInfo, 32);
     }
 
     private static void OnAddonTargetInfoSplitTarget(AddonEvent type, AddonArgs args)
     {
-        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
-
-        if (type == AddonEvent.PostDraw)
-        {
-            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
-                !Throttler.Throttle("OptimizedTargetInfo-OnAddonTargetInfoSplitTarget", 10))
-                return;
-        }
-        
         HandleAddonEventTargetInfo
         (
             type,
@@ -602,15 +442,6 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
     private static void OnAddonFocusTargetInfo(AddonEvent type, AddonArgs args)
     {
-        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
-        
-        if (type == AddonEvent.PostDraw)
-        {
-            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
-                !Throttler.Throttle("OptimizedTargetInfo-OnAddonFocusTargetInfo", 10))
-                return;
-        }
-
         HandleAddonEventTargetInfo
         (
             type,
@@ -648,50 +479,11 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
             (width, height) => new Vector2(width - 5, height)
         );
 
-        switch (type)
-        {
-            case AddonEvent.PreFinalize:
-                ClearFocusButtonNode?.DetachNode();
-                ClearFocusButtonNode = null;
-                break;
-            
-            case AddonEvent.PostDraw:
-            case AddonEvent.PostRequestedUpdate:
-                if (FocusTargetInfo == null) return;
-
-                if (ClearFocusButtonNode == null)
-                {
-                    ClearFocusButtonNode = new()
-                    {
-                        IsVisible   = true,
-                        Size        = new(32),
-                        Position    = new(-13, 12),
-                        SeString    = "\ue04c",
-                        TextTooltip = GetLoc("OptimizedTargetInfo-ClearFocusTarget"),
-                        OnClick     = () => TargetSystem.Instance()->SetFocusTargetByObjectId(0xE0000000)
-                    };
-                    ClearFocusButtonNode.BackgroundNode.IsVisible = false;
-                    ClearFocusButtonNode.AttachNode(FocusTargetInfo->RootNode);
-                }
-
-                ClearFocusButtonNode.IsVisible = ModuleConfig.ClearFocusIsEnabled;
-                ClearFocusButtonNode.Position  = new Vector2(-13, 12) + ModuleConfig.ClearFocusPosition;
-
-                break;
-        }
+        HandleAddonEventFocusTargetControl(type);
     }
 
     private static void OnAddonTargetInfoCastBar(AddonEvent type, AddonArgs args)
     {
-        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
-        
-        if (type == AddonEvent.PostDraw)
-        {
-            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
-                !Throttler.Throttle("OptimizedTargetInfo-OnAddonTargetInfoCastBar", 10))
-                return;
-        }
-
         HandleAddonEventCastBar
         (
             type,
@@ -711,25 +503,56 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
         );
     }
 
-    private static void OnAddonTargetInfoBuffDebuff(AddonEvent type, AddonArgs args)
-    {
-        if (!args.Addon.ToStruct()->IsAddonAndNodesReady()) return;
+    private static void OnAddonTargetInfoBuffDebuff(AddonEvent type, AddonArgs args) =>
+        HandleAddonEventTargetStatus(type, TargetInfoBuffDebuff, 31);
 
-        if (type == AddonEvent.PostDraw)
+    #endregion
+
+
+    private static void HandleAddonEventFocusTargetControl(AddonEvent type)
+    {
+        switch (type)
         {
-            if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
-                !Throttler.Throttle("OptimizedTargetInfo-OnAddonTargetInfoBuffDebuff", 10))
-                return;
+            case AddonEvent.PreFinalize:
+                ClearFocusButtonNode?.DetachNode();
+                ClearFocusButtonNode = null;
+                break;
+            
+            case AddonEvent.PostRequestedUpdate:
+                if (!FocusTargetInfo->IsAddonAndNodesReady()) return;
+
+                if (ClearFocusButtonNode == null)
+                {
+                    ClearFocusButtonNode = new()
+                    {
+                        IsVisible   = true,
+                        Size        = new(32),
+                        Position    = new(-13, 12),
+                        SeString    = "\ue04c",
+                        TextTooltip = GetLoc("OptimizedTargetInfo-ClearFocusTarget"),
+                        OnClick     = () => TargetSystem.Instance()->SetFocusTargetByObjectId(0xE0000000)
+                    };
+                    ClearFocusButtonNode.BackgroundNode.IsVisible = false;
+                    ClearFocusButtonNode.AttachNode(FocusTargetInfo->RootNode);
+                }
+
+                ClearFocusButtonNode.IsVisible = ModuleConfig.ClearFocusIsEnabled;
+                ClearFocusButtonNode.Position  = new Vector2(-13, 12) + ModuleConfig.ClearFocusPosition;
+                break;
         }
+    }
+
+    // 状态效果
+    private static void HandleAddonEventTargetStatus(AddonEvent type, AtkUnitBase* addon, int statusNodeStartIndex)
+    {
+        if (!addon->IsAddonAndNodesReady()) return;
         
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                if (TargetInfoBuffDebuff == null) return;
-
                 for (var i = 0; i < 15; i++)
                 {
-                    var node = TargetInfoBuffDebuff->UldManager.NodeList[31 - i];
+                    var node = addon->UldManager.NodeList[statusNodeStartIndex - i];
                     node->ScaleX    =  1.0f;
                     node->ScaleY    =  1.0f;
                     node->X         =  i * 25;
@@ -737,22 +560,26 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                     node->DrawFlags |= 0x1;
                 }
 
-                for (var i = 17; i >= 2; i--)
+                for (var i = statusNodeStartIndex - 14; i >= statusNodeStartIndex - 29; i--)
                 {
-                    TargetInfoBuffDebuff->UldManager.NodeList[i]->Y         =  41;
-                    TargetInfoBuffDebuff->UldManager.NodeList[i]->DrawFlags |= 0x1;
+                    addon->UldManager.NodeList[i]->Y         =  41;
+                    addon->UldManager.NodeList[i]->DrawFlags |= 0x1;
                 }
 
-                TargetInfoBuffDebuff->UldManager.NodeList[1]->DrawFlags |= 0x4;
+                addon->UldManager.NodeList[statusNodeStartIndex - 30]->DrawFlags |= 0x4;
 
                 CurrentSecondRowOffset = 41;
                 break;
             
             case AddonEvent.PostDraw:
+                if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
+                    !Throttler.Throttle($"OptimizedTargetInfo-{addon->NameString}", 10))
+                    return;
+                
+                HandleAddonEventTargetStatus(AddonEvent.PostRequestedUpdate, addon, statusNodeStartIndex);
+                break;
             case AddonEvent.PostRequestedUpdate:
-                if (!ModuleConfig.StatusIsEnabled ||
-                    TargetInfoBuffDebuff == null  ||
-                    TargetManager.Target is not IBattleChara target)
+                if (!ModuleConfig.StatusIsEnabled || TargetManager.Target is not IBattleChara target)
                     return;
 
                 var playerStatusCount = 0;
@@ -763,14 +590,14 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                 }
 
                 var adjustOffsetY = -(int)(41 * (ModuleConfig.StatusScale - 1.0f) / 4.5);
-
-                var xIncrement = (int)((ModuleConfig.StatusScale - 1.0f) * 25);
+                var xIncrement    = (int)((ModuleConfig.StatusScale - 1.0f) * 25);
 
                 var growingOffsetX = 0;
 
                 for (var i = 0; i < 15; i++)
                 {
-                    var node = TargetInfoBuffDebuff->UldManager.NodeList[31 - i];
+                    var node = addon->UldManager.NodeList[statusNodeStartIndex - i];
+                    if (!node->IsVisible()) return;
                     
                     node->X = i * 25 + growingOffsetX;
 
@@ -795,21 +622,85 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
                 if (newSecondRowOffset != CurrentSecondRowOffset)
                 {
-                    for (var i = 16; i >= 2; i--)
+                    for (var i = statusNodeStartIndex - 15; i >= statusNodeStartIndex - 29; i--)
                     {
-                        TargetInfoBuffDebuff->UldManager.NodeList[i]->Y         =  newSecondRowOffset;
-                        TargetInfoBuffDebuff->UldManager.NodeList[i]->DrawFlags |= 0x1;
+                        addon->UldManager.NodeList[i]->Y         =  newSecondRowOffset;
+                        addon->UldManager.NodeList[i]->DrawFlags |= 0x1;
                     }
 
                     CurrentSecondRowOffset = newSecondRowOffset;
                 }
 
-                TargetInfoBuffDebuff->UldManager.NodeList[1]->DrawFlags |= 0x4;
-                TargetInfoBuffDebuff->UldManager.NodeList[1]->DrawFlags |= 0x1;
+                addon->UldManager.NodeList[statusNodeStartIndex - 30]->DrawFlags |= 0x4;
+                addon->UldManager.NodeList[statusNodeStartIndex - 30]->DrawFlags |= 0x1;
+                break;
+        }
+    }
+    
+    // 敌人头上的小咏唱条
+    private static void HandleAddonEventCastBarEnemy(AddonEvent type)
+    {
+        if (!CastBarEnemy->IsAddonAndNodesReady()) return;
+
+        switch (type)
+        {
+            case AddonEvent.PreFinalize:
+                if (CastBarEnemy == null) return;
+
+                for (var i = 10; i > 0; i--)
+                {
+                    var node = (AtkComponentNode*)CastBarEnemy->UldManager.NodeList[i];
+                    if (node == null) continue;
+
+                    var textNode = node->Component->GetTextNodeById(4);
+                    if (textNode == null) continue;
+
+                    textNode->SetText(LuminaWrapper.GetAddonText(16482));
+                    textNode->FontSize = 12;
+                }
+
+                break;
+
+            case AddonEvent.PostDraw:
+                if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
+                    !Throttler.Throttle($"OptimizedTargetInfo-CastBarEnemy", 10))
+                    return;
+                
+                HandleAddonEventCastBarEnemy(AddonEvent.PostRequestedUpdate);
+                break;
+            case AddonEvent.PostRequestedUpdate:
+                if (CastBarEnemy == null) return;
+
+                var addon = (AddonCastBarEnemy*)CastBarEnemy;
+
+                var maxCount     = AtkStage.Instance()->GetNumberArrayData(NumberArrayType.CastBarEnemy)->IntArray[1];
+                var currentCount = 0;
+
+                foreach (var nodeInfo in addon->CastBarNodes)
+                {
+                    var componentNode = (AtkComponentNode*)nodeInfo.CastBarNode;
+                    if (!componentNode->IsVisible() || !nodeInfo.ProgressBarNode->IsVisible()) continue;
+
+                    if (DService.Instance().ObjectTable.SearchByID(nodeInfo.ObjectId.Id) is not IBattleChara { CurrentCastTime: > 0 } target)
+                        continue;
+
+                    currentCount++;
+
+                    var textNode     = componentNode->Component->GetTextNodeById(4);
+                    var leftCastTime = target.TotalCastTime - target.CurrentCastTime;
+
+                    textNode->SetText($"{leftCastTime:F2}");
+                    textNode->FontSize = 16;
+
+                    if (currentCount >= maxCount)
+                        break;
+                }
+
                 break;
         }
     }
 
+    // 目标信息
     private static void HandleAddonEventTargetInfo
     (
         AddonEvent                type,
@@ -831,10 +722,40 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
     {
         switch (type)
         {
+            case AddonEvent.PreFinalize:
+                textNode?.DetachNode();
+                textNode = null;
+                break;
+            
             case AddonEvent.PostDraw:
-            case AddonEvent.PostRequestedUpdate:
-                if (addon == null) return;
+                if (!addon->IsAddonAndNodesReady()) return;
+                
+                if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
+                    !Throttler.Throttle($"OptimizedTargetInfo-{addon->NameString}", 10))
+                    return;
 
+                HandleAddonEventTargetInfo
+                (
+                    AddonEvent.PostRequestedUpdate,
+                    isEnabled,
+                    isHideAutoAttack,
+                    autoAttackNodeID,
+                    addon,
+                    ref textNode,
+                    textNodeID,
+                    gaugeNodeID,
+                    position,
+                    alignLeft,
+                    fontSize,
+                    customColor,
+                    outlineColor,
+                    getTarget,
+                    getSizeFunc
+                );
+                break;
+            case AddonEvent.PostRequestedUpdate:
+                if (!addon->IsAddonAndNodesReady()) return;
+                
                 if (textNode == null)
                 {
                     var sourceTextNode = addon->GetTextNodeById(textNodeID);
@@ -856,7 +777,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
 
                     textNode.AttachNode(gauge->OwnerNode);
                 }
-                
+
                 if (autoAttackNodeID != 0 && isHideAutoAttack)
                 {
                     var autoAttackNode = addon->GetImageNodeById(autoAttackNodeID);
@@ -891,13 +812,10 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                 }
 
                 break;
-            case AddonEvent.PreFinalize:
-                textNode?.DetachNode();
-                textNode = null;
-                break;
         }
     }
 
+    // 大咏唱条
     private static void HandleAddonEventCastBar
     (
         AddonEvent                type,
@@ -918,9 +836,38 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
     {
         switch (type)
         {
+            case AddonEvent.PreFinalize:
+                textNode?.DetachNode();
+                textNode = null;
+                break;
+            
             case AddonEvent.PostDraw:
+                if (!addon->IsAddonAndNodesReady()) return;
+                
+                if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
+                    !Throttler.Throttle($"OptimizedTargetInfo-{addon->NameString}", 10))
+                    return;
+
+                HandleAddonEventCastBar
+                (
+                    AddonEvent.PostRequestedUpdate,
+                    isEnabled,
+                    addon,
+                    ref textNode,
+                    nodeIDToAttach,
+                    textNodeID,
+                    position,
+                    alignLeft,
+                    fontSize,
+                    customColor,
+                    outlineColor,
+                    actionNameTextNodeID,
+                    getTarget,
+                    getSizeFunc
+                );
+                break;
             case AddonEvent.PostRequestedUpdate:
-                if (addon == null) return;
+                if (!addon->IsAddonAndNodesReady()) return;
 
                 if (textNode == null)
                 {
@@ -974,10 +921,6 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                     actionNameNode->SetText(LuminaWrapper.GetActionName(target.CastActionID));
                 }
 
-                break;
-            case AddonEvent.PreFinalize:
-                textNode?.DetachNode();
-                textNode = null;
                 break;
         }
     }
