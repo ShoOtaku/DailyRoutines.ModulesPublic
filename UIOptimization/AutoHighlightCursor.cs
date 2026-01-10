@@ -86,7 +86,7 @@ public class AutoHighlightCursor : DailyModuleBase
     private unsafe class CursorImageNode : OverlayNode
     {
         public override OverlayLayer OverlayLayer     => OverlayLayer.Foreground;
-        public override bool         HideWithNativeUI => false;
+        public override bool         HideWithNativeUI => true;
         
         private readonly IconImageNode imageNode;
 
