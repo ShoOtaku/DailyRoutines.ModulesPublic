@@ -306,8 +306,8 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
             if (!string.IsNullOrWhiteSpace(textNode.String))
             {
-                var textHeight = textNode.GetTextDrawSize(true).Y;
-                var textWidth  = textNode.GetTextDrawSize().X;
+                var textHeight = textNode.GetTextDrawSize().Y;
+                var textWidth  = textNode.GetTextDrawSize(false).X;
 
                 backgroundNode.Position = ModuleConfig.TextOffset with { X = textNode.Position.X - 7f };
                 backgroundNode.Size     = new Vector2(textWidth + 7f, textHeight);
@@ -482,6 +482,8 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         public Vector4 TextColor       = Vector4.One;
         public Vector4 TextEdgeColor   = new(0, 0.372549f, 1, 1);
         public float   BackgroundAlpha = 0.6f;
+
+        public bool DisplayStatus = true;
     }
 
     private class IconTextNodesRow : OverlayNode, IEnumerable<IconTextNode>
