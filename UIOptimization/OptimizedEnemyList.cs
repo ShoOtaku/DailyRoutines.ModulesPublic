@@ -299,7 +299,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
                 MathF.Max
                 (
                     targetNameTextNode->X + targetNameTextNode->GetTextDrawSize().X + 5f,
-                    castBarNode.X
+                    castBarNode.X + 7f
                 ) + ModuleConfig.TextOffset.X,
                 4 + ModuleConfig.TextOffset.Y
             );
@@ -489,7 +489,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         public int  Count  { get; init; }
         public uint NodeID { get; init; }
 
-        public override OverlayLayer OverlayLayer     => OverlayLayer.BehindUserInterface;
+        public override OverlayLayer OverlayLayer     => OverlayLayer.Foreground;
         public override bool         HideWithNativeUI => true;
 
         public bool ShouldBeVisible { get; set; }
