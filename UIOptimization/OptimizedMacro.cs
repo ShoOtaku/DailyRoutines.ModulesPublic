@@ -224,8 +224,6 @@ public unsafe class OptimizedMacro : DailyModuleBase
 
     private static void OnLoadPreset()
     {
-        if (PresetDropdownNode == null) return;
-
         var selectedPreset = PresetDropdownNode.SelectedOption;
         if (string.IsNullOrEmpty(selectedPreset) || selectedPreset == DefaultOption)
             return;
@@ -340,6 +338,8 @@ public unsafe class OptimizedMacro : DailyModuleBase
             macroModule->SetSavePendingFlag(true, 0);
             macroModule->SetSavePendingFlag(true, 1);
             hotbarModule->ReloadAllMacroSlots();
+            
+            Chat(GetLoc("OptimizedMacro-Notification-Loaded", presetName));
         }
         catch
         {
