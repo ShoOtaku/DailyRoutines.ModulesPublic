@@ -94,13 +94,13 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
                 break;
             
             case AddonEvent.PreFinalize:
-                CheckboxNode?.DetachNode();
+                CheckboxNode?.Dispose();
                 CheckboxNode = null;
                 
-                ButtonNode?.DetachNode();
+                ButtonNode?.Dispose();
                 ButtonNode = null;
                 
-                LayoutNode?.DetachNode();
+                LayoutNode?.Dispose();
                 LayoutNode = null;
                 
                 TaskHelper?.Abort();

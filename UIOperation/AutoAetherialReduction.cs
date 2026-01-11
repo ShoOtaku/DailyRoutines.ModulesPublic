@@ -159,13 +159,13 @@ public unsafe class AutoAetherialReduction : DailyModuleBase
     
     private static void ClearNodes()
     {
-        LableNode?.DetachNode();
+        LableNode?.Dispose();
         LableNode = null;
         
-        StartButtonNode?.DetachNode();
+        StartButtonNode?.Dispose();
         StartButtonNode = null;
         
-        StopButtonNode?.DetachNode();
+        StopButtonNode?.Dispose();
         StopButtonNode = null;
     }
     

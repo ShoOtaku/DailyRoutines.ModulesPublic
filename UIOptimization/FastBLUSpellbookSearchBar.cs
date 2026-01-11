@@ -35,7 +35,7 @@ public unsafe class FastBLUSpellbookSearchBar : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                SearchBarNode?.DetachNode();
+                SearchBarNode?.Dispose();
                 SearchBarNode = null;
                 break;
             case AddonEvent.PostDraw:

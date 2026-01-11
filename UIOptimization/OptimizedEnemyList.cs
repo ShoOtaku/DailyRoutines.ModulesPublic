@@ -381,13 +381,13 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
     {
         foreach (var (_, textNode, backgroundNode, castBarNode, statusNodes) in TextNodes)
         {
-            textNode?.DetachNode();
-            backgroundNode?.DetachNode();
-            castBarNode?.DetachNode();
+            textNode?.Dispose();
+            backgroundNode?.Dispose();
+            castBarNode?.Dispose();
 
             foreach (var statusNode in statusNodes)
-                statusNode?.DetachNode();
-            statusNodes.DetachNode();
+                statusNode?.Dispose();
+            statusNodes?.Dispose();
         }
 
         TextNodes.Clear();

@@ -146,10 +146,10 @@ public unsafe class OptimizedFreeShop : DailyModuleBase
                 
                 break;
             case AddonEvent.PreFinalize:
-                IsEnabledNode?.DetachNode();
+                IsEnabledNode?.Dispose();
                 IsEnabledNode = null;
                 
-                BatchClaimContainerNode?.DetachNode();
+                BatchClaimContainerNode?.Dispose();
                 BatchClaimContainerNode = null;
                 
                 ClickYesnoHelper?.Abort();

@@ -453,10 +453,10 @@ public class CrossDCPartyFinder : DailyModuleBase
     
     private static void ClearNodes()
     {
-        LayoutNode?.DetachNode();
+        LayoutNode?.Dispose();
         LayoutNode = null;
                 
-        CheckboxNodes.Values.ForEach(x => x?.DetachNode());
+        CheckboxNodes.Values.ForEach(x => x?.Dispose());
         CheckboxNodes.Clear();
     }
 

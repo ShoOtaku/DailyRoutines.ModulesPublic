@@ -178,7 +178,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
         if (!PartyList->IsAddonAndNodesReady()) return;
 
         foreach (var item in NodeList)
-            item.DetachNode();
+            item?.Dispose();
 
         NodeList.Clear();
     }

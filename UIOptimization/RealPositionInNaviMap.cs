@@ -50,7 +50,7 @@ public class RealPositionInNaviMap : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                PositionButton?.DetachNode();
+                PositionButton?.Dispose();
                 PositionButton = null;
                 break;
             case AddonEvent.PostDraw:

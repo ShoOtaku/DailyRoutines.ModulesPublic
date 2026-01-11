@@ -179,7 +179,7 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                OpenButton?.DetachNode();
+                OpenButton?.Dispose();
                 OpenButton = null;
                 break;
             case AddonEvent.PostDraw:

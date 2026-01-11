@@ -508,7 +508,7 @@ public unsafe class QuickChatPanel : DailyModuleBase
 
                 break;
             case AddonEvent.PreFinalize:
-                ImageButton?.DetachNode();
+                ImageButton?.Dispose();
                 ImageButton = null;
                 break;
         }

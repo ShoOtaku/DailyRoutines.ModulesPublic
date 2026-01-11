@@ -490,16 +490,16 @@ public partial class OccultCrescentHelper
 
                     break;
                 case AddonEvent.PreFinalize:
-                    BuffButton?.DetachNode();
+                    BuffButton?.Dispose();
                     BuffButton = null;
 
-                    SettingButton?.DetachNode();
+                    SettingButton?.Dispose();
                     SettingButton = null;
 
-                    MapButton?.DetachNode();
+                    MapButton?.Dispose();
                     MapButton = null;
 
-                    SupportJobChangeButton?.DetachNode();
+                    SupportJobChangeButton?.Dispose();
                     SupportJobChangeButton = null;
 
                     Entry?.Remove();

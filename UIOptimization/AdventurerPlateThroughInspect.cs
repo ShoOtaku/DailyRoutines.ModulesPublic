@@ -51,7 +51,7 @@ public unsafe class AdventurerPlateThroughInspect : DailyModuleBase
                 
                 break;
             case AddonEvent.PreFinalize:
-                OpenButton?.DetachNode();
+                OpenButton?.Dispose();
                 OpenButton = null;
                 break;
         }

@@ -97,7 +97,7 @@ public class AutoMoveGearsNotInSet : DailyModuleBase
                 }
                 break;
             case AddonEvent.PreFinalize:
-                Button?.DetachNode();
+                Button?.Dispose();
                 Button = null;
                 break;
         }

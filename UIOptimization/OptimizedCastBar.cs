@@ -254,10 +254,10 @@ public unsafe class OptimizedCastBar : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                SlideMarkerZoneNode?.DetachNode();
+                SlideMarkerZoneNode?.Dispose();
                 SlideMarkerZoneNode = null;
 
-                SlideMarkerLineNode?.DetachNode();
+                SlideMarkerLineNode?.Dispose();
                 SlideMarkerLineNode = null;
 
                 ModuleConfig = new();

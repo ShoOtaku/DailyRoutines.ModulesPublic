@@ -133,16 +133,16 @@ public unsafe class AutoSellCards : DailyModuleBase
                 
                 break;
             case AddonEvent.PreFinalize:
-                LayoutNode?.DetachNode();
+                LayoutNode?.Dispose();
                 LayoutNode = null;
                 
-                StartButton?.DetachNode();
+                StartButton?.Dispose();
                 StartButton = null;
                 
-                StopButton?.DetachNode();
+                StopButton?.Dispose();
                 StopButton = null;
                 
-                TitleNode?.DetachNode();
+                TitleNode?.Dispose();
                 TitleNode = null;
                 
                 TaskHelper?.Abort();

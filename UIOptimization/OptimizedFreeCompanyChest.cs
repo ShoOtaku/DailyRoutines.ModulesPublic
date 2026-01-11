@@ -321,22 +321,22 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
 
     private static void ClearNodes()
     {
-        FastMoveNode?.DetachNode();
+        FastMoveNode?.Dispose();
         FastMoveNode = null;
         
-        DefaultPageNode?.DetachNode();
+        DefaultPageNode?.Dispose();
         DefaultPageNode = null;
         
-        ComponentNode?.DetachNode();
+        ComponentNode?.Dispose();
         ComponentNode = null;
         
-        GilIconNode?.DetachNode();
+        GilIconNode?.Dispose();
         GilIconNode = null;
         
-        GilItemsValueCountNode?.DetachNode();
+        GilItemsValueCountNode?.Dispose();
         GilItemsValueCountNode = null;
         
-        GilItemsValueNode?.DetachNode();
+        GilItemsValueNode?.Dispose();
         GilItemsValueNode = null;
     }
     

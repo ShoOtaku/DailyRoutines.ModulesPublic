@@ -202,10 +202,10 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 ApplyDisplayModification(TaskHelper);
                 break;
             case AddonEvent.PreFinalize:
-                SearchInputNode?.DetachNode();
+                SearchInputNode?.Dispose();
                 SearchInputNode = null;
 
-                SearchSettingButtonNode?.DetachNode();
+                SearchSettingButtonNode?.Dispose();
                 SearchSettingButtonNode = null;
 
                 Tokens.ForEach(x => OnlineDataManager.GetRequest<PlayerUsedNamesRequest>().Unsubscribe(x));

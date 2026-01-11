@@ -174,7 +174,7 @@ public unsafe class AutoMateriaTransmutation : DailyModuleBase
 
                 break;
             case AddonEvent.PreFinalize:
-                OperateButtonNode?.DetachNode();
+                OperateButtonNode?.Dispose();
                 OperateButtonNode = null;
                 break;
         }

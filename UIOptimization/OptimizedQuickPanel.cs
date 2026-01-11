@@ -84,7 +84,7 @@ public unsafe class OptimizedQuickPanel : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                LockCheckBoxNode?.DetachNode();
+                LockCheckBoxNode?.Dispose();
                 LockCheckBoxNode = null;
                 
                 if (ModuleConfig != null)

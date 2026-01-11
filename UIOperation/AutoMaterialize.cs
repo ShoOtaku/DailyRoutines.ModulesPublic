@@ -184,13 +184,13 @@ public unsafe class AutoMaterialize : DailyModuleBase
                 }
                 break;
             case AddonEvent.PreFinalize:
-                LableNode?.DetachNode();
+                LableNode?.Dispose();
                 LableNode = null;
         
-                StartButtonNode?.DetachNode();
+                StartButtonNode?.Dispose();
                 StartButtonNode = null;
         
-                StopButtonNode?.DetachNode();
+                StopButtonNode?.Dispose();
                 StopButtonNode = null;
                 
                 TaskHelper?.Abort();

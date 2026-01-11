@@ -516,13 +516,13 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                ItemListLayout?.DetachNode();
+                ItemListLayout?.Dispose();
                 ItemListLayout = null;
                 
-                AutoCollectNode?.DetachNode();
+                AutoCollectNode?.Dispose();
                 AutoCollectNode = null;
                 
-                ItemRenderers.ForEach(x => x?.DetachNode());
+                ItemRenderers.ForEach(x => x?.Dispose());
                 ItemRenderers.Clear();
                 break;
             case AddonEvent.PostDraw:
@@ -738,13 +738,13 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
         protected override void Dispose(bool disposing, bool isNativeDestructor)
         {
-            IconNode?.DetachNode();
+            IconNode?.Dispose();
             IconNode = null;
             
-            NameNode?.DetachNode();
+            NameNode?.Dispose();
             NameNode = null;
             
-            CountNode?.DetachNode();
+            CountNode?.Dispose();
             CountNode = null;
             
             base.Dispose(disposing, isNativeDestructor);

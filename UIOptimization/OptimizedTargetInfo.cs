@@ -514,7 +514,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                ClearFocusButtonNode?.DetachNode();
+                ClearFocusButtonNode?.Dispose();
                 ClearFocusButtonNode = null;
                 break;
             
@@ -723,7 +723,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                textNode?.DetachNode();
+                textNode?.Dispose();
                 textNode = null;
                 break;
             
@@ -837,7 +837,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                textNode?.DetachNode();
+                textNode?.Dispose();
                 textNode = null;
                 break;
             

@@ -102,34 +102,34 @@ public class OptimizedRecipeNote : DailyModuleBase
         switch (type)
         {
             case AddonEvent.PreFinalize:
-                RecipeCaculationButton?.DetachNode();
+                RecipeCaculationButton?.Dispose();
                 RecipeCaculationButton = null;
                 
-                SwitchJobButton?.DetachNode();
+                SwitchJobButton?.Dispose();
                 SwitchJobButton = null;
                 
-                DisplayOthersButton?.DetachNode();
+                DisplayOthersButton?.Dispose();
                 DisplayOthersButton = null;
                 
-                DisplayOthersIconsLayout?.DetachNode();
+                DisplayOthersIconsLayout?.Dispose();
                 DisplayOthersIconsLayout = null;
                 
-                DisplayOthersJobButtons.ForEach(x => x?.DetachNode());
+                DisplayOthersJobButtons.ForEach(x => x?.Dispose());
                 DisplayOthersJobButtons.Clear();
                 
-                ClearSearchButton?.DetachNode();
+                ClearSearchButton?.Dispose();
                 ClearSearchButton = null;
                 
-                GetShopInfoButtons.ForEach(x => x?.DetachNode());
+                GetShopInfoButtons.ForEach(x => x?.Dispose());
                 GetShopInfoButtons.Clear();
                 
-                LevelRecipeButton?.DetachNode();
+                LevelRecipeButton?.Dispose();
                 LevelRecipeButton = null;
                 
-                SpecialRecipeButton?.DetachNode();
+                SpecialRecipeButton?.Dispose();
                 SpecialRecipeButton = null;
                 
-                MasterRecipeButton?.DetachNode();
+                MasterRecipeButton?.Dispose();
                 MasterRecipeButton = null;
 
                 if (RecipeNoteAddon != null)

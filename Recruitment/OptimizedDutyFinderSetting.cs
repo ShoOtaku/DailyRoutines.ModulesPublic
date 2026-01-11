@@ -50,13 +50,13 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
             case AddonEvent.PreFinalize:
                 foreach (var (buttonNode, imageNode) in Nodes.Values)
                 {
-                    buttonNode?.DetachNode();
-                    imageNode?.DetachNode();
+                    buttonNode?.Dispose();
+                    imageNode?.Dispose();
                 }
 
                 Nodes.Clear();
 
-                LayoutNode?.DetachNode();
+                LayoutNode?.Dispose();
                 LayoutNode = null;
                 break;
             case AddonEvent.PostRefresh:

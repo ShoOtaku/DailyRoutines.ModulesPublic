@@ -113,16 +113,16 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
 
     private static void CleanNodes()
     {
-        RefreshIntervalNode?.DetachNode();
+        RefreshIntervalNode?.Dispose();
         RefreshIntervalNode = null;
         
-        OnlyInactiveNode?.DetachNode();
+        OnlyInactiveNode?.Dispose();
         OnlyInactiveNode = null;
         
-        LayoutNode?.DetachNode();
+        LayoutNode?.Dispose();
         LayoutNode = null;
         
-        LeftTimeNode?.DetachNode();
+        LeftTimeNode?.Dispose();
         LeftTimeNode = null;
     }
 
