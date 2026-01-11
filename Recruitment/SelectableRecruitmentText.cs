@@ -48,8 +48,13 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
                 var origText = LookingForGroupDetail->GetTextNodeById(20);
                 if (origText == null) return;
                 
+                var origButton = LookingForGroupDetail->GetComponentButtonById(18);
+                if (origButton == null) return;
+                
                 if (RecruitmentTextNode != null)
                 {
+                    RecruitmentTextNode.Position = new Vector2(origButton->OwnerNode->X, origButton->OwnerNode->Y) - new Vector2(10, 8);
+                    
                     var formatAddon = (AddonLookingForGroupDetail*)LookingForGroupDetail;
                     if (formatAddon->PartyLeaderTextNode->NodeText.StringPtr.ExtractText() !=
                         agent->LastViewedListing.LeaderString)
@@ -66,9 +71,6 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
                     
                     return;
                 }
-
-                var origButton = LookingForGroupDetail->GetComponentButtonById(18);
-                if (origButton == null) return;
 
                 var textNodeContainer = LookingForGroupDetail->GetNodeById(19);
                 if (textNodeContainer == null) return;
