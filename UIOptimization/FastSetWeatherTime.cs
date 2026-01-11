@@ -21,16 +21,16 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
     public override ModuleInfo Info { get; } = new()
     {
         Title       = GetLoc("FastSetWeatherTimeTitle"),
-        Description = GetLoc("FastSetWeatherTimeDescription", Command),
+        Description = GetLoc("FastSetWeatherTimeDescription", COMMAND),
         Category    = ModuleCategories.UIOptimization
     };
     
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private const uint   MaxTime = 60 * 60 * 24;
-    private const string Command = "wt";
+    private const uint   MAX_TIME = 60 * 60 * 24;
+    private const string COMMAND = "wt";
 
-    private const string NaviMapImageURL =
+    private const string NAVI_MAP_IMAGE_URL =
         "https://raw.githubusercontent.com/AtmoOmen/StaticAssets/refs/heads/main/DailyRoutines/image/FastSetWeatherTime-NaviMap.png";
     
     // mov eax, 0
@@ -100,10 +100,10 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
             Size         = new(254f, 50f),
         };
         
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "_NaviMap", OnAddon);
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_NaviMap", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_NaviMap", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_NaviMap", OnAddon);
 
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("FastSetWeatherTime-CommandHelp") });
+        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("FastSetWeatherTime-CommandHelp") });
     }
 
     protected override void Uninit()
@@ -113,7 +113,7 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
 
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.RemoveSubCommand(COMMAND);
         
         AddonDRFastSetWeather.Addon?.Dispose();
         AddonDRFastSetWeather.Addon = null;
@@ -127,9 +127,9 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("FastSetWeatherTime-CommandHelp"));
         using (ImRaii.PushIndent())
         {
-            ImGui.TextUnformatted($"1. /pdr {Command}");
+            ImGui.TextUnformatted($"1. /pdr {COMMAND}");
             
-            if (ImageHelper.Instance().TryGetImage(NaviMapImageURL, out var image))
+            if (ImageHelper.Instance().TryGetImage(NAVI_MAP_IMAGE_URL, out var image))
             {
                 ImGui.TextUnformatted($"2. {GetLoc("FastSetWeatherTime-OperationHelp-ClickNaviMap")}");
                 ImGui.Image(image.Handle, image.Size);
@@ -182,8 +182,9 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
                 OpenButton?.Dispose();
                 OpenButton = null;
                 break;
-            case AddonEvent.PostDraw:
-                if (NaviMap == null) return;
+            
+            case AddonEvent.PostRequestedUpdate:
+                if (!NaviMap->IsAddonAndNodesReady()) return;
 
                 if (OpenButton == null)
                 {
@@ -443,7 +444,7 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
 
             TimeNode = new()
             {
-                Range = new(0, (int)(MaxTime - 1)),
+                Range = new(0, (int)(MAX_TIME - 1)),
                 Value = (int)GetDisplayTime(),
                 Size  = new(Size.X - ContentStartPosition.X, 28),
                 OnValueChanged = x =>
