@@ -1169,16 +1169,15 @@ public partial class OccultCrescentHelper
                         {
                             Size         = new(44f),
                             IsVisible    = true,
-                            IconId       = (uint)traitRow.Unknown2,
+                            IconId       = (uint)traitRow.Icon,
                             AcceptedType = DragDropType.Nothing,
                             IsDraggable  = false,
                             Payload = new()
                             {
-                                Type = DragDropType.ActionBar_Action,
                                 Int2 = (int)trait,
                             },
                             IsClickable = false,
-                            OnRollOver  = node => node.ShowTooltip(AtkTooltipManager.AtkTooltipType.Action, ActionKind.MKDTrait),
+                            OnRollOver  = node => node.ShowTooltip(AtkTooltipManager.AtkTooltipType.Action, ActionKind.Unk59),
                             OnRollOut   = node => node.HideTooltip(),
                         };
 
@@ -1187,7 +1186,7 @@ public partial class OccultCrescentHelper
 
                         var traitTextNode = new TextNode
                         {
-                            SeString         = $"\ue06a {jobLevel.ToSESmallCount()}: {traitRow.Unknown0.ToString()}",
+                            SeString         = $"\ue06a {jobLevel.ToSESmallCount()}: {traitRow.Name.ToString()}",
                             FontSize         = 14,
                             IsVisible        = true,
                             Size             = new(Size.X - 20f, 44f),
@@ -1196,10 +1195,8 @@ public partial class OccultCrescentHelper
                             TextOutlineColor = ColorHelper.GetColor((uint)(presetJob.CurrentLevel >= jobLevel ? 32 : 4)),
                             TextFlags        = TextFlags.Glare
                         };
+                        traitTextNode.AutoAdjustTextSize();
                         row.AddNode(traitTextNode);
-
-                        while (traitTextNode.FontSize > 1 && traitTextNode.GetTextDrawSize(traitTextNode.SeString).X > traitTextNode.Size.X)
-                            traitTextNode.FontSize--;
 
                         ActionListNode.AddNode(row);
                         ActionListNode.AddDummy(10f);
