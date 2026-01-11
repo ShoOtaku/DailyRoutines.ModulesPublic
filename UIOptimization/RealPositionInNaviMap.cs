@@ -3,7 +3,6 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
 
 namespace DailyRoutines.ModulesPublic;
@@ -25,8 +24,8 @@ public class RealPositionInNaviMap : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
         
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "_NaviMap", OnAddon);
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_NaviMap", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_NaviMap", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_NaviMap", OnAddon);
     }
 
     protected override void ConfigUI()
@@ -52,15 +51,24 @@ public class RealPositionInNaviMap : DailyModuleBase
             case AddonEvent.PreFinalize:
                 PositionButton?.Dispose();
                 PositionButton = null;
+
+                if (NaviMap != null)
+                {
+                    var origTextNode = NaviMap->GetTextNodeById(6);
+                    if (origTextNode != null)
+                        origTextNode->ToggleVisibility(true);
+                }
+                
                 break;
-            case AddonEvent.PostDraw:
-                if (NaviMap == null) return;
+
+            case AddonEvent.PostRequestedUpdate:
+                if (!NaviMap->IsAddonAndNodesReady()) return;
 
                 if (PositionButton == null)
                 {
                     var origTextNode = NaviMap->GetTextNodeById(6);
                     if (origTextNode == null) return;
-                    
+
                     PositionButton = new()
                     {
                         Position  = new(0),
@@ -74,10 +82,14 @@ public class RealPositionInNaviMap : DailyModuleBase
                             var agent = AgentMap.Instance();
                             agent->SetFlagMapMarker(GameState.TerritoryType, GameState.Map, player.Position);
 
-                            var result = string.Format(ModuleConfig.CopyFormat,
-                                                       player.Position.X,
-                                                       player.Position.Y,
-                                                       player.Position.Z);
+                            var result = string.Format
+                            (
+                                ModuleConfig.CopyFormat,
+                                player.Position.X,
+                                player.Position.Y,
+                                player.Position.Z
+                            );
+
                             if (!string.IsNullOrWhiteSpace(result))
                             {
                                 ImGui.SetClipboardText(result);
@@ -101,7 +113,7 @@ public class RealPositionInNaviMap : DailyModuleBase
                 }
 
             {
-                if (LocalPlayerState.Instance().IsMoving && DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
+                if (DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
                     PositionButton.String = $"X:{localPlayer.Position.X:F1} Y:{localPlayer.Position.Y:F1} Z:{localPlayer.Position.Z:F1}";
             }
 
