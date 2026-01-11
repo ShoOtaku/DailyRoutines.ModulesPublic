@@ -516,6 +516,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 Size          = new(440, 28),
                 MaxCharacters = 64,
                 ShowLimitText = true,
+                AutoSelectAll = false,
                 String        = existedNickname
             };
             NicknameInputNode.AttachNode(this);
@@ -540,6 +541,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 MaxCharacters = 1024,
                 MaxLines      = 5,
                 ShowLimitText = true,
+                AutoSelectAll = false,
                 String        = existedRemark
             };
 
