@@ -194,7 +194,7 @@ public class AutoOpenMapLinks : DailyModuleBase
     private static unsafe void SetFlag(uint territoryID, uint mapID, int x, int y)
     {
         if (!ModuleConfig.IsFlagCentered)
-            DService.Instance().Gui.OpenMapWithMapLink(new(territoryID, mapID, x, y));
+            DService.Instance().GameGUI.OpenMapWithMapLink(new(territoryID, mapID, x, y));
         else
         {
             var agentMap = AgentMap.Instance();

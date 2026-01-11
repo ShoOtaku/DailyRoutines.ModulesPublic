@@ -181,8 +181,8 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
 
         if (!ModuleConfig.DisplayLineToTarget) return;
 
-        if (!DService.Instance().Gui.WorldToScreen(TargetWorldPos,       out var screenPos) ||
-            !DService.Instance().Gui.WorldToScreen(localPlayer.Position, out var localScreenPos)) 
+        if (!DService.Instance().GameGUI.WorldToScreen(TargetWorldPos,       out var screenPos) ||
+            !DService.Instance().GameGUI.WorldToScreen(localPlayer.Position, out var localScreenPos)) 
             return;
 
         var drawList = ImGui.GetForegroundDrawList();
@@ -243,7 +243,7 @@ public unsafe class RightClickToMoveMode : DailyModuleBase
                 break;
         }
 
-        if (!DService.Instance().Gui.ScreenToWorld(ImGui.GetMousePos(), out var worldPos)) return;
+        if (!DService.Instance().GameGUI.ScreenToWorld(ImGui.GetMousePos(), out var worldPos)) return;
         
         var finalWorldPos = Vector3.Zero;
         if (DService.Instance().PI.IsPluginEnabled(vnavmeshIPC.InternalName) &&

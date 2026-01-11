@@ -143,7 +143,7 @@ public unsafe class FastInstanceZoneChange : DailyModuleBase
     {
         if (isAdd && Entry == null)
         {
-            Entry         ??= DService.Instance().DtrBar.Get("DailyRoutines-FastInstanceZoneChange");
+            Entry         ??= DService.Instance().DTRBar.Get("DailyRoutines-FastInstanceZoneChange");
             Entry.OnClick +=  _ => Overlay.IsOpen ^= true;
             Entry.Shown   =   false;
             Entry.Tooltip =   GetLoc("FastInstanceZoneChange-DtrEntryTooltip");

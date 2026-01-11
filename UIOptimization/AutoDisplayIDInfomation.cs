@@ -41,7 +41,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        ZoneInfoEntry ??= DService.Instance().DtrBar.Get("AutoDisplayIDInfomation-ZoneInfo");
+        ZoneInfoEntry ??= DService.Instance().DTRBar.Get("AutoDisplayIDInfomation-ZoneInfo");
 
         GameTooltipManager.Instance().RegGenerateItemTooltipModifier(ModifyItemTooltip);
         GameTooltipManager.Instance().RegGenerateActionTooltipModifier(ModifyActionTooltip);

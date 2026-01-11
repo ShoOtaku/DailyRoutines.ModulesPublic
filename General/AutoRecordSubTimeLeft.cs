@@ -54,7 +54,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         PlaytimeTracker ??= new(path);
         PlaytimeQuery   ??= new(path);
 
-        Entry         ??= DService.Instance().DtrBar.Get("DailyRoutines-GameTimeLeft");
+        Entry         ??= DService.Instance().DTRBar.Get("DailyRoutines-GameTimeLeft");
         Entry.OnClick =   OnDTREntryClick;
 
         UpdateEntryAndTimeInfo();

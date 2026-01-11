@@ -90,7 +90,7 @@ public class AutoRedirectDashActions : DailyModuleBase
         if (data is not { TargetArea: true }) return;
 
         if (ActionManager.Instance()->GetActionStatus(actionType, adjustedAction) != 0) return;
-        if (!DService.Instance().Gui.ScreenToWorld(ImGui.GetMousePos(), out var pos)) return;
+        if (!DService.Instance().GameGUI.ScreenToWorld(ImGui.GetMousePos(), out var pos)) return;
 
         pos      = AdjustTargetPosition(localPlayer.Position, pos, data.Range);
         location = pos;

@@ -325,7 +325,7 @@ public partial class OccultCrescentHelper
                 Chat(message);
             }
 
-            Entry       ??= DService.Instance().DtrBar.Get("DailyRoutines-OccultCrescentHelper-IslandID");
+            Entry       ??= DService.Instance().DTRBar.Get("DailyRoutines-OccultCrescentHelper-IslandID");
             Entry.Text  =   $"{GetLoc("OccultCrescentHelper-OthersManager-IslandID")}: {islandID}";
             Entry.Shown =   ModuleConfig.IsEnabledIslandIDDTR;
 
@@ -483,7 +483,7 @@ public partial class OccultCrescentHelper
                     if (Throttler.Throttle("OthersManager-OthersManager-IslandID-DTR"))
                     {
                         var islandID = GetIslandID();
-                        Entry       ??= DService.Instance().DtrBar.Get("DailyRoutines-OccultCrescentHelper-IslandID");
+                        Entry       ??= DService.Instance().DTRBar.Get("DailyRoutines-OccultCrescentHelper-IslandID");
                         Entry.Text  =   $"{GetLoc("OccultCrescentHelper-OthersManager-IslandID")}: {islandID}";
                         Entry.Shown =   ModuleConfig.IsEnabledIslandIDDTR;
                     }

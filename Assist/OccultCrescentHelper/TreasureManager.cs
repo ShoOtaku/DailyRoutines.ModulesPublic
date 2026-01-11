@@ -348,8 +348,8 @@ public partial class OccultCrescentHelper
                             continue;
                     }
 
-                    if (!DService.Instance().Gui.WorldToScreen(treasure.Position,    out var screenPos) ||
-                        !DService.Instance().Gui.WorldToScreen(localPlayer.Position, out var localScreenPos))
+                    if (!DService.Instance().GameGUI.WorldToScreen(treasure.Position,    out var screenPos) ||
+                        !DService.Instance().GameGUI.WorldToScreen(localPlayer.Position, out var localScreenPos))
                         continue;
 
                     DrawLine(localScreenPos, screenPos, treasure);

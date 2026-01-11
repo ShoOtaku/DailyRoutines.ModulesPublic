@@ -46,7 +46,7 @@ public unsafe class InstantPlaceLocationAction : DailyModuleBase
         if (data is not { TargetArea: true }) return;
 
         if (ActionManager.Instance()->GetActionStatus(actionType, adjustedAction) != 0) return;
-        if (!DService.Instance().Gui.ScreenToWorld(ImGui.GetMousePos(), out var pos)) return;
+        if (!DService.Instance().GameGUI.ScreenToWorld(ImGui.GetMousePos(), out var pos)) return;
 
         pos = AdjustTargetPosition(localPlayer.Position, pos, data.Range);
         ActionManager.Instance()->UseActionLocation(ActionType.Action, adjustedAction, 0xE000_0000, &pos, extraParam);

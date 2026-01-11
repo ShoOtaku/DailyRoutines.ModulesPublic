@@ -136,7 +136,7 @@ public unsafe class AutoDisplayPlayerHitbox : DailyModuleBase
             float cos    = MathF.Cos(angle), sin = MathF.Sin(angle);
 
             var rotatedOffset = new Vector3((cos * offset.X) - (sin * offset.Z), offset.Y, (sin * offset.X) + (cos * offset.Z));
-            DService.Instance().Gui.WorldToScreen(localPlayer.Position + rotatedOffset, out var screenPos);
+            DService.Instance().GameGUI.WorldToScreen(localPlayer.Position + rotatedOffset, out var screenPos);
 
             Position = screenPos - (imageNode.Size / 2f);
         }

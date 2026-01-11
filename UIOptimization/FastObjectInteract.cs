@@ -588,7 +588,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
                  ((Treasure*)obj.ToStruct())->Flags.HasFlag(Treasure.TreasureFlags.Opened)))
                 return false;
             
-            if (CheckViewRange && !DService.Instance().Gui.WorldToScreen(gameObj->Position, out _))
+            if (CheckViewRange && !DService.Instance().GameGUI.WorldToScreen(gameObj->Position, out _))
                 return false;
             
             return true;

@@ -327,7 +327,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
         #region Funcs
 
         public static void Enable()
-            => BarEntry ??= DService.Instance().DtrBar.Get("DailyRoutines-AutoDisplayMitigationInfo");
+            => BarEntry ??= DService.Instance().DTRBar.Get("DailyRoutines-AutoDisplayMitigationInfo");
 
         public static void Update()
         {

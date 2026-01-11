@@ -60,7 +60,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
     {
         if (args.Target is MenuTargetInventory) return false;
         var menuTarget = (MenuTargetDefault)args.Target;
-        var agent = DService.Instance().Gui.FindAgentInterface("ChatLog");
+        var agent = DService.Instance().GameGUI.FindAgentInterface("ChatLog");
         if (agent != nint.Zero && *(uint*)(agent + 0x948 + 8) == 3) return false;
 
         var judgeCriteria0 = menuTarget.TargetCharacter != null;

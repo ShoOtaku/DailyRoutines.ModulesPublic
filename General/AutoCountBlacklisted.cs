@@ -40,7 +40,7 @@ public unsafe class AutoCountBlacklisted : DailyModuleBase
         InfoProxyBlackListUpdateHook ??= InfoProxyBlackListUpdateSig.GetHook<InfoProxyBlackListUpdateDelegate>(InfoProxyBlackListUpdateDetour);
         InfoProxyBlackListUpdateHook.Enable();
 
-        DtrEntry ??= DService.Instance().DtrBar.Get("DailyRoutines-AutoCountBlacklisted");
+        DtrEntry ??= DService.Instance().DTRBar.Get("DailyRoutines-AutoCountBlacklisted");
         DtrEntry.Shown = true;
 
         FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 500);

@@ -141,7 +141,7 @@ public class FastWorldTravel : DailyModuleBase
                     Entry = null;
                 }
                 
-                Entry         =  DService.Instance().DtrBar.Get("DailyRoutines-FastWorldTravel");
+                Entry         =  DService.Instance().DTRBar.Get("DailyRoutines-FastWorldTravel");
                 Entry.OnClick += _ => Addon.Toggle();
                 Entry.Shown   =  true;
                 Entry.Tooltip =  GetLoc("FastWorldTravel-DtrEntryTooltip");

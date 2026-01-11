@@ -66,13 +66,13 @@ public class HullbreakerIsleHelper : DailyModuleBase
     {
         foreach (var trap in TrapPositions)
         {
-            if (!DService.Instance().Gui.WorldToScreen(trap, out var screenPos)) continue;
+            if (!DService.Instance().GameGUI.WorldToScreen(trap, out var screenPos)) continue;
             ImGui.GetBackgroundDrawList().AddText(screenPos, KnownColor.Yellow.ToVector4().ToUInt(), TrapNames.First());
         }
         
         foreach (var fakeTreasure in FakeTreasurePositions)
         {
-            if (!DService.Instance().Gui.WorldToScreen(fakeTreasure, out var screenPos)) continue;
+            if (!DService.Instance().GameGUI.WorldToScreen(fakeTreasure, out var screenPos)) continue;
             ImGui.GetBackgroundDrawList().AddText(screenPos, KnownColor.Yellow.ToVector4().ToUInt(), FakeTreasureNames.First());
         }
     }

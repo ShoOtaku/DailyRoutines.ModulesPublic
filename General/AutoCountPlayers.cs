@@ -66,7 +66,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         Overlay.Flags      &=  ~ImGuiWindowFlags.AlwaysAutoResize;
         Overlay.WindowName =   $"{GetLoc("AutoCountPlayers-PlayersAroundInfo")}###AutoCountPlayers-Overlay";
 
-        Entry         ??= DService.Instance().DtrBar.Get("DailyRoutines-AutoCountPlayers");
+        Entry         ??= DService.Instance().DTRBar.Get("DailyRoutines-AutoCountPlayers");
         Entry.Shown   =   true;
         Entry.OnClick +=  _ => Overlay.IsOpen ^= true;
 
@@ -164,8 +164,8 @@ public unsafe class AutoCountPlayers : DailyModuleBase
                 Chat(message);
             }
 
-            if (DService.Instance().Gui.WorldToScreen(playerAround.Position, out var screenPos) &&
-                DService.Instance().Gui.WorldToScreen(localPlayer.Position,  out var localScreenPos))
+            if (DService.Instance().GameGUI.WorldToScreen(playerAround.Position, out var screenPos) &&
+                DService.Instance().GameGUI.WorldToScreen(localPlayer.Position,  out var localScreenPos))
             {
                 if (!ImGui.IsAnyItemHovered() || ImGui.IsItemHovered())
                     DrawLine(localScreenPos, screenPos, playerAround);
@@ -230,12 +230,12 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         }
 
         var currentWindowSize = ImGui.GetMainViewport().Size;
-        if (!DService.Instance().Gui.WorldToScreen(localPlayer->Position, out var localScreenPos))
+        if (!DService.Instance().GameGUI.WorldToScreen(localPlayer->Position, out var localScreenPos))
             localScreenPos = currentWindowSize with { X = currentWindowSize.X / 2 };
 
         foreach (var playerInfo in PlayersManager.PlayersTargetingMe)
         {
-            if (DService.Instance().Gui.WorldToScreen(playerInfo.Player.Position, out var screenPos))
+            if (DService.Instance().GameGUI.WorldToScreen(playerInfo.Player.Position, out var screenPos))
                 DrawLine(localScreenPos, screenPos, playerInfo.Player, LineColorRed);
         }
     }
