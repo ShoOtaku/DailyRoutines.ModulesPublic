@@ -29,7 +29,7 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddon);
     }
     
-    private void OnAddon(AddonEvent type, AddonArgs? args)
+    private static void OnAddon(AddonEvent type, AddonArgs? args)
     {
         switch (type)
         {
