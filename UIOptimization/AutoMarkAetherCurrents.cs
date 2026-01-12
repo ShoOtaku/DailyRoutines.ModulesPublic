@@ -218,7 +218,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
         if (!VersionToZoneInfos.TryGetValue(zoneRow.ExVersion.RowId - 1, out var zoneInfos)) return;
         if (!zoneInfos.TryGetFirst(x => x.Zone == zoneID, out var zoneInfo)) return;
         
-        Enumerable.Range(0, 8).ForEach(x => MarkingController.Instance()->ClearFieldMarkerLocal((FieldMarkerPoint)x));
+        Enumerable.Range(0, 7).ForEach(x => MarkingController.Instance()->ClearFieldMarkerLocal((FieldMarkerPoint)x));
         
         var thisZoneSelected = SelectedAetherCurrents.Where(x => x.Zone == zoneID).ToList();
         var finalSet         = thisZoneSelected.Count != 0 || ManualMode ? thisZoneSelected : [..zoneInfo.NormalPoints];
@@ -276,7 +276,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
 
     private class ZoneAetherCurrentInfo
     {
-        private const string BackgroundUldPath = "ui/uld/FlyingPermission.uld";
+        private const string BACKGROUND_ULD_PATH = "ui/uld/FlyingPermission.uld";
 
         public static ZoneAetherCurrentInfo? Parse(uint zoneID, uint counter, RowRef<AetherCurrent>[] acArray)
         {
@@ -320,7 +320,7 @@ public unsafe class AutoMarkAetherCurrents : DailyModuleBase
                 
                 // 3.0 特例
                 var texturePath = $"ui/uld/FlyingPermission{(Version == 0 ? string.Empty : Version + 1)}_hr1.tex";
-                backgroundTexture = DService.Instance().PI.UiBuilder.LoadUld(BackgroundUldPath).LoadTexturePart(texturePath, Counter);
+                backgroundTexture = DService.Instance().PI.UiBuilder.LoadUld(BACKGROUND_ULD_PATH).LoadTexturePart(texturePath, Counter);
                 return backgroundTexture;
             }
         }
