@@ -2,6 +2,7 @@ using System;
 using DailyRoutines.Abstracts;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -32,7 +33,7 @@ public unsafe class NoAutoClosePartyFinder : DailyModuleBase
         LogMessageManager.Instance().RegPre(OnPreReceiveMessage);
     }
 
-    private static void OnPreReceiveMessage(ref bool isPrevented, ref uint logMessageID, ref Span<LogMessageParam> values)
+    private static void OnPreReceiveMessage(ref bool isPrevented, ref uint logMessageID, ref LogMessageQueueItem values)
     {
         if (logMessageID != 947) return;
         

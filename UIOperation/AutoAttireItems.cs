@@ -7,6 +7,7 @@ using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -79,7 +80,7 @@ public unsafe class AutoAttireItems : DailyModuleBase
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddonMiragePrismPrismSetConvertC);
     }
 
-    private void OnReceiveLogMessage(uint logMessageID, Span<LogMessageParam> values)
+    private void OnReceiveLogMessage(uint logMessageID, LogMessageQueueItem values)
     {
         if (logMessageID != 4280) return;
         TaskHelper.Abort();

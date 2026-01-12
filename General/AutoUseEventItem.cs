@@ -10,6 +10,7 @@ using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -58,7 +59,7 @@ public unsafe class AutoUseEventItem : DailyModuleBase
         OnAddonInventoryEvent();
     }
     
-    private static void OnPreReceiveMessage(ref bool isPrevented, ref uint logMessageID, ref Span<LogMessageParam> values)
+    private static void OnPreReceiveMessage(ref bool isPrevented, ref uint logMessageID, ref LogMessageQueueItem values)
     {
         if (!InvalidLogMessageID.Contains(logMessageID)) return;
         

@@ -12,6 +12,7 @@ using FFXIVClientStructs.FFXIV.Client.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Fate;
 using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using TimeAgo;
 using FateState = Dalamud.Game.ClientState.Fates.FateState;
 
@@ -21,8 +22,8 @@ public partial class OccultCrescentHelper
 {
     public unsafe class CEManager(OccultCrescentHelper mainModule) : BaseIslandModule(mainModule)
     {
-        private const string CommandFate = "pfate";
-        private const string CommandCE  = "pce";
+        private const string COMMAND_FATE = "pfate";
+        private const string COMMAND_CE  = "pce";
         
         private static          HashSet<IslandEventData> AllIslandEvents = [];
         private static readonly HashSet<string>          KnownCENames    = [];
@@ -49,17 +50,17 @@ public partial class OccultCrescentHelper
             if (isAnyNewCategory)
                 ModuleConfig.Save(MainModule);
             
-            CommandManager.AddSubCommand(CommandFate,
+            CommandManager.AddSubCommand(COMMAND_FATE,
                                          new(OnCommandFate) { HelpMessage = $"{GetLoc("OccultCrescentHelper-Command-PFate-Help")}" });
 
-            CommandManager.AddSubCommand(CommandCE,
+            CommandManager.AddSubCommand(COMMAND_CE,
                                          new(OnCommandCE) { HelpMessage = $"{GetLoc("OccultCrescentHelper-Command-PCE-Help")}" });
         }
         
         public override void Uninit()
         {
-            CommandManager.RemoveSubCommand(CommandFate);
-            CommandManager.RemoveSubCommand(CommandCE);
+            CommandManager.RemoveSubCommand(COMMAND_FATE);
+            CommandManager.RemoveSubCommand(COMMAND_CE);
             
             GameState.Instance().Logout -= OnLogout;
             ExecuteCommandManager.Instance().Unreg(OnPostReceivedCommand);
@@ -213,9 +214,9 @@ public partial class OccultCrescentHelper
 
             using (ImRaii.PushIndent())
             {
-                ImGui.TextUnformatted($"/pdr {CommandFate} {GetLoc("OccultCrescentHelper-Command-PFate-Help")}");
+                ImGui.TextUnformatted($"/pdr {COMMAND_FATE} {GetLoc("OccultCrescentHelper-Command-PFate-Help")}");
 
-                ImGui.TextUnformatted($"/pdr {CommandCE} {GetLoc("OccultCrescentHelper-Command-PCE-Help")}");
+                ImGui.TextUnformatted($"/pdr {COMMAND_CE} {GetLoc("OccultCrescentHelper-Command-PCE-Help")}");
             }
         }
         
@@ -298,7 +299,7 @@ public partial class OccultCrescentHelper
         }
 
         // CE 开始
-        private static void OnPostReceivedMessage(uint logMessageID, Span<LogMessageParam> values)
+        private static void OnPostReceivedMessage(uint logMessageID, LogMessageQueueItem values)
         {
             if (logMessageID                   != 11002                               ||
                 GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent ||

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DailyRoutines.Abstracts;
 using Dalamud.Game.ClientState.Conditions;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -90,7 +91,7 @@ public class AutoLeaveDuty : DailyModuleBase
         TaskHelper.Abort();
     
     // 拦截一下那个信息
-    private static void OnPreReceiveLogmessage(ref bool isPrevented, ref uint logMessageID, ref Span<LogMessageParam> values)
+    private static void OnPreReceiveLogmessage(ref bool isPrevented, ref uint logMessageID, ref LogMessageQueueItem values)
     {
         if (logMessageID != 914) return;
         isPrevented = true;

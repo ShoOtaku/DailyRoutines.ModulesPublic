@@ -18,6 +18,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
@@ -631,7 +632,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     private void OnCommand(string command, string arguments) => 
         EnqueueTeleportTasks();
 
-    private static void OnPreSendLogMessage(ref bool isPrevented, ref uint logMessageID, ref Span<LogMessageParam> values)
+    private static void OnPreSendLogMessage(ref bool isPrevented, ref uint logMessageID, ref LogMessageQueueItem values)
     {
         if (logMessageID != 4109) return;
         isPrevented = true;

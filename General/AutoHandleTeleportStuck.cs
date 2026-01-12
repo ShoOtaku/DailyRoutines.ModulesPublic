@@ -1,6 +1,7 @@
 using System;
 using DailyRoutines.Abstracts;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -15,10 +16,10 @@ public class AutoHandleTeleportStuck : DailyModuleBase
     
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
     
-    protected override void Init() => 
+    protected override void Init() =>
         LogMessageManager.Instance().RegPre(OnReceiveLogMessage);
 
-    private static void OnReceiveLogMessage(ref bool isPrevented, ref uint logMessageID, ref Span<LogMessageParam> values)
+    private static void OnReceiveLogMessage(ref bool isPrevented, ref uint logMessageID, ref LogMessageQueueItem values)
     {
         if (logMessageID != 1665) return;
         isPrevented = true;
