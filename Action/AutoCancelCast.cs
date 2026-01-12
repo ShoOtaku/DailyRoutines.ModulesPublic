@@ -15,9 +15,9 @@ public unsafe class AutoCancelCast : DailyModuleBase
     {
         Title       = GetLoc("AutoCancelCastTitle"),
         Description = GetLoc("AutoCancelCastDescription"),
-        Category    = ModuleCategories.Action,
+        Category    = ModuleCategories.Action
     };
-    
+
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     private static readonly HashSet<ObjectKind> ValidObjectKinds = [ObjectKind.Player, ObjectKind.BattleNpc];
@@ -28,7 +28,7 @@ public unsafe class AutoCancelCast : DailyModuleBase
         LuminaGetter.Get<LuminaAction>()
                     .Where(x => x.TargetArea)
                     .Select(x => x.RowId).ToHashSet();
-    
+
     private static bool IsOnCasting;
 
     protected override void Init()
@@ -40,13 +40,14 @@ public unsafe class AutoCancelCast : DailyModuleBase
     private static void OnConditionChanged(ConditionFlag flag, bool value)
     {
         if (!ValidConditions.Contains(flag)) return;
-        
+
         IsOnCasting = value;
     }
 
     private static void OnUpdate(IFramework _)
     {
         if (!IsOnCasting) return;
+
         if (!IsCasting)
         {
             IsOnCasting = false;
@@ -54,6 +55,7 @@ public unsafe class AutoCancelCast : DailyModuleBase
         }
 
         var player = DService.Instance().ObjectTable.LocalPlayer;
+
         if (player.CastActionType != ActionType.Action      ||
             TargetAreaActions.Contains(player.CastActionID) ||
             !LuminaGetter.TryGetRow(player.CastActionID, out LuminaAction actionRow))
@@ -65,17 +67,23 @@ public unsafe class AutoCancelCast : DailyModuleBase
         var obj = player.CastTargetObject;
         if (obj is not IBattleChara battleChara || !ValidObjectKinds.Contains(battleChara.ObjectKind)) return;
 
-        if (!battleChara.IsTargetable || (actionRow.DeadTargetBehaviour == 0 && (battleChara.IsDead ||  battleChara.CurrentHp == 0)))
+        if (!battleChara.IsTargetable)
         {
             ExecuteCancast();
             return;
         }
-        
+
+        if (actionRow.DeadTargetBehaviour == 0 && (battleChara.IsDead || battleChara.CurrentHp == 0))
+        {
+            ExecuteCancast();
+            return;
+        }
+
         if (ActionManager.CanUseActionOnTarget(player.CastActionID, obj.ToStruct()))
             return;
-        
+
         ExecuteCancast();
-        
+
         return;
 
         void ExecuteCancast()
