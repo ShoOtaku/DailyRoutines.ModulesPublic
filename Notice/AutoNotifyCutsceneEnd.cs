@@ -1,11 +1,11 @@
 using System;
 using System.Diagnostics;
-using System.Linq;
 using DailyRoutines.Abstracts;
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using Lumina.Excel.Sheets;
+using FFXIVClientStructs.FFXIV.Client.Game.Group;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -15,149 +15,182 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
     {
         Title       = GetLoc("AutoNotifyCutsceneEndTitle"),
         Description = GetLoc("AutoNotifyCutsceneEndDescription"),
-        Category    = ModuleCategories.Notice,
+        Category    = ModuleCategories.Notice
     };
-    
+
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     private static Config ModuleConfig = null!;
-    
-    private static bool IsDutyEnd;
+
+    private static bool       IsDutyEnd;
     private static Stopwatch? Stopwatch;
 
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        
-        Stopwatch  ??= new Stopwatch();
+
+        Stopwatch  ??= new();
         TaskHelper ??= new() { TimeoutMS = 30_000 };
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        DService.Instance().DutyState.DutyCompleted      += OnDutyComplete;
+        
         OnZoneChanged(0);
+    }
+
+    protected override void Uninit()
+    {
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        DService.Instance().DutyState.DutyCompleted      -= OnDutyComplete;
+
+        ClearResources();
+        Stopwatch = null;
     }
 
     protected override void ConfigUI()
     {
         if (ImGui.Checkbox(GetLoc("SendChat"), ref ModuleConfig.SendChat))
             SaveConfig(ModuleConfig);
-        
+
         if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
             SaveConfig(ModuleConfig);
-        
+
         if (ImGui.Checkbox(GetLoc("SendTTS"), ref ModuleConfig.SendTTS))
             SaveConfig(ModuleConfig);
     }
 
-    protected override void Uninit()
-    {
-        OnZoneChanged(0);
-        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-    }
-    
     private void OnZoneChanged(ushort zone)
     {
-        DService.Instance().DutyState.DutyCompleted -= OnDutyComplete;
-        FrameworkManager.Instance().Unreg(OnUpdate);
-        Stopwatch?.Reset();
-        Stopwatch = null;
-        IsDutyEnd = false;
-        
-        if (GameState.ContentFinderCondition == 0) return;
-        
-        TaskHelper.Enqueue(() => !BetweenAreas, "WaitForEnteringDuty");
-        TaskHelper.Enqueue(CheckIsDutyStateEligibleThenEnqueue, "CheckIsDutyStateEligibleThenEnqueue");
+        ClearResources();
+
+        if (GameState.ContentFinderCondition == 0 || GameState.IsInPVPArea) return;
+
+        TaskHelper.Abort();
+        TaskHelper.Enqueue
+        (
+            () =>
+            {
+                if (BetweenAreas || LocalPlayerState.Object == null) return false;
+
+                if (GroupManager.Instance()->MainGroup.MemberCount < 2)
+                {
+                    TaskHelper.Abort();
+                    return true;
+                }
+
+                DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_PartyList", OnAddon);
+                return true;
+            },
+            "检查是否需要开始监控"
+        );
     }
 
-    private void CheckIsDutyStateEligibleThenEnqueue()
+    private void OnAddon(AddonEvent type, AddonArgs args)
     {
-        if (DService.Instance().PartyList.Length <= 1)
+        // 不应该吧
+        var agent = AgentHUD.Instance();
+        if (agent == null) return;
+
+        // 不在副本内 / PVP / 副本已经结束 / 少于两个真人玩家 → 结束检查
+        if (GameState.ContentFinderCondition == 0 ||
+            GameState.IsInPVPArea                 ||
+            IsDutyEnd                             ||
+            GroupManager.Instance()->MainGroup.MemberCount < 2)
         {
-            TaskHelper.Abort();
+            ClearResources();
             return;
         }
 
-        Stopwatch = new();
-        
-        DService.Instance().DutyState.DutyCompleted += OnDutyComplete;
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 500);
-    }
-    
-    private static void OnDutyComplete(object? sender, ushort zone) => 
-        IsDutyEnd = true;
-
-    private void OnUpdate(IFramework _)
-    {
-        // PVP 或不在副本内 → 结束检查
-        if (DService.Instance().ClientState.IsPvP || !BoundByDuty)
-        {
-            OnZoneChanged(0);
-            return;
-        }
-        
-        // 副本已经结束, 不再检查
-        if (IsDutyEnd) return;
-        
         // 本地玩家为空, 暂时不检查
-        if (DService.Instance().ObjectTable.LocalPlayer is null) return;
+        if (LocalPlayerState.Object == null) return;
 
         if (DService.Instance().Condition[ConditionFlag.InCombat])
         {
             // 进战时还在检查
             if (Stopwatch.IsRunning)
-                CheckStopwatchStateThenRelay();
-            
+                CheckStopwatchAndRelay();
+
             return;
         }
-        
+
         // 计时器运行中
         if (Stopwatch.IsRunning)
         {
-            // 副本还未开始 → 先检查是否有玩家没加载出来 → 如有, 不继续检查
-            if (!DService.Instance().DutyState.IsDutyStarted &&
-                DService.Instance().PartyList.Any(x => x.GameObject is not { IsTargetable: true }))
-                return;
-            
             // 检查是否任一玩家仍在剧情状态
-            if (DService.Instance().PartyList.Any(x => x.GameObject != null &&
-                                            ((Character*)x.GameObject.Address)->CharacterData.OnlineStatus == 15))
+            if (IsAnyPartyMemberWatchingCutscene(agent))
                 return;
 
-            CheckStopwatchStateThenRelay();
+            CheckStopwatchAndRelay();
         }
         else
         {
             // 居然无一人正在看剧情
-            if (!DService.Instance().PartyList.Any(x => x.GameObject != null &&
-                                            ((Character*)x.GameObject.Address)->CharacterData.OnlineStatus == 15))
+            if (!IsAnyPartyMemberWatchingCutscene(agent))
                 return;
-            
+
             Stopwatch.Restart();
         }
     }
 
-    private static void CheckStopwatchStateThenRelay()
+    private static void OnDutyComplete(object? sender, ushort zone) =>
+        IsDutyEnd = true;
+
+    private static void CheckStopwatchAndRelay()
     {
-        if (!Stopwatch.IsRunning) return;
+        if (!Stopwatch.IsRunning || !Throttler.Throttle("AutoNotifyCutsceneEnd-Relay", 1_000)) return;
 
         var elapsedTime = Stopwatch.Elapsed;
         Stopwatch.Reset();
-        
+
         // 小于四秒 → 不播报
         if (elapsedTime < TimeSpan.FromSeconds(4)) return;
-        
+
         var message = $"{GetLoc("AutoNotifyCutsceneEnd-NotificationMessage")}";
-        if (ModuleConfig.SendChat) 
+        if (ModuleConfig.SendChat)
             Chat($"{message} {GetLoc("AutoNotifyCutsceneEnd-NotificationMessage-WaitSeconds", $"{elapsedTime.TotalSeconds:F0}")}");
-        if (ModuleConfig.SendNotification) 
+        if (ModuleConfig.SendNotification)
             NotificationInfo($"{message} {GetLoc("AutoNotifyCutsceneEnd-NotificationMessage-WaitSeconds", $"{elapsedTime.TotalSeconds:F0}")}");
-        if (ModuleConfig.SendTTS) 
+        if (ModuleConfig.SendTTS)
             Speak(message);
+    }
+
+    private static bool IsAnyPartyMemberWatchingCutscene(AgentHUD* agent)
+    {
+        if (agent == null) return false;
+        
+        var group = GroupManager.Instance()->MainGroup;
+        if (group.MemberCount < 2) return false;
+
+        foreach (var member in agent->PartyMembers)
+        {
+            if (member.EntityId  == 0 ||
+                member.ContentId == 0 ||
+                member.Object    == null)
+                continue;
+
+            if (!DService.Instance().DutyState.IsDutyStarted &&
+                !member.Object->GetIsTargetable())
+                return true;
+
+            if (member.Object->OnlineStatus == 15)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void ClearResources()
+    {
+        TaskHelper?.Abort();
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+        Stopwatch?.Reset();
+        IsDutyEnd = false;
     }
 
     private class Config : ModuleConfiguration
     {
-        public bool SendChat = true;
+        public bool SendChat         = true;
         public bool SendNotification = true;
-        public bool SendTTS = true;
+        public bool SendTTS          = true;
     }
 }
