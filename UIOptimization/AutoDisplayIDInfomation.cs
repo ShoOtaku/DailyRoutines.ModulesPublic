@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.Enums;
@@ -40,18 +38,18 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig  =   LoadConfig<Config>() ?? new();
         ZoneInfoEntry ??= DService.Instance().DTRBar.Get("AutoDisplayIDInfomation-ZoneInfo");
 
         GameTooltipManager.Instance().RegGenerateItemTooltipModifier(ModifyItemTooltip);
         GameTooltipManager.Instance().RegGenerateActionTooltipModifier(ModifyActionTooltip);
-        GameTooltipManager.Instance().RegTooltipShowModifier(ModifyStatuTooltip);
+        GameTooltipManager.Instance().RegTooltipShowModifier(ModifyStatusTooltip);
         GameTooltipManager.Instance().RegTooltipShowModifier(ModifyWeatherTooltip);
 
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,         "ActionDetail", OnAddon);
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,           "ItemDetail", OnAddon);
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw,           "_TargetInfo", OnAddon);
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_TargetInfoMainTarget", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "ActionDetail",          OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "ItemDetail",            OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw,  "_TargetInfo",           OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw,  "_TargetInfoMainTarget", OnAddon);
 
         FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1000);
     }
@@ -62,14 +60,15 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         {
             var mapID  = GameState.Map;
             var zoneID = GameState.TerritoryType;
+
             if (mapID == 0 || zoneID == 0)
             {
                 ZoneInfoEntry.Shown = false;
                 return;
             }
-            
+
             ZoneInfoEntry.Shown = true;
-            
+
             ZoneInfoEntry.Text = $"{LuminaWrapper.GetAddonText(870)}: {zoneID} / {LuminaWrapper.GetAddonText(670)}: {mapID}";
         }
         else
@@ -82,7 +81,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
             SaveConfig(ModuleConfig);
 
         ImGui.NewLine();
-        
+
         if (ImGui.Checkbox($"{LuminaWrapper.GetAddonText(1340)} ID", ref ModuleConfig.ShowActionID))
             SaveConfig(ModuleConfig);
 
@@ -92,47 +91,47 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
             {
                 if (ImGui.Checkbox(GetLoc("Resolved"), ref ModuleConfig.ShowActionIDResolved))
                     SaveConfig(ModuleConfig);
-                
+
                 if (ImGui.Checkbox(GetLoc("Original"), ref ModuleConfig.ShowActionIDOriginal))
                     SaveConfig(ModuleConfig);
             }
         }
-        
+
         ImGui.NewLine();
-        
+
         if (ImGui.Checkbox($"{LuminaWrapper.GetAddonText(1030)} ID", ref ModuleConfig.ShowTargetID))
             SaveConfig(ModuleConfig);
-        
+
         if (ModuleConfig.ShowTargetID)
         {
             using (ImRaii.PushIndent())
             {
                 if (ImGui.Checkbox("BattleNPC", ref ModuleConfig.ShowTargetIDBattleNPC))
                     SaveConfig(ModuleConfig);
-                
+
                 if (ImGui.Checkbox("EventNPC", ref ModuleConfig.ShowTargetIDEventNPC))
                     SaveConfig(ModuleConfig);
-                
+
                 if (ImGui.Checkbox("Companion", ref ModuleConfig.ShowTargetIDCompanion))
                     SaveConfig(ModuleConfig);
-                
+
                 if (ImGui.Checkbox(LuminaWrapper.GetAddonText(832), ref ModuleConfig.ShowTargetIDOthers))
                     SaveConfig(ModuleConfig);
             }
         }
-        
+
         ImGui.NewLine();
 
         if (ImGui.Checkbox($"{GetLoc("Status")} ID", ref ModuleConfig.ShowStatusID))
             SaveConfig(ModuleConfig);
-            
+
         ImGui.NewLine();
-        
+
         if (ImGui.Checkbox($"{LuminaWrapper.GetAddonText(8555)} ID", ref ModuleConfig.ShowWeatherID))
             SaveConfig(ModuleConfig);
-            
+
         ImGui.NewLine();
-        
+
         if (ImGui.Checkbox($"{LuminaWrapper.GetAddonText(870)}", ref ModuleConfig.ShowZoneInfo))
             SaveConfig(ModuleConfig);
     }
@@ -140,28 +139,28 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
     private static void OnAddon(AddonEvent type, AddonArgs args)
     {
         if (!Throttler.Throttle("AutoDisplayIDInfomation-OnAddon", 50)) return;
-        
+
         switch (args.AddonName)
         {
             case "ActionDetail":
-                if (ActionDetail== null) return;
+                if (ActionDetail == null) return;
 
                 var actionTextNode = ActionDetail->GetTextNodeById(6);
                 if (actionTextNode == null) return;
-                
+
                 actionTextNode->TextFlags |= TextFlags.MultiLine;
                 actionTextNode->FontSize  =  (byte)(actionTextNode->NodeText.StringPtr.ToString().Contains('\n') ? 10 : 12);
                 break;
-            
+
             case "ItemDetail":
-                if (ItemDetail== null) return;
+                if (ItemDetail == null) return;
 
                 var itemTextnode = ItemDetail->GetTextNodeById(35);
                 if (itemTextnode == null) return;
 
                 itemTextnode->TextFlags |= TextFlags.MultiLine;
                 break;
-            
+
             case "_TargetInfoMainTarget" or "_TargetInfo":
                 if (TargetManager.Target is not { } target) return;
 
@@ -174,7 +173,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
                     ObjectKind.BattleNpc => ModuleConfig.ShowTargetIDBattleNPC,
                     ObjectKind.EventNpc  => ModuleConfig.ShowTargetIDEventNPC,
                     ObjectKind.Companion => ModuleConfig.ShowTargetIDCompanion,
-                    _                    => ModuleConfig.ShowTargetIDOthers,
+                    _                    => ModuleConfig.ShowTargetIDOthers
                 };
 
                 if (!show || !ModuleConfig.ShowTargetID)
@@ -212,11 +211,13 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
             new UIForegroundPayload(0)
         };
 
-        ItemModification = GameTooltipManager.Instance().AddItemDetail(
+        ItemModification = GameTooltipManager.Instance().AddItemDetail
+        (
             itemID,
             TooltipItemType.ItemUICategory,
             new SeString(payloads),
-            TooltipModifyMode.Append);
+            TooltipModifyMode.Append
+        );
     }
 
     private static void ModifyActionTooltip(AtkUnitBase* addonActionDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
@@ -230,11 +231,11 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         if (!ModuleConfig.ShowActionID) return;
 
         var hoveredID = AgentActionDetail.Instance()->ActionId;
-        var id = ModuleConfig is { ShowActionIDResolved: true, ShowActionIDOriginal: false } 
-               ? hoveredID 
-               : AgentActionDetail.Instance()->OriginalId;
+        var id = ModuleConfig is { ShowActionIDResolved: true, ShowActionIDOriginal: false }
+                     ? hoveredID
+                     : AgentActionDetail.Instance()->OriginalId;
 
-        var payloads = new List<Payload>();
+        var payloads    = new List<Payload>();
         var needNewLine = ModuleConfig is { ShowActionIDResolved: true, ShowActionIDOriginal: true } && id != hoveredID;
 
         payloads.Add(needNewLine ? new NewLinePayload() : new TextPayload("   "));
@@ -248,19 +249,23 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         payloads.Add(new TextPayload("]"));
         payloads.Add(new UIForegroundPayload(0));
 
-        ActionModification = GameTooltipManager.Instance().AddActionDetail(
+        ActionModification = GameTooltipManager.Instance().AddActionDetail
+        (
             hoveredID,
             TooltipActionType.ActionKind,
             new SeString(payloads),
-            TooltipModifyMode.Append);
+            TooltipModifyMode.Append
+        );
     }
 
-    private static void ModifyStatuTooltip(
+    private static void ModifyStatusTooltip
+    (
         AtkTooltipManager*                manager,
         AtkTooltipManager.AtkTooltipType  type,
         ushort                            parentID,
         AtkResNode*                       targetNode,
-        AtkTooltipManager.AtkTooltipArgs* args)
+        AtkTooltipManager.AtkTooltipArgs* args
+    )
     {
         if (StatusModification != null)
         {
@@ -304,12 +309,14 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
             AddStatusToMap(sm, ref map);
     }
 
-    private static void ModifyWeatherTooltip(
+    private static void ModifyWeatherTooltip
+    (
         AtkTooltipManager*                manager,
         AtkTooltipManager.AtkTooltipType  type,
         ushort                            parentID,
         AtkResNode*                       targetNode,
-        AtkTooltipManager.AtkTooltipArgs* args)
+        AtkTooltipManager.AtkTooltipArgs* args
+    )
     {
         if (WeatherModification != null)
         {
@@ -324,7 +331,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
         WeatherModification = GameTooltipManager.Instance().AddWeatherTooltipModify($"{weather.Name} [{weatherID}]");
     }
-    
+
     private static void AddStatusToMap(StatusManager statusManager, ref Dictionary<uint, uint> map)
     {
         foreach (var s in statusManager.Status)
@@ -332,7 +339,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
             if (s.StatusId == 0) continue;
             if (!LuminaGetter.TryGetRow<RowStatus>(s.StatusId, out var row))
                 continue;
-            
+
             map.TryAdd(row.Icon, row.RowId);
             for (var i = 1; i <= s.Param; i++)
                 map.TryAdd((uint)(row.Icon + i), row.RowId);
@@ -346,7 +353,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
         GameTooltipManager.Instance().Unreg(generateItemModifiers: ModifyItemTooltip);
         GameTooltipManager.Instance().Unreg(generateActionModifiers: ModifyActionTooltip);
-        GameTooltipManager.Instance().Unreg(ModifyStatuTooltip);
+        GameTooltipManager.Instance().Unreg(ModifyStatusTooltip);
         GameTooltipManager.Instance().Unreg(ModifyWeatherTooltip);
 
         GameTooltipManager.Instance().RemoveItemDetail(ItemModification);
@@ -357,7 +364,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         FrameworkManager.Instance().Unreg(OnUpdate);
     }
-    
+
     public class Config : ModuleConfiguration
     {
         public bool ShowItemID = true;
@@ -369,7 +376,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         public bool ShowStatusID  = true;
         public bool ShowWeatherID = true;
         public bool ShowZoneInfo  = true;
-        
+
         public bool ShowTargetID          = true;
         public bool ShowTargetIDBattleNPC = true;
         public bool ShowTargetIDCompanion = true;
