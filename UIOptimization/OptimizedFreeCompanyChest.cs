@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Infos;
@@ -10,9 +9,9 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Graphics;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
 
@@ -210,8 +209,9 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         Size             = new(395, 24),
                         SeString         = $"({GetLoc("OptimizedFreeCompanyChest-ExchangableItemsTotalValue")})",
                         FontSize         = 8,
-                        TextFlags        = TextFlags.Edge | TextFlags.Emboss,
-                        TextOutlineColor = KnownColor.Black.ToVector4(),
+                        TextColor        = ColorHelper.GetColor(50),
+                        TextFlags        = TextFlags.Edge,
+                        TextOutlineColor = ColorHelper.GetColor(1),
                         AlignmentType    = AlignmentType.Right,
                     };
 
@@ -222,8 +222,9 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         IsVisible        = true,
                         SeString         = "0\ue049",
                         TextFlags        = TextFlags.Glare | TextFlags.Edge,
-                        TextOutlineColor = new ByteColor { R = 240, G = 142, B = 55, A = 255 }.ToVector4(),
+                        TextOutlineColor = ColorHelper.GetColor(32),
                         FontSize         = 14,
+                        TextColor        = ColorHelper.GetColor(50),
                         AlignmentType    = AlignmentType.Right,
                     };
                     
