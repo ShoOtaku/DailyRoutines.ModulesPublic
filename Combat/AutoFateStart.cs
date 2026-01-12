@@ -1,5 +1,4 @@
 using DailyRoutines.Abstracts;
-using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Plugin.Services;
 using Lumina.Excel.Sheets;
 using TerritoryIntendedUse = FFXIVClientStructs.FFXIV.Client.Enums.TerritoryIntendedUse;
@@ -16,49 +15,30 @@ public class AutoFateStart : DailyModuleBase
     };
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
-    private static bool IsOnUpdate;
     
     protected override void Init() => 
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1000);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 2_000);
 
-    private static unsafe void OnUpdate(IFramework _)
+    private static void OnUpdate(IFramework _)
     {
-        if (IsOnUpdate) return;
-        
-        try
+        if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.Overworld ||
+            GameState.IsInPVPArea                                            ||
+            LocalPlayerState.ClassJobData.DohDolJobIndex != -1)
+            return;
+            
+        foreach (var obj in DService.Instance().ObjectTable.CharacterManagerObjects)
         {
-            if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.Overworld ||
-                GameState.IsInPVPArea                                            ||
-                LocalPlayerState.ClassJobData.DohDolJobIndex != -1)
-                return;
+            if (obj is not IBattleNPC { NamePlateIconID: 60093 } battleNPC                        ||
+                LuminaGetter.GetRow<Fate>(battleNPC.FateID) is not { ClassJobLevel: > 0 } fateRow ||
+                !Throttler.Throttle($"AutoFateStart-Fate-{battleNPC.FateID}", 60_000))
+                continue;
             
-            IsOnUpdate = true;
-            
-            foreach (var obj in DService.Instance().ObjectTable)
-            {
-                if (obj.ObjectKind != ObjectKind.BattleNpc) continue;
-
-                var gameObj = obj.ToStruct();
-                if (gameObj == null || gameObj->NamePlateIconId != 60093 || gameObj->FateId == 0) continue;
-
-                if (!LuminaGetter.TryGetRow<Fate>(gameObj->FateId, out var fateData)) continue;
-                if (!Throttler.Throttle($"AutoFateStart-{fateData.Name.ToString()}", 1_000)) continue;
-            
-                ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.FateStart, gameObj->FateId, gameObj->EntityId);
-                Chat(GetLoc("AutoFateStart-StartNotice", fateData.Name.ToString(), gameObj->NameString));
-                break;
-            }
-        }
-        finally
-        {
-            IsOnUpdate = false;
+            ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.FateStart, battleNPC.FateID, battleNPC.EntityID);
+            Chat(GetLoc("AutoFateStart-StartNotice", fateRow.Name.ToString(), battleNPC.Name.ToString()));
+            break;
         }
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() =>
         FrameworkManager.Instance().Unreg(OnUpdate);
-        IsOnUpdate = false;
-    }
 }
