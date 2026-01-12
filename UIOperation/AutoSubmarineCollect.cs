@@ -544,7 +544,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                     {
                         IsVisible = true,
                         Position  = new(-10, 0),
-                        Size      = new(width, 30),
+                        Size      = new(width - 15, 30),
                         SeString  = Info.Title,
                         OnClick   = () =>
                         {
