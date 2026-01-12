@@ -562,7 +562,7 @@ public class CrossDCPartyFinder : DailyModuleBase
         public List<uint> Jobs       { get; set; } = [];
 
         public async Task<PartyFinderList> Request() => 
-            JsonConvert.DeserializeObject<PartyFinderList>(await HttpClientHelper.Get().GetStringAsync(Format())) ?? new();
+            JsonConvert.DeserializeObject<PartyFinderList>(await HTTPClientHelper.Get().GetStringAsync(Format())) ?? new();
 
         public string Format()
         {
@@ -779,7 +779,7 @@ public class CrossDCPartyFinder : DailyModuleBase
             {
                 if (Detail != null || DetailReuqestTask != null) return;
 
-                DetailReuqestTask = HttpClientHelper.Get().GetStringAsync($"{BASE_DETAIL_URL}{ID}");
+                DetailReuqestTask = HTTPClientHelper.Get().GetStringAsync($"{BASE_DETAIL_URL}{ID}");
                 Detail            = JsonConvert.DeserializeObject<PartyFinderListingDetail>(await DetailReuqestTask.ConfigureAwait(false)) ?? new();
             }
 

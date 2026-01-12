@@ -295,13 +295,13 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
     private static class RemoteRepoManager
     {
         // const
-        private const string Uri = "https://assets.sumemo.dev";
+        private const string URI = "https://assets.sumemo.dev";
 
         public static async Task FetchMitigationStatuses()
         {
             try
             {
-                var json = await HttpClientHelper.Get().GetStringAsync($"{Uri}/mitigation.json");
+                var json = await HTTPClientHelper.Get().GetStringAsync($"{URI}/mitigation.json");
                 var resp = JsonConvert.DeserializeObject<MitigationManager.MitigationInfo[]>(json);
                 if (resp == null)
                     Error($"[AutoDisplayMitigationInfo] 远程减伤技能文件解析失败: {json}");

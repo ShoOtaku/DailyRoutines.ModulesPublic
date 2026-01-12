@@ -23,11 +23,11 @@ public class DungeonLoggerUploader : DailyModuleBase
 
     public override ModulePermission Permission { get; } = new() { CNOnly = true };
 
-    private const byte MentorRouletteID = 9;
+    private const byte MENTOR_ROULETTE_ID = 9;
 
     private static Config ModuleConfig;
     
-    private static HttpClient?      HttpClientInstance;
+    private static HttpClient?      HTTPClientInstance;
     private static CookieContainer? Cookies;
     
     private static bool   IsLoggedIn;
@@ -40,7 +40,7 @@ public class DungeonLoggerUploader : DailyModuleBase
         ModuleConfig = LoadConfig<Config>() ?? new();
 
         Cookies            = new();
-        HttpClientInstance = HttpClientHelper.Get(new HttpClientHandler { CookieContainer = Cookies }, "DungeonLoggerUploader-Client");
+        HTTPClientInstance = HTTPClientHelper.Get(new HttpClientHandler { CookieContainer = Cookies }, "DungeonLoggerUploader-Client");
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         DService.Instance().DutyState.DutyCompleted      += OnDutyCompleted;
@@ -52,7 +52,7 @@ public class DungeonLoggerUploader : DailyModuleBase
     protected override void ConfigUI()
     {
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
-        ImGui.InputText("服务器地址", ref ModuleConfig.ServerUrl, 256);
+        ImGui.InputText("服务器地址", ref ModuleConfig.ServerURL, 256);
         if (ImGui.IsItemDeactivatedAfterEdit())
             SaveConfig(ModuleConfig);
         
@@ -109,7 +109,7 @@ public class DungeonLoggerUploader : DailyModuleBase
             {
                 var queueInfo = contentsFinder->GetQueueInfo();
                 if (queueInfo                          == null ||
-                    queueInfo->QueuedContentRouletteId != MentorRouletteID)
+                    queueInfo->QueuedContentRouletteId != MENTOR_ROULETTE_ID)
                     return;
             }
         }
@@ -132,7 +132,7 @@ public class DungeonLoggerUploader : DailyModuleBase
 
     private static async Task LoginAsync(bool showNotification = false)
     {
-        if (HttpClientInstance == null                  ||
+        if (HTTPClientInstance == null                  ||
             string.IsNullOrEmpty(ModuleConfig.Username) ||
             string.IsNullOrEmpty(ModuleConfig.Password))
             return;
@@ -146,7 +146,7 @@ public class DungeonLoggerUploader : DailyModuleBase
             };
 
             var content  = new StringContent(JsonConvert.SerializeObject(loginData), Encoding.UTF8, "application/json");
-            var response = await HttpClientInstance.PostAsync($"{ModuleConfig.ServerUrl}/api/login", content);
+            var response = await HTTPClientInstance.PostAsync($"{ModuleConfig.ServerURL}/api/login", content);
 
             if (!response.IsSuccessStatusCode) return;
 
@@ -176,7 +176,7 @@ public class DungeonLoggerUploader : DailyModuleBase
 
     private static async Task UploadDungeonRecordAsync()
     {
-        if (HttpClientInstance == null ||
+        if (HTTPClientInstance == null ||
             string.IsNullOrEmpty(DungeonName))
             return;
 
@@ -187,7 +187,7 @@ public class DungeonLoggerUploader : DailyModuleBase
             if (!IsLoggedIn)
                 throw new Exception("未登录或登录失败");
 
-            var mazeResponse = await HttpClientInstance.GetAsync($"{ModuleConfig.ServerUrl}/api/stat/maze");
+            var mazeResponse = await HTTPClientInstance.GetAsync($"{ModuleConfig.ServerURL}/api/stat/maze");
             if (!mazeResponse.IsSuccessStatusCode)
                 throw new Exception($"网站返回副本数据异常 ({mazeResponse.StatusCode})");
 
@@ -197,7 +197,7 @@ public class DungeonLoggerUploader : DailyModuleBase
             if (maze == null)
                 throw new Exception($"网站无对应副本数据 ({DungeonName})");
 
-            var profResponse = await HttpClientInstance.GetAsync($"{ModuleConfig.ServerUrl}/api/stat/prof");
+            var profResponse = await HTTPClientInstance.GetAsync($"{ModuleConfig.ServerURL}/api/stat/prof");
             if (!profResponse.IsSuccessStatusCode)
                 throw new Exception($"网站返回职业数据异常 ({profResponse.StatusCode})");
 
@@ -214,7 +214,7 @@ public class DungeonLoggerUploader : DailyModuleBase
             };
 
             var content  = new StringContent(JsonConvert.SerializeObject(uploadData), Encoding.UTF8, "application/json");
-            var response = await HttpClientInstance.PostAsync($"{ModuleConfig.ServerUrl}/api/record", content);
+            var response = await HTTPClientInstance.PostAsync($"{ModuleConfig.ServerURL}/api/record", content);
             if (response.IsSuccessStatusCode)
             {
                 var responseContent = await response.Content.ReadAsStringAsync();
@@ -243,7 +243,7 @@ public class DungeonLoggerUploader : DailyModuleBase
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         DService.Instance().DutyState.DutyCompleted      -= OnDutyCompleted;
 
-        HttpClientInstance = null;
+        HTTPClientInstance = null;
         Cookies            = null;
 
         IsLoggedIn = false;
@@ -303,7 +303,7 @@ public class DungeonLoggerUploader : DailyModuleBase
 
     private class Config : ModuleConfiguration
     {
-        public string ServerUrl = "https://dlog.luyulight.cn";
+        public string ServerURL = "https://dlog.luyulight.cn";
         public string Username  = string.Empty;
         public string Password  = string.Empty;
 

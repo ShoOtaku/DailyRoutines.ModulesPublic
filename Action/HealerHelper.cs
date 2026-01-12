@@ -30,7 +30,7 @@ public class HealerHelper : DailyModuleBase
         Author      = ["HaKu"]
     };
 
-    private const uint UnspecificTargetID = 0xE000_0000;
+    private const uint UNSPECIFIC_TARGET_ID = 0xE000_0000;
 
     private static readonly Dictionary<ReadOnlySeString, ReadOnlySeString> JobNameMap =
         LuminaGetter.Get<ClassJob>()
@@ -70,7 +70,7 @@ public class HealerHelper : DailyModuleBase
 
     #region UI
 
-    private static int? customCardOrderDragIndex;
+    private static int? CustomCardOrderDragIndex;
 
     protected override void ConfigUI()
     {
@@ -178,7 +178,7 @@ public class HealerHelper : DailyModuleBase
 
             if (ImGui.BeginDragDropSource())
             {
-                customCardOrderDragIndex = index;
+                CustomCardOrderDragIndex = index;
                 ImGui.SetDragDropPayload("##CustomCardOrder", []);
                 ImGui.EndDragDropSource();
             }
@@ -187,9 +187,9 @@ public class HealerHelper : DailyModuleBase
             {
                 ImGui.AcceptDragDropPayload("##CustomCardOrder");
 
-                if (ImGui.IsMouseReleased(ImGuiMouseButton.Left) && customCardOrderDragIndex.HasValue)
+                if (ImGui.IsMouseReleased(ImGuiMouseButton.Left) && CustomCardOrderDragIndex.HasValue)
                 {
-                    (cardOrder[index], cardOrder[customCardOrderDragIndex.Value]) = (cardOrder[customCardOrderDragIndex.Value], cardOrder[index]);
+                    (cardOrder[index], cardOrder[CustomCardOrderDragIndex.Value]) = (cardOrder[CustomCardOrderDragIndex.Value], cardOrder[index]);
                     modified                                                      = true;
                 }
 
@@ -480,7 +480,7 @@ public class HealerHelper : DailyModuleBase
 
     private static class RemoteRepoManager
     {
-        private const string Uri = "https://assets.sumemo.dev";
+        private const string URI = "https://assets.sumemo.dev";
 
         public static async Task FetchPlayCardOrder()
         {
@@ -488,7 +488,7 @@ public class HealerHelper : DailyModuleBase
 
             try
             {
-                var json = await HttpClientHelper.Get().GetStringAsync($"{Uri}/card-order.json");
+                var json = await HTTPClientHelper.Get().GetStringAsync($"{URI}/card-order.json");
                 var resp = JsonConvert.DeserializeObject<AutoPlayCardManager.PlayCardOrder>(json);
 
                 if (resp != null)
@@ -510,7 +510,7 @@ public class HealerHelper : DailyModuleBase
 
             try
             {
-                var json = await HttpClientHelper.Get().GetStringAsync($"{Uri}/heal-action.json");
+                var json = await HTTPClientHelper.Get().GetStringAsync($"{URI}/heal-action.json");
                 var resp = JsonConvert.DeserializeObject<Dictionary<string, List<EasyHealManager.HealAction>>>(json);
 
                 if (resp != null)
@@ -775,7 +775,7 @@ public class HealerHelper : DailyModuleBase
         private unsafe uint TargetNeedHeal(uint actionID)
         {
             var lowRatio   = 2f;
-            var needHealID = UnspecificTargetID;
+            var needHealID = UNSPECIFIC_TARGET_ID;
             var maxDistSq  = ActionManager.GetActionRange(actionID).Pow(2);
             var lpPos      = DService.Instance().ObjectTable.LocalPlayer.Position;
 
@@ -800,7 +800,7 @@ public class HealerHelper : DailyModuleBase
         private static unsafe uint FindTarget(float range, Func<HudPartyMember, bool> predicate, bool reverse = false)
         {
             var lp = DService.Instance().ObjectTable.LocalPlayer;
-            if (lp == null) return UnspecificTargetID;
+            if (lp == null) return UNSPECIFIC_TARGET_ID;
 
             var maxDistSq = range * range;
             var members   = AgentHUD.Instance()->PartyMembers.ToArray();
@@ -818,16 +818,16 @@ public class HealerHelper : DailyModuleBase
                 if (predicate(member)) return member.EntityId;
             }
 
-            return UnspecificTargetID;
+            return UNSPECIFIC_TARGET_ID;
         }
 
         public unsafe void OnPreHeal(ref ulong targetID, ref uint actionID, ref bool isPrevented)
         {
-            if (targetID != UnspecificTargetID && IsHealable(DService.Instance().ObjectTable.SearchByID(targetID))) return;
+            if (targetID != UNSPECIFIC_TARGET_ID && IsHealable(DService.Instance().ObjectTable.SearchByID(targetID))) return;
 
             targetID = TargetNeedHeal(actionID);
 
-            if (targetID == UnspecificTargetID)
+            if (targetID == UNSPECIFIC_TARGET_ID)
             {
                 if (config.OverhealTarget == OverhealTarget.Prevent)
                 {
@@ -854,7 +854,7 @@ public class HealerHelper : DailyModuleBase
         public unsafe void OnPreDispel(ref ulong targetID, ref bool isPrevented)
         {
             var currentTarget = DService.Instance().ObjectTable.SearchByID(targetID);
-            if (currentTarget is not IBattleNPC && targetID != UnspecificTargetID) return;
+            if (currentTarget is not IBattleNPC && targetID != UNSPECIFIC_TARGET_ID) return;
 
             // Check local player first
             var localStatus = DService.Instance().ObjectTable.LocalPlayer.StatusList;
@@ -881,7 +881,7 @@ public class HealerHelper : DailyModuleBase
                 );
             }
 
-            if (targetID == UnspecificTargetID)
+            if (targetID == UNSPECIFIC_TARGET_ID)
             {
                 isPrevented = true;
                 return;
@@ -893,7 +893,7 @@ public class HealerHelper : DailyModuleBase
         public unsafe void OnPreRaise(ref ulong targetID, ref uint actionID, ref bool isPrevented)
         {
             var currentTarget = DService.Instance().ObjectTable.SearchByID(targetID);
-            if (currentTarget is not IBattleNPC && targetID != UnspecificTargetID) return;
+            if (currentTarget is not IBattleNPC && targetID != UNSPECIFIC_TARGET_ID) return;
 
             var maxRange = ActionManager.GetActionRange(actionID);
             targetID = FindTarget
@@ -907,7 +907,7 @@ public class HealerHelper : DailyModuleBase
                 config.RaiseOrder == RaiseOrderStatus.Reverse
             );
 
-            if (targetID == UnspecificTargetID)
+            if (targetID == UNSPECIFIC_TARGET_ID)
             {
                 isPrevented = true;
                 return;

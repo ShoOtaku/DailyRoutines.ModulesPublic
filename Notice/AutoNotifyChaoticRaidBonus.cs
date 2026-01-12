@@ -28,7 +28,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
         "Light", "Chaos", "Materia"
     ];
 
-    private const string BaseUrl = "https://api.ff14.xin/status?data_center={0}";
+    private const string BASE_URL = "https://api.ff14.xin/status?data_center={0}";
 
     private static Config ModuleConfig = null!;
 
@@ -127,7 +127,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
             {
                 try
                 {
-                    var result  = await HttpClientHelper.Get().GetStringAsync(string.Format(BaseUrl, dcName));
+                    var result  = await HTTPClientHelper.Get().GetStringAsync(string.Format(BASE_URL, dcName));
                     var content = JsonConvert.DeserializeObject<ChaoticUptimeData>(result);
                     if (content.IsUptime)
                     {

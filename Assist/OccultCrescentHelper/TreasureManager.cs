@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using DailyRoutines.Infos;
 using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Enums;
@@ -16,51 +15,54 @@ public partial class OccultCrescentHelper
 {
     public unsafe class TreasureManager(OccultCrescentHelper mainModule) : BaseIslandModule(mainModule)
     {
-        private const ImGuiWindowFlags WindowFlags = ImGuiWindowFlags.NoScrollbar           |
-                                                     ImGuiWindowFlags.AlwaysAutoResize      |
-                                                     ImGuiWindowFlags.NoTitleBar            |
-                                                     ImGuiWindowFlags.NoBackground          |
-                                                     ImGuiWindowFlags.NoBringToFrontOnFocus |
-                                                     ImGuiWindowFlags.NoFocusOnAppearing    |
-                                                     ImGuiWindowFlags.NoNavFocus            |
-                                                     ImGuiWindowFlags.NoDocking             |
-                                                     ImGuiWindowFlags.NoMove                |
-                                                     ImGuiWindowFlags.NoResize              |
-                                                     ImGuiWindowFlags.NoScrollWithMouse     |
-                                                     ImGuiWindowFlags.NoInputs;
-        
+        private const ImGuiWindowFlags WINDOW_FLAGS = ImGuiWindowFlags.NoScrollbar           |
+                                                      ImGuiWindowFlags.AlwaysAutoResize      |
+                                                      ImGuiWindowFlags.NoTitleBar            |
+                                                      ImGuiWindowFlags.NoBackground          |
+                                                      ImGuiWindowFlags.NoBringToFrontOnFocus |
+                                                      ImGuiWindowFlags.NoFocusOnAppearing    |
+                                                      ImGuiWindowFlags.NoNavFocus            |
+                                                      ImGuiWindowFlags.NoDocking             |
+                                                      ImGuiWindowFlags.NoMove                |
+                                                      ImGuiWindowFlags.NoResize              |
+                                                      ImGuiWindowFlags.NoScrollWithMouse     |
+                                                      ImGuiWindowFlags.NoInputs;
+
         private static readonly uint LineColorBlue = KnownColor.CadetBlue.ToVector4().ToUInt();
         private static readonly uint DotColor      = KnownColor.IndianRed.ToVector4().ToUInt();
         private static readonly uint PlayerColor   = KnownColor.Orange.ToVector4().ToUInt();
 
-        private const string CommandTreasure = "ptreasure";
-        
+        private const string COMMAND_TREASURE = "ptreasure";
+
         private static TaskHelper? TreasureTaskHelper;
-        
+
         private static Queue<TreasureHuntPoint> QueuedGatheringList = [];
-        private static List<TreasureData> Treasures = [];
+        private static List<TreasureData>       Treasures           = [];
 
         private static Vector3 OriginalPosition;
-        
+
         private static List<TreasureHuntPoint> CurrentRoute = [];
 
         public override void Init()
         {
             TreasureTaskHelper ??= new() { TimeoutMS = 180_000 };
-            
-            WindowManager.Draw                    += OnPosDraw;
+
+            WindowManager.Draw                               += OnPosDraw;
             DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
-            
+
             GamePacketManager.Instance().RegPreSendPacket(OnPreSendPacket);
-            
-            CommandManager.AddSubCommand(CommandTreasure,
-                                         new(OnCommandTreasure) { HelpMessage = $"{GetLoc("OccultCrescentHelper-Command-PTreasure-Help")}" });
+
+            CommandManager.AddSubCommand
+            (
+                COMMAND_TREASURE,
+                new(OnCommandTreasure) { HelpMessage = $"{GetLoc("OccultCrescentHelper-Command-PTreasure-Help")}" }
+            );
         }
-        
+
         public override void DrawConfig()
         {
             using var id = ImRaii.PushId("TreasureManager");
-            
+
             if (ImGui.Checkbox(GetLoc("OccultCrescentHelper-TreasureManager-AutoOpenTreasure"), ref ModuleConfig.IsEnabledAutoOpenTreasure))
                 ModuleConfig.Save(MainModule);
             ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-TreasureManager-AutoOpenTreasure-Help"), 20f * GlobalFontScale);
@@ -68,13 +70,19 @@ public partial class OccultCrescentHelper
             if (ModuleConfig.IsEnabledAutoOpenTreasure)
             {
                 ImGui.SetNextItemWidth(150f * GlobalFontScale);
-                ImGui.SliderFloat($"{GetLoc("OccultCrescentHelper-DistanceTo")}", 
-                                  ref ModuleConfig.DistanceToAutoOpenTreasure, 1.0f, 50f, "%.1f");
+                ImGui.SliderFloat
+                (
+                    $"{GetLoc("OccultCrescentHelper-DistanceTo")}",
+                    ref ModuleConfig.DistanceToAutoOpenTreasure,
+                    1.0f,
+                    50f,
+                    "%.1f"
+                );
                 if (ImGui.IsItemDeactivatedAfterEdit())
                     ModuleConfig.Save(MainModule);
                 ImGuiOm.HelpMarker($"{GetLoc("OccultCrescentHelper-TreasureManager-AutoOpenTreasure-DistanceTo-Help")}", 20f * GlobalFontScale);
             }
-            
+
             ImGui.NewLine();
 
             using (FontManager.Instance().UIFont.Push())
@@ -88,12 +96,13 @@ public partial class OccultCrescentHelper
                     ImGui.TextUnformatted($"{GetLoc("OccultCrescentHelper-TreasureManager-AutoHuntTresures-LeftPoints")}: {QueuedGatheringList.Count}");
 
                     var isFirst = true;
+
                     foreach (var (routeName, routeData) in Routes)
                     {
                         if (!isFirst)
                             ImGui.SameLine();
                         isFirst = false;
-                        
+
                         if (ImGui.Button(routeName))
                             EnqueueAutoTreasureHunt(routeData);
                     }
@@ -102,113 +111,131 @@ public partial class OccultCrescentHelper
                         StopAutoTreasureHunt();
                 }
             }
-            
+
             ImGui.NewLine();
-            
-            if (ImGui.Checkbox($"{GetLoc("OccultCrescentHelper-TreasureManager-ShowLinkLine")} ({LuminaWrapper.GetAddonText(395)})", 
-                               ref ModuleConfig.IsEnabledDrawLineToTreasure))
+
+            if (ImGui.Checkbox
+                (
+                    $"{GetLoc("OccultCrescentHelper-TreasureManager-ShowLinkLine")} ({LuminaWrapper.GetAddonText(395)})",
+                    ref ModuleConfig.IsEnabledDrawLineToTreasure
+                ))
                 ModuleConfig.Save(MainModule);
-            
-            if (ImGui.Checkbox($"{GetLoc("OccultCrescentHelper-TreasureManager-ShowLinkLine")} ({LuminaWrapper.GetEObjName(2014695)})", 
-                               ref ModuleConfig.IsEnabledDrawLineToLog))
+
+            if (ImGui.Checkbox
+                (
+                    $"{GetLoc("OccultCrescentHelper-TreasureManager-ShowLinkLine")} ({LuminaWrapper.GetEObjName(2014695)})",
+                    ref ModuleConfig.IsEnabledDrawLineToLog
+                ))
                 ModuleConfig.Save(MainModule);
-            
-            if (ImGui.Checkbox($"{GetLoc("OccultCrescentHelper-TreasureManager-ShowLinkLine")} ({LuminaWrapper.GetItemName(48096)})", 
-                               ref ModuleConfig.IsEnabledDrawLineToCarrot))
+
+            if (ImGui.Checkbox
+                (
+                    $"{GetLoc("OccultCrescentHelper-TreasureManager-ShowLinkLine")} ({LuminaWrapper.GetItemName(48096)})",
+                    ref ModuleConfig.IsEnabledDrawLineToCarrot
+                ))
                 ModuleConfig.Save(MainModule);
-            
+
             ImGui.NewLine();
 
             var textSize = ImGui.CalcTextSize($"{LuminaWrapper.GetAddonText(395)} [999.99, 999.99, 999.99]");
+
             using (ImRaii.Disabled(TreasureTaskHelper.IsBusy))
             {
                 if (OriginalPosition != default)
                 {
-                    if (ImGui.Button($"[{OriginalPosition.X:F1}, {OriginalPosition.Y:F1}, {OriginalPosition.Z:F1}]", 
-                                     new(textSize.X * 2, ImGui.GetTextLineHeightWithSpacing())))
+                    if (ImGui.Button
+                        (
+                            $"[{OriginalPosition.X:F1}, {OriginalPosition.Y:F1}, {OriginalPosition.Z:F1}]",
+                            new(textSize.X * 2, ImGui.GetTextLineHeightWithSpacing())
+                        ))
                     {
-                        TreasureTaskHelper.Enqueue(() =>
-                        {
-                            PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = true;
-                            MovementManager.TPSmooth(OriginalPosition, DService.Instance().Condition[ConditionFlag.Mounted] ? 24 : 12, true, -20);
-                
-                            if (!Throttler.Throttle("OccultCrescentHelper-TreasureManager-Pathfind-Check")) return false;
+                        TreasureTaskHelper.Enqueue
+                        (() =>
+                            {
+                                PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = true;
+                                MovementManager.TPSmooth(OriginalPosition, DService.Instance().Condition[ConditionFlag.Mounted] ? 24 : 12, true, -20);
 
-                            if (LocalPlayerState.DistanceTo2D(OriginalPosition.ToVector2()) >= 3) return false;
-                        
-                            OnUpdate();
+                                if (!Throttler.Throttle("OccultCrescentHelper-TreasureManager-Pathfind-Check")) return false;
 
-                            PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = false;
-                            return true;
-                        });
+                                if (LocalPlayerState.DistanceTo2D(OriginalPosition.ToVector2()) >= 3) return false;
+
+                                OnUpdate();
+
+                                PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = false;
+                                return true;
+                            }
+                        );
                     }
-                    
+
                     ImGui.Spacing();
                 }
 
                 foreach (var treasureData in Treasures)
                 {
                     var pos = treasureData.Position;
+
                     if (ImGui.Button($"{treasureData.Name} [{pos.X:F1}, {pos.Y:F1}, {pos.Z:F1}]", new(textSize.X * 2, ImGui.GetTextLineHeightWithSpacing())))
                     {
                         OriginalPosition = LocalPlayerState.Object.Position;
-                        
-                        TreasureTaskHelper.Enqueue(() =>
-                        {
-                            PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = true;
-                            MovementManager.TPSmooth(pos, DService.Instance().Condition[ConditionFlag.Mounted] ? 24 : 12, true, -20);
-                
-                            if (!Throttler.Throttle("OccultCrescentHelper-TreasureManager-Pathfind-Check")) return false;
 
-                            if (LocalPlayerState.DistanceTo2D(pos.ToVector2()) >= 3) return false;
-                        
-                            OnUpdate();
+                        TreasureTaskHelper.Enqueue
+                        (() =>
+                            {
+                                PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = true;
+                                MovementManager.TPSmooth(pos, DService.Instance().Condition[ConditionFlag.Mounted] ? 24 : 12, true, -20);
 
-                            PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = false;
-                            return true;
-                        });
+                                if (!Throttler.Throttle("OccultCrescentHelper-TreasureManager-Pathfind-Check")) return false;
+
+                                if (LocalPlayerState.DistanceTo2D(pos.ToVector2()) >= 3) return false;
+
+                                OnUpdate();
+
+                                PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = false;
+                                return true;
+                            }
+                        );
                     }
                 }
             }
-            
-            
+
+
             ImGui.NewLine();
-            
+
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Command"));
 
             using (ImRaii.PushIndent())
-                ImGui.TextUnformatted($"/pdr {CommandTreasure} {GetLoc("OccultCrescentHelper-Command-PTreasure-Help")}");
+                ImGui.TextUnformatted($"/pdr {COMMAND_TREASURE} {GetLoc("OccultCrescentHelper-Command-PTreasure-Help")}");
         }
-        
+
         public override void Uninit()
         {
-            CommandManager.RemoveSubCommand(CommandTreasure);
-            
+            CommandManager.RemoveSubCommand(COMMAND_TREASURE);
+
             GamePacketManager.Instance().Unreg(OnPreSendPacket);
-            
+
             DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-            WindowManager.Draw               -= OnPosDraw;
-            
+            WindowManager.Draw                               -= OnPosDraw;
+
             TreasureTaskHelper?.Abort();
             TreasureTaskHelper?.Dispose();
             TreasureTaskHelper = null;
-            
+
             Treasures.Clear();
         }
-        
+
         private void OnCommandTreasure(string command, string args)
         {
             if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent) return;
 
             args = args.Trim().ToLowerInvariant();
             if (string.IsNullOrEmpty(args)) return;
-            
+
             if (args == "abort")
             {
                 StopAutoTreasureHunt();
                 return;
             }
-            
+
             var (_, routeData) = Routes.Where(x => x.Key.Contains(args, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Key.Length).FirstOrDefault();
             if (routeData.Count <= 0) return;
 
@@ -239,7 +266,7 @@ public partial class OccultCrescentHelper
 
             PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = false;
         }
-        
+
         private void MoveToNextTreasurePoint()
         {
             TreasureTaskHelper.Abort();
@@ -247,7 +274,7 @@ public partial class OccultCrescentHelper
             if (QueuedGatheringList.Count == 0)
             {
                 StopAutoTreasureHunt();
-                
+
                 var message = GetLoc("OccultCrescentHelper-TreasureManager-AutoOpenTreasure-Notification-End");
                 NotificationInfo(message);
                 Speak(message);
@@ -261,59 +288,65 @@ public partial class OccultCrescentHelper
             var position      = data.Position;
             var foundTreasure = false;
 
-            TreasureTaskHelper.Enqueue(() =>
-            {
-                if (DService.Instance().Condition[ConditionFlag.Mounted]) return true;
-                if (!Throttler.Throttle("OccultCrescentHelper-TreasureManager-AutoOpenTreasure-UseMount")) return false;
-        
-                if (IsCasting) return false;
-        
-                UseActionManager.Instance().UseAction(ActionType.GeneralAction, 9);
-                return false;
-            });
-            
-            TreasureTaskHelper.Enqueue(() =>
-            {
-                PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = true;
-                MovementManager.TPSmooth(position, 24, foundTreasure, -20);
-                
-                if (!Throttler.Throttle("OccultCrescentHelper-TreasureManager-Pathfind-Check")) return false;
-
-                if (!data.IsExact)
+            TreasureTaskHelper.Enqueue
+            (() =>
                 {
-                    // 还没加载出来呢
-                    if (LocalPlayerState.DistanceTo2D(position.ToVector2()) >= 50) return false;
-                }
-                else
-                {
-                    if (LocalPlayerState.DistanceTo2D(position.ToVector2()) >= 3) return false;
-                }
+                    if (DService.Instance().Condition[ConditionFlag.Mounted]) return true;
+                    if (!Throttler.Throttle("OccultCrescentHelper-TreasureManager-AutoOpenTreasure-UseMount")) return false;
 
-                OnUpdate();
+                    if (IsCasting) return false;
 
-                // 找到了, 移动过去
-                if (Treasures.FirstOrDefault(x => x.ObjectType                                                          == SpecialObjectType.Treasure && 
-                                                  Vector2.DistanceSquared(x.Position.ToVector2(), position.ToVector2()) <= 225) is { } obj)
-                {
-                    position      = obj.Position;
-                    foundTreasure = true;
+                    UseActionManager.Instance().UseAction(ActionType.GeneralAction, 9);
                     return false;
                 }
-                
-                // 点位没有, 直接去下一个
-                return true;
-            });
-            
+            );
+
+            TreasureTaskHelper.Enqueue
+            (() =>
+                {
+                    PlayerController.Instance()->MoveControllerWalk.IsMovementLocked = true;
+                    MovementManager.TPSmooth(position, 24, foundTreasure, -20);
+
+                    if (!Throttler.Throttle("OccultCrescentHelper-TreasureManager-Pathfind-Check")) return false;
+
+                    if (!data.IsExact)
+                    {
+                        // 还没加载出来呢
+                        if (LocalPlayerState.DistanceTo2D(position.ToVector2()) >= 50) return false;
+                    }
+                    else
+                    {
+                        if (LocalPlayerState.DistanceTo2D(position.ToVector2()) >= 3) return false;
+                    }
+
+                    OnUpdate();
+
+                    // 找到了, 移动过去
+                    if (Treasures.FirstOrDefault
+                        (x => x.ObjectType                                                          == SpecialObjectType.Treasure &&
+                              Vector2.DistanceSquared(x.Position.ToVector2(), position.ToVector2()) <= 225
+                        ) is { } obj)
+                    {
+                        position      = obj.Position;
+                        foundTreasure = true;
+                        return false;
+                    }
+
+                    // 点位没有, 直接去下一个
+                    return true;
+                }
+            );
+
             TreasureTaskHelper.Enqueue(MoveToNextTreasurePoint, "下一轮开始");
         }
-        
+
         public static void OnPreSendPacket(ref bool isPrevented, int opcode, ref byte* packet, ref ushort priority)
         {
             if (opcode                         != GamePacketOpcodes.PositionUpdateInstanceOpcode ||
                 GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent            ||
                 !TreasureTaskHelper.IsBusy)
                 return;
-            
+
             isPrevented = true;
         }
 
@@ -324,16 +357,16 @@ public partial class OccultCrescentHelper
             CurrentRoute.Clear();
             QueuedGatheringList.Clear();
         }
-        
+
         // 绘制连接线和地图
         private static void OnPosDraw()
         {
             if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent) return;
-            
+
             // 绘制地图
             if (TreasureTaskHelper.IsBusy)
                 DrawTreasureRouteMap();
-            
+
             // 绘制连接线
             if (Treasures is { Count: > 0 } treasures &&
                 DService.Instance().ObjectTable.LocalPlayer is { } localPlayer)
@@ -356,55 +389,55 @@ public partial class OccultCrescentHelper
                 }
             }
         }
-        
+
         // 绘制寻宝路线地图
         private static void DrawTreasureRouteMap()
         {
             if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
-            
+
             var map = GameState.MapData;
 
             var displaySize = ScaledVector2(400);
-            
+
             ImGui.SetNextWindowSize(displaySize + ScaledVector2(20, 40));
             ImGui.SetNextWindowBgAlpha(0.8f);
-            
-            if (ImGui.Begin("###AutoTreasureHuntMap", WindowFlags))
+
+            if (ImGui.Begin("###AutoTreasureHuntMap", WINDOW_FLAGS))
             {
                 var drawList   = ImGui.GetWindowDrawList();
                 var contentPos = ImGui.GetCursorScreenPos();
-                
+
                 ImGui.Image(DService.Instance().Texture.GetFromGame(map.GetTexturePath()).GetWrapOrEmpty().Handle, displaySize);
-                
+
                 if (CurrentRoute.Count > 0)
                 {
                     for (var i = 0; i < CurrentRoute.Count - 1; i++)
                     {
-                        var currentPoint = WorldToTexture(CurrentRoute[i].Position, map);
-                        var nextPoint = WorldToTexture(CurrentRoute[i + 1].Position, map);
-                        
-                        var currentScreenPos = contentPos + (currentPoint * displaySize / 2048f);
-                        var nextScreenPos    = contentPos + (nextPoint    * displaySize / 2048f);
-                        
+                        var currentPoint = WorldToTexture(CurrentRoute[i].Position,     map);
+                        var nextPoint    = WorldToTexture(CurrentRoute[i + 1].Position, map);
+
+                        var currentScreenPos = contentPos + currentPoint * displaySize / 2048f;
+                        var nextScreenPos    = contentPos + nextPoint    * displaySize / 2048f;
+
                         drawList.AddLine(currentScreenPos, nextScreenPos, LineColorBlue, 2.0f);
                     }
                 }
-                
+
                 foreach (var point in CurrentRoute)
                 {
                     var texturePos = WorldToTexture(point.Position, map);
-                    var screenPos  = contentPos + (texturePos * displaySize / 2048f);
+                    var screenPos  = contentPos + texturePos * displaySize / 2048f;
                     drawList.AddCircleFilled(screenPos, 4.0f, DotColor);
                 }
-                
+
                 var playerTexturePos = WorldToTexture(localPlayer.Position, map);
-                var playerScreenPos  = contentPos + (playerTexturePos * displaySize / 2048f);
+                var playerScreenPos  = contentPos + playerTexturePos * displaySize / 2048f;
                 drawList.AddCircleFilled(playerScreenPos, 6.0f, PlayerColor);
             }
-            
+
             ImGui.End();
         }
-        
+
         // 更新箱子数据并处理开箱
         public override void OnUpdate()
         {
@@ -417,24 +450,24 @@ public partial class OccultCrescentHelper
         {
             if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent ||
                 !ModuleConfig.IsEnabledAutoOpenTreasure                               ||
-                DService.Instance().Condition[ConditionFlag.InCombat]                            ||
+                DService.Instance().Condition[ConditionFlag.InCombat]                 ||
                 Treasures is not { Count: > 0 } treasures)
                 return;
 
             if (DService.Instance().ObjectTable.LocalPlayer is not { IsDead: false, Position.Y: > -40 }) return;
-            
+
             foreach (var treasure in treasures)
             {
                 if (treasure.ObjectType != SpecialObjectType.Treasure) continue;
                 if (treasure.GetGameObject() is not { } gameObject) continue;
-                
+
                 var treasureObj = (Treasure*)gameObject.Address;
                 if (treasureObj->Flags.HasFlag(Treasure.TreasureFlags.Opened) ||
                     treasureObj->Flags.HasFlag(Treasure.TreasureFlags.FadedOut))
                     continue;
-                
+
                 if (LocalPlayerState.DistanceTo2D(treasure.Position.ToVector2()) > ModuleConfig.DistanceToAutoOpenTreasure) continue;
-                
+
                 // 一次只开 1 个, 避免移速上限
                 InteractWithTreasure(gameObject);
                 return;
@@ -445,9 +478,9 @@ public partial class OccultCrescentHelper
         private static void RefreshTreasuresAround()
         {
             if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent) return;
-            
+
             var newTreasures = new List<TreasureData>();
-            
+
             // 仅在未战斗或正在坐骑上时更新数据 (考虑到坐骑上误进战状态)
             if (!DService.Instance().Condition[ConditionFlag.InCombat] || DService.Instance().Condition[ConditionFlag.Mounted])
             {
@@ -469,19 +502,20 @@ public partial class OccultCrescentHelper
 
             Treasures = newTreasures.OrderBy(x => x.EntityID).ToList();
         }
-        
+
         private static void DrawLine(Vector2 startPos, Vector2 endPos, TreasureData treasure, uint lineColor = 0)
         {
             lineColor = lineColor == 0 ? LineColorBlue : lineColor;
-        
+
             var drawList = ImGui.GetForegroundDrawList();
 
             drawList.AddLine(startPos, endPos, lineColor, 8f);
             drawList.AddCircleFilled(startPos, 12f, DotColor);
             drawList.AddCircleFilled(endPos,   12f, DotColor);
-        
+
             ImGui.SetNextWindowPos(endPos);
-            if (ImGui.Begin($"OccultCrescentHelper-{treasure.EntityID}", WindowFlags))
+
+            if (ImGui.Begin($"OccultCrescentHelper-{treasure.EntityID}", WINDOW_FLAGS))
             {
                 using (ImRaii.Group())
                 {
@@ -490,7 +524,7 @@ public partial class OccultCrescentHelper
                     if (DService.Instance().Texture.TryGetFromGameIcon(new(60354), out var texture))
                     {
                         var origPosY = ImGui.GetCursorPosY();
-                        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (8f * GlobalFontScale));
+                        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 8f * GlobalFontScale);
                         ImGui.Image(texture.GetWrapOrEmpty().Handle, new(ImGui.GetTextLineHeightWithSpacing()));
                         ImGui.SetCursorPosY(origPosY);
                         ImGui.SameLine();
@@ -503,18 +537,18 @@ public partial class OccultCrescentHelper
                         SpecialObjectType.Carrot      => LuminaWrapper.GetItemName(48096),
                         _                             => string.Empty
                     };
-                
+
                     ImGuiOm.TextOutlined(KnownColor.Orange.ToVector4(), $"{name}");
                 }
 
                 ImGui.End();
             }
         }
-        
+
         private static void InteractWithTreasure(IGameObject obj)
         {
             if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
-            
+
             var moveType = (PositionUpdateInstancePacket.MoveType)(MovementManager.CurrentZoneMoveState * 0x10000);
             new PositionUpdateInstancePacket(localPlayer.Rotation, obj.Position, moveType).Send();
             new TreasureOpenPacket(obj.EntityID).Send();
@@ -527,7 +561,7 @@ public partial class OccultCrescentHelper
             public uint              EntityID   { get; } = entityID;
             public string            Name       { get; } = name ?? string.Empty;
             public Vector3           Position   { get; } = position;
-            
+
             public static TreasureData? FromGameObject(IGameObject? gameObject)
             {
                 try
@@ -536,6 +570,7 @@ public partial class OccultCrescentHelper
                         return null;
 
                     var type = SpecialObjectType.Treasure;
+
                     switch (gameObject.ObjectKind)
                     {
                         case ObjectKind.Treasure:
@@ -552,11 +587,12 @@ public partial class OccultCrescentHelper
                                 default:
                                     return null;
                             }
+
                             break;
                         default:
                             return null;
                     }
-                    
+
                     return new(type, gameObject.EntityID, gameObject.Name.ToString(), gameObject.Position);
                 }
                 catch
@@ -564,8 +600,8 @@ public partial class OccultCrescentHelper
                     return null;
                 }
             }
-            
-            public IGameObject? GetGameObject() => 
+
+            public IGameObject? GetGameObject() =>
                 DService.Instance().ObjectTable.SearchByEntityID(EntityID);
         }
 
@@ -574,25 +610,25 @@ public partial class OccultCrescentHelper
             public Vector3 Position { get; } = new(x, y, z);
             public bool    IsExact  { get; } = isExact;
         }
-        
+
         public enum SpecialObjectType : uint
         {
             /// <summary>
-            /// 宝藏
+            ///     宝藏
             /// </summary>
             Treasure,
-                
+
             /// <summary>
-            /// 调查地点
+            ///     调查地点
             /// </summary>
             SurveyPoint = 2014695,
-                
+
             /// <summary>
-            /// 胡萝卜
+            ///     胡萝卜
             /// </summary>
-            Carrot = 2010139,
+            Carrot = 2010139
         }
-        
+
         private enum RenderFlag
         {
             Invisible = 256
@@ -674,7 +710,7 @@ public partial class OccultCrescentHelper
                 new(-784.76f, 138.99f, 699.76f),
                 new(-729.55f, 106.98f, 561.15f),
                 new(-648.00f, 75.00f, 403.95f)
-            ],
+            ]
         };
 
         public static class PathPlanner
@@ -683,7 +719,7 @@ public partial class OccultCrescentHelper
             {
                 if (locations == null || locations.Count == 0)
                     return [];
-                
+
                 var startPoint = new TreasureHuntPoint(currentPosition.X, currentPosition.Y, currentPosition.Z);
 
                 var allPoints = new List<TreasureHuntPoint> { startPoint };
@@ -714,6 +750,7 @@ public partial class OccultCrescentHelper
                     foreach (var point in remainingPoints)
                     {
                         var distance = Vector3.Distance(currentPoint.Position, point.Position);
+
                         if (distance < minDistance)
                         {
                             minDistance  = distance;
@@ -740,6 +777,7 @@ public partial class OccultCrescentHelper
                 while (improvementFound)
                 {
                     improvementFound = false;
+
                     for (var i = 0; i < n - 2; i++)
                     {
                         for (var j = i + 2; j < n - 1; j++)

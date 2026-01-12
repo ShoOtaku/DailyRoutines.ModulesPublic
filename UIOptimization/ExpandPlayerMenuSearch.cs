@@ -13,6 +13,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
+using OmenTools.DTOs;
 using Action = System.Action;
 
 namespace DailyRoutines.ModulesPublic;
@@ -281,20 +282,20 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
                 while (!isFound)
                 {
                     var url      = string.Format(SearchAPI, TargetChara.Name, page);
-                    var response = await HttpClientHelper.Get().GetStringAsync(url);
-                    var result   = JsonConvert.DeserializeObject<JsonFileFormat.RSPlayerSearchResult>(response);
+                    var response = await HTTPClientHelper.Get().GetStringAsync(url);
+                    var result   = JsonConvert.DeserializeObject<RSPlayerSearchResult>(response);
 
-                    if (result.data.Count == 0)
+                    if (result.Data.Count == 0)
                     {
                         NotificationError(GetLoc("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
                         break;
                     }
 
-                    foreach (var player in result.data)
+                    foreach (var player in result.Data)
                     {
-                        if (player.character_name == TargetChara.Name && player.group_name == TargetChara.World)
+                        if (player.CharacterName == TargetChara.Name && player.GroupName == TargetChara.World)
                         {
-                            var uuid = player.uuid;
+                            var uuid = player.UUID;
                             Util.OpenLink(string.Format(PlayerInfo, uuid));
                             isFound = true;
                             break;
@@ -318,12 +319,12 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
 
 
-        private const string Url = "https://tieba.baidu.com/f/search/res?ie=utf-8&kw=ff14&qw={0}";
+        private const string URL = "https://tieba.baidu.com/f/search/res?ie=utf-8&kw=ff14&qw={0}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
             if (TargetChara == null) return;
-            Util.OpenLink(string.Format(Url, $"{TargetChara.Name}@{TargetChara.World}"));
+            Util.OpenLink(string.Format(URL, $"{TargetChara.Name}@{TargetChara.World}"));
         }
     }
 
@@ -333,13 +334,13 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
 
 
-        private const string Url = "https://cn.fflogs.com/character/{0}/{1}/{2}";
+        private const string URL = "https://cn.fflogs.com/character/{0}/{1}/{2}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
             if (TargetChara == null) return;
             var abbvr = RegionToFFLogsAbbvr(LuminaGetter.GetRow<World>(TargetChara.WorldID)?.DataCenter.ValueNullable?.Region ?? 0);
-            Util.OpenLink(string.Format(Url, abbvr, TargetChara.World, TargetChara.Name));
+            Util.OpenLink(string.Format(URL, abbvr, TargetChara.World, TargetChara.Name));
         }
 
         private static string RegionToFFLogsAbbvr(uint region) =>
@@ -362,7 +363,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
 
 
-        private const string Url =
+        private const string URL =
             "https://na.finalfantasyxiv.com/lodestone/character/?q={0}&worldname=_dc_{1}&classjob=&race_tribe=&blog_lang=ja&blog_lang=en&blog_lang=de&blog_lang=fr&order=";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
@@ -370,7 +371,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
             if (TargetChara == null) return;
 
             var dcName = LuminaGetter.GetRow<World>(TargetChara.WorldID)?.DataCenter.ValueNullable?.Name.ToString() ?? "";
-            Util.OpenLink(string.Format(Url, TargetChara.Name.Replace(' ', '+'), dcName));
+            Util.OpenLink(string.Format(URL, TargetChara.Name.Replace(' ', '+'), dcName));
         }
     }
     
@@ -380,17 +381,17 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         public override string Identifier { get;  protected set; }  = nameof(ExpandPlayerMenuSearch);
 
 
-        private const string SearchAPI  = "https://www.lalachievements.com/api/charsearch/{0}/";
-        private const string PlayerInfo = "https://www.lalachievements.com/char/{0}/";
+        private const string SEARCH_API  = "https://www.lalachievements.com/api/charsearch/{0}/";
+        private const string PLAYER_INFO = "https://www.lalachievements.com/char/{0}/";
 
         protected override void OnClicked(IMenuItemClickedArgs args) =>
             DService.Instance().Framework.RunOnTick(async () =>
             {
                 if (TargetChara == null) return;
 
-                var url      = string.Format(SearchAPI, TargetChara.Name);
-                var response = await HttpClientHelper.Get().GetStringAsync(url);
-                var result   = JsonConvert.DeserializeObject<JsonFileFormat.LLAPlayerSearchResult>(response);
+                var url      = string.Format(SEARCH_API, TargetChara.Name);
+                var response = await HTTPClientHelper.Get().GetStringAsync(url);
+                var result   = JsonConvert.DeserializeObject<LLAPlayerSearchResult>(response);
 
                 if (result.Data.Count == 0)
                 {
@@ -402,7 +403,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
                 {
                     if (player.CharacterName == TargetChara.Name && player.WorldID == TargetChara.WorldID)
                     {
-                        Util.OpenLink(string.Format(PlayerInfo, player.CharacterID));
+                        Util.OpenLink(string.Format(PLAYER_INFO, player.CharacterID));
                         break;
                     }
                 }
@@ -415,15 +416,15 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         public override string Identifier { get;  protected set; }  = nameof(ExpandPlayerMenuSearch);
 
 
-        private const string SearchAPI  = "https://tomestone.gg/search/autocomplete?term={0}"; // 搜索词, 空格 %20
+        private const string SEARCH_API  = "https://tomestone.gg/search/autocomplete?term={0}"; // 搜索词, 空格 %20
 
         protected override void OnClicked(IMenuItemClickedArgs args) =>
             DService.Instance().Framework.RunOnTick(async () =>
             {
                 if (TargetChara == null) return;
 
-                var url      = string.Format(SearchAPI, TargetChara.Name.Replace(" ", "%20"));
-                var response = await HttpClientHelper.Get().GetStringAsync(url);
+                var url      = string.Format(SEARCH_API, TargetChara.Name.Replace(" ", "%20"));
+                var response = await HTTPClientHelper.Get().GetStringAsync(url);
                 
                 dynamic? result   = JsonConvert.DeserializeObject(response);
                 if (result == null) return;

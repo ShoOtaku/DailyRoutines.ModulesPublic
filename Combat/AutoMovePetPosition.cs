@@ -109,7 +109,7 @@ public class AutoMovePetPosition : DailyModuleBase
             {
                 var schedule = scheduleList[i];
                 
-                using var id = ImRaii.PushId(schedule.Guid);
+                using var id = ImRaii.PushId(schedule.GUID);
                 
                 ImGui.TableNextRow();
                 
@@ -406,10 +406,10 @@ public class AutoMovePetPosition : DailyModuleBase
         public string  Note     { get; set; } = string.Empty;
         public int     DelayS   { get; set; }
         public Vector2 Position { get; set; }
-        public string  Guid     { get; set; } = guid;
+        public string  GUID     { get; set; } = guid;
 
         public PositionSchedule Copy() =>
-            new(Guid)
+            new(GUID)
             {
                 Enabled  = Enabled,
                 ZoneID   = ZoneID,
@@ -422,11 +422,11 @@ public class AutoMovePetPosition : DailyModuleBase
         {
             if(other is null) return false;
             if(ReferenceEquals(this, other)) return true;
-            return Guid == other.Guid;
+            return GUID == other.GUID;
         }
 
         public override string ToString() => 
-            Guid;
+            GUID;
 
         public override bool Equals(object? obj)
         {
@@ -435,7 +435,7 @@ public class AutoMovePetPosition : DailyModuleBase
         }
 
         public override int GetHashCode() => 
-            Guid.GetHashCode();
+            GUID.GetHashCode();
 
         public static bool operator ==(PositionSchedule? left, PositionSchedule? right) => 
             Equals(left, right);

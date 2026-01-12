@@ -144,7 +144,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
         public override string Name       { get; protected set; } = GetLoc("ExpandItemMenuSearch-SearchFFXIVSC");
         public override string Identifier { get; protected set; } = nameof(ExpandItemMenuSearch);
 
-        private const string Url = "https://v1.ffxivsc.cn/#/search?text={0}&type=armor";
+        private const string URL = "https://v1.ffxivsc.cn/#/search?text={0}&type=armor";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
@@ -157,7 +157,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
                 itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
-                Util.OpenLink(string.Format(Url, itemName));
+                Util.OpenLink(string.Format(URL, itemName));
         }
     }
 
@@ -167,7 +167,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
         public override string Name       { get; protected set; } = GetLoc("ExpandItemMenuSearch-SearchHuijiWiki");
         public override string Identifier { get; protected set; } = nameof(ExpandItemMenuSearch);
 
-        private const string Url = "https://ff14.huijiwiki.com/wiki/%E7%89%A9%E5%93%81:{0}";
+        private const string URL = "https://ff14.huijiwiki.com/wiki/%E7%89%A9%E5%93%81:{0}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
@@ -180,7 +180,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
                 itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
-                Util.OpenLink(string.Format(Url, itemName));
+                Util.OpenLink(string.Format(URL, itemName));
         }
     }
 
@@ -190,7 +190,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
         public override string Name       { get; protected set; } = GetLoc("ExpandItemMenuSearch-SearchConsoleGamesWiki");
         public override string Identifier { get; protected set; } = nameof(ExpandItemMenuSearch);
 
-        private const string Url =
+        private const string URL =
             "https://ffxiv.consolegameswiki.com/mediawiki/index.php?search={0}&title=Special%3ASearch&go=%E5%89%8D%E5%BE%80";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
@@ -204,7 +204,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
                 itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
-                Util.OpenLink(string.Format(Url, Uri.EscapeDataString(itemName)));
+                Util.OpenLink(string.Format(URL, Uri.EscapeDataString(itemName)));
         }
     }
 
@@ -214,7 +214,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
         public override string Name       { get; protected set; } = GetLoc("ExpandItemMenuSearch-SearchGarlandToolsDBCN");
         public override string Identifier { get; protected set; } = nameof(ExpandItemMenuSearch);
 
-        private const string Url =
+        private const string URL =
             "https://www.garlandtools.cn/db/#item/{0}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
@@ -228,7 +228,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
                 itemID = ContextMenuItemManager.Instance().CurrentItemID;
 
             if (itemID != 0)
-                Util.OpenLink(string.Format(Url, itemID));
+                Util.OpenLink(string.Format(URL, itemID));
         }
     }
 
@@ -238,7 +238,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
         public override string Name       { get; protected set; } = GetLoc("ExpandItemMenuSearch-SearchGarlandToolsDB");
         public override string Identifier { get; protected set; } = nameof(ExpandItemMenuSearch);
 
-        private const string Url =
+        private const string URL =
             "https://www.garlandtools.org/db/#item/{0}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
@@ -252,7 +252,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
                 itemID = ContextMenuItemManager.Instance().CurrentItemID;
 
             if (itemID != 0)
-                Util.OpenLink(string.Format(Url, itemID));
+                Util.OpenLink(string.Format(URL, itemID));
         }
     }
     
@@ -262,7 +262,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
         public override string Name       { get; protected set; } = GetLoc("ExpandItemMenuSearch-SearchLodestoneDB");
         public override string Identifier { get; protected set; } = nameof(ExpandItemMenuSearch);
 
-        private const string Url =
+        private const string URL =
             "https://na.finalfantasyxiv.com/lodestone/playguide/db//search/?patch=&db_search_category=&q={0}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
@@ -276,7 +276,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
                 itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
-                Util.OpenLink(string.Format(Url, itemName));
+                Util.OpenLink(string.Format(URL, itemName));
         }
     }
     
@@ -286,7 +286,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
         public override string Name       { get; protected set; } = GetLoc("ExpandItemMenuSearch-SearchGamerEscapeWiki");
         public override string Identifier { get; protected set; } = nameof(ExpandItemMenuSearch);
 
-        private const string Url =
+        private const string URL =
             "https://ffxiv.gamerescape.com/?search={0}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
@@ -300,7 +300,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
                 itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
 
             if (!string.IsNullOrWhiteSpace(itemName))
-                Util.OpenLink(string.Format(Url, Uri.EscapeDataString(itemName)));
+                Util.OpenLink(string.Format(URL, Uri.EscapeDataString(itemName)));
         }
     }
     
@@ -310,7 +310,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
         public override string Name       { get; protected set; } = GetLoc("ExpandItemMenuSearch-SearchERIONES");
         public override string Identifier { get; protected set; } = nameof(ExpandItemMenuSearch);
 
-        private const string Url = "https://{0}eriones.com/search?i={1}";
+        private const string URL = "https://{0}eriones.com/search?i={1}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
@@ -326,7 +326,7 @@ public class ExpandItemMenuSearch : DailyModuleBase
             {
                 if (itemName.Length > 25) 
                     itemName = itemName[..25];
-                Util.OpenLink(string.Format(Url, GetPrefixByLang(), Uri.EscapeDataString(itemName)));
+                Util.OpenLink(string.Format(URL, GetPrefixByLang(), Uri.EscapeDataString(itemName)));
             }
         }
         
