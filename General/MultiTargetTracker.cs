@@ -39,7 +39,7 @@ public class MultiTargetTracker : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        FrameworkManager.Instance().Reg(OnUpdate, false, 1500);
+        FrameworkManager.Instance().Reg(OnUpdate, 1500);
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         DService.Instance().ContextMenu.OnMenuOpened     += OnMenuOpen;
     }

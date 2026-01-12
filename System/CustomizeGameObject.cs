@@ -49,7 +49,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
 
         CancelSource ??= new();
 
-        FrameworkManager.Instance().Reg(OnUpdate, true, 1000);
+        FrameworkManager.Instance().Reg(OnUpdate, 1000);
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
     }
 

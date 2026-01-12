@@ -26,7 +26,7 @@ public unsafe class AutoRetarget : DailyModuleBase
         ModuleConfig =   LoadConfig<Config>() ?? new();
         TaskHelper   ??= new() { TimeoutMS = 15_000 };
         
-        FrameworkManager.Instance().Reg(OnUpdate, true, 1000);
+        FrameworkManager.Instance().Reg(OnUpdate, 1000);
     }
 
     protected override void Uninit() => 
