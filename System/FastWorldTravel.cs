@@ -1083,7 +1083,11 @@ public class FastWorldTravel : DailyModuleBase
                 {
                     if (checkLogicFunc(dcID) is { Item1: true } result)
                     {
-                        Chat($"大区 [{LuminaWrapper.GetDataCenterName(dcID)}] 已为可通行状态, 停止监控");
+                        var message = $"大区 [{LuminaWrapper.GetDataCenterName(dcID)}] 已为可通行状态, 停止监控";
+                        Chat(message);
+                        NotificationInfo(message);
+                        Speak(message);
+                        
                         if (JustGo)
                             ChatManager.Instance().SendCommand($"/pdr worldtravel {result.Item2}");
 
