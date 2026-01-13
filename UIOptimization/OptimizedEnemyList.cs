@@ -12,6 +12,7 @@ using Dalamud.Interface.Components;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Client.UI.Arrays;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
@@ -63,6 +64,18 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_EnemyList", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "_EnemyList", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_EnemyList", OnAddon);
+    }
+    
+    protected override void Uninit()
+    {
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+
+        ClearTextNodes();
+
+        HaterInfo.Clear();
+
+        Controller?.Dispose();
+        Controller = null;
     }
 
     protected override void ConfigUI()
@@ -163,22 +176,25 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
     {
         if (!EnemyList->IsAddonAndNodesReady()) return;
         
+        var enemyListArray = AtkStage.Instance()->GetNumberArrayData(NumberArrayType.EnemyList);
+        if (enemyListArray == null) return;
+
+        var enemyCount = enemyListArray->IntArray[1];
+        if (enemyCount == 0) return;
+        
         var nodes = TextNodes;
         if (nodes is not { Count: > 0 })
         {
             CreateTextNodes();
             return;
         }
-        
-        var enemyListArray = AtkStage.Instance()->GetNumberArrayData(NumberArrayType.EnemyList);
-        if (enemyListArray == null) return;
 
         var hudArray = AtkStage.Instance()->GetNumberArrayData(NumberArrayType.Hud2);
         if (hudArray == null) return;
 
         var isTargetCasting = hudArray->IntArray[69] != -1;
 
-        for (var i = 0; i < nodes.Count; i++)
+        for (var i = 0; i < MathF.Min(enemyCount, nodes.Count); i++)
         {
             var offset = 8 + i * 6;
 
@@ -321,12 +337,15 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
         ClearTextNodes();
 
+        var counter = -1;
         foreach (var nodePtr in buttonNodesPtr)
         {
             var node = (AtkComponentNode*)nodePtr;
 
             var castTextNode = node->Component->UldManager.SearchNodeById(4)->GetAsAtkTextNode();
             if (castTextNode == null) continue;
+
+            counter++;
 
             var textNode = new TextNode
             {
@@ -370,7 +389,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             textNode.AttachNode(node);
             castBarNode.AttachNode(node);
 
-            var statusNodes = new IconTextNodesRow(5, node->NodeId);
+            var statusNodes = new IconTextNodesRow(5, node->NodeId, counter);
             Controller.AddNode(statusNodes);
 
             TextNodes.Add(new(node->NodeId, textNode, backgroundNode, castBarNode, statusNodes));
@@ -457,19 +476,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         nodes.Reverse();
         return nodes.Count > 0;
     }
-
-    protected override void Uninit()
-    {
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
-
-        ClearTextNodes();
-
-        HaterInfo.Clear();
-
-        Controller?.Dispose();
-        Controller = null;
-    }
-
+    
     private class Config : ModuleConfiguration
     {
         public byte    FontSize   = 10;
@@ -490,6 +497,8 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
     {
         public int  Count  { get; init; }
         public uint NodeID { get; init; }
+        
+        public int  Index  { get; init; }
 
         public override OverlayLayer OverlayLayer     => OverlayLayer.Foreground;
         public override bool         HideWithNativeUI => true;
@@ -500,12 +509,14 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
         public IconTextNode this[int index] => Nodes[index];
 
-        public IconTextNodesRow(int count, uint nodeID)
+        public IconTextNodesRow(int count, uint nodeID, int index)
         {
             ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(count, 0);
+            ArgumentOutOfRangeException.ThrowIfLessThan(index, 0);
 
             Count  = count;
             NodeID = nodeID;
+            Index  = index;
 
             for (var i = 0; i < count; i++)
             {
@@ -525,15 +536,19 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        protected override void OnUpdate() =>
-            IsVisible = ShouldBeVisible && EnemyList->IsAddonAndNodesReady();
+        protected override void OnUpdate()
+        {
+            IsVisible = ShouldBeVisible                   &&
+                        EnemyList->IsAddonAndNodesReady() &&
+                        Index < EnemyListNumberArray.Instance()->EnemyCount;
+        }
     }
 
     private class IconTextNode : SimpleComponentNode
     {
         public readonly IconImageNode IconNode;
         public readonly TextNode      TextNode;
-
+        
         public IconTextNode()
         {
             IconNode = new()
