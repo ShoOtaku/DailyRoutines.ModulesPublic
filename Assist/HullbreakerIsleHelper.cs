@@ -1,12 +1,9 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using Lumina.Excel.Sheets;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace DailyRoutines.ModulesPublic;
@@ -20,33 +17,25 @@ public class HullbreakerIsleHelper : DailyModuleBase
         Category    = ModuleCategories.Assist
     };
 
-    private static readonly HashSet<string> TrapNames;
-    private static readonly HashSet<string> FakeTreasureNames;
+    private static readonly HashSet<uint> FakeTreasuresID = [2004074, 2004075, 2004076, 2004077, 2004078, 2004079];
 
-    private static HashSet<Vector3> TrapPositions         = [];
-    private static HashSet<Vector3> FakeTreasurePositions = [];
-
-    static HullbreakerIsleHelper()
-    {
-        TrapNames = new(StringComparer.OrdinalIgnoreCase)
-        {
-            // 捕兽夹
-            LuminaGetter.GetRow<EObjName>(2000947)!.Value.Singular.ToString(),
-            LuminaGetter.GetRow<EObjName>(2000947)!.Value.Plural.ToString(),
-        };
-
-        FakeTreasureNames = new(StringComparer.OrdinalIgnoreCase)
-        {
-            // 宝箱
-            LuminaGetter.GetRow<EObjName>(2002491)!.Value.Singular.ToString(),
-            LuminaGetter.GetRow<EObjName>(2002491)!.Value.Plural.ToString()
-        };
-    }
+    private static List<Vector3> TrapPositions         = [];
+    private static List<Vector3> FakeTreasurePositions = [];
 
     protected override void Init()
     {
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
+    }
+    
+    protected override void Uninit()
+    {
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+
+        WindowManager.Draw -= OnDraw;
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        TrapPositions.Clear();
+        FakeTreasurePositions.Clear();
     }
 
     private static void OnZoneChanged(ushort zone)
@@ -55,59 +44,59 @@ public class HullbreakerIsleHelper : DailyModuleBase
         FrameworkManager.Instance().Unreg(OnUpdate);
         TrapPositions.Clear();
         FakeTreasurePositions.Clear();
-        
+
         if (GameState.TerritoryType != 361) return;
-        
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 2000);
+
+        FrameworkManager.Instance().Reg(OnUpdate, 2_000);
         WindowManager.Draw += OnDraw;
     }
 
     private static void OnDraw()
     {
+        var list = ImGui.GetBackgroundDrawList();
+
         foreach (var trap in TrapPositions)
         {
             if (!DService.Instance().GameGUI.WorldToScreen(trap, out var screenPos)) continue;
-            ImGui.GetBackgroundDrawList().AddText(screenPos, KnownColor.Yellow.ToVector4().ToUInt(), TrapNames.First());
+            list.AddText(screenPos, KnownColor.Yellow.ToUInt(), LuminaWrapper.GetEObjName(2000947));
         }
-        
+
         foreach (var fakeTreasure in FakeTreasurePositions)
         {
             if (!DService.Instance().GameGUI.WorldToScreen(fakeTreasure, out var screenPos)) continue;
-            ImGui.GetBackgroundDrawList().AddText(screenPos, KnownColor.Yellow.ToVector4().ToUInt(), FakeTreasureNames.First());
+            list.AddText(screenPos, KnownColor.Yellow.ToUInt(), LuminaWrapper.GetBNPCName(2896));
         }
     }
 
     private static unsafe void OnUpdate(IFramework _)
     {
-        HashSet<Vector3> trapCollect = [];
-        HashSet<Vector3> fakeTreasureCollect = [];
-        
-        foreach (var obj in DService.Instance().ObjectTable)
-        {
-            switch (obj.ObjectKind)
-            {
-                // 捕兽夹
-                case ObjectKind.BattleNpc:
-                    if (!TrapNames.Contains(obj.Name.ToString())) continue;
-                    trapCollect.Add(obj.Position);
-                    obj.ToStruct()->Highlight(ObjectHighlightColor.Yellow);
-                    break;
-                case ObjectKind.EventObj:
-                    if (!FakeTreasureNames.Contains(obj.Name.ToString()) || 
-                        !obj.IsTargetable) continue;
-                    fakeTreasureCollect.Add(obj.Position);
-                    obj.ToStruct()->Highlight(ObjectHighlightColor.Yellow);
-                    break;
-            }
-        }
-        
-        TrapPositions = trapCollect;
-        FakeTreasurePositions = fakeTreasureCollect;
-    }
+        List<Vector3> trapCollect         = [];
+        List<Vector3> fakeTreasureCollect = [];
 
-    protected override void Uninit()
-    {
-        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-        OnZoneChanged(0);
+        // 捕兽夹
+        foreach (var trap in DService.Instance().ObjectTable.SearchObjects
+                 (
+                     x => x.ObjectKind == ObjectKind.BattleNpc &&
+                          x is IBattleNPC { NameID: 2891, TargetableStatus: (ObjectTargetableFlags)248 },
+                     IObjectTable.CharactersRange
+                 ))
+        {
+            trapCollect.Add(trap.Position);
+            trap.ToStruct()->Highlight(ObjectHighlightColor.Yellow);
+        }
+
+        // 怪宝箱
+        foreach (var treasure in DService.Instance().ObjectTable.SearchObjects
+                 (
+                     x => x.ObjectKind == ObjectKind.EventObj && FakeTreasuresID.Contains(x.DataID) && x.IsTargetable,
+                     IObjectTable.EventRange
+                 ))
+        {
+            fakeTreasureCollect.Add(treasure.Position);
+            treasure.ToStruct()->Highlight(ObjectHighlightColor.Yellow);
+        }
+
+        TrapPositions         = trapCollect;
+        FakeTreasurePositions = fakeTreasureCollect;
     }
 }
