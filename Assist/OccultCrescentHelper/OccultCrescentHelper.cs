@@ -59,6 +59,7 @@ public partial class OccultCrescentHelper : DailyModuleBase
             module.Init();
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        OnZoneChanged(0);
     }
 
     protected override void Uninit()
