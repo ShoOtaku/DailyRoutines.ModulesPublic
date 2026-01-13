@@ -19,11 +19,10 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
 using KamiToolKit.Classes;
-using KamiToolKit.Classes.ContextMenu;
+using KamiToolKit.ContextMenu;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
 using AgentWorldTravel = OmenTools.Infos.AgentWorldTravel;
-using ContextMenu = KamiToolKit.Classes.ContextMenu.ContextMenu;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -85,6 +84,7 @@ public class FastWorldTravel : DailyModuleBase
             HandleDtrEntry(true);
 
         DService.Instance().Condition.ConditionChange += OnConditionChanged;
+        OnConditionChanged(ConditionFlag.BetweenAreas, false);
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "WorldTravelSelect", OnAddon);
         if (WorldTravelSelect->IsAddonAndNodesReady())

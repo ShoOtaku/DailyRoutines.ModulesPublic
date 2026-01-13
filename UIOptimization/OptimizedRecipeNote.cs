@@ -17,7 +17,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
-using KamiToolKit.Classes.Timelines;
+using KamiToolKit.Timelines;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
 using ActionKind = FFXIVClientStructs.FFXIV.Client.UI.Agent.ActionKind;

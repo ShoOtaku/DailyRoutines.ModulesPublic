@@ -16,6 +16,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
 using KamiToolKit.Classes;
+using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 
 namespace DailyRoutines.ModulesPublic;
@@ -457,17 +458,17 @@ public unsafe class OptimizedFriendList : DailyModuleBase
 
         private DailyModuleBase Instance { get; init; } = instance;
 
-        private TextNode PlayerNameNode;
+        private TextNode playerNameNode;
 
-        private TextNode      NicknameNode;
-        private TextInputNode NicknameInputNode;
+        private TextNode      nicknameNode;
+        private TextInputNode nicknameInputNode;
         
-        private TextNode               RemarkNode;
-        private TextMultiLineInputNode RemarkInputNode;
+        private TextNode               remarkNode;
+        private TextMultiLineInputNode remarkInputNode;
 
-        private TextButtonNode ConfirmButtonNode;
-        private TextButtonNode ClearButtonNode;
-        private TextButtonNode QuertUsedNameButtonNode;
+        private TextButtonNode confirmButtonNode;
+        private TextButtonNode clearButtonNode;
+        private TextButtonNode quertUsedNameButtonNode;
         
         protected override void OnSetup(AtkUnitBase* addon)
         {
@@ -480,7 +481,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
             var existedNickname = ModuleConfig.PlayerInfos.GetValueOrDefault(ContentID, new()).Nickname;
             var existedRemark   = ModuleConfig.PlayerInfos.GetValueOrDefault(ContentID, new()).Remark;
 
-            PlayerNameNode = new()
+            playerNameNode = new()
             {
                 IsVisible = true,
                 Position  = new(10, 36),
@@ -495,9 +496,9 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 AlignmentType    = AlignmentType.Left,
                 TextFlags        = TextFlags.Bold,
             };
-            PlayerNameNode.AttachNode(this);
+            playerNameNode.AttachNode(this);
             
-            NicknameNode = new()
+            nicknameNode = new()
             {
                 IsVisible        = true,
                 Position         = new(10, 80),
@@ -507,9 +508,9 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 AlignmentType    = AlignmentType.Left,
                 TextFlags        = TextFlags.Bold,
             };
-            NicknameNode.AttachNode(this);
+            nicknameNode.AttachNode(this);
 
-            NicknameInputNode = new()
+            nicknameInputNode = new()
             {
                 IsVisible     = true,
                 Position      = new(10, 108),
@@ -519,9 +520,9 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 AutoSelectAll = false,
                 String        = existedNickname
             };
-            NicknameInputNode.AttachNode(this);
+            nicknameInputNode.AttachNode(this);
             
-            RemarkNode = new()
+            remarkNode = new()
             {
                 IsVisible        = true,
                 Position         = new(10, 140),
@@ -532,9 +533,9 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 TextFlags        = TextFlags.Bold,
             };
             
-            RemarkNode.AttachNode(this);
+            remarkNode.AttachNode(this);
 
-            RemarkInputNode = new()
+            remarkInputNode = new()
             {
                 IsVisible     = true,
                 Position      = new(10, 168),
@@ -545,11 +546,11 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 String        = existedRemark
             };
 
-            RemarkInputNode.Size = new(440, (RemarkInputNode.CurrentTextNode.LineSpacing * 5) + 20);
+            remarkInputNode.Size = new(440, (remarkInputNode.CurrentTextNode.LineSpacing * 5) + 20);
             
-            RemarkInputNode.AttachNode(this);
+            remarkInputNode.AttachNode(this);
 
-            ConfirmButtonNode = new()
+            confirmButtonNode = new()
             {
                 Position  = new(10, 264),
                 Size      = new(140, 28),
@@ -561,8 +562,8 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                     {
                         ContentID = ContentID,
                         Name      = Name,
-                        Nickname  = NicknameInputNode.String,
-                        Remark    = RemarkInputNode.String,
+                        Nickname  = nicknameInputNode.String,
+                        Remark    = remarkInputNode.String,
                     };
                     ModuleConfig.Save(Instance);
                     
@@ -570,9 +571,9 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                     Close();
                 },
             };
-            ConfirmButtonNode.AttachNode(this);
+            confirmButtonNode.AttachNode(this);
             
-            ClearButtonNode = new()
+            clearButtonNode = new()
             {
                 Position  = new(160, 264),
                 Size      = new(140, 28),
@@ -587,9 +588,9 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                     Close();
                 },
             };
-            ClearButtonNode.AttachNode(this);
+            clearButtonNode.AttachNode(this);
             
-            QuertUsedNameButtonNode = new()
+            quertUsedNameButtonNode = new()
             {
                 Position  = new(310, 264),
                 Size      = new(140, 28),
@@ -617,7 +618,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                     }));
                 },
             };
-            QuertUsedNameButtonNode.AttachNode(this);
+            quertUsedNameButtonNode.AttachNode(this);
         }
 
         protected override void OnUpdate(AtkUnitBase* addon)
@@ -775,7 +776,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
         }
     }
     
-    private class ModifyInfoMenuItem(TaskHelper TaskHelper) : MenuItemBase
+    private class ModifyInfoMenuItem(TaskHelper taskHelper) : MenuItemBase
     {
         public override string Name       { get; protected set; } = GetLoc("OptimizedFriendList-ContextMenu-NicknameAndRemark");
         public override string Identifier { get; protected set; } = nameof(OptimizedFriendList);
@@ -793,14 +794,14 @@ public unsafe class OptimizedFriendList : DailyModuleBase
             {
                 RemarkEditAddon.Close();
 
-                TaskHelper.DelayNext(100);
-                TaskHelper.Enqueue(() => !RemarkEditAddon.IsOpen);
-                TaskHelper.Enqueue(() => RemarkEditAddon.OpenWithData(target.TargetContentId, target.TargetName, target.TargetHomeWorld.Value.Name.ToString()));
+                taskHelper.DelayNext(100);
+                taskHelper.Enqueue(() => !RemarkEditAddon.IsOpen);
+                taskHelper.Enqueue(() => RemarkEditAddon.OpenWithData(target.TargetContentId, target.TargetName, target.TargetHomeWorld.Value.Name.ToString()));
             }
             else
                 RemarkEditAddon.OpenWithData(target.TargetContentId, target.TargetName, target.TargetHomeWorld.Value.Name.ToString());
 
-            ApplySearchFilter(SearchString, TaskHelper);
+            ApplySearchFilter(SearchString, taskHelper);
         }
     }
     
@@ -808,16 +809,16 @@ public unsafe class OptimizedFriendList : DailyModuleBase
     {
         public override string Name       { get; protected set; } = GetLoc("OptimizedFriendList-ContextMenu-TeleportToFriendZone");
         public override string Identifier { get; protected set; } = nameof(OptimizedFriendList);
-
         
-        private uint AetheryteID;
+        
+        private uint aetheryteID;
 
         protected override void OnClicked(IMenuItemClickedArgs args) => 
-            Telepo.Instance()->Teleport(AetheryteID, 0);
+            Telepo.Instance()->Teleport(aetheryteID, 0);
 
         public override bool IsDisplay(IMenuOpenedArgs args) =>
             args is { AddonName : "FriendList", Target: MenuTargetDefault { TargetCharacter: not null } target } &&
-            GetAetheryteID(target.TargetCharacter.Location.RowId, out AetheryteID);
+            GetAetheryteID(target.TargetCharacter.Location.RowId, out aetheryteID);
 
         private static bool GetAetheryteID(uint zoneID, out uint aetheryteID)
         {
@@ -849,7 +850,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
         public override string Identifier { get; protected set; } = nameof(OptimizedFriendList);
 
         
-        private uint TargetWorldID;
+        private uint friendWorldID;
 
         public override bool IsDisplay(IMenuOpenedArgs args)
         {
@@ -857,7 +858,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 args is { AddonName: "FriendList", Target: MenuTargetDefault { TargetCharacter.CurrentWorld.RowId: var targetWorldID } } &&
                 targetWorldID != GameState.CurrentWorld)
             {
-                TargetWorldID = targetWorldID;
+                friendWorldID = targetWorldID;
                 return true;
             }
 
@@ -865,7 +866,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
         }
 
         protected override void OnClicked(IMenuItemClickedArgs args) => 
-            ChatManager.Instance().SendMessage($"/pdr worldtravel {LuminaWrapper.GetWorldName(TargetWorldID)}");
+            ChatManager.Instance().SendMessage($"/pdr worldtravel {LuminaWrapper.GetWorldName(friendWorldID)}");
     }
     
     public class PlayerInfo

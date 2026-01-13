@@ -565,7 +565,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                             Size        = new(width, 38),
                             ItemTooltip = itemID,
                         };
-                        row.AddFlags(NodeFlags.HasCollision);
+                        row.AddNodeFlags(NodeFlags.HasCollision);
                         
                         ItemListLayout.AddNode(row);
                         ItemRenderers.Add(row);

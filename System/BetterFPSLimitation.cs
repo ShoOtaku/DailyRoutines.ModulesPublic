@@ -14,6 +14,7 @@ using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
 using KamiToolKit.Classes;
+using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
 
@@ -30,7 +31,7 @@ public class BetterFPSLimitation : DailyModuleBase
     
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private const string Command = "fps";
+    private const string COMMAND = "fps";
 
     private static Config ModuleConfig = null!;
     
@@ -64,14 +65,14 @@ public class BetterFPSLimitation : DailyModuleBase
         HandleDtrEntry(true);
         FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1_000);
 
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("BetterFPSLimitation-CommandHelp") }); 
+        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("BetterFPSLimitation-CommandHelp") }); 
     }
 
     protected override void ConfigUI()
     {
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Command"));
         
-        ImGui.TextUnformatted($"/pdr {Command} → {GetLoc("BetterFPSLimitation-CommandHelp")}");
+        ImGui.TextUnformatted($"/pdr {COMMAND} → {GetLoc("BetterFPSLimitation-CommandHelp")}");
         
         ImGui.NewLine();
         
@@ -160,7 +161,7 @@ public class BetterFPSLimitation : DailyModuleBase
 
     protected override void Uninit()
     {
-        CommandManager.RemoveSubCommand(Command); 
+        CommandManager.RemoveSubCommand(COMMAND); 
         
         FrameworkManager.Instance().Unreg(OnUpdate);
 

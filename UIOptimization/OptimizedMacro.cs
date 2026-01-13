@@ -7,7 +7,7 @@ using DailyRoutines.Managers;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
-using KamiToolKit.Classes.Controllers;
+using KamiToolKit.Controllers;
 using KamiToolKit.Nodes;
 
 namespace DailyRoutines.ModulesPublic;

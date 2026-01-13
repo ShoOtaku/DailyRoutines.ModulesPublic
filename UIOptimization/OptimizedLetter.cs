@@ -34,8 +34,8 @@ public class OptimizedLetter : DailyModuleBase
 
     private static AddonDROptimizedLetter? Addon;
     
-    private static TextInputNode? TextInputButton;
-    private static TextListNode? ListNode;
+    private static TextInputNode?          TextInputButton;
+    private static DropDownListButtonNode? ListNode;
     
     protected override void Init()
     {
@@ -162,7 +162,7 @@ public class OptimizedLetter : DailyModuleBase
         ClickSelectYesnoYes();
     }
 
-    private class AddonDROptimizedLetter(TaskHelper TaskHelper) : NativeAddon
+    private class AddonDROptimizedLetter(TaskHelper taskHelper) : NativeAddon
     {
         private static AtkEventWrapper? FireRequestEvent;
         
@@ -185,9 +185,9 @@ public class OptimizedLetter : DailyModuleBase
                             AgentId.LetterList.SendEvent(9, 0);
                             buttonNode->SetEnabledState(false);
                             
-                            TaskHelper.Abort();
-                            TaskHelper.DelayNext(200);
-                            TaskHelper.Enqueue(() =>
+                            taskHelper.Abort();
+                            taskHelper.DelayNext(200);
+                            taskHelper.Enqueue(() =>
                             {
                                 if (buttonNode == null) return;
                                 buttonNode->SetEnabledState(true);
@@ -259,12 +259,12 @@ public class OptimizedLetter : DailyModuleBase
                     if (!TryFindLetters(x => x.Attachments.ToArray().Any(d => d.Count > 0), out var letters)) return;
                     foreach (var (index, _) in letters)
                     {
-                        TaskHelper.Enqueue(() => AgentId.LetterList.SendEvent(0, 0, index, 0,  1));
-                        TaskHelper.Enqueue(() => AgentId.LetterList.SendEvent(1, 0, 0,     0U, 0, 0));
-                        TaskHelper.Enqueue(() => LetterViewer->IsAddonAndNodesReady());
-                        TaskHelper.Enqueue(() => AgentId.LetterView.SendEvent(0, 1));
-                        TaskHelper.Enqueue(() => AtkStage.Instance()->GetNumberArrayData(NumberArrayType.Letter)->IntArray[136] == 0);
-                        TaskHelper.Enqueue(() =>
+                        taskHelper.Enqueue(() => AgentId.LetterList.SendEvent(0, 0, index, 0,  1));
+                        taskHelper.Enqueue(() => AgentId.LetterList.SendEvent(1, 0, 0,     0U, 0, 0));
+                        taskHelper.Enqueue(() => LetterViewer->IsAddonAndNodesReady());
+                        taskHelper.Enqueue(() => AgentId.LetterView.SendEvent(0, 1));
+                        taskHelper.Enqueue(() => AtkStage.Instance()->GetNumberArrayData(NumberArrayType.Letter)->IntArray[136] == 0);
+                        taskHelper.Enqueue(() =>
                         {
                             LetterViewer->Close(true);
                             AgentId.LetterView.SendEvent(0, -1);

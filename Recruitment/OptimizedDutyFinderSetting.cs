@@ -6,7 +6,7 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Utility.Numerics;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using KamiToolKit.Classes.Timelines;
+using KamiToolKit.Timelines;
 using KamiToolKit.Nodes;
 
 namespace DailyRoutines.ModulesPublic;

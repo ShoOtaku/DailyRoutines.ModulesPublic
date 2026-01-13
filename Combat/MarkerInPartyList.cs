@@ -14,6 +14,7 @@ using System.Linq;
 using System.Numerics;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using KamiToolKit.Enums;
 using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
@@ -28,11 +29,12 @@ public unsafe class MarkerInPartyList : DailyModuleBase
         Author      = ["status102"]
     };
 
-    private const           int                DefaultIconID = 61201;
-    private static readonly (short X, short Y) BasePosition  = (41, 35);
+    private const int DEFAULT_ICON_ID = 61201;
 
-    private static readonly CompSig LocalMarkingSig = new("E8 ?? ?? ?? ?? 4C 8B C5 8B D7 48 8B CB E8");
-    public delegate         void    LocalMarkingDelegate(void* manager, uint markingType, GameObjectId objectID, uint entityID);
+    private static readonly (short X, short Y) BasePosition = (41, 35);
+
+    private static readonly CompSig                     LocalMarkingSig = new("E8 ?? ?? ?? ?? 4C 8B C5 8B D7 48 8B CB E8");
+    public delegate         void                        LocalMarkingDelegate(void* manager, uint markingType, GameObjectId objectID, uint entityID);
     public static           Hook<LocalMarkingDelegate>? LocalMarkingHook;
 
     private static Config? ModuleConfig;
@@ -331,7 +333,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
                     {
                         var imageNode = new IconImageNode
                         {
-                            IconId    = DefaultIconID,
+                            IconId    = DEFAULT_ICON_ID,
                             NodeFlags = NodeFlags.Fill,
                             DrawFlags = DrawFlags.None,
                             WrapMode  = WrapMode.Stretch,
