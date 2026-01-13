@@ -98,10 +98,11 @@ public unsafe class AutoUseEventItem : DailyModuleBase
     private static bool IsAnyQuestNearby(out uint questRowID)
     {
         questRowID = 0;
-        var localPos = DService.Instance().ObjectTable.LocalPlayer.Position;
-
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
+            
         var validMarkers = AgentHUD.Instance()->MapMarkers
-                           .AsSpan().ToArray()
+                           .AsSpan()
+                           .ToArray()
                            .Where
                            (marker =>
                                {
@@ -109,25 +110,26 @@ public unsafe class AutoUseEventItem : DailyModuleBase
                                    var markerName = marker.TooltipString->ToString();
                                    if (string.IsNullOrWhiteSpace(markerName)) return false;
 
-                                   var distance = Vector3.Distance(localPos, marker.Position);
+                                   var distance = Vector3.Distance(localPlayer.Position, marker.Position);
                                    return marker.Radius <= 1 ? distance <= 5 : distance <= marker.Radius;
                                }
                            )
                            .Select(marker => marker.TooltipString->ToString())
                            .ToHashSet();
 
-        var nearbyQuest = QuestManager.Instance()->NormalQuests.ToArray()
-                                                               .Where(quest => quest.QuestId != 0 && !quest.IsHidden)
-                                                               .Select
-                                                               (quest =>
-                                                                   {
-                                                                       var rowID = quest.QuestId + 65536U;
-                                                                       var questName = LuminaGetter.GetRow<Quest>(rowID)?.Name.ToDalamudString().TextValue ??
-                                                                                       string.Empty;
-                                                                       return (rowID, questName);
-                                                                   }
-                                                               )
-                                                               .FirstOrDefault(quest => validMarkers.Contains(quest.questName));
+        var nearbyQuest = QuestManager.Instance()->NormalQuests
+                          .ToArray()
+                          .Where(quest => quest.QuestId != 0 && !quest.IsHidden)
+                          .Select
+                          (quest =>
+                              {
+                                  var rowID = quest.QuestId + 65536U;
+                                  var questName = LuminaGetter.GetRow<Quest>(rowID)?.Name.ToDalamudString().TextValue ??
+                                                  string.Empty;
+                                  return (rowID, questName);
+                              }
+                          )
+                          .FirstOrDefault(quest => validMarkers.Contains(quest.questName));
 
         if (nearbyQuest != default)
         {
