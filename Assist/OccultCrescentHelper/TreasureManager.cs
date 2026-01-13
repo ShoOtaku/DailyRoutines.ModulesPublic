@@ -779,22 +779,20 @@ public partial class OccultCrescentHelper
                     improvementFound = false;
 
                     for (var i = 0; i < n - 2; i++)
+                    for (var j = i + 2; j < n - 1; j++)
                     {
-                        for (var j = i + 2; j < n - 1; j++)
+                        var p1 = path[i].Position;
+                        var p2 = path[i + 1].Position;
+                        var p3 = path[j].Position;
+                        var p4 = path[j + 1].Position;
+
+                        var currentDist = Vector3.Distance(p1, p2) + Vector3.Distance(p3, p4);
+                        var newDist     = Vector3.Distance(p1, p3) + Vector3.Distance(p2, p4);
+
+                        if (newDist < currentDist)
                         {
-                            var p1 = path[i].Position;
-                            var p2 = path[i + 1].Position;
-                            var p3 = path[j].Position;
-                            var p4 = path[j + 1].Position;
-
-                            var currentDist = Vector3.Distance(p1, p2) + Vector3.Distance(p3, p4);
-                            var newDist     = Vector3.Distance(p1, p3) + Vector3.Distance(p2, p4);
-
-                            if (newDist < currentDist)
-                            {
-                                path.Reverse(i + 1, j - i);
-                                improvementFound = true;
-                            }
+                            path.Reverse(i + 1, j - i);
+                            improvementFound = true;
                         }
                     }
                 }

@@ -6,7 +6,6 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -20,11 +19,11 @@ public partial class OccultCrescentHelper : DailyModuleBase
         Author          = ["Fragile"],
         ModulesConflict = ["AutoFaceCameraDirection"]
     };
-    
+
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     private static Config ModuleConfig = null!;
-    
+
     private static AetheryteManager  AetheryteModule;
     private static CEManager         CEModule;
     private static TreasureManager   TreasureModule;
@@ -35,45 +34,57 @@ public partial class OccultCrescentHelper : DailyModuleBase
 
     private static readonly CompSig IslandIDInstanceOffsetSig = new("48 8D 8F ?? ?? ?? ?? 40 0F B6 D5 E8 ?? ?? ?? ?? 8B D3");
     private static          nint    IslandIDInstanceOffset;
-    
+
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        
+
         // lea     rcx, [rdi+XXXX], 因为是四字节所以用 uint
         if (IslandIDInstanceOffset == nint.Zero)
             IslandIDInstanceOffset = IslandIDInstanceOffsetSig.GetStatic();
         Debug($"[{nameof(OccultCrescentHelper)}] 岛 ID 存储实例偏移量: {IslandIDInstanceOffset}");
-        
+
         Overlay       ??= new(this);
         Overlay.Flags &=  ~ImGuiWindowFlags.AlwaysAutoResize;
-        
+
         AetheryteModule  = new(this);
         CEModule         = new(this);
         TreasureModule   = new(this);
         SupportJobModule = new(this);
         OthersModule     = new(this);
-        
+
         Modules = [AetheryteModule, CEModule, TreasureModule, SupportJobModule, OthersModule];
-        
+
         foreach (var module in Modules)
             module.Init();
-        
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 500);
+
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
     }
-    
+
     protected override void Uninit()
     {
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         FrameworkManager.Instance().Unreg(OnUpdate);
 
         foreach (var module in Modules)
             module.Uninit();
     }
-    
+
+    private static void OnZoneChanged(ushort obj)
+    {
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent) return;
+        FrameworkManager.Instance().Reg(OnUpdate, 1_000);
+    }
+
     private static void OnUpdate(IFramework framework)
     {
-        if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent) return;
-        
+        if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent)
+        {
+            FrameworkManager.Instance().Unreg(OnUpdate);
+            return;
+        }
+
         foreach (var module in Modules)
             module.OnUpdate();
     }
@@ -82,13 +93,13 @@ public partial class OccultCrescentHelper : DailyModuleBase
     {
         using var tab = ImRaii.TabBar("###Config", ImGuiTabBarFlags.Reorderable);
         if (!tab) return;
-        
+
         using (var aetheryteTab = ImRaii.TabItem($"{LuminaWrapper.GetEObjName(2014664)}"))
         {
             if (aetheryteTab)
                 AetheryteModule.DrawConfig();
         }
-        
+
         using (var ceTab = ImRaii.TabItem("CE / FATE"))
         {
             if (ceTab)
@@ -100,13 +111,13 @@ public partial class OccultCrescentHelper : DailyModuleBase
             if (treasureTab)
                 TreasureModule.DrawConfig();
         }
-        
+
         using (var supportJobTab = ImRaii.TabItem($"{LuminaWrapper.GetAddonText(16633)}"))
         {
             if (supportJobTab)
                 SupportJobModule.DrawConfig();
         }
-        
+
         using (var othersTab = ImRaii.TabItem($"{LuminaWrapper.GetAddonText(832)}"))
         {
             if (othersTab)
@@ -123,7 +134,7 @@ public partial class OccultCrescentHelper : DailyModuleBase
             Overlay.IsOpen = false;
             return;
         }
-        
+
         ConfigUI();
     }
 
@@ -133,79 +144,83 @@ public partial class OccultCrescentHelper : DailyModuleBase
     {
         if (abortBefore)
             taskHelper.Abort();
-        
+
         taskHelper.Enqueue(() => UseActionManager.Instance().UseActionLocation(ActionType.Action, 41343),         weight: weight);
-        taskHelper.Enqueue(() => !UIModule.IsScreenReady(),                                            weight: weight);
+        taskHelper.Enqueue(() => !UIModule.IsScreenReady(),                                                       weight: weight);
         taskHelper.Enqueue(() => DService.Instance().ObjectTable.LocalPlayer != null && UIModule.IsScreenReady(), weight: weight);
-        taskHelper.Enqueue(() =>
-        {
-            MovementManager.TPPlayerAddress(pos);
-            MovementManager.TPMountAddress(pos);
-        }, weight: weight);
+        taskHelper.Enqueue
+        (
+            () =>
+            {
+                MovementManager.TPPlayerAddress(pos);
+                MovementManager.TPMountAddress(pos);
+            },
+            weight: weight
+        );
         taskHelper.DelayNext(100, weight: weight);
         taskHelper.Enqueue(() => MovementManager.TPGround(), weight: weight);
     }
-    
+
     private static unsafe uint GetIslandID() =>
         (uint)*(ulong*)((byte*)GameMain.Instance() + IslandIDInstanceOffset + 1488);
-    
+
     public class Config : ModuleConfiguration
     {
         // 连接线
         public bool IsEnabledDrawLineToTreasure = true;
         public bool IsEnabledDrawLineToLog      = true;
         public bool IsEnabledDrawLineToCarrot   = true;
-        
+
         // 自动开箱
         public bool  IsEnabledAutoOpenTreasure;
         public float DistanceToAutoOpenTreasure = 20f;
-        
+
         // 优先移动到 魔路 / 简易魔路
         public bool  IsEnabledMoveToAetheryte  = true;
         public float DistanceToMoveToAetheryte = 100f;
-        
+
         // 通知任务出现
         public bool                                IsEnabledNotifyEvents           = true;
         public Dictionary<CrescentEventType, bool> IsEnabledNotifyEventsCategoried = [];
-        
+
         // 通知 CE 开始
         public bool IsEnabledNotifyCEStarts = true;
-        
+
         // 优先移动到 CE / FATE
         public bool  IsEnabledMoveToEvent = true;
         public float LeftTimeMoveToEvent  = 90;
-        
+
         // 岛 ID
         public bool IsEnabledIslandIDDTR  = true;
         public bool IsEnabledIslandIDChat = true;
-        
+
         // 修改 HUD
         public bool IsEnabledModifyInfoHUD = true;
-        
+
         // 辅助武僧
         public bool IsEnabledMonkKickNoMove = true;
-        
+
         // 辅助狂战士
         public bool IsEnabledBerserkerRageAutoFace = true;
         public bool IsEnabledBerserkerRageReplace  = true;
 
         // 修改默认位置
         public bool    IsEnabledModifyDefaultPositionEnterZoneSouthHorn = true;
-        public Vector3 DefaultPositionEnterZoneSouthHorn = new(834, 73, -694);
-        
+        public Vector3 DefaultPositionEnterZoneSouthHorn                = new(834, 73, -694);
+
         // 自动启用/禁用插件
         public bool   IsEnabledAutoEnableDisablePlugins = true;
         public string AutoEnableDisablePlugins          = string.Empty;
-        
+
         // 辅助职业排序
         public List<uint> AddonSupportJobOrder = [];
-        
+
         // 辅助职业技能是否为真
         public bool AddonIsDragRealAction = true;
-        
+
         // 隐藏任务指令
         public bool IsEnabledHideDutyCommand;
-        
+
         // CE 历史记录
         // 岛 ID - CE ID - 刷新时间秒级时间戳
         public Dictionary<uint, Dictionary<uint, long>> CEHistory = [];
@@ -216,7 +231,7 @@ public partial class OccultCrescentHelper : DailyModuleBase
         protected readonly OccultCrescentHelper MainModule = mainModule;
 
         public virtual void Init() { }
-        
+
         public virtual void OnUpdate() { }
 
         public virtual void DrawConfig() { }

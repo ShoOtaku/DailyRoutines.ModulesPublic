@@ -50,6 +50,7 @@ public partial class OccultCrescentHelper
 
             var addedJobs        = ModuleConfig.AddonSupportJobOrder.ToHashSet();
             var isAnyNewJobOrder = false;
+
             foreach (var job in LuminaGetter.Get<MKDSupportJob>())
             {
                 if (addedJobs.Contains(job.RowId)) continue;
@@ -78,16 +79,18 @@ public partial class OccultCrescentHelper
                 RememberClosePosition = true
             };
 
-            AgentMKDSupportJobShowHook ??= DService.Instance().Hook.HookFromAddress<AgentShowDelegate>(
+            AgentMKDSupportJobShowHook ??= DService.Instance().Hook.HookFromAddress<AgentShowDelegate>
+            (
                 AgentMKDSupportJob.Instance()->VirtualTable->GetVFuncByName("Show"),
-                AgentMKDSupportJobShowDetour);
+                AgentMKDSupportJobShowDetour
+            );
             AgentMKDSupportJobShowHook.Enable();
         }
 
         public override void DrawConfig()
         {
             using var id = ImRaii.PushId("OthersManager");
-            
+
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("OccultCrescentHelper-OthersManager-IslandID"));
             ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-OthersManager-IslandID-Help"), 20f * GlobalFontScale);
 
@@ -107,6 +110,7 @@ public partial class OccultCrescentHelper
             ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-OthersManager-ModifyInfoHUD-Help"), 20f * GlobalFontScale);
 
             ImGui.SameLine(0, 8f * GlobalFontScale);
+
             if (ImGui.Checkbox("###ModifyInfoHUD", ref ModuleConfig.IsEnabledModifyInfoHUD))
             {
                 ModuleConfig.Save(MainModule);
@@ -120,14 +124,18 @@ public partial class OccultCrescentHelper
                 using (ImRaii.PushIndent())
                 {
                     ImGui.TextColored(KnownColor.Orange.ToVector4(), GetLoc("OccultCrescentHelper-OthersManager-ModifySupportJobOrder"));
-                    ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-OthersManager-ModifySupportJobOrder-Help", LuminaWrapper.GetAddonText(16658)),
-                                       30f * GlobalFontScale);
+                    ImGuiOm.HelpMarker
+                    (
+                        GetLoc("OccultCrescentHelper-OthersManager-ModifySupportJobOrder-Help", LuminaWrapper.GetAddonText(16658)),
+                        30f * GlobalFontScale
+                    );
 
                     ImGui.SameLine();
                     if (ImGui.SmallButton(GetLoc("Save")))
                         ModuleConfig.Save(MainModule);
 
                     ImGui.SameLine();
+
                     if (ImGui.SmallButton(GetLoc("Reset")))
                     {
                         ModuleConfig.AddonSupportJobOrder = ModuleConfig.AddonSupportJobOrder.Order().ToList();
@@ -144,6 +152,7 @@ public partial class OccultCrescentHelper
                             var name       = LuminaWrapper.GetMKDSupportJobName(supportJob);
 
                             ImGui.Button(name, new(ImGui.CalcTextSize(longestJobName).X * 2, ImGui.GetTextLineHeightWithSpacing()));
+
                             using (var source = ImRaii.DragDropSource())
                             {
                                 if (source)
@@ -160,6 +169,7 @@ public partial class OccultCrescentHelper
                                 if (target)
                                 {
                                     ImGui.AcceptDragDropPayload("JobReorder");
+
                                     if (ImGui.IsMouseReleased(ImGuiMouseButton.Left) && DragDropJobIndex >= 0)
                                     {
                                         (ModuleConfig.AddonSupportJobOrder[DragDropJobIndex], ModuleConfig.AddonSupportJobOrder[i]) =
@@ -177,7 +187,11 @@ public partial class OccultCrescentHelper
             ImGui.NewLine();
 
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("OccultCrescentHelper-OthersManager-ModifyDefaultEnterZonePosition")} ({LuminaWrapper.GetAddonText(16586)})");
+            ImGui.TextColored
+            (
+                KnownColor.LightSkyBlue.ToVector4(),
+                $"{GetLoc("OccultCrescentHelper-OthersManager-ModifyDefaultEnterZonePosition")} ({LuminaWrapper.GetAddonText(16586)})"
+            );
             ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-OthersManager-ModifyDefaultEnterZonePosition-Help"), 20f * GlobalFontScale);
 
             ImGui.SameLine(0, 8f * GlobalFontScale);
@@ -194,6 +208,7 @@ public partial class OccultCrescentHelper
                         ModuleConfig.Save(MainModule);
 
                     ImGui.SameLine();
+
                     if (ImGui.Button($"{GetLoc("Current")}##SetDefaultPositionEnterZoneSouthHorn"))
                     {
                         ModuleConfig.DefaultPositionEnterZoneSouthHorn = DService.Instance().ObjectTable.LocalPlayer?.Position ?? default;
@@ -201,6 +216,7 @@ public partial class OccultCrescentHelper
                     }
 
                     var isFirst = true;
+
                     foreach (var aetheryte in CrescentAetheryte.SouthHornAetherytes)
                     {
                         if (!isFirst)
@@ -230,7 +246,7 @@ public partial class OccultCrescentHelper
             {
                 using (ImRaii.PushIndent())
                 {
-                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - (20f * GlobalFontScale));
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 20f * GlobalFontScale);
                     ImGui.InputText("###AutoEnableDisablePluginsInput", ref ModuleConfig.AutoEnableDisablePlugins, 1024);
                     if (ImGui.IsItemDeactivatedAfterEdit())
                         ModuleConfig.Save(MainModule);
@@ -301,6 +317,7 @@ public partial class OccultCrescentHelper
                 if (GameState.TerritoryType == 1278 && ModuleConfig.IsEnabledAutoEnableDisablePlugins)
                 {
                     var pluginsNames = ModuleConfig.AutoEnableDisablePlugins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
                     foreach (var plugin in pluginsNames)
                     {
                         if (string.IsNullOrWhiteSpace(plugin)) continue;
@@ -314,6 +331,7 @@ public partial class OccultCrescentHelper
             }
 
             var islandID = GetIslandID();
+
             if (ModuleConfig.IsEnabledIslandIDChat)
             {
                 var message = new SeStringBuilder()
@@ -334,19 +352,22 @@ public partial class OccultCrescentHelper
                 BetweenAreas)
             {
                 OthersTaskHelper.Abort();
-                OthersTaskHelper.Enqueue(() =>
-                {
-                    if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
-                    if (localPlayer.IsDead) return true;
+                OthersTaskHelper.Enqueue
+                (() =>
+                    {
+                        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
+                        if (localPlayer.IsDead) return true;
 
-                    MovementManager.TPPlayerAddress(ModuleConfig.DefaultPositionEnterZoneSouthHorn);
-                    return true;
-                });
+                        MovementManager.TPPlayerAddress(ModuleConfig.DefaultPositionEnterZoneSouthHorn);
+                        return true;
+                    }
+                );
             }
 
             if (ModuleConfig.IsEnabledAutoEnableDisablePlugins)
             {
                 var pluginsNames = ModuleConfig.AutoEnableDisablePlugins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
                 foreach (var plugin in pluginsNames)
                 {
                     if (string.IsNullOrWhiteSpace(plugin)) continue;
@@ -409,6 +430,7 @@ public partial class OccultCrescentHelper
                             starButton->SetPositionFloat(0, 12);
 
                         var newJobNotifyButton = MKDInfo->GetImageNodeById(24);
+
                         if (newJobNotifyButton != null)
                         {
                             newJobNotifyButton->ToggleVisibility(false);
@@ -507,46 +529,46 @@ public partial class OccultCrescentHelper
                     break;
             }
         }
-        
+
         public class AddonDRMKDSupportJobChange : NativeAddon
         {
-            private const float LerpSpeed = 0.2f;
+            private const float LERP_SPEED = 0.2f;
 
-            private bool IsFocused;
+            private bool isFocused;
 
             public readonly Dictionary<uint, TextureButtonNode> SupportJobButtons = [];
 
-            private List<SupportJobActionListNode> JobActionsContainer = [];
+            private List<SupportJobActionListNode> jobActionsContainer = [];
 
-            private VerticalListNode JobContainer;
+            private VerticalListNode jobContainer;
 
-            private SimpleNineGridNode BackgroundNode;
-            private SimpleNineGridNode BorderNode;
+            private SimpleNineGridNode backgroundNode;
+            private SimpleNineGridNode borderNode;
 
-            private SimpleNineGridNode MoonPatternNode;
-            private SimpleNineGridNode PatternLeftNode;
-            private SimpleNineGridNode PatternLeftCornerNode;
-            private SimpleNineGridNode PatternRightNode;
-            private SimpleNineGridNode HeaderBackgroundNode;
-            private SimpleNineGridNode HeaderBorderNode;
+            private SimpleNineGridNode moonPatternNode;
+            private SimpleNineGridNode patternLeftNode;
+            private SimpleNineGridNode patternLeftCornerNode;
+            private SimpleNineGridNode patternRightNode;
+            private SimpleNineGridNode headerBackgroundNode;
+            private SimpleNineGridNode headerBorderNode;
 
-            private TextureButtonNode CloseButtonNode;
+            private TextureButtonNode closeButtonNode;
 
             public bool PressedButtonOnce { get; set; }
-            
+
             protected override void OnSetup(AtkUnitBase* addon)
             {
-                PressedButtonOnce = false;
-                RootNode.Size += new Vector2(200, 0);
-                
+                PressedButtonOnce =  false;
+                RootNode.Size     += new Vector2(200, 0);
+
                 var windowNode = (WindowNode)WindowNode;
 
                 windowNode.CloseButtonNode.IsVisible = false;
                 windowNode.BackgroundNode.IsVisible  = false;
                 windowNode.BorderNode.Alpha          = 0f;
                 windowNode.TitleNode.IsVisible       = false;
-                
-                JobActionsContainer.Clear();
+
+                jobActionsContainer.Clear();
 
                 CreateWindowStyle();
 
@@ -564,64 +586,64 @@ public partial class OccultCrescentHelper
                 }
 
                 var windowNode = (WindowNode)WindowNode;
-                
-                IsFocused                               = windowNode.BorderNode.IsVisible;
+
+                isFocused                               = windowNode.BorderNode.IsVisible;
                 windowNode.BackgroundImageNode.Position = new(0);
                 windowNode.BackgroundImageNode.Size     = new(windowNode.Width - 2f, windowNode.Height - 12f);
 
                 if (!Throttler.Throttle("OccultCrescentHelper-OthersManager-UpdateAddon", 10)) return;
 
-                foreach (var node in JobActionsContainer)
+                foreach (var node in jobActionsContainer)
                 {
                     if (!node.IsVisible) continue;
 
                     if (node.BorderNode != null)
                     {
-                        Vector3 targetColor = IsFocused ? new(0.19607843f) : new(-0.19607843f);
-                        node.BorderNode.AddColor = Vector3.Lerp(node.BorderNode.AddColor, targetColor, LerpSpeed);
+                        Vector3 targetColor = isFocused ? new(0.19607843f) : new(-0.19607843f);
+                        node.BorderNode.AddColor = Vector3.Lerp(node.BorderNode.AddColor, targetColor, LERP_SPEED);
                     }
 
                     if (node.BackgroundNode != null)
                     {
-                        var targetAlpha = IsFocused ? 0.9f : 0.7f;
-                        node.BackgroundNode.Alpha = float.Lerp(node.BackgroundNode.Alpha / 255f, targetAlpha, LerpSpeed);
+                        var targetAlpha = isFocused ? 0.9f : 0.7f;
+                        node.BackgroundNode.Alpha = float.Lerp(node.BackgroundNode.Alpha / 255f, targetAlpha, LERP_SPEED);
                     }
                 }
 
-                if (BorderNode != null)
+                if (borderNode != null)
                 {
-                    Vector3 targetColor = IsFocused ? new(0.19607843f) : new(-0.19607843f);
-                    BorderNode.AddColor = Vector3.Lerp(BorderNode.AddColor, targetColor, LerpSpeed);
+                    Vector3 targetColor = isFocused ? new(0.19607843f) : new(-0.19607843f);
+                    borderNode.AddColor = Vector3.Lerp(borderNode.AddColor, targetColor, LERP_SPEED);
                 }
 
-                if (BackgroundNode != null)
+                if (backgroundNode != null)
                 {
-                    var targetAlpha = IsFocused ? 0.9f : 0.7f;
-                    BackgroundNode.Alpha = float.Lerp(BackgroundNode.Alpha / 255f, targetAlpha, LerpSpeed);
+                    var targetAlpha = isFocused ? 0.9f : 0.7f;
+                    backgroundNode.Alpha = float.Lerp(backgroundNode.Alpha / 255f, targetAlpha, LERP_SPEED);
                 }
 
-                if (MoonPatternNode != null)
+                if (moonPatternNode != null)
                 {
-                    var targetAlpha = IsFocused ? 0.9f : 0.7f;
-                    MoonPatternNode.Alpha = float.Lerp(MoonPatternNode.Alpha / 255f, targetAlpha, LerpSpeed);
+                    var targetAlpha = isFocused ? 0.9f : 0.7f;
+                    moonPatternNode.Alpha = float.Lerp(moonPatternNode.Alpha / 255f, targetAlpha, LERP_SPEED);
                 }
 
-                if (PatternLeftNode != null)
+                if (patternLeftNode != null)
                 {
-                    var targetAlpha = IsFocused ? 0.3f : 0.2f;
-                    PatternLeftNode.Alpha = float.Lerp(PatternLeftNode.Alpha / 255f, targetAlpha, LerpSpeed);
-                }
-                
-                if (PatternLeftCornerNode != null)
-                {
-                    var targetAlpha = IsFocused ? 0.3f : 0.2f;
-                    PatternLeftCornerNode.Alpha = float.Lerp(PatternLeftCornerNode.Alpha / 255f, targetAlpha, LerpSpeed);
+                    var targetAlpha = isFocused ? 0.3f : 0.2f;
+                    patternLeftNode.Alpha = float.Lerp(patternLeftNode.Alpha / 255f, targetAlpha, LERP_SPEED);
                 }
 
-                if (PatternRightNode != null)
+                if (patternLeftCornerNode != null)
                 {
-                    var targetAlpha = IsFocused ? 0.3f : 0.2f;
-                    PatternRightNode.Alpha = float.Lerp(PatternRightNode.Alpha / 255f, targetAlpha, LerpSpeed);
+                    var targetAlpha = isFocused ? 0.3f : 0.2f;
+                    patternLeftCornerNode.Alpha = float.Lerp(patternLeftCornerNode.Alpha / 255f, targetAlpha, LERP_SPEED);
+                }
+
+                if (patternRightNode != null)
+                {
+                    var targetAlpha = isFocused ? 0.3f : 0.2f;
+                    patternRightNode.Alpha = float.Lerp(patternRightNode.Alpha / 255f, targetAlpha, LERP_SPEED);
                 }
             }
 
@@ -633,16 +655,17 @@ public partial class OccultCrescentHelper
                 const float CONTAINER_WIDTH   = 500f;
                 const float ROW_SPACING       = 30f;
 
-                JobContainer = new VerticalListNode
+                jobContainer = new VerticalListNode
                 {
                     Position  = new(10, 0),
                     Size      = new(CONTAINER_WIDTH, 478),
-                    IsVisible = true,
+                    IsVisible = true
                 };
 
-                JobContainer.AddDummy(65);
+                jobContainer.AddDummy(65);
 
                 var rows = new List<HorizontalFlexNode>();
+
                 for (var i = 0; i < MAX_ROWS_PER_PAGE; i++)
                 {
                     var row = new HorizontalFlexNode
@@ -656,6 +679,7 @@ public partial class OccultCrescentHelper
                 }
 
                 var counter = -1;
+
                 foreach (var data in LuminaGetter.Get<MKDSupportJob>().OrderBy(x => ModuleConfig.AddonSupportJobOrder.IndexOf(x.RowId)))
                 {
                     counter++;
@@ -669,12 +693,13 @@ public partial class OccultCrescentHelper
                     var jobActionContainer = new SupportJobActionListNode
                     {
                         Position = new(500, 0),
-                        Size     = new(200, BackgroundNode.Height),
+                        Size     = new(200, backgroundNode.Height)
                     };
                     jobActionContainer.AttachNode(this);
-                    JobActionsContainer.Add(jobActionContainer);
+                    jobActionsContainer.Add(jobActionContainer);
 
                     var unlockLink = string.Empty;
+
                     if (presetJob.UnlockType != CrescentSupportJobUnlockType.None)
                     {
                         unlockLink = $"{GetLoc("OccultCrescentHelper-OthersManager-SupportJobUnlockLink")}:\n" +
@@ -698,7 +723,7 @@ public partial class OccultCrescentHelper
                         },
                         TextTooltip = !string.IsNullOrEmpty(unlockLink) && presetJob.CurrentLevel == 0
                                           ? unlockLink
-                                          : LuminaWrapper.GetMKDSupportJobDescription(presetJob.DataID),
+                                          : LuminaWrapper.GetMKDSupportJobDescription(presetJob.DataID)
                     };
                     SupportJobButtons[data.RowId] = iconButton;
 
@@ -706,116 +731,177 @@ public partial class OccultCrescentHelper
                         iconButton.AddColor = new(0.5882353f);
                     else
                     {
-                        iconButton.AddTimeline(new TimelineBuilder()
-                                               .BeginFrameSet(1, 59)
-                                               .AddLabelPair(1,  9,  1)
-                                               .AddLabelPair(10, 19, 2)
-                                               .AddLabelPair(20, 29, 3)
-                                               .AddLabelPair(30, 39, 7)
-                                               .AddLabelPair(40, 49, 6)
-                                               .AddLabelPair(50, 59, 4)
-                                               .EndFrameSet()
-                                               .Build());
+                        iconButton.AddTimeline
+                        (
+                            new TimelineBuilder()
+                                .BeginFrameSet(1, 59)
+                                .AddLabelPair(1,  9,  1)
+                                .AddLabelPair(10, 19, 2)
+                                .AddLabelPair(20, 29, 3)
+                                .AddLabelPair(30, 39, 7)
+                                .AddLabelPair(40, 49, 6)
+                                .AddLabelPair(50, 59, 4)
+                                .EndFrameSet()
+                                .Build()
+                        );
 
-                        iconButton.ImageNode.AddTimeline(new TimelineBuilder()
-                                                         .AddFrameSetWithFrame(1, 9, 1,
-                                                                               position: Vector2.Zero,
-                                                                               alpha: 255,
-                                                                               multiplyColor: new(100),
-                                                                               scale: new(1f))
-                                                         .BeginFrameSet(10, 19)
-                                                         .AddFrame(10,
-                                                                   position: Vector2.Zero,
-                                                                   alpha: 255,
-                                                                   multiplyColor: new(100),
-                                                                   scale: new(1f))
-                                                         .AddFrame(12,
-                                                                   position: new(-1),
-                                                                   alpha: 255,
-                                                                   multiplyColor: new(100),
-                                                                   addColor: new(50),
-                                                                   scale: new(1.05f))
-                                                         .EndFrameSet()
-                                                         .AddFrameSetWithFrame(20, 29, 20,
-                                                                               position: new(-1),
-                                                                               alpha: 255,
-                                                                               multiplyColor: new(100),
-                                                                               addColor: new(50),
-                                                                               scale: new(1.05f))
-                                                         .AddFrameSetWithFrame(30, 39, 30,
-                                                                               position: Vector2.Zero,
-                                                                               alpha: 178,
-                                                                               multiplyColor: new(50),
-                                                                               scale: new(1f))
-                                                         .AddFrameSetWithFrame(40, 49, 40,
-                                                                               position: new(-1),
-                                                                               alpha: 255,
-                                                                               multiplyColor: new(100),
-                                                                               addColor: new(50),
-                                                                               scale: new(1.05f))
-                                                         .BeginFrameSet(50, 59)
-                                                         .AddFrame(50,
-                                                                   position: new(-1),
-                                                                   alpha: 255,
-                                                                   multiplyColor: new(100),
-                                                                   addColor: new(50),
-                                                                   scale: new(1.05f))
-                                                         .AddFrame(52,
-                                                                   position: Vector2.Zero,
-                                                                   alpha: 255,
-                                                                   multiplyColor: new(100),
-                                                                   scale: new(1f))
-                                                         .EndFrameSet()
-                                                         .AddFrameSetWithFrame(130, 139, 130,
-                                                                               position: new(-1),
-                                                                               alpha: 255,
-                                                                               addColor: new(50),
-                                                                               multiplyColor: new(100),
-                                                                               scale: new(1.05f))
-                                                         .AddFrameSetWithFrame(140, 149, 140,
-                                                                               position: Vector2.Zero,
-                                                                               alpha: 255,
-                                                                               multiplyColor: new(100),
-                                                                               scale: new(1f))
-                                                         .AddFrameSetWithFrame(150, 159, 150,
-                                                                               position: Vector2.Zero,
-                                                                               alpha: 255,
-                                                                               multiplyColor: new(100),
-                                                                               scale: new(1f))
-                                                         .Build());
+                        iconButton.ImageNode.AddTimeline
+                        (
+                            new TimelineBuilder()
+                                .AddFrameSetWithFrame
+                                (
+                                    1,
+                                    9,
+                                    1,
+                                    Vector2.Zero,
+                                    255,
+                                    multiplyColor: new(100),
+                                    scale: new(1f)
+                                )
+                                .BeginFrameSet(10, 19)
+                                .AddFrame
+                                (
+                                    10,
+                                    Vector2.Zero,
+                                    255,
+                                    multiplyColor: new(100),
+                                    scale: new(1f)
+                                )
+                                .AddFrame
+                                (
+                                    12,
+                                    new(-1),
+                                    255,
+                                    multiplyColor: new(100),
+                                    addColor: new(50),
+                                    scale: new(1.05f)
+                                )
+                                .EndFrameSet()
+                                .AddFrameSetWithFrame
+                                (
+                                    20,
+                                    29,
+                                    20,
+                                    new(-1),
+                                    255,
+                                    multiplyColor: new(100),
+                                    addColor: new(50),
+                                    scale: new(1.05f)
+                                )
+                                .AddFrameSetWithFrame
+                                (
+                                    30,
+                                    39,
+                                    30,
+                                    Vector2.Zero,
+                                    178,
+                                    multiplyColor: new(50),
+                                    scale: new(1f)
+                                )
+                                .AddFrameSetWithFrame
+                                (
+                                    40,
+                                    49,
+                                    40,
+                                    new(-1),
+                                    255,
+                                    multiplyColor: new(100),
+                                    addColor: new(50),
+                                    scale: new(1.05f)
+                                )
+                                .BeginFrameSet(50, 59)
+                                .AddFrame
+                                (
+                                    50,
+                                    new(-1),
+                                    255,
+                                    multiplyColor: new(100),
+                                    addColor: new(50),
+                                    scale: new(1.05f)
+                                )
+                                .AddFrame
+                                (
+                                    52,
+                                    Vector2.Zero,
+                                    255,
+                                    multiplyColor: new(100),
+                                    scale: new(1f)
+                                )
+                                .EndFrameSet()
+                                .AddFrameSetWithFrame
+                                (
+                                    130,
+                                    139,
+                                    130,
+                                    new(-1),
+                                    255,
+                                    new(50),
+                                    new(100),
+                                    scale: new(1.05f)
+                                )
+                                .AddFrameSetWithFrame
+                                (
+                                    140,
+                                    149,
+                                    140,
+                                    Vector2.Zero,
+                                    255,
+                                    multiplyColor: new(100),
+                                    scale: new(1f)
+                                )
+                                .AddFrameSetWithFrame
+                                (
+                                    150,
+                                    159,
+                                    150,
+                                    Vector2.Zero,
+                                    255,
+                                    multiplyColor: new(100),
+                                    scale: new(1f)
+                                )
+                                .Build()
+                        );
                     }
 
-                    iconButton.AddEvent(AtkEventType.MouseOver, () =>
-                    {
-                        if (PressedButtonOnce) return;
-
-                        for (var index = 0; index < JobActionsContainer.Count; index++)
+                    iconButton.AddEvent
+                    (
+                        AtkEventType.MouseOver,
+                        () =>
                         {
-                            var node = JobActionsContainer[index];
-                            node.IsVisible = index == (int)data.RowId;
-                            if (node is { IsVisible: true, BackgroundNode: null })
-                                node.LoadNodes(presetJob, IsFocused);
+                            if (PressedButtonOnce) return;
+
+                            for (var index = 0; index < jobActionsContainer.Count; index++)
+                            {
+                                var node = jobActionsContainer[index];
+                                node.IsVisible = index == (int)data.RowId;
+                                if (node is { IsVisible: true, BackgroundNode: null })
+                                    node.LoadNodes(presetJob, isFocused);
+                            }
+
+                            WindowNode.CollisionNode.Size = WindowNode.CollisionNode.Size with { X = 750 };
+                            WindowNode.Size               = WindowNode.Size with { X = 750 };
                         }
+                    );
 
-                        WindowNode.CollisionNode.Size = WindowNode.CollisionNode.Size with { X = 750 };
-                        WindowNode.Size               = WindowNode.Size with { X = 750 };
-                    });
-
-                    iconButton.AddEvent(AtkEventType.ButtonPress, () =>
-                    {
-                        PressedButtonOnce = true;
-
-                        for (var index = 0; index < JobActionsContainer.Count; index++)
+                    iconButton.AddEvent
+                    (
+                        AtkEventType.ButtonPress,
+                        () =>
                         {
-                            var node = JobActionsContainer[index];
-                            node.IsVisible = index == (int)data.RowId;
-                            if (node is { IsVisible: true, BackgroundNode: null })
-                                node.LoadNodes(presetJob, IsFocused);
-                        }
+                            PressedButtonOnce = true;
 
-                        WindowNode.CollisionNode.Size = WindowNode.CollisionNode.Size with { X = 750 };
-                        WindowNode.Size               = WindowNode.Size with { X = 750 };
-                    });
+                            for (var index = 0; index < jobActionsContainer.Count; index++)
+                            {
+                                var node = jobActionsContainer[index];
+                                node.IsVisible = index == (int)data.RowId;
+                                if (node is { IsVisible: true, BackgroundNode: null })
+                                    node.LoadNodes(presetJob, isFocused);
+                            }
+
+                            WindowNode.CollisionNode.Size = WindowNode.CollisionNode.Size with { X = 750 };
+                            WindowNode.Size               = WindowNode.Size with { X = 750 };
+                        }
+                    );
 
                     if (presetJob.CurrentLevel == 0)
                         iconButton.Alpha = 0.5f;
@@ -871,17 +957,17 @@ public partial class OccultCrescentHelper
 
                 for (var i = 0; i < rows.Count; i++)
                 {
-                    JobContainer.AddNode(rows[i]);
+                    jobContainer.AddNode(rows[i]);
                     if (i < rows.Count - 1)
-                        JobContainer.AddDummy(ROW_SPACING);
+                        jobContainer.AddDummy(ROW_SPACING);
                 }
 
-                JobContainer.AttachNode(this);
+                jobContainer.AttachNode(this);
             }
 
             private void CreateWindowStyle()
             {
-                BackgroundNode = new SimpleNineGridNode
+                backgroundNode = new SimpleNineGridNode
                 {
                     TextureCoordinates = new(0),
                     TextureSize        = new(500, 490),
@@ -889,11 +975,11 @@ public partial class OccultCrescentHelper
                     IsVisible          = true,
                     Size               = new(502, 483),
                     Position           = new(-2),
-                    Alpha              = 0.9f,
+                    Alpha              = 0.9f
                 };
-                BackgroundNode.AttachNode(this);
+                backgroundNode.AttachNode(this);
 
-                HeaderBackgroundNode = new()
+                headerBackgroundNode = new()
                 {
                     TextureCoordinates = new(110, 0),
                     TextureSize        = new(9, 41),
@@ -901,11 +987,11 @@ public partial class OccultCrescentHelper
                     IsVisible          = true,
                     Size               = new(505, 40),
                     Position           = new(-2),
-                    Alpha              = 1f,
+                    Alpha              = 1f
                 };
-                HeaderBackgroundNode.AttachNode(this);
+                headerBackgroundNode.AttachNode(this);
 
-                HeaderBorderNode = new()
+                headerBorderNode = new()
                 {
                     TextureCoordinates = new(63, 55),
                     TextureSize        = new(47, 6),
@@ -916,9 +1002,9 @@ public partial class OccultCrescentHelper
                     Alpha              = 1f,
                     AddColor           = new(-0.196078f)
                 };
-                HeaderBorderNode.AttachNode(this);
-                
-                MoonPatternNode = new SimpleNineGridNode
+                headerBorderNode.AttachNode(this);
+
+                moonPatternNode = new SimpleNineGridNode
                 {
                     TextureCoordinates = new(0),
                     TextureSize        = new(190),
@@ -926,11 +1012,11 @@ public partial class OccultCrescentHelper
                     IsVisible          = true,
                     Size               = new(190),
                     Position           = new(310, 285),
-                    Alpha              = 0.9f,
+                    Alpha              = 0.9f
                 };
-                MoonPatternNode.AttachNode(this);
+                moonPatternNode.AttachNode(this);
 
-                PatternLeftNode = new()
+                patternLeftNode = new()
                 {
                     TextureCoordinates = new(349, 140),
                     TextureSize        = new(98, 132),
@@ -938,11 +1024,11 @@ public partial class OccultCrescentHelper
                     IsVisible          = true,
                     Size               = new(128, 132),
                     Position           = new(0, 40),
-                    Alpha              = 0.3f,
+                    Alpha              = 0.3f
                 };
-                PatternLeftNode.AttachNode(this);
-                
-                PatternLeftCornerNode = new()
+                patternLeftNode.AttachNode(this);
+
+                patternLeftCornerNode = new()
                 {
                     TextureCoordinates = new(0, 174),
                     TextureSize        = new(140, 146),
@@ -950,11 +1036,11 @@ public partial class OccultCrescentHelper
                     IsVisible          = true,
                     Size               = new(128, 132),
                     Position           = new(0, 300),
-                    Alpha              = 0.3f,
+                    Alpha              = 0.3f
                 };
-                PatternLeftCornerNode.AttachNode(this);
+                patternLeftCornerNode.AttachNode(this);
 
-                PatternRightNode = new SimpleNineGridNode
+                patternRightNode = new SimpleNineGridNode
                 {
                     TextureCoordinates = new(0, 45),
                     TextureSize        = new(176, 125),
@@ -962,9 +1048,9 @@ public partial class OccultCrescentHelper
                     IsVisible          = true,
                     Size               = new(236, 125),
                     Position           = new(260, 5),
-                    Alpha              = 0.3f,
+                    Alpha              = 0.3f
                 };
-                PatternRightNode.AttachNode(this);
+                patternRightNode.AttachNode(this);
 
                 var anotherWindowTitleNode = new TextNode
                 {
@@ -982,7 +1068,7 @@ public partial class OccultCrescentHelper
                 };
                 anotherWindowTitleNode.AttachNode(this);
 
-                BorderNode = new SimpleNineGridNode
+                borderNode = new SimpleNineGridNode
                 {
                     TextureCoordinates = new(1, 0),
                     TextureSize        = new(60, 70),
@@ -994,12 +1080,12 @@ public partial class OccultCrescentHelper
                     Offsets            = new(24),
                     AddColor           = new(0.19607843f)
                 };
-                BorderNode.AttachNode(this);
+                borderNode.AttachNode(this);
             }
 
             private void CreateWindowControll()
             {
-                CloseButtonNode = new TextureButtonNode
+                closeButtonNode = new TextureButtonNode
                 {
                     Size               = new(28f),
                     Position           = new(458f, 8f),
@@ -1010,28 +1096,34 @@ public partial class OccultCrescentHelper
                     OnClick            = Close
                 };
 
-                CloseButtonNode.ImageNode.AddColor = new(-0.19607843f);
+                closeButtonNode.ImageNode.AddColor = new(-0.19607843f);
 
-                CloseButtonNode.AddTimeline(new TimelineBuilder()
-                                            .BeginFrameSet(1, 20)
-                                            .AddLabel(1,  1, AtkTimelineJumpBehavior.Start,    0)
-                                            .AddLabel(10, 0, AtkTimelineJumpBehavior.PlayOnce, 1)
-                                            .AddLabel(11, 2, AtkTimelineJumpBehavior.Start,    0)
-                                            .AddLabel(20, 0, AtkTimelineJumpBehavior.PlayOnce, 2)
-                                            .EndFrameSet()
-                                            .Build());
+                closeButtonNode.AddTimeline
+                (
+                    new TimelineBuilder()
+                        .BeginFrameSet(1, 20)
+                        .AddLabel(1,  1, AtkTimelineJumpBehavior.Start,    0)
+                        .AddLabel(10, 0, AtkTimelineJumpBehavior.PlayOnce, 1)
+                        .AddLabel(11, 2, AtkTimelineJumpBehavior.Start,    0)
+                        .AddLabel(20, 0, AtkTimelineJumpBehavior.PlayOnce, 2)
+                        .EndFrameSet()
+                        .Build()
+                );
 
-                CloseButtonNode.ImageNode.AddTimeline(new TimelineBuilder()
-                                                      .BeginFrameSet(1, 10)
-                                                      .AddFrame(1, addColor: new(0))
-                                                      .AddFrame(4, addColor: new(-50))
-                                                      .EndFrameSet()
-                                                      .BeginFrameSet(11, 20)
-                                                      .AddFrame(11, addColor: new(0))
-                                                      .AddFrame(14, addColor: new(50))
-                                                      .EndFrameSet()
-                                                      .Build());
-                CloseButtonNode.AttachNode(this);
+                closeButtonNode.ImageNode.AddTimeline
+                (
+                    new TimelineBuilder()
+                        .BeginFrameSet(1, 10)
+                        .AddFrame(1, addColor: new(0))
+                        .AddFrame(4, addColor: new(-50))
+                        .EndFrameSet()
+                        .BeginFrameSet(11, 20)
+                        .AddFrame(11, addColor: new(0))
+                        .AddFrame(14, addColor: new(50))
+                        .EndFrameSet()
+                        .Build()
+                );
+                closeButtonNode.AttachNode(this);
             }
 
             private class SupportJobActionListNode : SimpleComponentNode
@@ -1054,12 +1146,12 @@ public partial class OccultCrescentHelper
                         TextureSize        = new(500, 380),
                         TexturePath        = "ui/uld/MKDWallPaper_hr1.tex",
                         IsVisible          = true,
-                        Size               = this.Size + new Vector2(50, 0),
+                        Size               = Size + new Vector2(50, 0),
                         Position           = new(-2),
-                        Alpha              = isCurrentFoucused ? 0.9f : 0.6f,
+                        Alpha              = isCurrentFoucused ? 0.9f : 0.6f
                     };
                     BackgroundNode.AttachNode(this);
-                    
+
                     HeaderBackgroundNode = new()
                     {
                         TextureCoordinates = new(110, 0),
@@ -1068,7 +1160,7 @@ public partial class OccultCrescentHelper
                         IsVisible          = true,
                         Size               = Size with { Y = 40 } + new Vector2(54, 0),
                         Position           = new(-2),
-                        Alpha              = 1f,
+                        Alpha              = 1f
                     };
                     HeaderBackgroundNode.AttachNode(this);
 
@@ -1091,7 +1183,7 @@ public partial class OccultCrescentHelper
                         TextureSize        = new(60, 70),
                         TexturePath        = "ui/uld/MKDWindow_hr1.tex",
                         IsVisible          = true,
-                        Size               = this.Size + new Vector2(64, 14),
+                        Size               = Size + new Vector2(64, 14),
                         Position           = new(-8.5f, -5),
                         Alpha              = 0.9f,
                         Offsets            = new(24),
@@ -1101,7 +1193,7 @@ public partial class OccultCrescentHelper
 
                     ActionListNode = new VerticalListNode
                     {
-                        Size      = this.Size + new Vector2(50, 0),
+                        Size      = Size + new Vector2(50, 0),
                         IsVisible = true,
                         Position  = new(10, 30)
                     };
@@ -1126,7 +1218,7 @@ public partial class OccultCrescentHelper
                             IconId       = action.Icon,
                             AcceptedType = DragDropType.Nothing,
                             IsDraggable  = true,
-                            IsClickable  = true,
+                            IsClickable  = true
                         };
                         ActionDragDropNodes.Add(dragDropNode);
 
@@ -1174,11 +1266,11 @@ public partial class OccultCrescentHelper
                             IsDraggable  = false,
                             Payload = new()
                             {
-                                Int2 = (int)trait,
+                                Int2 = (int)trait
                             },
                             IsClickable = false,
                             OnRollOver  = node => node.ShowTooltip(AtkTooltipManager.AtkTooltipType.Action, ActionKind.Unk59),
-                            OnRollOut   = node => node.HideTooltip(),
+                            OnRollOut   = node => node.HideTooltip()
                         };
 
                         row.AddNode(dragDropNode);
@@ -1216,31 +1308,37 @@ public partial class OccultCrescentHelper
                             SupportJobChangeAddon.PressedButtonOnce = false;
 
                             SupportJobChangeAddon.WindowNode.CollisionNode.Size = SupportJobChangeAddon.WindowNode.CollisionNode.Size with { X = 500 };
-                            SupportJobChangeAddon.WindowNode.Size = SupportJobChangeAddon.WindowNode.Size with { X = 500 };
+                            SupportJobChangeAddon.WindowNode.Size               = SupportJobChangeAddon.WindowNode.Size with { X = 500 };
                         }
                     };
-                    
-                    CloseButtonNode.ImageNode.AddColor = new(-0.19607843f);
-                    
-                    CloseButtonNode.AddTimeline(new TimelineBuilder()
-                                                .BeginFrameSet(1, 20)
-                                                .AddLabel(1,  1, AtkTimelineJumpBehavior.Start,    0)
-                                                .AddLabel(10, 0, AtkTimelineJumpBehavior.PlayOnce, 1)
-                                                .AddLabel(11, 2, AtkTimelineJumpBehavior.Start,    0)
-                                                .AddLabel(20, 0, AtkTimelineJumpBehavior.PlayOnce, 2)
-                                                .EndFrameSet()
-                                                .Build());
 
-                    CloseButtonNode.ImageNode.AddTimeline(new TimelineBuilder()
-                                                          .BeginFrameSet(1, 10)
-                                                          .AddFrame(1, addColor: new(0))
-                                                          .AddFrame(4, addColor: new(-50))
-                                                          .EndFrameSet()
-                                                          .BeginFrameSet(11, 20)
-                                                          .AddFrame(11, addColor: new(0))
-                                                          .AddFrame(14, addColor: new(50))
-                                                          .EndFrameSet()
-                                                          .Build());
+                    CloseButtonNode.ImageNode.AddColor = new(-0.19607843f);
+
+                    CloseButtonNode.AddTimeline
+                    (
+                        new TimelineBuilder()
+                            .BeginFrameSet(1, 20)
+                            .AddLabel(1,  1, AtkTimelineJumpBehavior.Start,    0)
+                            .AddLabel(10, 0, AtkTimelineJumpBehavior.PlayOnce, 1)
+                            .AddLabel(11, 2, AtkTimelineJumpBehavior.Start,    0)
+                            .AddLabel(20, 0, AtkTimelineJumpBehavior.PlayOnce, 2)
+                            .EndFrameSet()
+                            .Build()
+                    );
+
+                    CloseButtonNode.ImageNode.AddTimeline
+                    (
+                        new TimelineBuilder()
+                            .BeginFrameSet(1, 10)
+                            .AddFrame(1, addColor: new(0))
+                            .AddFrame(4, addColor: new(-50))
+                            .EndFrameSet()
+                            .BeginFrameSet(11, 20)
+                            .AddFrame(11, addColor: new(0))
+                            .AddFrame(14, addColor: new(50))
+                            .EndFrameSet()
+                            .Build()
+                    );
                     CloseButtonNode.AttachNode(this);
 
                     SettingButtonNode = new TextureButtonNode
@@ -1256,25 +1354,31 @@ public partial class OccultCrescentHelper
 
                     SettingButtonNode.ImageNode.AddColor = new(1);
 
-                    SettingButtonNode.AddTimeline(new TimelineBuilder()
-                                                  .BeginFrameSet(1, 20)
-                                                  .AddLabel(1,  1, AtkTimelineJumpBehavior.Start,    0)
-                                                  .AddLabel(10, 0, AtkTimelineJumpBehavior.PlayOnce, 1)
-                                                  .AddLabel(11, 2, AtkTimelineJumpBehavior.Start,    0)
-                                                  .AddLabel(20, 0, AtkTimelineJumpBehavior.PlayOnce, 2)
-                                                  .EndFrameSet()
-                                                  .Build());
+                    SettingButtonNode.AddTimeline
+                    (
+                        new TimelineBuilder()
+                            .BeginFrameSet(1, 20)
+                            .AddLabel(1,  1, AtkTimelineJumpBehavior.Start,    0)
+                            .AddLabel(10, 0, AtkTimelineJumpBehavior.PlayOnce, 1)
+                            .AddLabel(11, 2, AtkTimelineJumpBehavior.Start,    0)
+                            .AddLabel(20, 0, AtkTimelineJumpBehavior.PlayOnce, 2)
+                            .EndFrameSet()
+                            .Build()
+                    );
 
-                    SettingButtonNode.ImageNode.AddTimeline(new TimelineBuilder()
-                                                            .BeginFrameSet(1, 10)
-                                                            .AddFrame(1, addColor: new(200))
-                                                            .AddFrame(4, addColor: new(100))
-                                                            .EndFrameSet()
-                                                            .BeginFrameSet(11, 20)
-                                                            .AddFrame(11, addColor: new(100))
-                                                            .AddFrame(14, addColor: new(200))
-                                                            .EndFrameSet()
-                                                            .Build());
+                    SettingButtonNode.ImageNode.AddTimeline
+                    (
+                        new TimelineBuilder()
+                            .BeginFrameSet(1, 10)
+                            .AddFrame(1, addColor: new(200))
+                            .AddFrame(4, addColor: new(100))
+                            .EndFrameSet()
+                            .BeginFrameSet(11, 20)
+                            .AddFrame(11, addColor: new(100))
+                            .AddFrame(14, addColor: new(200))
+                            .EndFrameSet()
+                            .Build()
+                    );
                     SettingButtonNode.AttachNode(this);
 
                     IsRealActionNode = new()
@@ -1302,7 +1406,7 @@ public partial class OccultCrescentHelper
                     IsRealActionNode.Label.TextFlags        |= TextFlags.Edge | TextFlags.Emboss;
                     IsRealActionNode.Label.TextColor        =  ColorHelper.GetColor(50);
                     IsRealActionNode.Label.TextOutlineColor =  ColorHelper.GetColor(502);
-                    
+
                     IsRealActionNode.AttachNode(this);
                 }
 
@@ -1366,7 +1470,7 @@ public partial class OccultCrescentHelper
                         Payload = new()
                         {
                             Type = IsRealAction ? DragDropType.Action : DragDropType.GeneralAction,
-                            Int2 = IsRealAction ? (int)ActionID : 31 + ActionIndex,
+                            Int2 = IsRealAction ? (int)ActionID : 31 + ActionIndex
                         };
 
                         OnRollOver = node =>
@@ -1385,6 +1489,7 @@ public partial class OccultCrescentHelper
 
                                 // 找还有哪个其他技能能被设成默认
                                 var actions = Job.Actions.Select(x => x.Key).ToList();
+
                                 for (var i = 0; i < actions.Count; i++)
                                 {
                                     if (i == ActionIndex || HiddenActions.Contains((byte)i)) continue;
@@ -1419,7 +1524,7 @@ public partial class OccultCrescentHelper
                     {
                         var defaultAction     = stackalloc byte[1];
                         var actionHiddenFlags = stackalloc byte[1];
-                        
+
                         AgentMKDSupportJob.GetJobSettings(Job.DataID, defaultAction, actionHiddenFlags);
 
                         DefaultAction     = *defaultAction;
@@ -1427,10 +1532,8 @@ public partial class OccultCrescentHelper
 
                         HiddenActions.Clear();
                         for (byte i = 0; i < 5; i++)
-                        {
                             if (ActionHiddenFlags.HasFlag(IndexToHiddenFlag(i)))
                                 HiddenActions.Add(i);
-                        }
 
                         IsDefault = DefaultAction == (byte)ActionIndex;
                         IsHidden  = HiddenActions.Contains((byte)ActionIndex);
@@ -1455,7 +1558,7 @@ public partial class OccultCrescentHelper
                         Action1 = 1 << 1,
                         Action2 = 1 << 2,
                         Action3 = 1 << 3,
-                        Action4 = 1 << 4,
+                        Action4 = 1 << 4
                     }
 
                     public static ActionSlotHiddenFlag IndexToHiddenFlag(int index) => index switch
