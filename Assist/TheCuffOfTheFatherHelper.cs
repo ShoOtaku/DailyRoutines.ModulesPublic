@@ -1,8 +1,9 @@
 using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace DailyRoutines.ModulesPublic;
@@ -15,9 +16,9 @@ public class TheCuffOfTheFatherHelper : DailyModuleBase
         Description = GetLoc("TheCuffOfTheFatherHelperDescription"),
         Category    = ModuleCategories.Assist
     };
-    
+
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-    
+
     protected override void Init()
     {
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
@@ -27,29 +28,46 @@ public class TheCuffOfTheFatherHelper : DailyModuleBase
     protected override void Uninit()
     {
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-        FrameworkManager.Instance().Unreg(OnUpdate);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
     }
 
     private static void OnZoneChanged(ushort zone)
     {
-        FrameworkManager.Instance().Unreg(OnUpdate);
-        
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+
         if (GameState.TerritoryType != 443) return;
 
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 500);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_EnemyList", OnAddon);
     }
 
-    private static unsafe void OnUpdate(IFramework _)
+    private static unsafe void OnAddon(AddonEvent type, AddonArgs args)
     {
-        foreach (var obj in DService.Instance().ObjectTable)
+        var enemyListArray = AtkStage.Instance()->GetNumberArrayData(NumberArrayType.EnemyList);
+        if (enemyListArray == null) return;
+
+        var enemyCount = enemyListArray->IntArray[1];
+        if (enemyCount < 1) return;
+
+        for (var i = 0; i < enemyCount; i++)
         {
-            if (obj.ObjectKind != ObjectKind.BattleNpc || obj.DataID != 3865) continue;
-            
+            var offset = 8 + i * 6;
+
+            var gameObjectID = (ulong)enemyListArray->IntArray[offset];
+            if (gameObjectID is 0 or 0xE0000000) continue;
+
+            if (DService.Instance().ObjectTable.SearchByID(gameObjectID, IObjectTable.CharactersRange) is not
+                {
+                    ObjectKind: ObjectKind.BattleNpc,
+                    DataID: 3865
+                }
+                obj)
+                continue;
+
             if (DService.Instance().Condition[ConditionFlag.Mounted])
                 obj.ToStruct()->TargetableStatus |= ObjectTargetableFlags.IsTargetable;
             else
                 obj.ToStruct()->TargetableStatus &= ~ObjectTargetableFlags.IsTargetable;
-            
+
             obj.ToStruct()->Highlight(ObjectHighlightColor.Yellow);
         }
     }
