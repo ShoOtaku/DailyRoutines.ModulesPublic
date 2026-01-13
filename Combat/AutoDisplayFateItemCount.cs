@@ -39,7 +39,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
     private class FateInfoNode : OverlayNode
     {
         public override OverlayLayer OverlayLayer     => OverlayLayer.Foreground;
-        public override bool         HideWithNativeUI => false;
+        public override bool         HideWithNativeUi => false;
 
         private GridNode TableNode { get; }
         

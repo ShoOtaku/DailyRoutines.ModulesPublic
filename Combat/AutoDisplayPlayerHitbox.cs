@@ -87,7 +87,7 @@ public unsafe class AutoDisplayPlayerHitbox : DailyModuleBase
     private class PlayerDotImageNode : OverlayNode
     {
         public override OverlayLayer OverlayLayer     => OverlayLayer.Foreground;
-        public override bool         HideWithNativeUI => false;
+        public override bool         HideWithNativeUi => false;
 
         private readonly IconImageNode imageNode;
 

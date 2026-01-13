@@ -502,7 +502,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         public int  Index  { get; init; }
 
         public override OverlayLayer OverlayLayer     => OverlayLayer.Foreground;
-        public override bool         HideWithNativeUI => true;
+        public override bool         HideWithNativeUi => true;
 
         public bool ShouldBeVisible { get; set; }
 

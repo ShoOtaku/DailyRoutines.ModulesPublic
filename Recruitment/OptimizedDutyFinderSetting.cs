@@ -27,8 +27,9 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
     private static readonly SetContentsFinderSettingsInitDelegate SetContentsFinderSettingsInit =
         new CompSig("E8 ?? ?? ?? ?? 49 8B 06 45 33 FF 49 8B CE 45 89 7E 20 FF 50 28 B0 01").GetDelegate<SetContentsFinderSettingsInitDelegate>();
 
-    private static readonly Dictionary<DutyFinderSettingDisplay, (IconButtonNode ButtonNode, IconImageNode ImageNode)> Nodes = [];
     private static HorizontalListNode? LayoutNode;
+    
+    private static readonly Dictionary<DutyFinderSettingDisplay, (IconButtonNode? ButtonNode, IconImageNode? ImageNode)> Nodes = [];
 
     protected override void Init()
     {
@@ -160,7 +161,7 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
                             languageButton.ImageNode.IsVisible      = false;
 
                             languageButton.AttachNode(parentNode);
-                            Nodes[langSetting] = (languageButton, null!);
+                            Nodes[langSetting] = (languageButton, null);
                         }
                     }
                 }
