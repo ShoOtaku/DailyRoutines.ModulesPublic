@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -40,10 +39,9 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
     private static Hook<AgentLobbyOnLoginDelegate>? AgentLobbyOnLoginHook;
 
-    private static Config        ModuleConfig = null!;
-    private static IDtrBarEntry? Entry;
-    private static Tracker?      PlaytimeTracker;
-    private static Query?        PlaytimeQuery;
+    private static Config           ModuleConfig = null!;
+    private static IDtrBarEntry?    Entry;
+    private static PlaytimeManager? Manager;
 
     protected override unsafe void Init()
     {
@@ -51,12 +49,13 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         TaskHelper   ??= new();
 
         var path = Path.Join(ConfigDirectoryPath, "PlatimeData.log");
-        PlaytimeTracker ??= new(path);
-        PlaytimeQuery   ??= new(path);
+        Manager = new PlaytimeManager(path);
+        Manager.Start();
 
         Entry         ??= DService.Instance().DTRBar.Get("DailyRoutines-GameTimeLeft");
         Entry.OnClick =   OnDTREntryClick;
 
+        // 初次更新
         UpdateEntryAndTimeInfo();
 
         AgentLobbyOnLoginHook ??= AgentLobbyOnLoginSig.GetHook<AgentLobbyOnLoginDelegate>(AgentLobbyOnLoginDetour);
@@ -65,8 +64,8 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         DService.Instance().ClientState.Login  += OnLogin;
         DService.Instance().ClientState.Logout += OnLogout;
 
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 5_000);
-        
+        FrameworkManager.Instance().Reg(OnUpdate, 5_000);
+
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "CharaSelect",        OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "CharaSelect",        OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_CharaSelectRemain", OnAddon);
@@ -80,26 +79,23 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
         if (!ModuleConfig.Infos.TryGetValue(contentID, out var info) ||
             info.Record == DateTime.MinValue                         ||
-            (info.LeftMonth == TimeSpan.MinValue && info.LeftTime == TimeSpan.MinValue))
+            info.LeftMonth == TimeSpan.MinValue && info.LeftTime == TimeSpan.MinValue)
         {
             ImGui.TextColored(KnownColor.Orange.ToVector4(), "当前角色暂无数据, 请重新登录游戏以记录");
             return;
         }
 
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "上次记录:");
-
         ImGui.SameLine();
         ImGui.TextUnformatted($"{info.Record}");
 
         ImGui.NewLine();
 
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "月卡剩余时间:");
-
         ImGui.SameLine();
         ImGui.TextUnformatted(FormatTimeSpan(info.LeftMonth == TimeSpan.MinValue ? TimeSpan.Zero : info.LeftMonth));
 
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "点卡剩余时间:");
-
         ImGui.SameLine();
         ImGui.TextUnformatted(FormatTimeSpan(info.LeftTime));
     }
@@ -107,16 +103,13 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
     protected override void Uninit()
     {
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
-
         FrameworkManager.Instance().Unreg(OnUpdate);
 
         Entry?.Remove();
         Entry = null;
 
-        PlaytimeTracker?.Dispose();
-        PlaytimeTracker = null;
-
-        PlaytimeQuery = null;
+        Manager?.Dispose();
+        Manager = null;
 
         DService.Instance().ClientState.Login  -= OnLogin;
         DService.Instance().ClientState.Logout -= OnLogout;
@@ -124,25 +117,30 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
     private void OnLogin()
     {
-        TaskHelper.Enqueue(() =>
-        {
-            var contentID = LocalPlayerState.ContentID;
-            if (contentID == 0) return false;
-
-            UpdateEntryAndTimeInfo(contentID);
-            return true;
-        });
+        Manager?.OnLogin();
+        TaskHelper.Enqueue
+        (() =>
+            {
+                var contentID = LocalPlayerState.ContentID;
+                if (contentID == 0) return false;
+                UpdateEntryAndTimeInfo(contentID);
+                return true;
+            }
+        );
     }
 
-    private static void OnUpdate(IFramework _) =>
-        UpdateEntryAndTimeInfo();
-
-    private void OnLogout(int code, int type) =>
+    private void OnLogout(int code, int type)
+    {
+        Manager?.OnLogout();
         TaskHelper?.Abort();
+    }
+
+    private static void OnUpdate(IFramework _) => UpdateEntryAndTimeInfo();
 
     private unsafe void OnAddon(AddonEvent type, AddonArgs args)
     {
         if (CharaSelect == null) return;
+
         if (type == AddonEvent.PostDraw)
         {
             if (!Throttler.Throttle("AutoRecordSubTimeLeft-OnAddonDraw"))
@@ -161,20 +159,26 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         if (agent->WorldIndex == -1) return;
 
         var timeInfo = GetLeftTimeSecond(*info);
-        ModuleConfig.Infos[contentID]
-            = new(DateTime.Now,
-                  timeInfo.MonthTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.MonthTime),
-                  timeInfo.PointTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.PointTime));
+        ModuleConfig.Infos[contentID] = new
+        (
+            StandardTimeManager.Instance().Now,
+            timeInfo.MonthTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.MonthTime),
+            timeInfo.PointTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.PointTime)
+        );
         ModuleConfig.Save(this);
 
         if (CharaSelectRemain != null)
         {
             var textNode = CharaSelectRemain->GetTextNodeById(7);
+
             if (textNode != null)
             {
                 textNode->SetPositionFloat(-20, 40);
-                textNode->SetText($"剩余天数: {FormatTimeSpan(TimeSpan.FromSeconds(timeInfo.MonthTime))}\n" +
-                                  $"剩余时长: {FormatTimeSpan(TimeSpan.FromSeconds(timeInfo.PointTime))}");
+                textNode->SetText
+                (
+                    $"剩余天数: {FormatTimeSpan(TimeSpan.FromSeconds(timeInfo.MonthTime))}\n" +
+                    $"剩余时长: {FormatTimeSpan(TimeSpan.FromSeconds(timeInfo.PointTime))}"
+                );
             }
         }
 
@@ -191,35 +195,41 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
     private unsafe void UpdateSubInfo(AgentLobby* agent)
     {
         TaskHelper.Abort();
-        TaskHelper.Enqueue(() =>
-        {
-            try
+        TaskHelper.Enqueue
+        (
+            () =>
             {
-                var info = agent->LobbyData.LobbyUIClient.SubscriptionInfo;
-                if (info == null) return false;
+                try
+                {
+                    var info = agent->LobbyData.LobbyUIClient.SubscriptionInfo;
+                    if (info == null) return false;
 
-                var contentID = agent->HoveredCharacterContentId;
-                if (contentID == 0) return false;
+                    var contentID = agent->HoveredCharacterContentId;
+                    if (contentID == 0) return false;
 
-                if (agent->WorldIndex == -1) return false;
+                    if (agent->WorldIndex == -1) return false;
 
-                var timeInfo = GetLeftTimeSecond(*info);
-                ModuleConfig.Infos[contentID]
-                    = new(DateTime.Now,
-                          timeInfo.MonthTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.MonthTime),
-                          timeInfo.PointTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.PointTime));
-                ModuleConfig.Save(this);
+                    var timeInfo = GetLeftTimeSecond(*info);
+                    ModuleConfig.Infos[contentID] = new
+                    (
+                        StandardTimeManager.Instance().Now,
+                        timeInfo.MonthTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.MonthTime),
+                        timeInfo.PointTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.PointTime)
+                    );
+                    ModuleConfig.Save(this);
 
-                UpdateEntryAndTimeInfo(contentID);
-            }
-            catch (Exception ex)
-            {
-                Warning("更新游戏点月卡订阅信息失败", ex);
-                NotificationWarning(ex.Message, "更新游戏点月卡订阅信息失败");
-            }
+                    UpdateEntryAndTimeInfo(contentID);
+                }
+                catch (Exception ex)
+                {
+                    Warning("更新游戏点月卡订阅信息失败", ex);
+                    NotificationWarning(ex.Message, "更新游戏点月卡订阅信息失败");
+                }
 
-            return true;
-        }, "更新订阅信息");
+                return true;
+            },
+            "更新订阅信息"
+        );
     }
 
     private static (int MonthTime, int PointTime) GetLeftTimeSecond(LobbySubscriptionInfo info)
@@ -233,7 +243,11 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             ptr = Marshal.AllocHGlobal(size);
             Marshal.StructureToPtr(info, ptr, true);
             Marshal.Copy(ptr, arr, 0, size);
-        } finally { Marshal.FreeHGlobal(ptr); }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(ptr);
+        }
 
         var month = string.Join(string.Empty, arr.Skip(16).Take(3).Reverse().Select(x => x.ToString("X2")));
         var point = string.Join(string.Empty, arr.Skip(24).Take(3).Reverse().Select(x => x.ToString("X2")));
@@ -242,21 +256,16 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
     private static void UpdateEntryAndTimeInfo(ulong contentID = 0)
     {
-        if (DService.Instance().ClientState.IsLoggedIn)
-            PlaytimeTracker.Start();
-        else
-            PlaytimeTracker.Stop();
-
-        if (Entry == null) return;
+        if (Entry == null || Manager == null) return;
 
         if (contentID == 0)
             contentID = LocalPlayerState.ContentID;
 
         if (contentID == 0                                           ||
-            DService.Instance().Condition[ConditionFlag.InCombat]               ||
+            DService.Instance().Condition[ConditionFlag.InCombat]    ||
             !ModuleConfig.Infos.TryGetValue(contentID, out var info) ||
             info.Record == DateTime.MinValue                         ||
-            (info.LeftMonth == TimeSpan.MinValue && info.LeftTime == TimeSpan.MinValue))
+            info.LeftMonth == TimeSpan.MinValue && info.LeftTime == TimeSpan.MinValue)
         {
             Entry.Shown = false;
             return;
@@ -270,6 +279,8 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                    .AddText($"{expireTime:MM/dd HH:mm}");
         Entry.Text = textBuilder.Build();
 
+        var stats = Manager.CachedStats;
+
         var tooltipBuilder = new SeStringBuilder();
         tooltipBuilder.AddUiForeground("[过期时间]", 28)
                       .Add(NewLinePayload.Payload)
@@ -277,20 +288,20 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                       .Add(NewLinePayload.Payload)
                       .AddUiForeground("[剩余时长]", 28)
                       .Add(NewLinePayload.Payload)
-                      .AddText($"{FormatTimeSpan(expireTime - DateTime.Now)}")
+                      .AddText($"{FormatTimeSpan(expireTime - StandardTimeManager.Instance().Now)}")
                       .Add(NewLinePayload.Payload)
                       .Add(NewLinePayload.Payload)
                       .AddUiForeground("[本日游玩时长]", 28)
                       .Add(NewLinePayload.Payload)
-                      .AddText($"{FormatTimeSpan(PlaytimeQuery.GetTotalUsageBetween(DateTime.Today, TimeSpan.FromDays(1)))}")
+                      .AddText($"{FormatTimeSpan(stats.Today)}")
                       .Add(NewLinePayload.Payload)
                       .AddUiForeground("[昨日游玩时长]", 28)
                       .Add(NewLinePayload.Payload)
-                      .AddText($"{FormatTimeSpan(PlaytimeQuery.GetTotalUsageBetween(DateTime.Today - TimeSpan.FromDays(1), TimeSpan.FromDays(1)))}")
+                      .AddText($"{FormatTimeSpan(stats.Yesterday)}")
                       .Add(NewLinePayload.Payload)
                       .AddUiForeground("[七日游玩时长]", 28)
                       .Add(NewLinePayload.Payload)
-                      .AddText($"{FormatTimeSpan(PlaytimeQuery.GetTotalUsageBetween(DateTime.Today - TimeSpan.FromDays(6), TimeSpan.FromDays(7)))}")
+                      .AddText($"{FormatTimeSpan(stats.Last7Days)}")
                       .Add(NewLinePayload.Payload)
                       .Add(NewLinePayload.Payload)
                       .AddText("(左键: ")
@@ -316,22 +327,21 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                 Util.OpenLink("https://pay.sdo.com/item/GWPAY-100001900");
                 break;
         }
-
     }
 
     private static string FormatTimeSpan(TimeSpan timeSpan)
     {
-        var parts = new List<string>();
-    
-        if (timeSpan.Days    > 0) 
+        var parts = new List<string>(4);
+
+        if (timeSpan.Days > 0)
             parts.Add($"{timeSpan.Days} 天");
-        if (timeSpan.Hours   > 0) 
+        if (timeSpan.Hours > 0)
             parts.Add($"{timeSpan.Hours} 小时");
-        if (timeSpan.Minutes > 0) 
+        if (timeSpan.Minutes > 0)
             parts.Add($"{timeSpan.Minutes} 分");
-        if (timeSpan.Seconds > 0) 
+        if (timeSpan.Seconds > 0)
             parts.Add($"{timeSpan.Seconds} 秒");
-    
+
         return parts.Count > 0 ? string.Join(" ", parts) : "0 秒";
     }
 
@@ -340,446 +350,574 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         public Dictionary<ulong, (DateTime Record, TimeSpan LeftMonth, TimeSpan LeftTime)> Infos = [];
     }
 
-    internal record UsageEvent(string SessionID, int ProcessID, string EventType, DateTime TimestampUTC);
-
-    private static class UsageLogUtilities
-    {
-        public static string FormatEventLine(string sessionID, int processID, string eventType, DateTime timestampUTC) =>
-            $"{sessionID}\t{processID}\t{eventType}\t{timestampUTC:o}";
-    }
-
-    private static class UsageLogCache
-    {
-        private static readonly ConcurrentDictionary<string, UsageLogCacheState> Cache = new(StringComparer.OrdinalIgnoreCase);
-
-        internal static UsageLogSnapshot LoadSnapshot(string path, TimeSpan staleGrace, TimeSpan cacheValidity, DateTime nowUTC)
-        {
-            var state = Cache.GetOrAdd(path, _ => new UsageLogCacheState());
-            return state.LoadSnapshot(path, staleGrace, cacheValidity, nowUTC);
-        }
-
-        private sealed class UsageLogCacheState
-        {
-            private readonly ReaderWriterLockSlim             cacheLock       = new();
-            private readonly Dictionary<string, SessionState> sessions        = new(StringComparer.Ordinal);
-            private readonly List<UsageInterval>              closedIntervals = [];
-            private          long                             lastKnownLength;
-            private          DateTime                         lastRefreshUTC;
-            private          bool                             needsSorting;
-
-            internal UsageLogSnapshot LoadSnapshot(string path, TimeSpan staleGrace, TimeSpan cacheValidity, DateTime nowUTC)
-            {
-                cacheLock.EnterUpgradeableReadLock();
-                try
-                {
-                    if (!File.Exists(path)) return UsageLogSnapshot.Empty;
-
-                    var fileLength = new FileInfo(path).Length;
-                    if (fileLength == lastKnownLength && cacheValidity > TimeSpan.Zero && nowUTC - lastRefreshUTC < cacheValidity)
-                        return CreateSnapshot(staleGrace, nowUTC);
-
-                    cacheLock.EnterWriteLock();
-                    try
-                    {
-                        if (!File.Exists(path))
-                        {
-                            ResetState();
-                            return UsageLogSnapshot.Empty;
-                        }
-
-                        fileLength = new FileInfo(path).Length;
-                        if (fileLength < lastKnownLength) 
-                            ResetState();
-
-                        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                        stream.Seek(lastKnownLength, SeekOrigin.Begin);
-                        using var reader = new StreamReader(stream, Encoding.UTF8, false, 4096, true);
-
-                        while (reader.ReadLine() is { } line)
-                        {
-                            if (TryParseEvent(line, out var usageEvent))
-                                ApplyEvent(usageEvent);
-                        }
-
-                        lastKnownLength = stream.Position;
-                        lastRefreshUTC  = nowUTC;
-
-                        return CreateSnapshot(staleGrace, nowUTC);
-                    }
-                    finally 
-                    {
-                        cacheLock.ExitWriteLock();
-                    }
-                }
-                finally 
-                {
-                    cacheLock.ExitUpgradeableReadLock();
-                }
-            }
-
-            private UsageLogSnapshot CreateSnapshot(TimeSpan staleGrace, DateTime nowUTC)
-            {
-                if (needsSorting && closedIntervals.Count > 1)
-                {
-                    closedIntervals.Sort(static (left, right) => DateTime.Compare(left.BeginUTC, right.BeginUTC));
-                    needsSorting = false;
-                }
-
-                var openSessions = new List<OpenSession>();
-                var intervalList = new List<UsageInterval>(closedIntervals.Count + sessions.Count);
-
-                intervalList.AddRange(closedIntervals);
-
-                foreach (var (key, session) in sessions)
-                {
-                    if (!session.ActiveStartUTC.HasValue) continue;
-
-                    var timeSinceLastEvent = nowUTC - session.LastEventUTC;
-                    if (timeSinceLastEvent > staleGrace)
-                    {
-                        var staleEndTime = session.LastEventUTC + staleGrace;
-                        if (staleEndTime > session.ActiveStartUTC.Value)
-                            intervalList.Add(new(session.ActiveStartUTC.Value, staleEndTime));
-                    }
-                    else
-                    {
-                        if (nowUTC > session.ActiveStartUTC.Value)
-                            intervalList.Add(new(session.ActiveStartUTC.Value, nowUTC));
-                        openSessions.Add(new(key, session.ActiveStartUTC.Value, session.LastEventUTC));
-                    }
-                }
-
-                if (intervalList.Count == 0 && openSessions.Count == 0) return UsageLogSnapshot.Empty;
-
-                return new UsageLogSnapshot(intervalList.ToArray(), openSessions.ToArray());
-            }
-
-            private void ResetState()
-            {
-                sessions.Clear();
-                closedIntervals.Clear();
-                lastKnownLength = 0;
-                lastRefreshUTC  = DateTime.MinValue;
-                needsSorting    = false;
-            }
-
-            private static bool TryParseEvent(string line, out UsageEvent usageEvent)
-            {
-                usageEvent = null;
-                if (string.IsNullOrEmpty(line)) return false;
-
-                var span          = line.AsSpan();
-                var firstTabIndex = span.IndexOf('\t');
-                if (firstTabIndex <= 0) return false;
-
-                var secondTabIndex = span.Slice(firstTabIndex + 1).IndexOf('\t');
-                if (secondTabIndex < 0) return false;
-
-                secondTabIndex += firstTabIndex + 1;
-
-                var thirdTabIndex = span.Slice(secondTabIndex + 1).IndexOf('\t');
-                if (thirdTabIndex < 0) return false;
-
-                thirdTabIndex += secondTabIndex + 1;
-
-                var sessionID   = span[..firstTabIndex].ToString();
-                var processSpan = span.Slice(firstTabIndex + 1, secondTabIndex - firstTabIndex - 1);
-                if (!int.TryParse(processSpan, NumberStyles.Integer, CultureInfo.InvariantCulture, out var processId)) return false;
-
-                var eventType = span.Slice(secondTabIndex + 1, thirdTabIndex - secondTabIndex - 1).ToString();
-                var timeSpan  = span[(thirdTabIndex + 1)..];
-                if (!DateTime.TryParseExact(timeSpan, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var timestampUtc)) return false;
-
-                usageEvent = new UsageEvent(sessionID, processId, eventType, timestampUtc);
-                return true;
-            }
-
-            private void ApplyEvent(UsageEvent usageEvent)
-            {
-                if (!sessions.TryGetValue(usageEvent.SessionID, out var sessionState)) 
-                    sessionState = new();
-
-                switch (usageEvent.EventType)
-                {
-                    case "start":
-                        if (sessionState.ActiveStartUTC.HasValue && usageEvent.TimestampUTC > sessionState.ActiveStartUTC.Value)
-                        {
-                            closedIntervals.Add(new UsageInterval(sessionState.ActiveStartUTC.Value, usageEvent.TimestampUTC));
-                            needsSorting = true;
-                        }
-
-                        sessionState.ActiveStartUTC = usageEvent.TimestampUTC;
-                        break;
-
-                    case "heartbeat":
-                        if (!sessionState.ActiveStartUTC.HasValue || usageEvent.TimestampUTC < sessionState.ActiveStartUTC.Value)
-                            sessionState.ActiveStartUTC = usageEvent.TimestampUTC;
-
-                        break;
-
-                    case "stop":
-                    case "autoClose":
-                        if (sessionState.ActiveStartUTC.HasValue && usageEvent.TimestampUTC > sessionState.ActiveStartUTC.Value)
-                        {
-                            closedIntervals.Add(new UsageInterval(sessionState.ActiveStartUTC.Value, usageEvent.TimestampUTC));
-                            needsSorting = true;
-                        }
-
-                        sessionState.ActiveStartUTC = null;
-                        break;
-
-                    default:
-                        return;
-                }
-
-                sessionState.LastEventUTC   = usageEvent.TimestampUTC;
-
-                sessions[usageEvent.SessionID] = sessionState;
-            }
-
-            private sealed class SessionState
-            {
-                public DateTime? ActiveStartUTC { get; set; }
-                public DateTime  LastEventUTC   { get; set; }
-            }
-        }
-    }
-
-    private sealed class UsageLogSnapshot(IReadOnlyList<UsageInterval> intervals, IReadOnlyList<OpenSession> openSessions)
-    {
-        public static readonly UsageLogSnapshot Empty = new([], []);
-
-        public IReadOnlyList<UsageInterval> Intervals    { get; } = intervals;
-        public IReadOnlyList<OpenSession>   OpenSessions { get; } = openSessions;
-    }
-
-    private readonly record struct UsageInterval(DateTime BeginUTC, DateTime EndUTC);
-
-    private readonly record struct OpenSession(string SessionID, DateTime ActiveSinceUTC, DateTime LastEventUTC);
-
-    private sealed class Tracker : IDisposable
+    private sealed class PlaytimeManager : IDisposable
     {
         private readonly string   logPath;
-        private readonly string   sessionID         = Guid.NewGuid().ToString("N");
-        private readonly int      processID         = Environment.ProcessId;
-        private readonly TimeSpan heartbeatInterval = TimeSpan.FromSeconds(30);
-        private readonly TimeSpan staleGrace        = TimeSpan.FromSeconds(90);
+        private readonly string   sessionID  = Guid.NewGuid().ToString("N");
+        private readonly int      processID  = Environment.ProcessId;
+        private readonly TimeSpan staleGrace = TimeSpan.FromSeconds(90);
         private readonly Mutex    fileMutex;
 
-        private int                     runState;
-        private CancellationTokenSource cancellation;
-        private Task                    heartbeatTask;
+        private CancellationTokenSource? cancelSource;
+        private Task?                    backgroundTask;
 
-        public Tracker(string path)
+        public PlaytimeStats CachedStats;
+
+        private readonly Dictionary<string, SessionState> activeSessions   = new(StringComparer.Ordinal);
+        private readonly List<TimeInterval>               historyIntervals = [];
+
+        private long lastFilePosition;
+        private bool isRunning;
+        private int  compactCounter;
+
+        public record struct PlaytimeStats
+        (
+            TimeSpan Today,
+            TimeSpan Yesterday,
+            TimeSpan Last7Days
+        );
+
+        public PlaytimeManager(string path)
         {
-            logPath = path ?? throw new ArgumentNullException(nameof(path));
-            Directory.CreateDirectory(Path.GetDirectoryName(logPath) ?? throw new InvalidOperationException("Log directory cannot be resolved."));
+            logPath = path;
 
-            var mutexName = $@"Global\{nameof(Tracker)}-{GetStableHashCode(Path.GetFullPath(logPath).ToUpperInvariant())}";
+            // 初始化系统互斥锁
+            var mutexName = $@"Global\DailyRoutines-PlaytimeTracker-{GetStableHashCode(Path.GetFullPath(logPath).ToUpperInvariant())}";
             fileMutex = new Mutex(false, mutexName);
 
-            AutoCloseStaleSessions();
+            try
+            {
+                var dir = Path.GetDirectoryName(logPath);
+                if (dir != null) Directory.CreateDirectory(dir);
+                // 启动时检查是否有残留的 stale session 并关闭
+                CheckAndCloseStaleSessions();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AutoRecordSubTimeLeft] Error initializing: {ex.Message}");
+            }
         }
 
         private static uint GetStableHashCode(string value)
         {
             var hash = 2166136261;
-            foreach (var character in value) 
-                hash = (hash * 16777619) ^ character;
-
+            foreach (var character in value)
+                hash = hash * 16777619 ^ character;
             return hash;
         }
 
         public void Start()
         {
-            if (Interlocked.CompareExchange(ref runState, 1, 0) != 0) return;
+            if (isRunning) return;
+            isRunning    = true;
+            cancelSource = new CancellationTokenSource();
 
-            cancellation = new CancellationTokenSource();
-            WriteEvent("start", DateTime.UtcNow);
-
-            var token = cancellation.Token;
-            heartbeatTask = Task.Run(async () =>
-            {
-                try
-                {
-                    var timer = new PeriodicTimer(heartbeatInterval);
-                    while (await timer.WaitForNextTickAsync(token).ConfigureAwait(false)) 
-                        WriteEvent("heartbeat", DateTime.UtcNow);
-                }
-                catch (OperationCanceledException) { }
-            }, token);
+            // 启动后台任务：负责心跳写入、日志读取、数据统计
+            backgroundTask = Task.Factory.StartNew(BackgroundTaskLoop, cancelSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
-        public void Stop()
-        {
-            if (Interlocked.CompareExchange(ref runState, 0, 1) != 1) return;
+        public void OnLogin() =>
+            WriteEvent("start");
 
-            try
-            {
-                cancellation?.Cancel();
-            }
-            catch
-            {
-                // ignored
-            }
-
-            try
-            {
-                heartbeatTask?.Wait(TimeSpan.FromSeconds(2));
-            }
-            catch
-            {
-                // ignored
-            }
-
-            try
-            {
-                WriteEvent("stop", DateTime.UtcNow);
-            }
-            catch
-            {
-                // ignored
-            }
-
-            cancellation?.Dispose();
-            cancellation  = null;
-            heartbeatTask = null;
-        }
+        public void OnLogout() =>
+            WriteEvent("stop");
 
         public void Dispose()
         {
-            Stop();
+            isRunning = false;
+            cancelSource?.Cancel();
+
+            try
+            {
+                backgroundTask?.Wait(1000);
+            }
+            catch
+            {
+                /* ignored */
+            }
+
+            cancelSource?.Dispose();
+
+            // 尝试写入停止事件 (如果还在运行)
+            try
+            {
+                WriteEvent("stop");
+            }
+            catch
+            {
+                /* ignored */
+            }
+
             fileMutex.Dispose();
         }
 
-        private void WriteEvent(string eventType, DateTime utc)
+        private async Task BackgroundTaskLoop()
         {
-            var line = UsageLogUtilities.FormatEventLine(sessionID, processID, eventType, utc);
+            var token = cancelSource!.Token;
+
+            // 初始加载
+            UpdateData();
+
             try
             {
-                fileMutex.WaitOne();
-                File.AppendAllText(logPath, line + Environment.NewLine);
-            } finally { fileMutex.ReleaseMutex(); }
+                while (!token.IsCancellationRequested)
+                {
+                    if (GameState.IsLoggedIn)
+                        WriteEvent("heartbeat");
+
+                    UpdateData();
+
+                    if (++compactCounter >= 12)
+                    {
+                        compactCounter = 0;
+                        TryCompactLog();
+                    }
+
+                    await Task.Delay(5000, token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 正常退出
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AutoRecordSubTimeLeft] Background loop error: {ex}");
+            }
         }
 
-        private void AutoCloseStaleSessions()
+        private void WriteEvent(string eventType)
         {
+            var line = $"{sessionID}\t{processID}\t{eventType}\t{StandardTimeManager.Instance().UTCNow:O}{Environment.NewLine}";
+
             try
             {
-                var nowUTC   = DateTime.UtcNow;
-                var snapshot = UsageLogCache.LoadSnapshot(logPath, staleGrace, TimeSpan.Zero, nowUTC);
-
-                if (snapshot.OpenSessions.Count == 0) return;
-
-                var autoCloseLines = new List<string>();
-                foreach (var session in snapshot.OpenSessions)
+                if (fileMutex.WaitOne(2000)) // 等待获取锁，最多2秒
                 {
-                    var proposedEnd = session.LastEventUTC + staleGrace;
-                    if (proposedEnd >= nowUTC) continue;
+                    try
+                    {
+                        File.AppendAllText(logPath, line);
+                    }
+                    finally
+                    {
+                        fileMutex.ReleaseMutex();
+                    }
+                }
+            }
+            catch
+            {
+                // 忽略写入错误
+            }
+        }
 
-                    autoCloseLines.Add(UsageLogUtilities.FormatEventLine(session.SessionID, -1, "autoClose", proposedEnd));
+        private void CheckAndCloseStaleSessions()
+        {
+            UpdateData();
+
+            var now        = StandardTimeManager.Instance().UTCNow;
+            var linesToAdd = new List<string>();
+
+            foreach (var kvp in activeSessions)
+            {
+                // 如果不是当前进程的 session 且超时
+                if (kvp.Key == sessionID) continue; // 忽略自己
+
+                if (now - kvp.Value.LastEventTime > staleGrace)
+                {
+                    var closeTime = kvp.Value.LastEventTime + staleGrace;
+                    linesToAdd.Add($"{kvp.Key}\t-1\tautoClose\t{closeTime:O}");
+                }
+            }
+
+            if (linesToAdd.Count > 0)
+            {
+                try
+                {
+                    if (fileMutex.WaitOne(2000))
+                    {
+                        try
+                        {
+                            File.AppendAllLines(logPath, linesToAdd);
+                        }
+                        finally
+                        {
+                            fileMutex.ReleaseMutex();
+                        }
+                    }
+                }
+                catch
+                {
+                    /* ignored */
                 }
 
-                if (autoCloseLines.Count == 0) return;
-
-                fileMutex.WaitOne();
-                try { File.AppendAllLines(logPath, autoCloseLines); } finally { fileMutex.ReleaseMutex(); }
-
-                UsageLogCache.LoadSnapshot(logPath, staleGrace, TimeSpan.Zero, DateTime.UtcNow);
+                // 再次更新以应用 autoClose
+                UpdateData();
             }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-        }
-    }
-
-    private sealed class Query(string path)
-    {
-        private readonly string   logPath    = path ?? throw new ArgumentNullException(nameof(path));
-        private readonly TimeSpan staleGrace = TimeSpan.FromSeconds(90);
-
-        public TimeSpan GetTotalUsageSince(TimeSpan lookback)
-        {
-            if (lookback <= TimeSpan.Zero)
-                return TimeSpan.Zero;
-
-            var endLocal   = DateTime.Now;
-            var startLocal = endLocal - lookback;
-            return GetTotalUsageBetween(startLocal, lookback);
         }
 
-        public TimeSpan GetTotalUsageBetween(DateTime startLocal, TimeSpan span)
+        private void TryCompactLog()
         {
-            if (span <= TimeSpan.Zero || !File.Exists(logPath))
-                return TimeSpan.Zero;
+            const long COMPACT_THRESHOLD = 500 * 1024;
 
-            var timeZone = TimeZoneInfo.Local;
-            var startUTC = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(startLocal, DateTimeKind.Local), timeZone);
-            var endLocal = startLocal + span;
-            var endUTC   = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(endLocal, DateTimeKind.Local), timeZone);
-
-            var intervals = BuildUsageIntervalsUTC();
-            var result = IntersectSum(intervals, startUTC, endUTC);
-
-            if (result > span)
-                return span;
-
-            return result;
-        }
-
-        private List<(DateTime BeginUtc, DateTime EndUtc)> BuildUsageIntervalsUTC()
-        {
-            var snapshot  = UsageLogCache.LoadSnapshot(logPath, staleGrace, TimeSpan.Zero, DateTime.UtcNow);
-            var intervals = new List<(DateTime, DateTime)>(snapshot.Intervals.Count);
-
-            foreach (var interval in snapshot.Intervals)
-                intervals.Add((interval.BeginUTC, interval.EndUTC));
-
-            return intervals;
-        }
-
-        private static TimeSpan IntersectSum(List<(DateTime BeginUtc, DateTime EndUtc)> intervals, DateTime windowBeginUTC, DateTime windowEndUTC)
-        {
-            if (windowEndUTC <= windowBeginUTC)
-                return TimeSpan.Zero;
-
-            var clippedIntervals = new List<(DateTime Start, DateTime End)>();
-            foreach (var interval in intervals)
+            try
             {
-                if (interval.EndUtc <= windowBeginUTC || interval.BeginUtc >= windowEndUTC)
-                    continue;
+                var fileInfo = new FileInfo(logPath);
+                if (!fileInfo.Exists || fileInfo.Length < COMPACT_THRESHOLD) return;
 
-                var segmentStart = interval.BeginUtc > windowBeginUTC ? interval.BeginUtc : windowBeginUTC;
-                var segmentEnd   = interval.EndUtc   < windowEndUTC ? interval.EndUtc : windowEndUTC;
-                if (segmentEnd > segmentStart)
-                    clippedIntervals.Add((segmentStart, segmentEnd));
+                if (fileMutex.WaitOne(0))
+                {
+                    try
+                    {
+                        fileInfo.Refresh();
+                        if (fileInfo.Length < COMPACT_THRESHOLD) return;
+
+                        var lines         = File.ReadAllLines(logPath);
+                        var now           = StandardTimeManager.Instance().UTCNow;
+                        var retentionTime = now.AddDays(-7);
+
+                        var sessionInfo = new Dictionary<string, (DateTime LastTime, bool HasStop)>(StringComparer.Ordinal);
+
+                        foreach (var line in lines)
+                        {
+                            if (string.IsNullOrWhiteSpace(line)) continue;
+                            var span = line.AsSpan();
+
+                            var t1 = span.IndexOf('\t');
+                            if (t1 == -1) continue;
+                            var t2 = span[(t1 + 1)..].IndexOf('\t');
+                            if (t2 == -1) continue;
+                            t2 += t1 + 1;
+                            var t3 = span[(t2 + 1)..].IndexOf('\t');
+                            if (t3 == -1) continue;
+                            t3 += t2 + 1;
+
+                            var id            = span[..t1].ToString();
+                            var eventTypeSpan = span.Slice(t2 + 1, t3 - t2 - 1);
+                            var timeSpan      = span[(t3 + 1)..];
+
+                            if (!DateTime.TryParseExact(timeSpan, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var ts))
+                                continue;
+
+                            if (!sessionInfo.TryGetValue(id, out var info))
+                                info = (ts, false);
+
+                            if (ts > info.LastTime) info.LastTime = ts;
+
+                            switch (eventTypeSpan)
+                            {
+                                case "stop":
+                                case "autoClose":
+                                    info.HasStop = true;
+                                    break;
+                                case "start":
+                                    info.HasStop = false;
+                                    break;
+                            }
+
+                            sessionInfo[id] = info;
+                        }
+
+                        // 2. 过滤和压缩
+                        var compactedLines = new List<string>(lines.Length);
+
+                        foreach (var line in lines)
+                        {
+                            if (string.IsNullOrWhiteSpace(line)) continue;
+                            var span = line.AsSpan();
+
+                            var t1 = span.IndexOf('\t');
+                            if (t1 == -1) continue;
+
+                            var id = span[..t1].ToString();
+
+                            if (!sessionInfo.TryGetValue(id, out var info)) continue;
+
+                            // 规则1: 删除一周前的数据 (如果整个 Session 都在一周前)
+                            if (info.LastTime < retentionTime)
+                                continue;
+
+                            // 规则2: 压缩非活跃会话
+                            // 活跃定义：LastTime 在 Grace 范围内，且没有 Stop
+                            var isActive = !info.HasStop && now - info.LastTime < staleGrace;
+
+                            if (!isActive)
+                            {
+                                // 非活跃：过滤 Heartbeat
+                                var t2 = span[(t1 + 1)..].IndexOf('\t');
+                                if (t2 == -1) continue;
+                                t2 += t1 + 1;
+                                var t3 = span[(t2 + 1)..].IndexOf('\t');
+                                if (t3 == -1) continue;
+                                t3 += t2 + 1;
+                                var eventTypeSpan = span.Slice(t2 + 1, t3 - t2 - 1);
+
+                                if (eventTypeSpan is "heartbeat") 
+                                    continue;
+                            }
+
+                            compactedLines.Add(line);
+                        }
+
+                        File.WriteAllLines(logPath, compactedLines);
+
+                        lastFilePosition = 0;
+                        activeSessions.Clear();
+                        historyIntervals.Clear();
+                    }
+                    finally
+                    {
+                        fileMutex.ReleaseMutex();
+                    }
+
+                    UpdateData();
+                }
             }
-
-            if (clippedIntervals.Count == 0)
-                return TimeSpan.Zero;
-
-            clippedIntervals.Sort((a, b) => DateTime.Compare(a.Start, b.Start));
-
-            var mergedIntervals = new List<(DateTime Start, DateTime End)>();
-            var current = clippedIntervals[0];
-
-            for (int i = 1; i < clippedIntervals.Count; i++)
+            catch
             {
-                var next = clippedIntervals[i];
-                if (next.Start <= current.End)
-                    current = (current.Start, next.End > current.End ? next.End : current.End);
+                // ignored
+            }
+        }
+
+        private void UpdateData()
+        {
+            // 1. 读取增量日志
+            ParseLogFile();
+
+            // 2. 计算统计数据
+            var now        = StandardTimeManager.Instance().UTCNow; // UTC
+            var todayLocal = StandardTimeManager.Instance().Today;  // Local Midnight
+
+            var todayStartUTC = todayLocal.ToUniversalTime();
+            var todayEndUTC   = todayStartUTC.AddDays(1);
+
+            var yesterdayStartUTC = todayStartUTC.AddDays(-1);
+
+            var weekStartUTC = todayStartUTC.AddDays(-6); // 7天包括今天
+
+            // 获取当前活跃的 intervals (临时)
+            var activeIntervals = GetActiveIntervals(now);
+
+            // 计算
+            var today     = CalculateDuration(todayStartUTC,     todayEndUTC,   activeIntervals);
+            var yesterday = CalculateDuration(yesterdayStartUTC, todayStartUTC, activeIntervals);
+            var last7     = CalculateDuration(weekStartUTC,      todayEndUTC,   activeIntervals);
+
+            // 更新缓存
+            CachedStats = new PlaytimeStats(today, yesterday, last7);
+        }
+
+        private void ParseLogFile()
+        {
+            if (!File.Exists(logPath)) return;
+
+            try
+            {
+                using var fs  = new FileStream(logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                var       len = fs.Length;
+
+                if (len < lastFilePosition)
+                {
+                    lastFilePosition = 0;
+                    activeSessions.Clear();
+                    historyIntervals.Clear();
+                }
+
+                if (len == lastFilePosition) return;
+
+                fs.Seek(lastFilePosition, SeekOrigin.Begin);
+                using var reader = new StreamReader(fs, Encoding.UTF8);
+
+                var newClosedIntervals = new List<TimeInterval>();
+
+                while (reader.ReadLine() is { } line)
+                {
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    var span = line.AsSpan();
+
+                    var t1 = span.IndexOf('\t');
+                    if (t1 == -1) continue;
+                    var t2 = span[(t1 + 1)..].IndexOf('\t');
+                    if (t2 == -1) continue;
+                    t2 += t1 + 1;
+                    var t3 = span[(t2 + 1)..].IndexOf('\t');
+                    if (t3 == -1) continue;
+                    t3 += t2 + 1;
+
+                    var id            = span[..t1].ToString();
+                    var eventTypeSpan = span.Slice(t2 + 1, t3 - t2 - 1);
+                    var timeSpan      = span[(t3 + 1)..];
+
+                    if (!DateTime.TryParseExact(timeSpan, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var ts))
+                        continue;
+
+                    if (!activeSessions.TryGetValue(id, out var state))
+                    {
+                        state              = new SessionState();
+                        activeSessions[id] = state;
+                    }
+
+                    switch (eventTypeSpan)
+                    {
+                        case "start":
+                        {
+                            // 如果之前已经是 Start 状态且时间更晚，说明之前的没闭合（异常），先闭合它
+                            if (state.StartTime.HasValue && ts > state.StartTime.Value)
+                                newClosedIntervals.Add(new TimeInterval(state.StartTime.Value, ts));
+                            state.StartTime = ts;
+                            break;
+                        }
+                        case "stop":
+                        case "autoClose":
+                        {
+                            if (state.StartTime.HasValue)
+                            {
+                                // 闭合区间
+                                var end                              = ts;
+                                if (end < state.StartTime.Value) end = state.StartTime.Value; // 防御性
+                                newClosedIntervals.Add(new TimeInterval(state.StartTime.Value, end));
+                                state.StartTime = null;
+                            }
+
+                            break;
+                        }
+                        case "heartbeat":
+                        {
+                            state.StartTime ??= ts;
+
+                            break;
+                        }
+                    }
+
+                    state.LastEventTime = ts;
+                }
+
+                lastFilePosition = fs.Position;
+
+                // 合并新的闭合区间到历史记录中
+                if (newClosedIntervals.Count > 0)
+                    MergeIntervals(newClosedIntervals);
+            }
+            catch (Exception ex)
+            {
+                // 日志读取错误不应崩溃
+                Console.WriteLine($"[AutoRecordSubTimeLeft] Parse error: {ex.Message}");
+            }
+        }
+
+        private void MergeIntervals(List<TimeInterval> newIntervals)
+        {
+            historyIntervals.AddRange(newIntervals);
+            if (historyIntervals.Count == 0) return;
+
+            historyIntervals.Sort((a, b) => a.Start.CompareTo(b.Start));
+
+            var merged  = new List<TimeInterval>(historyIntervals.Count);
+            var current = historyIntervals[0];
+
+            for (var i = 1; i < historyIntervals.Count; i++)
+            {
+                var next = historyIntervals[i];
+
+                if (next.Start <= current.End) // 重叠或相接
+                {
+                    if (next.End > current.End) current = new TimeInterval(current.Start, next.End);
+                }
                 else
                 {
-                    mergedIntervals.Add(current);
+                    merged.Add(current);
                     current = next;
                 }
             }
-            mergedIntervals.Add(current);
 
-            long totalTicks = 0;
-            foreach (var interval in mergedIntervals)
-                totalTicks += (interval.End - interval.Start).Ticks;
+            merged.Add(current);
 
-            return new TimeSpan(totalTicks);
+            historyIntervals.Clear();
+            historyIntervals.AddRange(merged);
+        }
+
+        private List<TimeInterval> GetActiveIntervals(DateTime now)
+        {
+            var list = new List<TimeInterval>();
+
+            foreach (var kvp in activeSessions)
+            {
+                if (kvp.Value.StartTime.HasValue)
+                {
+                    var start = kvp.Value.StartTime.Value;
+                    var end   = kvp.Value.LastEventTime;
+
+                    // 如果最后一次心跳距今很近，认为活跃到现在
+                    if (now - end < staleGrace)
+                        end = now;
+                    else
+                    {
+                        // 否则只算到最后一次心跳 + Grace
+                        end += staleGrace;
+                    }
+
+                    if (end > start)
+                        list.Add(new TimeInterval(start, end));
+                }
+            }
+
+            return list;
+        }
+
+        private TimeSpan CalculateDuration(DateTime rangeStart, DateTime rangeEnd, List<TimeInterval> activeIntervals)
+        {
+            long ticks = 0;
+
+            var idx          = historyIntervals.BinarySearch(new TimeInterval(rangeStart, rangeStart), IntervalStartComparer.Instance);
+            if (idx < 0) idx = ~idx;
+
+            if (idx > 0 && historyIntervals[idx - 1].End > rangeStart)
+                idx--;
+
+            for (var i = idx; i < historyIntervals.Count; i++)
+            {
+                var interval = historyIntervals[i];
+                if (interval.Start >= rangeEnd) break; // 超出范围
+
+                var start = interval.Start > rangeStart ? interval.Start : rangeStart;
+                var end   = interval.End   < rangeEnd ? interval.End : rangeEnd;
+
+                if (end > start)
+                    ticks += (end - start).Ticks;
+            }
+
+            foreach (var active in activeIntervals)
+            {
+                // 裁剪到查询窗口
+                if (active.End <= rangeStart || active.Start >= rangeEnd) continue;
+
+                var start = active.Start > rangeStart ? active.Start : rangeStart;
+                var end   = active.End   < rangeEnd ? active.End : rangeEnd;
+
+                if (end > start)
+                    ticks += (end - start).Ticks;
+            }
+
+            return new TimeSpan(ticks);
+        }
+
+        private class SessionState
+        {
+            public DateTime? StartTime;
+            public DateTime  LastEventTime;
+        }
+
+        private readonly record struct TimeInterval
+        (
+            DateTime Start,
+            DateTime End
+        );
+
+        private class IntervalStartComparer : IComparer<TimeInterval>
+        {
+            public static readonly IntervalStartComparer Instance = new();
+
+            public int Compare(TimeInterval x, TimeInterval y) => x.Start.CompareTo(y.Start);
         }
     }
 }
