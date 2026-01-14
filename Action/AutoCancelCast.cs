@@ -20,52 +20,66 @@ public unsafe class AutoCancelCast : DailyModuleBase
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private static readonly HashSet<ObjectKind> ValidObjectKinds = [ObjectKind.Player, ObjectKind.BattleNpc];
+    private static readonly HashSet<ObjectKind> ValidObjectKinds =
+    [
+        ObjectKind.Player,
+        ObjectKind.BattleNpc
+    ];
 
-    private static readonly HashSet<ConditionFlag> ValidConditions = [ConditionFlag.Casting, ConditionFlag.Casting87];
+    private static readonly HashSet<ConditionFlag> ValidConditions =
+    [
+        ConditionFlag.Casting
+    ];
 
     private static HashSet<uint> TargetAreaActions { get; } =
         LuminaGetter.Get<LuminaAction>()
                     .Where(x => x.TargetArea)
                     .Select(x => x.RowId).ToHashSet();
 
-    private static bool IsOnCasting;
-
-    protected override void Init()
-    {
+    protected override void Init() =>
         DService.Instance().Condition.ConditionChange += OnConditionChanged;
-        FrameworkManager.Instance().Reg(OnUpdate);
+
+    protected override void Uninit()
+    {
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 
     private static void OnConditionChanged(ConditionFlag flag, bool value)
     {
         if (!ValidConditions.Contains(flag)) return;
 
-        IsOnCasting = value;
+        if (value)
+            FrameworkManager.Instance().Reg(OnUpdate);
+        else
+            FrameworkManager.Instance().Unreg(OnUpdate);
     }
 
     private static void OnUpdate(IFramework _)
     {
-        if (!IsOnCasting) return;
-
         if (!IsCasting)
         {
-            IsOnCasting = false;
+            FrameworkManager.Instance().Unreg(OnUpdate);
             return;
         }
 
-        var player = DService.Instance().ObjectTable.LocalPlayer;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
 
-        if (player.CastActionType != ActionType.Action      ||
-            TargetAreaActions.Contains(player.CastActionID) ||
-            !LuminaGetter.TryGetRow(player.CastActionID, out LuminaAction actionRow))
+        if (localPlayer.CastActionType != ActionType.Action      ||
+            TargetAreaActions.Contains(localPlayer.CastActionID) ||
+            !LuminaGetter.TryGetRow(localPlayer.CastActionID, out LuminaAction actionRow))
         {
-            IsOnCasting = false;
+            FrameworkManager.Instance().Unreg(OnUpdate);
             return;
         }
 
-        var obj = player.CastTargetObject;
-        if (obj is not IBattleChara battleChara || !ValidObjectKinds.Contains(battleChara.ObjectKind)) return;
+        var obj = localPlayer.CastTargetObject;
+
+        if (obj is not IBattleChara battleChara || !ValidObjectKinds.Contains(battleChara.ObjectKind))
+        {
+            FrameworkManager.Instance().Unreg(OnUpdate);
+            return;
+        }
 
         if (!battleChara.IsTargetable)
         {
@@ -79,7 +93,7 @@ public unsafe class AutoCancelCast : DailyModuleBase
             return;
         }
 
-        if (ActionManager.CanUseActionOnTarget(player.CastActionID, obj.ToStruct()))
+        if (ActionManager.CanUseActionOnTarget(localPlayer.CastActionID, obj.ToStruct()))
             return;
 
         ExecuteCancast();
@@ -91,11 +105,5 @@ public unsafe class AutoCancelCast : DailyModuleBase
             if (Throttler.Throttle("AutoCancelCast-CancelCast", 100))
                 ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.CancelCast);
         }
-    }
-
-    protected override void Uninit()
-    {
-        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
-        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 }
