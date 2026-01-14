@@ -74,7 +74,11 @@ public unsafe class AutoUseEventItem : DailyModuleBase
 
     private static void OnAddonInventoryEvent()
     {
-        if (IsCasting || Request != null || !IsAnyQuestNearby(out var questRowID)) return;
+        if (IsCasting                                             ||
+            DService.Instance().Condition[ConditionFlag.InCombat] ||
+            Request != null                                       ||
+            !IsAnyQuestNearby(out var questRowID))
+            return;
 
         IGameObject gameObj;
         if (TargetManager.Target != null)
@@ -142,20 +146,7 @@ public unsafe class AutoUseEventItem : DailyModuleBase
 
     private static bool IsAnyMTQNearby(out IGameObject gameObj)
     {
-        var gameObjInternal = DService.Instance().ObjectTable.FirstOrDefault
-        (obj =>
-            {
-                if (!obj.IsValid() || !obj.IsTargetable || obj.IsDead)
-                    return false;
-
-                var gameObjStruct = obj.ToStruct();
-                if (gameObjStruct == null || gameObjStruct->RenderFlags != 0)
-                    return false;
-
-                return QuestIcons.IsQuest(gameObjStruct->NamePlateIconId) ||
-                       obj.ObjectKind == ObjectKind.EventObj && gameObjStruct->TargetStatus == 15;
-            }
-        );
+        var gameObjInternal = DService.Instance().ObjectTable.SearchObject(obj => obj.IsMTQ());
 
         gameObj = gameObjInternal;
         return gameObj != null;
