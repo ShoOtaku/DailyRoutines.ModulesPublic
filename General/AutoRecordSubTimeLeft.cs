@@ -33,11 +33,9 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
     public override ModulePermission Permission { get; } = new() { CNOnly = true, CNDefaultEnabled = true };
 
-    private static readonly CompSig AgentLobbyOnLoginSig = new("E8 ?? ?? ?? ?? 41 C6 45 ?? ?? E9 ?? ?? ?? ?? 83 FB 03");
-
-    private unsafe delegate nint AgentLobbyOnLoginDelegate(AgentLobby* agent);
-
-    private static Hook<AgentLobbyOnLoginDelegate>? AgentLobbyOnLoginHook;
+    private static readonly CompSig                          AgentLobbyOnLoginSig = new("E8 ?? ?? ?? ?? 41 C6 45 ?? ?? E9 ?? ?? ?? ?? 83 FB 03");
+    private unsafe delegate nint                             AgentLobbyOnLoginDelegate(AgentLobby* agent);
+    private static          Hook<AgentLobbyOnLoginDelegate>? AgentLobbyOnLoginHook;
 
     private static Config           ModuleConfig = null!;
     private static IDtrBarEntry?    Entry;
@@ -54,8 +52,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
         Entry         ??= DService.Instance().DTRBar.Get("DailyRoutines-GameTimeLeft");
         Entry.OnClick =   OnDTREntryClick;
-
-        // 初次更新
+        
         UpdateEntryAndTimeInfo();
 
         AgentLobbyOnLoginHook ??= AgentLobbyOnLoginSig.GetHook<AgentLobbyOnLoginDelegate>(AgentLobbyOnLoginDetour);
@@ -161,7 +158,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         var timeInfo = GetLeftTimeSecond(*info);
         ModuleConfig.Infos[contentID] = new
         (
-            StandardTimeManager.Instance().Now,
+            DateTime.Now,
             timeInfo.MonthTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.MonthTime),
             timeInfo.PointTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.PointTime)
         );
@@ -212,7 +209,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                     var timeInfo = GetLeftTimeSecond(*info);
                     ModuleConfig.Infos[contentID] = new
                     (
-                        StandardTimeManager.Instance().Now,
+                        DateTime.Now,
                         timeInfo.MonthTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.MonthTime),
                         timeInfo.PointTime == 0 ? TimeSpan.MinValue : TimeSpan.FromSeconds(timeInfo.PointTime)
                     );
@@ -288,7 +285,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                       .Add(NewLinePayload.Payload)
                       .AddUiForeground("[剩余时长]", 28)
                       .Add(NewLinePayload.Payload)
-                      .AddText($"{FormatTimeSpan(expireTime - StandardTimeManager.Instance().Now)}")
+                      .AddText($"{FormatTimeSpan(expireTime - DateTime.Now)}")
                       .Add(NewLinePayload.Payload)
                       .Add(NewLinePayload.Payload)
                       .AddUiForeground("[本日游玩时长]", 28)
@@ -368,7 +365,6 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
         private long lastFilePosition;
         private bool isRunning;
-        private int  compactCounter;
 
         public record struct PlaytimeStats
         (
@@ -380,8 +376,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         public PlaytimeManager(string path)
         {
             logPath = path;
-
-            // 初始化系统互斥锁
+            
             var mutexName = $@"Global\DailyRoutines-PlaytimeTracker-{GetStableHashCode(Path.GetFullPath(logPath).ToUpperInvariant())}";
             fileMutex = new Mutex(false, mutexName);
 
@@ -389,7 +384,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             {
                 var dir = Path.GetDirectoryName(logPath);
                 if (dir != null) Directory.CreateDirectory(dir);
-                // 启动时检查是否有残留的 stale session 并关闭
+
                 CheckAndCloseStaleSessions();
             }
             catch (Exception ex)
@@ -411,8 +406,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             if (isRunning) return;
             isRunning    = true;
             cancelSource = new CancellationTokenSource();
-
-            // 启动后台任务：负责心跳写入、日志读取、数据统计
+            
             backgroundTask = Task.Factory.StartNew(BackgroundTaskLoop, cancelSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
@@ -433,19 +427,18 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             }
             catch
             {
-                /* ignored */
+                // ignored
             }
 
             cancelSource?.Dispose();
-
-            // 尝试写入停止事件 (如果还在运行)
+            
             try
             {
                 WriteEvent("stop");
             }
             catch
             {
-                /* ignored */
+                // ignored
             }
 
             fileMutex.Dispose();
@@ -454,31 +447,27 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         private async Task BackgroundTaskLoop()
         {
             var token = cancelSource!.Token;
-
-            // 初始加载
+            
             UpdateData();
 
             try
             {
                 while (!token.IsCancellationRequested)
                 {
+
                     if (GameState.IsLoggedIn)
                         WriteEvent("heartbeat");
 
+
                     UpdateData();
 
-                    if (++compactCounter >= 12)
-                    {
-                        compactCounter = 0;
-                        TryCompactLog();
-                    }
 
                     await Task.Delay(5000, token);
                 }
             }
             catch (OperationCanceledException)
             {
-                // 正常退出
+
             }
             catch (Exception ex)
             {
@@ -492,7 +481,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
             try
             {
-                if (fileMutex.WaitOne(2000)) // 等待获取锁，最多2秒
+                if (fileMutex.WaitOne(2000))
                 {
                     try
                     {
@@ -506,7 +495,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             }
             catch
             {
-                // 忽略写入错误
+                // ignored
             }
         }
 
@@ -519,8 +508,8 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
             foreach (var kvp in activeSessions)
             {
-                // 如果不是当前进程的 session 且超时
-                if (kvp.Key == sessionID) continue; // 忽略自己
+
+                if (kvp.Key == sessionID) continue;
 
                 if (now - kvp.Value.LastEventTime > staleGrace)
                 {
@@ -547,162 +536,33 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                 }
                 catch
                 {
-                    /* ignored */
+                    // ignored
                 }
 
-                // 再次更新以应用 autoClose
                 UpdateData();
-            }
-        }
-
-        private void TryCompactLog()
-        {
-            const long COMPACT_THRESHOLD = 500 * 1024;
-
-            try
-            {
-                var fileInfo = new FileInfo(logPath);
-                if (!fileInfo.Exists || fileInfo.Length < COMPACT_THRESHOLD) return;
-
-                if (fileMutex.WaitOne(0))
-                {
-                    try
-                    {
-                        fileInfo.Refresh();
-                        if (fileInfo.Length < COMPACT_THRESHOLD) return;
-
-                        var lines         = File.ReadAllLines(logPath);
-                        var now           = StandardTimeManager.Instance().UTCNow;
-                        var retentionTime = now.AddDays(-7);
-
-                        var sessionInfo = new Dictionary<string, (DateTime LastTime, bool HasStop)>(StringComparer.Ordinal);
-
-                        foreach (var line in lines)
-                        {
-                            if (string.IsNullOrWhiteSpace(line)) continue;
-                            var span = line.AsSpan();
-
-                            var t1 = span.IndexOf('\t');
-                            if (t1 == -1) continue;
-                            var t2 = span[(t1 + 1)..].IndexOf('\t');
-                            if (t2 == -1) continue;
-                            t2 += t1 + 1;
-                            var t3 = span[(t2 + 1)..].IndexOf('\t');
-                            if (t3 == -1) continue;
-                            t3 += t2 + 1;
-
-                            var id            = span[..t1].ToString();
-                            var eventTypeSpan = span.Slice(t2 + 1, t3 - t2 - 1);
-                            var timeSpan      = span[(t3 + 1)..];
-
-                            if (!DateTime.TryParseExact(timeSpan, "O", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var ts))
-                                continue;
-
-                            if (!sessionInfo.TryGetValue(id, out var info))
-                                info = (ts, false);
-
-                            if (ts > info.LastTime) info.LastTime = ts;
-
-                            switch (eventTypeSpan)
-                            {
-                                case "stop":
-                                case "autoClose":
-                                    info.HasStop = true;
-                                    break;
-                                case "start":
-                                    info.HasStop = false;
-                                    break;
-                            }
-
-                            sessionInfo[id] = info;
-                        }
-
-                        // 2. 过滤和压缩
-                        var compactedLines = new List<string>(lines.Length);
-
-                        foreach (var line in lines)
-                        {
-                            if (string.IsNullOrWhiteSpace(line)) continue;
-                            var span = line.AsSpan();
-
-                            var t1 = span.IndexOf('\t');
-                            if (t1 == -1) continue;
-
-                            var id = span[..t1].ToString();
-
-                            if (!sessionInfo.TryGetValue(id, out var info)) continue;
-
-                            // 规则1: 删除一周前的数据 (如果整个 Session 都在一周前)
-                            if (info.LastTime < retentionTime)
-                                continue;
-
-                            // 规则2: 压缩非活跃会话
-                            // 活跃定义：LastTime 在 Grace 范围内，且没有 Stop
-                            var isActive = !info.HasStop && now - info.LastTime < staleGrace;
-
-                            if (!isActive)
-                            {
-                                // 非活跃：过滤 Heartbeat
-                                var t2 = span[(t1 + 1)..].IndexOf('\t');
-                                if (t2 == -1) continue;
-                                t2 += t1 + 1;
-                                var t3 = span[(t2 + 1)..].IndexOf('\t');
-                                if (t3 == -1) continue;
-                                t3 += t2 + 1;
-                                var eventTypeSpan = span.Slice(t2 + 1, t3 - t2 - 1);
-
-                                if (eventTypeSpan is "heartbeat") 
-                                    continue;
-                            }
-
-                            compactedLines.Add(line);
-                        }
-
-                        File.WriteAllLines(logPath, compactedLines);
-
-                        lastFilePosition = 0;
-                        activeSessions.Clear();
-                        historyIntervals.Clear();
-                    }
-                    finally
-                    {
-                        fileMutex.ReleaseMutex();
-                    }
-
-                    UpdateData();
-                }
-            }
-            catch
-            {
-                // ignored
             }
         }
 
         private void UpdateData()
         {
-            // 1. 读取增量日志
             ParseLogFile();
-
-            // 2. 计算统计数据
-            var now        = StandardTimeManager.Instance().UTCNow; // UTC
-            var todayLocal = StandardTimeManager.Instance().Today;  // Local Midnight
+            
+            var now        = StandardTimeManager.Instance().UTCNow;
+            var todayLocal = StandardTimeManager.Instance().Today;
 
             var todayStartUTC = todayLocal.ToUniversalTime();
             var todayEndUTC   = todayStartUTC.AddDays(1);
 
             var yesterdayStartUTC = todayStartUTC.AddDays(-1);
 
-            var weekStartUTC = todayStartUTC.AddDays(-6); // 7天包括今天
-
-            // 获取当前活跃的 intervals (临时)
+            var weekStartUTC = todayStartUTC.AddDays(-6);
+            
             var activeIntervals = GetActiveIntervals(now);
-
-            // 计算
+            
             var today     = CalculateDuration(todayStartUTC,     todayEndUTC,   activeIntervals);
             var yesterday = CalculateDuration(yesterdayStartUTC, todayStartUTC, activeIntervals);
             var last7     = CalculateDuration(weekStartUTC,      todayEndUTC,   activeIntervals);
-
-            // 更新缓存
+            
             CachedStats = new PlaytimeStats(today, yesterday, last7);
         }
 
@@ -761,7 +621,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                     {
                         case "start":
                         {
-                            // 如果之前已经是 Start 状态且时间更晚，说明之前的没闭合（异常），先闭合它
+
                             if (state.StartTime.HasValue && ts > state.StartTime.Value)
                                 newClosedIntervals.Add(new TimeInterval(state.StartTime.Value, ts));
                             state.StartTime = ts;
@@ -772,9 +632,9 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                         {
                             if (state.StartTime.HasValue)
                             {
-                                // 闭合区间
+
                                 var end                              = ts;
-                                if (end < state.StartTime.Value) end = state.StartTime.Value; // 防御性
+                                if (end < state.StartTime.Value) end = state.StartTime.Value;
                                 newClosedIntervals.Add(new TimeInterval(state.StartTime.Value, end));
                                 state.StartTime = null;
                             }
@@ -794,13 +654,13 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
                 lastFilePosition = fs.Position;
 
-                // 合并新的闭合区间到历史记录中
+
                 if (newClosedIntervals.Count > 0)
                     MergeIntervals(newClosedIntervals);
             }
             catch (Exception ex)
             {
-                // 日志读取错误不应崩溃
+
                 Console.WriteLine($"[AutoRecordSubTimeLeft] Parse error: {ex.Message}");
             }
         }
@@ -819,7 +679,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             {
                 var next = historyIntervals[i];
 
-                if (next.Start <= current.End) // 重叠或相接
+                if (next.Start <= current.End)
                 {
                     if (next.End > current.End) current = new TimeInterval(current.Start, next.End);
                 }
@@ -847,14 +707,11 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                     var start = kvp.Value.StartTime.Value;
                     var end   = kvp.Value.LastEventTime;
 
-                    // 如果最后一次心跳距今很近，认为活跃到现在
+
                     if (now - end < staleGrace)
                         end = now;
                     else
-                    {
-                        // 否则只算到最后一次心跳 + Grace
                         end += staleGrace;
-                    }
 
                     if (end > start)
                         list.Add(new TimeInterval(start, end));
@@ -867,17 +724,17 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         private TimeSpan CalculateDuration(DateTime rangeStart, DateTime rangeEnd, List<TimeInterval> activeIntervals)
         {
             long ticks = 0;
-
+            
             var idx          = historyIntervals.BinarySearch(new TimeInterval(rangeStart, rangeStart), IntervalStartComparer.Instance);
             if (idx < 0) idx = ~idx;
-
+            
             if (idx > 0 && historyIntervals[idx - 1].End > rangeStart)
                 idx--;
 
             for (var i = idx; i < historyIntervals.Count; i++)
             {
                 var interval = historyIntervals[i];
-                if (interval.Start >= rangeEnd) break; // 超出范围
+                if (interval.Start >= rangeEnd) break;
 
                 var start = interval.Start > rangeStart ? interval.Start : rangeStart;
                 var end   = interval.End   < rangeEnd ? interval.End : rangeEnd;
@@ -886,9 +743,9 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                     ticks += (end - start).Ticks;
             }
 
+
             foreach (var active in activeIntervals)
             {
-                // 裁剪到查询窗口
                 if (active.End <= rangeStart || active.Start >= rangeEnd) continue;
 
                 var start = active.Start > rangeStart ? active.Start : rangeStart;
