@@ -29,7 +29,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
     };
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-    
+
     private const ImGuiWindowFlags WINDOW_FLAGS = ImGuiWindowFlags.NoScrollbar           |
                                                   ImGuiWindowFlags.AlwaysAutoResize      |
                                                   ImGuiWindowFlags.NoTitleBar            |
@@ -47,8 +47,8 @@ public unsafe class AutoCountPlayers : DailyModuleBase
     private static readonly uint LineColorRed  = KnownColor.Red.ToUInt();
     private static readonly uint DotColor      = KnownColor.RoyalBlue.ToUInt();
 
-    private delegate void                                InfoProxy24EndRequestDelegate(InfoProxy24* instance);
-    private static   Hook<InfoProxy24EndRequestDelegate> InfoProxy24EndRequestHook;
+    private delegate void InfoProxy24EndRequestDelegate(InfoProxy24* instance);
+    private static Hook<InfoProxy24EndRequestDelegate> InfoProxy24EndRequestHook;
 
     private static Config        ModuleConfig = null!;
     private static IDtrBarEntry? Entry;
@@ -73,7 +73,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
 
         WindowManager.Draw += OnDraw;
 
-        PlayersManager.ReceivePlayersAround      += OnUpdate;
+        PlayersManager.ReceivePlayersAround      += OnReceivePlayers;
         PlayersManager.ReceivePlayersTargetingMe += OnPlayersTargetingMeUpdate;
 
         var instance = (InfoProxy24*)InfoModule.Instance();
@@ -84,20 +84,23 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         );
         InfoProxy24EndRequestHook.Enable();
 
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 10_000);
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        FrameworkManager.Instance().Reg(OnUpdate, 10_000);
         OnUpdate(DService.Instance().Framework);
     }
 
-    private static void OnUpdate(IFramework framework)
+    protected override void Uninit()
     {
-        if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent ||
-            AgentModule.Instance()->GetAgentByInternalId(AgentId.ContentMemberList)->IsAgentActive())
-            return;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
 
-        var proxy = (InfoProxy24*)InfoModule.Instance()->GetInfoProxyById((InfoProxyId)24);
-        if (proxy == null) return;
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
-        AgentId.ContentMemberList.SendEvent(0, 1);
+        WindowManager.Draw                       -= OnDraw;
+        PlayersManager.ReceivePlayersAround      -= OnReceivePlayers;
+        PlayersManager.ReceivePlayersTargetingMe -= OnPlayersTargetingMeUpdate;
+
+        Entry?.Remove();
+        Entry = null;
     }
 
     protected override void ConfigUI()
@@ -241,7 +244,33 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         }
     }
 
-    private void OnUpdate(IReadOnlyList<IPlayerCharacter> characters)
+    private static void OnZoneChanged(ushort obj)
+    {
+        FrameworkManager.Instance().Unreg(OnUpdate);
+
+        if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent ||
+            AgentModule.Instance()->GetAgentByInternalId(AgentId.ContentMemberList)->IsAgentActive())
+            return;
+
+        FrameworkManager.Instance().Reg(OnUpdate, 30_000);
+    }
+
+    private static void OnUpdate(IFramework framework)
+    {
+        if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent ||
+            AgentModule.Instance()->GetAgentByInternalId(AgentId.ContentMemberList)->IsAgentActive())
+        {
+            FrameworkManager.Instance().Unreg(OnUpdate);
+            return;
+        }
+
+        var proxy = (InfoProxy24*)InfoModule.Instance()->GetInfoProxyById((InfoProxyId)24);
+        if (proxy == null) return;
+
+        AgentId.ContentMemberList.SendEvent(0, 1);
+    }
+
+    private void OnReceivePlayers(IReadOnlyList<IPlayerCharacter> characters)
     {
         if (Entry == null) return;
 
@@ -262,11 +291,13 @@ public unsafe class AutoCountPlayers : DailyModuleBase
 
         // 新月岛
         if (GameState.TerritoryIntendedUse == TerritoryIntendedUse.OccultCrescent)
+        {
             Entry.Text.Append
             (
                 $" / {GetLoc("AutoCountPlayers-PlayersZoneCount")}: " +
                 $"{((InfoProxy24*)InfoModule.Instance()->GetInfoProxyById((InfoProxyId)24))->EntryCount}"
             );
+        }
 
         if (characters.Count == 0)
         {
@@ -355,8 +386,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
     private void InfoProxy24EndRequestDetour(InfoProxy24* proxy)
     {
         InfoProxy24EndRequestHook.Original(proxy);
-
-        OnUpdate(PlayersManager.PlayersAround);
+        OnReceivePlayers(PlayersManager.PlayersAround);
     }
 
     private static void DrawLine(Vector2 startPos, Vector2 endPos, ICharacter chara, uint lineColor = 0)
@@ -393,18 +423,6 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         }
     }
 
-    protected override void Uninit()
-    {
-        FrameworkManager.Instance().Unreg(OnUpdate);
-
-        WindowManager.Draw                       -= OnDraw;
-        PlayersManager.ReceivePlayersAround      -= OnUpdate;
-        PlayersManager.ReceivePlayersTargetingMe -= OnPlayersTargetingMeUpdate;
-
-        Entry?.Remove();
-        Entry = null;
-    }
-    
     public class Config : ModuleConfiguration
     {
         public bool  DisplayLineWhenTargetingMe = true;
