@@ -134,7 +134,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
     {
         if (RedirectTargetZoneInMoon == 0 || GameState.TerritoryType != 959) return;
 
-        if (opcode == GamePacketOpcodes.EventCompleteOpcode)
+        if (opcode == UpstreamOpcode.EventCompleteOpcode)
         {
             var data = (EventCompletePackt*)packet;
             if (data->EventID != 0x500AF) return;

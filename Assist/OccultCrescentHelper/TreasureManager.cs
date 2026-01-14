@@ -342,7 +342,7 @@ public partial class OccultCrescentHelper
 
         public static void OnPreSendPacket(ref bool isPrevented, int opcode, ref byte* packet, ref ushort priority)
         {
-            if (opcode                         != GamePacketOpcodes.PositionUpdateInstanceOpcode ||
+            if (opcode                         != UpstreamOpcode.PositionUpdateInstanceOpcode ||
                 GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent            ||
                 !TreasureTaskHelper.IsBusy)
                 return;

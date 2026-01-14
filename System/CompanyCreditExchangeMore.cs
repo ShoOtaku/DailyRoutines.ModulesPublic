@@ -60,7 +60,7 @@ public unsafe class CompanyCreditExchangeMore : DailyModuleBase
 
     private static void OnPreSendPacket(ref bool isPrevented, int opcode, ref byte* packet, ref ushort priority)
     {
-        if (opcode != GamePacketOpcodes.HandOverItemOpcode) return;
+        if (opcode != UpstreamOpcode.HandOverItemOpcode) return;
         if (ModuleConfig.OnlyActiveInWorkshop && HousingManager.Instance()->WorkshopTerritory == null) return;
         if (FreeCompanyCreditShop == null) return;
         

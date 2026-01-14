@@ -69,7 +69,7 @@ public unsafe class SastashaHelper : DailyModuleBase
 
     private static void OnPostSendPackt(int opcode, byte* packet, ushort priority)
     {
-        if (opcode != GamePacketOpcodes.EventStartOpcode) return;
+        if (opcode != UpstreamOpcode.EventStartOpcode) return;
         
         var packetData = (EventStartPackt*)packet;
         if (packetData->EventID == 983066)

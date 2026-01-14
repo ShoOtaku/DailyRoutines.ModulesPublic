@@ -25,7 +25,7 @@ public unsafe class AutoThrottleTenChiJin : DailyModuleBase
     
     private static void OnPreSendActionPacket(ref bool isPrevented, int opcode, ref byte* packet, ref ushort priority)
     {
-        if (opcode != GamePacketOpcodes.UseActionOpcode) return;
+        if (opcode != UpstreamOpcode.UseActionOpcode) return;
 
         if (LocalPlayerState.ClassJob != 30) return;
         
