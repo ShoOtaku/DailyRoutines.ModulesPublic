@@ -68,6 +68,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
 
         Entry         ??= DService.Instance().DTRBar.Get("DailyRoutines-AutoCountPlayers");
         Entry.Shown   =   true;
+        Entry.Text    =   $"{GetLoc("AutoCountPlayers-PlayersAroundCount")}: 0";
         Entry.OnClick +=  _ => Overlay.IsOpen ^= true;
 
         WindowManager.Draw += OnDraw;
