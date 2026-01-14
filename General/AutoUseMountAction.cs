@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Frozen;
 using System.Linq;
+using System.Numerics;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Interface;
-using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using Action = Lumina.Excel.Sheets.Action;
 using Mount = Lumina.Excel.Sheets.Mount;
@@ -29,10 +28,13 @@ public unsafe class AutoUseMountAction : DailyModuleBase
     
     private static uint SelectedActionID;
     private static uint SelectedMountID;
-    
+
+    private static readonly FrozenSet<ConditionFlag> InvalidConditions = [ConditionFlag.InFlight, ConditionFlag.Diving];
+
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new Config();
+        TaskHelper ??= new();
 
         MountSearcher ??= new(LuminaGetter.Get<Mount>()
                                           .Where(x => x.MountAction.RowId > 0)
@@ -43,8 +45,18 @@ public unsafe class AutoUseMountAction : DailyModuleBase
                               [x => x.Singular.ToString()]);
         
         DService.Instance().Condition.ConditionChange += OnConditionChanged;
+        UseActionManager.Instance().RegPostUseActionLocation(OnPostUseAction);
+
         if (DService.Instance().Condition[ConditionFlag.Mounted])
             OnConditionChanged(ConditionFlag.Mounted, true);
+    }
+
+    protected override void Uninit()
+    {
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
+        UseActionManager.Instance().Unreg(OnPostUseAction);
+        
+        TaskHelper?.Abort();
     }
 
     protected override void ConfigUI()
@@ -159,34 +171,55 @@ public unsafe class AutoUseMountAction : DailyModuleBase
         }
     }
     
-    private static void OnConditionChanged(ConditionFlag flag, bool value)
+    private void OnConditionChanged(ConditionFlag flag, bool value)
     {
-        if (flag != ConditionFlag.Mounted) return;
+        if (InvalidConditions.Contains(flag))
+        {
+            if (value)
+                TaskHelper.Abort();
+            else
+            {
+                if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer || 
+                    !ModuleConfig.MountActions.ContainsKey(localPlayer.CurrentMount?.RowId ?? 0)) return;
+                TaskHelper.Enqueue(UseAction);
+            }
+        }
 
-        FrameworkManager.Instance().Unreg(OnUpdate);
+        if (flag == ConditionFlag.Mounted)
+        {
+            if (value)
+            {
+                if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer || 
+                    !ModuleConfig.MountActions.ContainsKey(localPlayer.CurrentMount?.RowId ?? 0)) return;
+                TaskHelper.Enqueue(UseAction);
+            }
+            else
+                TaskHelper.Abort();
+        }
+    }
+
+    private void OnPostUseAction(bool result, ActionType actionType, uint actionID, ulong targetID, Vector3 location, uint extraParam, byte a7)
+    {
+        if (actionType != ActionType.Action) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
+
+        var mountID = localPlayer.CurrentMount?.RowId ?? 0;
+        if (!ModuleConfig.MountActions.TryGetValue(mountID, out var action) || action.ActionID != actionID) return;
         
-        if (!value) return;
-        
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1500);
+        TaskHelper.Enqueue(UseAction);
     }
     
-    private static void OnUpdate(IFramework framework)
+    private static bool UseAction()
     {
-        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
-        if (!DService.Instance().Condition[ConditionFlag.Mounted]) return;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return true;
 
-        var currentMountID = localPlayer.CurrentMount?.RowId ?? 0;
-        if (currentMountID == 0) return;
+        var mountID = localPlayer.CurrentMount?.RowId ?? 0;
+        if (!ModuleConfig.MountActions.TryGetValue(mountID, out var action)) return true;
 
-        if (ModuleConfig.MountActions.TryGetValue(currentMountID, out var action) &&
-            ActionManager.Instance()->GetActionStatus(ActionType.Action, action.ActionID) == 0)
-            UseActionManager.Instance().UseAction(ActionType.Action, action.ActionID);
-    }
+        if (ActionManager.Instance()->GetActionStatus(ActionType.Action, action.ActionID) != 0) return false;
 
-    protected override void Uninit()
-    {
-        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
-        OnConditionChanged(ConditionFlag.Mounted, false);
+        ActionManager.Instance()->UseAction(ActionType.Action, action.ActionID);
+        return true;
     }
 
     private class Config : ModuleConfiguration
