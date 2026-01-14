@@ -1,16 +1,12 @@
 using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
-using OmenTools.Extensions;
 using TerritoryIntendedUse = FFXIVClientStructs.FFXIV.Client.Enums.TerritoryIntendedUse;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoStellarSprint : DailyModuleBase
+public class AutoStellarSprint : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
@@ -20,55 +16,71 @@ public unsafe class AutoStellarSprint : DailyModuleBase
         Author      = ["Due"]
     };
 
-    private const uint StellarSprint = 43357;
-    private const uint SprintStatus  = 4398;
+    private const uint STELLAR_SPRINT = 43357;
+    private const uint SPRINT_STATUS  = 4398;
 
     protected override void Init()
     {
-        TaskHelper ??= new();
-
-        DService.Instance().ClientState.TerritoryChanged += OnTerritoryChange;
-        OnTerritoryChange(0);
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChange;
+        OnZoneChange(0);
+    }
+    
+    protected override void Uninit()
+    {
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChange;
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        PlayerStatusManager.Instance().Unreg(OnLoseStatus);
     }
 
-    private void OnTerritoryChange(ushort zone)
+    private static void OnZoneChange(ushort zone)
     {
-        TaskHelper.Abort();
-        FrameworkManager.Instance().Unreg(OnFrameworkUpdate);
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        PlayerStatusManager.Instance().Unreg(OnLoseStatus);
 
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.CosmicExploration) return;
-        FrameworkManager.Instance().Reg(OnFrameworkUpdate, throttleMS: 2_000);
+        
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 2_000);
+        PlayerStatusManager.Instance().RegLose(OnLoseStatus);
     }
 
-    private void OnFrameworkUpdate(IFramework _)
+    private static void OnLoseStatus(IBattleChara player, ushort id, ushort param, ushort stackCount, ulong sourceID)
     {
-        TaskHelper.Abort();
-        TaskHelper.Enqueue(UseSprint);
-    }
-
-    private bool UseSprint()
-    {
-        if (!UIModule.IsScreenReady() || BetweenAreas || OccupiedInEvent) return false;
+        if (player.EntityID != LocalPlayerState.EntityID) return;
 
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.CosmicExploration)
         {
-            FrameworkManager.Instance().Unreg(OnFrameworkUpdate);
-            return true;
+            PlayerStatusManager.Instance().Unreg(OnLoseStatus);
+            return;
         }
         
-        var localPlayer = Control.GetLocalPlayer();
-        if (localPlayer == null) return false;
-        if (localPlayer->StatusManager.HasStatus(SprintStatus)) return true;
+        PlayerStatusManager.Instance().Unreg(OnLoseStatus);
         
-        var jobCategory = LuminaGetter.GetRow<ClassJob>(localPlayer->ClassJob)?.ClassJobCategory.RowId;
-        if (jobCategory is not (32 or 33)) return true;
-        
-        return UseActionManager.Instance().UseActionLocation(ActionType.Action, StellarSprint);
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 2_000);
     }
 
-    protected override void Uninit()
+    private static void OnUpdate(IFramework _)
     {
-        FrameworkManager.Instance().Unreg(OnFrameworkUpdate);
-        DService.Instance().ClientState.TerritoryChanged -= OnTerritoryChange;
+        if (BetweenAreas || OccupiedInEvent) return;
+
+        if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.CosmicExploration)
+        {
+            FrameworkManager.Instance().Unreg(OnUpdate);
+            return;
+        }
+        
+        if (LocalPlayerState.HasStatus(SPRINT_STATUS, out var _))
+        {
+            FrameworkManager.Instance().Unreg(OnUpdate);
+            
+            PlayerStatusManager.Instance().Unreg(OnLoseStatus);
+            PlayerStatusManager.Instance().RegLose(OnLoseStatus);
+            return;
+        }
+        
+        var jobCategory = LuminaGetter.GetRowOrDefault<ClassJob>(LocalPlayerState.ClassJob).ClassJobCategory.RowId;
+        if (jobCategory is not (32 or 33)) return;
+        
+        UseActionManager.Instance().UseAction(ActionType.Action, STELLAR_SPRINT);
     }
 }
