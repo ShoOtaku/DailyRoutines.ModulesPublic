@@ -4,7 +4,6 @@ using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using Dalamud.Game.Config;
 using Dalamud.Interface.Components;
-using Dalamud.Plugin.Services;
 using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
@@ -29,11 +28,14 @@ public class AutoChangeBattleEffectLevel : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 5_000);
+        PlayersManager.ReceivePlayersAround += OnPlayerReceived;
+
+        if (GameState.IsLoggedIn)
+            OnPlayerReceived([]);
     }
 
     protected override void Uninit() =>
-        FrameworkManager.Instance().Unreg(OnUpdate);
+        PlayersManager.ReceivePlayersAround -= OnPlayerReceived;
 
     protected override void ConfigUI()
     {
@@ -188,8 +190,8 @@ public class AutoChangeBattleEffectLevel : DailyModuleBase
 
         return returnValue;
     }
-
-    private static void OnUpdate(IFramework framework)
+    
+    private static void OnPlayerReceived(IReadOnlyList<IPlayerCharacter> characters)
     {
         EffectSetting? targetSetting = null;
         if (GameState.ContentFinderCondition > 0)
