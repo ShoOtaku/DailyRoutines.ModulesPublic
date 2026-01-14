@@ -24,7 +24,7 @@ public class AutoStellarSprint : DailyModuleBase
         DService.Instance().ClientState.TerritoryChanged += OnZoneChange;
         OnZoneChange(0);
     }
-    
+
     protected override void Uninit()
     {
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChange;
@@ -38,8 +38,8 @@ public class AutoStellarSprint : DailyModuleBase
         PlayerStatusManager.Instance().Unreg(OnLoseStatus);
 
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.CosmicExploration) return;
-        
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 2_000);
+
+        FrameworkManager.Instance().Reg(OnUpdate, 2_000);
         PlayerStatusManager.Instance().RegLose(OnLoseStatus);
     }
 
@@ -52,11 +52,11 @@ public class AutoStellarSprint : DailyModuleBase
             PlayerStatusManager.Instance().Unreg(OnLoseStatus);
             return;
         }
-        
+
         PlayerStatusManager.Instance().Unreg(OnLoseStatus);
-        
+
         FrameworkManager.Instance().Unreg(OnUpdate);
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 2_000);
+        FrameworkManager.Instance().Reg(OnUpdate, 2_000);
     }
 
     private static void OnUpdate(IFramework _)
@@ -68,19 +68,19 @@ public class AutoStellarSprint : DailyModuleBase
             FrameworkManager.Instance().Unreg(OnUpdate);
             return;
         }
-        
+
         if (LocalPlayerState.HasStatus(SPRINT_STATUS, out var _))
         {
             FrameworkManager.Instance().Unreg(OnUpdate);
-            
+
             PlayerStatusManager.Instance().Unreg(OnLoseStatus);
             PlayerStatusManager.Instance().RegLose(OnLoseStatus);
             return;
         }
-        
+
         var jobCategory = LuminaGetter.GetRowOrDefault<ClassJob>(LocalPlayerState.ClassJob).ClassJobCategory.RowId;
         if (jobCategory is not (32 or 33)) return;
-        
+
         UseActionManager.Instance().UseAction(ActionType.Action, STELLAR_SPRINT);
     }
 }
