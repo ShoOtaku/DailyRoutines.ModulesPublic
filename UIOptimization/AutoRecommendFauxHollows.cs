@@ -36,13 +36,13 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "WeeklyPuzzle", OnWeeklyPuzzleEvent);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "WeeklyPuzzle", OnWeeklyPuzzleEvent);
-        if(WeeklyPuzzle != null)
+        if (WeeklyPuzzle != null)
             OnWeeklyPuzzleEvent(AddonEvent.PostSetup, null);
     }
 
     protected override void ConfigUI()
     {
-        if(ImGui.Checkbox(GetLoc("AutoRecommendFauxHollows-PrioritizeSwords"), ref ModuleConfig.PrioritizeSwords))
+        if (ImGui.Checkbox(GetLoc("AutoRecommendFauxHollows-PrioritizeSwords"), ref ModuleConfig.PrioritizeSwords))
         {
             FauxSolver.FindSwordsFirst = ModuleConfig.PrioritizeSwords;
             ModuleConfig.Save(this);
@@ -51,7 +51,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
 
     protected override void OverlayUI()
     {
-        if(!WeeklyPuzzle->IsAddonAndNodesReady())
+        if (!WeeklyPuzzle->IsAddonAndNodesReady())
         {
             Overlay.IsOpen = false;
             return;
@@ -93,14 +93,14 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
     private static void OnUpdate(IFramework framework)
     {
         var addon = (AddonWeeklyPuzzle*)WeeklyPuzzle;
-        if(addon == null || !WeeklyPuzzle->IsAddonAndNodesReady()) return;
+        if (addon == null || !WeeklyPuzzle->IsAddonAndNodesReady()) return;
 
         var tileState = ParseTileInformation(addon);
         Board.Update(tileState);
 
         var solution  = FauxSolver.Solve(Board);
         var bestScore = solution.Max();
-        if(bestScore == 0)
+        if (bestScore == 0)
             bestScore = -1;
 
         UpdateAddonColors(addon, solution, bestScore);
@@ -124,35 +124,35 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
                 WeeklyPuzzleTexture.Hidden  => BoardState.Tile.Hidden,
                 WeeklyPuzzleTexture.Blocked => BoardState.Tile.Blocked,
                 WeeklyPuzzleTexture.Blank => !tileIconImage->IsVisible()
-                    ? BoardState.Tile.Empty
-                    : (WeeklyPuzzlePrizeTexture)tileIconImage->PartId switch
-                    {
-                        WeeklyPuzzlePrizeTexture.BoxTL     => BoardState.Tile.BoxTL,
-                        WeeklyPuzzlePrizeTexture.BoxTR     => BoardState.Tile.BoxTR,
-                        WeeklyPuzzlePrizeTexture.BoxBL     => BoardState.Tile.BoxBL,
-                        WeeklyPuzzlePrizeTexture.BoxBR     => BoardState.Tile.BoxBR,
-                        WeeklyPuzzlePrizeTexture.ChestTL   => BoardState.Tile.ChestTL,
-                        WeeklyPuzzlePrizeTexture.ChestTR   => BoardState.Tile.ChestTR,
-                        WeeklyPuzzlePrizeTexture.ChestBL   => BoardState.Tile.ChestBL,
-                        WeeklyPuzzlePrizeTexture.ChestBR   => BoardState.Tile.ChestBR,
-                        WeeklyPuzzlePrizeTexture.SwordsTL  => BoardState.Tile.SwordsTL,
-                        WeeklyPuzzlePrizeTexture.SwordsTR  => BoardState.Tile.SwordsTR,
-                        WeeklyPuzzlePrizeTexture.SwordsML  => BoardState.Tile.SwordsML,
-                        WeeklyPuzzlePrizeTexture.SwordsMR  => BoardState.Tile.SwordsMR,
-                        WeeklyPuzzlePrizeTexture.SwordsBL  => BoardState.Tile.SwordsBL,
-                        WeeklyPuzzlePrizeTexture.SwordsBR  => BoardState.Tile.SwordsBR,
-                        WeeklyPuzzlePrizeTexture.Commander => BoardState.Tile.Commander,
-                        _                                  => BoardState.Tile.Unknown
-                    },
+                                                 ? BoardState.Tile.Empty
+                                                 : (WeeklyPuzzlePrizeTexture)tileIconImage->PartId switch
+                                                 {
+                                                     WeeklyPuzzlePrizeTexture.BoxTL     => BoardState.Tile.BoxTL,
+                                                     WeeklyPuzzlePrizeTexture.BoxTR     => BoardState.Tile.BoxTR,
+                                                     WeeklyPuzzlePrizeTexture.BoxBL     => BoardState.Tile.BoxBL,
+                                                     WeeklyPuzzlePrizeTexture.BoxBR     => BoardState.Tile.BoxBR,
+                                                     WeeklyPuzzlePrizeTexture.ChestTL   => BoardState.Tile.ChestTL,
+                                                     WeeklyPuzzlePrizeTexture.ChestTR   => BoardState.Tile.ChestTR,
+                                                     WeeklyPuzzlePrizeTexture.ChestBL   => BoardState.Tile.ChestBL,
+                                                     WeeklyPuzzlePrizeTexture.ChestBR   => BoardState.Tile.ChestBR,
+                                                     WeeklyPuzzlePrizeTexture.SwordsTL  => BoardState.Tile.SwordsTL,
+                                                     WeeklyPuzzlePrizeTexture.SwordsTR  => BoardState.Tile.SwordsTR,
+                                                     WeeklyPuzzlePrizeTexture.SwordsML  => BoardState.Tile.SwordsML,
+                                                     WeeklyPuzzlePrizeTexture.SwordsMR  => BoardState.Tile.SwordsMR,
+                                                     WeeklyPuzzlePrizeTexture.SwordsBL  => BoardState.Tile.SwordsBL,
+                                                     WeeklyPuzzlePrizeTexture.SwordsBR  => BoardState.Tile.SwordsBR,
+                                                     WeeklyPuzzlePrizeTexture.Commander => BoardState.Tile.Commander,
+                                                     _                                  => BoardState.Tile.Unknown
+                                                 },
                 _ => BoardState.Tile.Unknown
             };
 
-            if(tileState == BoardState.Tile.Unknown) return result;
+            if (tileState == BoardState.Tile.Unknown) return result;
 
             var rotation = tileIconImage->AtkResNode.Rotation;
-            if(rotation < 0)
+            if (rotation < 0)
                 tileState |= BoardState.Tile.RotatedL;
-            else if(rotation > 0)
+            else if (rotation > 0)
                 tileState |= BoardState.Tile.RotatedR;
         }
 
@@ -246,7 +246,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
             get => (Raw & MaskForBit(index)) != 0;
             set
             {
-                if(value)
+                if (value)
                     Set(index);
                 else
                     Clear(index);
@@ -340,7 +340,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
         {
             var data = AnalyzeBoard(tiles);
 
-            if(data != null)
+            if (data != null)
             {
                 Tiles                                              = tiles;
                 (Blockers, SwordsTL, SwordsHorizontal, BoxChestTL) = data.Value;
@@ -366,23 +366,21 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
             {
                 var t = tiles[i];
 
-                if(t.HasFlag(Tile.Blocked))
-                {
+                if (t.HasFlag(Tile.Blocked))
                     blockers.Set(i);
-                }
-                else if((t & Tile.Swords) != 0)
+                else if ((t & Tile.Swords) != 0)
                 {
                     var tl    = i - TLOffsetSwords(t);
                     var horiz = (t & Tile.RotatedEither) != 0;
-                    if(tl > i || swordsTL != -1 && (swordsTL != tl || swordsHoriz != horiz))
+                    if (tl > i || swordsTL != -1 && (swordsTL != tl || swordsHoriz != horiz))
                         return null;
                     swordsTL    = tl;
                     swordsHoriz = horiz;
                 }
-                else if((t & Tile.BoxChest) != 0)
+                else if ((t & Tile.BoxChest) != 0)
                 {
                     var tl = i - TLOffsetBoxChest(t);
-                    if(tl > i || boxChestTL != -1 && boxChestTL != tl)
+                    if (tl > i || boxChestTL != -1 && boxChestTL != tl)
                         return null;
                     boxChestTL = tl;
                 }
@@ -453,7 +451,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
             var result = new int[BoardState.WIDTH * BoardState.HEIGHT];
             var sheet  = MatchingSheet(board);
 
-            if(sheet != null)
+            if (sheet != null)
             {
                 HashSet<(int, bool)> potentialSwords = [];
                 HashSet<int>         potentialBoxes  = [];
@@ -482,7 +480,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
                 {
                     foreach (var f in new BitMask(foxes).SetBits())
                     {
-                        if(potentialFoxes.Count == 1)
+                        if (potentialFoxes.Count == 1)
                             result[f] = POTENTIAL_FOX;
                         else
                             result[f] += 1;
