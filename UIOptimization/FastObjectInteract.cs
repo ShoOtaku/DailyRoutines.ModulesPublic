@@ -1,8 +1,9 @@
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
@@ -10,10 +11,9 @@ using DailyRoutines.Windows;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using Aetheryte = Lumina.Excel.Sheets.Aetheryte;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 using Treasure = FFXIVClientStructs.FFXIV.Client.Game.Object.Treasure;
 
@@ -31,16 +31,14 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
-    private const string ENPC_TITLE_FORMAT         = "[{0}] {1}";
-    private const int    WORLD_TRAVELING_STATUS_ID = 25;
-    private const int    INTERACT_CHECK_TYPE       = 23;
+    private const string ENPC_TITLE_FORMAT = "[{0}] {1}";
 
-    private static readonly Dictionary<uint, string> EnpcTitles;
-    private static readonly HashSet<uint>            ImportantEnpcs;
-    private static readonly HashSet<uint>            WorldTravelValidZones = [132, 129, 130];
-    private static readonly string                   AethernetShardName;
+    private static FrozenDictionary<uint, string> ENPCTitle     { get; } = LoadEnpcTitles();
+    private static FrozenSet<uint>                ImportantENPC { get; } = LoadImportantEnpcs();
 
-    private static readonly Dictionary<ObjectKind, float> IncludeDistance = new()
+    private static readonly FrozenSet<uint> WorldTravelValidZones = new HashSet<uint> { 132, 129, 130 }.ToFrozenSet();
+
+    private static readonly FrozenDictionary<ObjectKind, float> IncludeDistance = new Dictionary<ObjectKind, float>
     {
         [ObjectKind.Aetheryte]      = 400,
         [ObjectKind.GatheringPoint] = 100,
@@ -48,34 +46,36 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
         [ObjectKind.EventObj]       = 100,
         [ObjectKind.Housing]        = 30,
         [ObjectKind.Treasure]       = 100
-    };
+    }.ToFrozenDictionary();
 
-    private static          Config                   ModuleConfig      = null!;
-    private static          Dictionary<uint, string> DCWorlds          = [];
-    private static readonly Throttler<string>        MonitorThrottler  = new();
-    private static          string                   BlacklistKeyInput = string.Empty;
-    private static          float                    WindowWidth;
-    private static          bool                     IsUpdatingObjects;
-    private static          bool                     IsOnWorldTraveling;
-    private static          uint                     HomeWorld;
+    private static Config ModuleConfig = null!;
+    
+    private static readonly Throttler<string> MonitorThrottler  = new();
 
-    private static readonly List<ObjectToSelect>             TempObjects     = new(100);
-    private static readonly Dictionary<nint, ObjectToSelect> ObjectsToSelect = [];
+    private static Dictionary<uint, string> DCWorlds = [];
+    
+    private static string BlacklistKeyInput = string.Empty;
+    private static float  WindowWidth;
+    private static bool   IsUpdatingObjects;
+    private static bool   IsOnWorldTraveling;
+    
+    private static readonly List<InteractableObject> CurrentObjects = new(20);
+    private static          bool                     ForceObjectUpdate;
 
-    private static bool ForceObjectUpdate;
-
-    static FastObjectInteract()
+    private static FrozenDictionary<uint, string> LoadEnpcTitles()
     {
-        EnpcTitles = LuminaGetter.Get<ENpcResident>()
-                                 .Where(x => x.Unknown1 && !string.IsNullOrWhiteSpace(x.Title.ToString()))
-                                 .ToDictionary(x => x.RowId, x => x.Title.ToString());
+        return LuminaGetter.Get<ENpcResident>()
+                           .Where(x => x.Unknown1 && !string.IsNullOrWhiteSpace(x.Title.ToString()))
+                           .ToDictionary(x => x.RowId, x => x.Title.ToString())
+                           .ToFrozenDictionary();
+    }
 
-        ImportantEnpcs = LuminaGetter.Get<ENpcResident>()
-                                     .Where(x => x.Unknown1)
-                                     .Select(x => x.RowId)
-                                     .ToHashSet();
-
-        AethernetShardName = LuminaGetter.GetRow<EObjName>(2000151)!.Value.Singular.ToString();
+    private static FrozenSet<uint> LoadImportantEnpcs()
+    {
+        return LuminaGetter.Get<ENpcResident>()
+                           .Where(x => x.Unknown1)
+                           .Select(x => x.RowId)
+                           .ToFrozenSet();
     }
 
     protected override void Init()
@@ -99,45 +99,69 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
                     ImGuiWindowFlags.NoBringToFrontOnFocus
         };
 
-        if (ModuleConfig.LockWindow)
-            Overlay.Flags |= ImGuiWindowFlags.NoMove;
-        else
-            Overlay.Flags &= ~ImGuiWindowFlags.NoMove;
+        UpdateWindowFlags();
 
         DService.Instance().ClientState.Login            += OnLogin;
         DService.Instance().ClientState.TerritoryChanged += OnTerritoryChanged;
+        
         FrameworkManager.Instance().Reg(OnUpdate, 250);
 
         LoadWorldData();
     }
+    
+    protected override void Uninit()
+    {
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        DService.Instance().ClientState.Login            -= OnLogin;
+        DService.Instance().ClientState.TerritoryChanged -= OnTerritoryChanged;
 
-    private static void OnLogin() =>
+        CurrentObjects.Clear();
+    }
+    
+    private void OnUpdate(IFramework framework)
+    {
+        if (IsUpdatingObjects) return;
+
+        var localPlayer    = Control.GetLocalPlayer();
+        var canShowOverlay = !BetweenAreas && localPlayer != null;
+
+        if (!canShowOverlay)
+        {
+            if (Overlay.IsOpen)
+            {
+                CurrentObjects.Clear();
+                WindowWidth    = 0f;
+                Overlay.IsOpen = false;
+            }
+
+            return;
+        }
+        
+        if (ForceObjectUpdate || MonitorThrottler.Throttle("Monitor"))
+        {
+            IsUpdatingObjects = true;
+            ForceObjectUpdate = false;
+
+            UpdateObjectsList((GameObject*)localPlayer);
+
+            IsUpdatingObjects = false;
+        }
+
+        var shouldShowWindow = CurrentObjects.Count > 0 && IsWindowShouldBeOpen();
+        if (Overlay != null)
+        {
+            Overlay.IsOpen = shouldShowWindow;
+            if (!shouldShowWindow) WindowWidth = 0f;
+        }
+    }
+    
+    private static void OnLogin() => 
         LoadWorldData();
 
-    private static void OnTerritoryChanged(ushort zoneID) =>
+    private static void OnTerritoryChanged(ushort zoneID) => 
         ForceObjectUpdate = true;
-
-    private static void LoadWorldData()
-    {
-        var agent = AgentLobby.Instance();
-        if (agent == null) return;
-
-        HomeWorld = agent->LobbyData.HomeWorldId;
-        var currentWorld = agent->LobbyData.CurrentWorldId;
-        if (HomeWorld <= 0 || currentWorld <= 0) return;
-
-        if (!LuminaGetter.TryGetRow<World>(currentWorld, out var worldRow)) return;
-        var dataCenter = worldRow.DataCenter.RowId;
-        if (dataCenter <= 0) return;
-
-        DCWorlds = PresetSheet.Worlds
-                              .Where(x => x.Value.DataCenter.RowId == dataCenter)
-                              .OrderBy(x => x.Key                  == HomeWorld)
-                              .ThenBy(x => x.Value.Name.ToString())
-                              .ToDictionary(x => x.Key, x => x.Value.Name.ToString());
-    }
-
-    #region 界面
+    
+    #region UI
 
     protected override void ConfigUI()
     {
@@ -148,22 +172,38 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
         RenderBlacklistSettings();
         RenderWindowOptions();
     }
+    
+    protected override void OverlayUI()
+    {
+        using var fontPush = FontManager.Instance().GetUIFont(ModuleConfig.FontScale).Push();
+
+        RenderObjectButtons(out var instanceChangeObj, out var worldTravelObj);
+
+        if (instanceChangeObj.HasValue || worldTravelObj.HasValue)
+        {
+            ImGui.SameLine();
+
+            using (ImRaii.Group())
+            {
+                if (instanceChangeObj.HasValue) RenderInstanceZoneChangeButtons();
+                if (worldTravelObj.HasValue) RenderWorldChangeButtons();
+            }
+        }
+
+        WindowWidth = Math.Clamp(ImGui.GetItemRectSize().X, ModuleConfig.MinButtonWidth, ModuleConfig.MaxButtonWidth);
+    }
 
     private void RenderFontScaleSettings()
     {
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted($"{GetLoc("FontScale")}:");
-
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80f * GlobalFontScale);
-        ImGui.InputFloat
-        (
-            "###FontScaleInput",
-            ref ModuleConfig.FontScale,
-            0f,
-            0f,
-            ModuleConfig.FontScale.ToString(CultureInfo.InvariantCulture)
-        );
+
+        if (ImGui.InputFloat("###FontScaleInput", ref ModuleConfig.FontScale, 0f, 0f, "%.1f"))
+        {
+
+        }
 
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
@@ -174,39 +214,21 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
 
     private void RenderButtonWidthSettings()
     {
+
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-MinButtonWidth")}:");
-
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80f * GlobalFontScale);
-        ImGui.InputFloat
-        (
-            "###MinButtonWidthInput",
-            ref ModuleConfig.MinButtonWidth,
-            0,
-            0,
-            ModuleConfig.MinButtonWidth.ToString(CultureInfo.InvariantCulture)
-        );
+        ImGui.InputFloat("###MinButtonWidthInput", ref ModuleConfig.MinButtonWidth);
+        if (ImGui.IsItemDeactivatedAfterEdit()) ValidateButtonWidthSettings();
 
-        if (ImGui.IsItemDeactivatedAfterEdit())
-            ValidateButtonWidthSettings();
 
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-MaxButtonWidth")}:");
-
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80f * GlobalFontScale);
-        ImGui.InputFloat
-        (
-            "###MaxButtonWidthInput",
-            ref ModuleConfig.MaxButtonWidth,
-            0,
-            0,
-            ModuleConfig.MaxButtonWidth.ToString(CultureInfo.InvariantCulture)
-        );
-
-        if (ImGui.IsItemDeactivatedAfterEdit())
-            ValidateButtonWidthSettings();
+        ImGui.InputFloat("###MaxButtonWidthInput", ref ModuleConfig.MaxButtonWidth);
+        if (ImGui.IsItemDeactivatedAfterEdit()) ValidateButtonWidthSettings();
     }
 
     private void ValidateButtonWidthSettings()
@@ -226,7 +248,6 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     {
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-MaxDisplayAmount")}:");
-
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80f * GlobalFontScale);
         ImGui.InputInt("###MaxDisplayAmountInput", ref ModuleConfig.MaxDisplayAmount);
@@ -242,28 +263,30 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     {
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-SelectedObjectKinds")}:");
-
         ImGui.SameLine();
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
+
         using var combo = ImRaii.Combo
         (
             "###ObjectKindsSelection",
             GetLoc("FastObjectInteract-SelectedObjectKindsAmount", ModuleConfig.SelectedKinds.Count),
             ImGuiComboFlags.HeightLarge
         );
-        if (!combo) return;
 
-        foreach (var kind in Enum.GetValues<ObjectKind>())
+        if (combo)
         {
-            var state = ModuleConfig.SelectedKinds.Contains(kind);
-
-            if (ImGui.Checkbox(kind.ToString(), ref state))
+            foreach (var kind in Enum.GetValues<ObjectKind>())
             {
-                if (!ModuleConfig.SelectedKinds.Remove(kind))
-                    ModuleConfig.SelectedKinds.Add(kind);
+                var state = ModuleConfig.SelectedKinds.Contains(kind);
 
-                SaveConfig(ModuleConfig);
-                ForceObjectUpdate = true;
+                if (ImGui.Checkbox(kind.ToString(), ref state))
+                {
+                    if (state) ModuleConfig.SelectedKinds.Add(kind);
+                    else ModuleConfig.SelectedKinds.Remove(kind);
+
+                    SaveConfig(ModuleConfig);
+                    ForceObjectUpdate = true;
+                }
             }
         }
     }
@@ -272,33 +295,36 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     {
         ImGui.AlignTextToFramePadding();
         ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-BlacklistKeysList")}:");
-
         ImGui.SameLine();
         ImGui.SetNextItemWidth(300f * GlobalFontScale);
-        using var combo = ImRaii.Combo
-        (
-            "###BlacklistObjectsSelection",
-            GetLoc("FastObjectInteract-BlacklistKeysListAmount", ModuleConfig.BlacklistKeys.Count),
-            ImGuiComboFlags.HeightLarge
-        );
-        if (!combo) return;
+
+        using (ImRaii.Combo
+               (
+                   "###BlacklistObjectsSelection",
+                   GetLoc("FastObjectInteract-BlacklistKeysListAmount", ModuleConfig.BlacklistKeys.Count),
+                   ImGuiComboFlags.HeightLarge
+               ))
+        {
+
+        }
 
         ImGui.SetNextItemWidth(250f * GlobalFontScale);
         ImGui.InputTextWithHint("###BlacklistKeyInput", $"{GetLoc("FastObjectInteract-BlacklistKeysListInputHelp")}", ref BlacklistKeyInput, 100);
-
         ImGui.SameLine();
 
         if (ImGuiOm.ButtonIcon("###BlacklistKeyInputAdd", FontAwesomeIcon.Plus, GetLoc("Add")))
         {
-            if (!ModuleConfig.BlacklistKeys.Add(BlacklistKeyInput)) return;
-
-            SaveConfig(ModuleConfig);
-            ForceObjectUpdate = true;
+            if (ModuleConfig.BlacklistKeys.Add(BlacklistKeyInput))
+            {
+                SaveConfig(ModuleConfig);
+                ForceObjectUpdate = true;
+            }
         }
 
         ImGui.Separator();
 
-        foreach (var key in ModuleConfig.BlacklistKeys)
+
+        foreach (var key in ModuleConfig.BlacklistKeys.ToList())
         {
             if (ImGuiOm.ButtonIcon(key, FontAwesomeIcon.TrashAlt, GetLoc("Delete")))
             {
@@ -314,113 +340,123 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
 
     private void RenderWindowOptions()
     {
-        if (ImGui.Checkbox(GetLoc("FastObjectInteract-WindowInvisibleWhenInteract"), ref ModuleConfig.WindowInvisibleWhenInteract))
-            SaveConfig(ModuleConfig);
-
-        if (ImGui.Checkbox(GetLoc("FastObjectInteract-WindowInvisibleWhenCombat"), ref ModuleConfig.WindowVisibleWhenCombat))
-            SaveConfig(ModuleConfig);
+        var changed = false;
+        changed |= ImGui.Checkbox(GetLoc("FastObjectInteract-WindowInvisibleWhenInteract"), ref ModuleConfig.WindowInvisibleWhenInteract);
+        changed |= ImGui.Checkbox(GetLoc("FastObjectInteract-WindowInvisibleWhenCombat"),   ref ModuleConfig.WindowVisibleWhenCombat);
 
         if (ImGui.Checkbox(GetLoc("FastObjectInteract-LockWindow"), ref ModuleConfig.LockWindow))
         {
-            SaveConfig(ModuleConfig);
-
-            if (ModuleConfig.LockWindow)
-                Overlay.Flags |= ImGuiWindowFlags.NoMove;
-            else
-                Overlay.Flags &= ~ImGuiWindowFlags.NoMove;
+            changed = true;
+            UpdateWindowFlags();
         }
 
         if (ImGui.Checkbox(GetLoc("FastObjectInteract-OnlyDisplayInViewRange"), ref ModuleConfig.OnlyDisplayInViewRange))
         {
-            SaveConfig(ModuleConfig);
+            changed           = true;
             ForceObjectUpdate = true;
         }
 
-        if (ImGui.Checkbox(GetLoc("FastObjectInteract-AllowClickToTarget"), ref ModuleConfig.AllowClickToTarget))
-            SaveConfig(ModuleConfig);
+        changed |= ImGui.Checkbox(GetLoc("FastObjectInteract-AllowClickToTarget"), ref ModuleConfig.AllowClickToTarget);
+
+        if (changed) SaveConfig(ModuleConfig);
     }
-
-    protected override void OverlayUI()
-    {
-        using var fontPush = FontManager.Instance().GetUIFont(ModuleConfig.FontScale).Push();
-
-        RenderObjectButtons(out var instanceChangeObject, out var worldTravelObject);
-
-        if (instanceChangeObject != null || worldTravelObject != null)
-        {
-            ImGui.SameLine();
-
-            using (ImRaii.Group())
-            {
-                if (instanceChangeObject != null)
-                    RenderInstanceZoneChangeButtons();
-
-                if (worldTravelObject != null)
-                    RenderWorldChangeButtons();
-            }
-        }
-
-        WindowWidth = Math.Clamp(ImGui.GetItemRectSize().X, ModuleConfig.MinButtonWidth, ModuleConfig.MaxButtonWidth);
-    }
-
-    private void RenderObjectButtons(out ObjectToSelect? instanceChangeObject, out ObjectToSelect? worldTravelObject)
+    
+    private void RenderObjectButtons(out InteractableObject? instanceChangeObject, out InteractableObject? worldTravelObject)
     {
         instanceChangeObject = null;
         worldTravelObject    = null;
 
         using var group = ImRaii.Group();
 
-        foreach (var objectToSelect in ObjectsToSelect.Values.ToList())
-        {
-            if (objectToSelect.GameObject == nint.Zero) continue;
 
-            if (InstancesManager.IsInstancedArea && objectToSelect.Kind == ObjectKind.Aetheryte)
+        foreach (var obj in CurrentObjects)
+        {
+            if (obj.Pointer == null) continue;
+
+
+            if (InstancesManager.IsInstancedArea && obj.Kind == ObjectKind.Aetheryte)
             {
-                var gameObj = (GameObject*)objectToSelect.GameObject;
-                if (gameObj->NameString != AethernetShardName)
-                    instanceChangeObject = objectToSelect;
+                if (LuminaGetter.GetRow<Aetheryte>(obj.Pointer->BaseId) is { IsAetheryte: true })
+                    instanceChangeObject = obj;
             }
 
             if (!IsOnWorldTraveling                                     &&
                 WorldTravelValidZones.Contains(GameState.TerritoryType) &&
-                objectToSelect.Kind == ObjectKind.Aetheryte)
+                obj.Kind == ObjectKind.Aetheryte)
             {
-                var gameObj = (GameObject*)objectToSelect.GameObject;
-                if (gameObj->NameString != AethernetShardName)
-                    worldTravelObject = objectToSelect;
+                if (LuminaGetter.GetRow<Aetheryte>(obj.Pointer->BaseId) is { IsAetheryte: true })
+                    worldTravelObject = obj;
             }
 
-            var configChanged = ModuleConfig.AllowClickToTarget ? objectToSelect.ButtonToTarget() : objectToSelect.ButtonNoTarget();
 
-            if (configChanged)
-                SaveConfig(ModuleConfig);
+            RenderSingleObjectButton(obj);
+        }
+    }
+
+    private void RenderSingleObjectButton(InteractableObject obj)
+    {
+        var isReachable   = obj.Pointer->IsReachable();
+        var clickToTarget = ModuleConfig.AllowClickToTarget;
+        
+        using var alpha = ImRaii.PushStyle(ImGuiStyleVar.Alpha, 0.5f, !isReachable);
+        
+        if (clickToTarget)
+        {
+
+            using var colorActive = ImRaii.PushColor(ImGuiCol.ButtonActive,  ImGui.GetStyle().Colors[(int)ImGuiCol.HeaderActive],  !isReachable);
+            using var colorHover  = ImRaii.PushColor(ImGuiCol.ButtonHovered, ImGui.GetStyle().Colors[(int)ImGuiCol.HeaderHovered], !isReachable);
+
+            if (ButtonCenterText(obj.ID.ToString(), obj.Name))
+            {
+                if (isReachable) InteractWithObject(obj.Pointer, obj.Kind);
+                else TargetSystem.Instance()->Target = obj.Pointer;
+            }
+        }
+        else
+        {
+
+            using var disabled = ImRaii.Disabled(!isReachable);
+            if (ButtonCenterText(obj.ID.ToString(), obj.Name) && isReachable)
+                InteractWithObject(obj.Pointer, obj.Kind);
+        }
+
+        using (var popup = ImRaii.ContextPopupItem($"{obj.ID}_{obj.Name}"))
+        {
+            if (popup)
+            {
+                if (ImGui.MenuItem(GetLoc("FastObjectInteract-AddToBlacklist")))
+                {
+                    var cleanName = FastObjectInteractTitleRegex().Replace(obj.Name, string.Empty).Trim();
+
+                    if (ModuleConfig.BlacklistKeys.Add(cleanName))
+                    {
+                        SaveConfig(ModuleConfig);
+                        ForceObjectUpdate = true;
+                    }
+                }
+            }
         }
     }
 
     private static void RenderInstanceZoneChangeButtons()
     {
-        using var group = ImRaii.Group();
 
         for (var i = 1; i <= InstancesManager.Instance().GetInstancesCount(); i++)
         {
             if (i == InstancesManager.CurrentInstance) continue;
-
             if (ButtonCenterText($"InstanceChangeWidget_{i}", GetLoc("FastObjectInteract-InstanceAreaChange", i)))
                 ChatManager.Instance().SendMessage($"/pdr insc {i}");
         }
     }
 
-    private void RenderWorldChangeButtons()
+    private static void RenderWorldChangeButtons()
     {
-        var       lobbyData = AgentLobby.Instance()->LobbyData;
-        using var group     = ImRaii.Group();
-        using var disable   = ImRaii.Disabled(IsOnWorldTraveling);
+        using var disabled = ImRaii.Disabled(IsOnWorldTraveling);
 
         foreach (var worldPair in DCWorlds)
         {
-            if (worldPair.Key == lobbyData.CurrentWorldId) continue;
-
-            if (ButtonCenterText($"WorldTravelWidget_{worldPair.Key}", $"{worldPair.Value}{(worldPair.Key == HomeWorld ? " (★)" : "")}"))
+            if (worldPair.Key == GameState.CurrentWorld) continue;
+            if (ButtonCenterText($"WorldTravelWidget_{worldPair.Key}", $"{worldPair.Value}{(worldPair.Key == GameState.HomeWorld ? " (★)" : "")}"))
                 ChatManager.Instance().SendMessage($"/pdr worldtravel {worldPair.Key}");
         }
     }
@@ -444,6 +480,107 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     }
 
     #endregion
+    
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private void UpdateObjectsList(GameObject* localPlayer)
+    {
+        CurrentObjects.Clear();
+
+        var mgr = GameObjectManager.Instance();
+        if (mgr == null) return;
+
+        IsOnWorldTraveling = DService.Instance().Condition.Any
+        (
+            ConditionFlag.ReadyingVisitOtherWorld,
+            ConditionFlag.WaitingToVisitOtherWorld
+        );
+
+        var playerPos = localPlayer->Position;
+        var maxAmount = ModuleConfig.MaxDisplayAmount;
+
+        for (var i = 201; i < mgr->Objects.IndexSorted.Length; i++)
+        {
+            var objPtr = mgr->Objects.IndexSorted[i];
+            if (objPtr == null) continue;
+
+            var obj = objPtr.Value;
+            if (obj == null) continue;
+
+            if (!obj->GetIsTargetable()) continue;
+            
+            var kind = (ObjectKind)obj->ObjectKind;
+            if (!ModuleConfig.SelectedKinds.Contains(kind)) continue;
+            
+            var distSq = Vector3.DistanceSquared(playerPos, obj->Position);
+            
+            var limit = 400f;
+            if (IncludeDistance.TryGetValue(kind, out var l)) 
+                limit = l;
+
+            if (distSq > limit * limit) continue;
+            
+            if (MathF.Abs(obj->Position.Y - playerPos.Y) >= 4) continue;
+
+            if (kind == ObjectKind.Treasure)
+            {
+                var treasure = (Treasure*)obj;
+                if (treasure->Flags.HasFlag(Treasure.TreasureFlags.FadedOut) ||
+                    treasure->Flags.HasFlag(Treasure.TreasureFlags.Opened))
+                    continue;
+            }
+
+            var name = obj->NameString;
+            if (string.IsNullOrEmpty(name)) continue;
+
+            if (ModuleConfig.BlacklistKeys.Contains(name)) continue;
+
+            if (kind == ObjectKind.EventNpc)
+            {
+                if (!ImportantENPC.Contains(obj->BaseId) && obj->NamePlateIconId == 0)
+                    continue;
+
+                if (ImportantENPC.Contains(obj->BaseId))
+                {
+                    if (ENPCTitle.TryGetValue(obj->BaseId, out var title))
+                        name = string.Format(ENPC_TITLE_FORMAT, title, name);
+                }
+            }
+            
+            if (ModuleConfig.OnlyDisplayInViewRange)
+            {
+                if (!DService.Instance().GameGUI.WorldToScreen(obj->Position, out _))
+                    continue;
+            }
+            
+            CurrentObjects.Add(new InteractableObject(obj, name, kind, distSq));
+        }
+        
+        CurrentObjects.Sort(InteractableObjectComparer.Instance);
+
+        if (CurrentObjects.Count > maxAmount)
+            CurrentObjects.RemoveRange(maxAmount, CurrentObjects.Count - maxAmount);
+    }
+    
+    private void UpdateWindowFlags()
+    {
+        if (Overlay == null) return;
+        if (ModuleConfig.LockWindow)
+            Overlay.Flags |= ImGuiWindowFlags.NoMove;
+        else
+            Overlay.Flags &= ~ImGuiWindowFlags.NoMove;
+    }
+    
+    private static bool IsWindowShouldBeOpen()
+    {
+        if (CurrentObjects.Count == 0) return false;
+        if (ModuleConfig.WindowInvisibleWhenInteract && OccupiedInEvent) return false;
+        if (ModuleConfig.WindowVisibleWhenCombat) return true;
+
+        var isPvP    = GameState.IsInPVPInstance;
+        var inCombat = DService.Instance().Condition[ConditionFlag.InCombat];
+
+        return isPvP || !inCombat;
+    }
 
     private void InteractWithObject(GameObject* obj, ObjectKind kind)
     {
@@ -469,297 +606,17 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
             TaskHelper.Enqueue(() => TargetSystem.Instance()->OpenObjectInteraction(obj), "OpenInteraction", weight: 2);
     }
 
-    private void OnUpdate(IFramework framework)
+    private static void LoadWorldData()
     {
-        try
-        {
-            var shouldUpdateObjects = ForceObjectUpdate || MonitorThrottler.Throttle("Monitor");
-            var localPlayer         = DService.Instance().ObjectTable.LocalPlayer;
-            var canShowOverlay      = !BetweenAreas && localPlayer != null;
+        if (!GameState.IsLoggedIn) return;
 
-            if (!canShowOverlay)
-            {
-                if (Overlay.IsOpen)
-                {
-                    ObjectsToSelect.Clear();
-                    WindowWidth    = 0f;
-                    Overlay.IsOpen = false;
-                }
-
-                return;
-            }
-
-            var shouldShowWindow = ObjectsToSelect.Count > 0 && IsWindowShouldBeOpen();
-
-            if (Overlay != null)
-            {
-                Overlay.IsOpen = shouldShowWindow;
-                if (!shouldShowWindow)
-                    WindowWidth = 0f;
-            }
-
-            if (!shouldUpdateObjects || IsUpdatingObjects) return;
-
-            IsUpdatingObjects = true;
-            ForceObjectUpdate = false;
-
-            try
-            {
-                UpdateObjectsList(localPlayer);
-            }
-            finally
-            {
-                IsUpdatingObjects = false;
-            }
-        }
-        catch
-        {
-            IsUpdatingObjects = false;
-        }
-
-        return;
-
-        bool IsWindowShouldBeOpen()
-            => ObjectsToSelect.Count != 0                                      &&
-               (!ModuleConfig.WindowInvisibleWhenInteract || !OccupiedInEvent) &&
-               (!ModuleConfig.WindowVisibleWhenCombat             ||
-                DService.Instance().ClientState.IsPvPExcludingDen ||
-                !DService.Instance().Condition[ConditionFlag.InCombat]);
+        DCWorlds = PresetSheet.Worlds
+                              .Where(x => x.Value.DataCenter.RowId == GameState.CurrentDataCenter)
+                              .OrderBy(x => x.Key                  == GameState.HomeWorld)
+                              .ThenBy(x => x.Value.Name.ToString())
+                              .ToDictionary(x => x.Key, x => x.Value.Name.ToString());
     }
-
-    private static void UpdateObjectsList(IPlayerCharacter localPlayer)
-    {
-        TempObjects.Clear();
-
-        if (TempObjects.Capacity < ModuleConfig.MaxDisplayAmount)
-            TempObjects.Capacity = ModuleConfig.MaxDisplayAmount;
-
-        IsOnWorldTraveling = localPlayer.OnlineStatus.RowId == WORLD_TRAVELING_STATUS_ID;
-
-        var objectFilter = new GameObjectFilter
-        (
-            ModuleConfig.SelectedKinds,
-            ModuleConfig.BlacklistKeys,
-            ModuleConfig.OnlyDisplayInViewRange
-        );
-
-        var filteredObjects = DService.Instance().ObjectTable
-                                      .Where(obj => objectFilter.ShouldIncludeObject(obj))
-                                      .Take(ModuleConfig.MaxDisplayAmount * 2); // 预先多取一些以确保有足够的有效对象
-
-        var furthestDistance = float.MaxValue;
-
-        foreach (var obj in filteredObjects)
-        {
-            var gameObj = obj.ToStruct();
-            if (gameObj == null) continue;
-
-            var dataID  = obj.DataID;
-            var objName = obj.Name.TextValue;
-            var objKind = obj.ObjectKind;
-
-            if (objKind == ObjectKind.EventNpc && ImportantEnpcs.Contains(dataID))
-            {
-                if (EnpcTitles.TryGetValue(dataID, out var enpcTitle))
-                    objName = string.Format(ENPC_TITLE_FORMAT, enpcTitle, obj.Name);
-            }
-
-            var objDistance = Vector3.DistanceSquared(localPlayer.Position, obj.Position);
-            var maxDistance = IncludeDistance.GetValueOrDefault(obj.ObjectKind, 400);
-            if (objDistance >= maxDistance || MathF.Abs(obj.Position.Y - localPlayer.Position.Y) >= 4)
-                continue;
-            if (TempObjects.Count >= ModuleConfig.MaxDisplayAmount && objDistance >= furthestDistance)
-                continue;
-
-            var objectToSelect = new ObjectToSelect((nint)gameObj, objName, objKind, objDistance);
-            var index          = TempObjects.BinarySearch(objectToSelect, OptimizedObjectDistanceComparer.Instance);
-            if (index < 0)
-                index = ~index;
-
-            if (TempObjects.Count < ModuleConfig.MaxDisplayAmount)
-            {
-                TempObjects.Insert(index, objectToSelect);
-                if (TempObjects.Count == ModuleConfig.MaxDisplayAmount)
-                    furthestDistance = TempObjects[^1].Distance;
-            }
-            else if (index < TempObjects.Count)
-            {
-                TempObjects.RemoveAt(TempObjects.Count - 1);
-                TempObjects.Insert(index, objectToSelect);
-
-                furthestDistance = TempObjects[^1].Distance;
-            }
-        }
-
-        ObjectsToSelect.Clear();
-        foreach (var obj in TempObjects)
-            ObjectsToSelect.Add(obj.GameObject, obj);
-    }
-
-    private class GameObjectFilter
-    (
-        HashSet<ObjectKind> selectedKinds,
-        HashSet<string>     blacklistKeys,
-        bool                checkViewRange
-    )
-    {
-        public bool ShouldIncludeObject(IGameObject obj)
-        {
-            if (!obj.IsTargetable || obj.IsDead || !obj.IsValid()) return false;
-
-            var objKind = obj.ObjectKind;
-            if (!selectedKinds.Contains(objKind)) return false;
-
-            var gameObj = obj.ToStruct();
-            if (gameObj == null) return false;
-
-            var objName = obj.Name.TextValue;
-            if (blacklistKeys.Contains(objName)) return false;
-
-            if (objKind == ObjectKind.EventNpc && !ImportantEnpcs.Contains(obj.DataID) && gameObj->NamePlateIconId == 0)
-                return false;
-
-            if (objKind == ObjectKind.Treasure &&
-                (((Treasure*)obj.ToStruct())->Flags.HasFlag(Treasure.TreasureFlags.FadedOut) ||
-                 ((Treasure*)obj.ToStruct())->Flags.HasFlag(Treasure.TreasureFlags.Opened)))
-                return false;
-
-            if (checkViewRange && !DService.Instance().GameGUI.WorldToScreen(gameObj->Position, out _))
-                return false;
-
-            return true;
-        }
-    }
-
-    protected override void Uninit()
-    {
-        FrameworkManager.Instance().Unreg(OnUpdate);
-        DService.Instance().ClientState.Login            -= OnLogin;
-        DService.Instance().ClientState.TerritoryChanged -= OnTerritoryChanged;
-
-        ObjectsToSelect.Clear();
-        TempObjects.Clear();
-    }
-
-    private sealed class ObjectToSelect
-    (
-        nint       gameObject,
-        string     name,
-        ObjectKind kind,
-        float      distance
-    )
-        : IEquatable<ObjectToSelect>
-    {
-        public nint       GameObject { get; } = gameObject;
-        public string     Name       { get; } = name;
-        public ObjectKind Kind       { get; } = kind;
-        public float      Distance   { get; } = distance;
-
-        public bool ButtonToTarget()
-        {
-            var colors      = ImGui.GetStyle().Colors;
-            var isReachable = IsReachable();
-
-            using (ImRaii.PushStyle(ImGuiStyleVar.Alpha, 0.5f, !isReachable))
-            using (ImRaii.PushColor(ImGuiCol.ButtonActive, colors[(int)ImGuiCol.HeaderActive], !isReachable))
-            using (ImRaii.PushColor(ImGuiCol.ButtonHovered, colors[(int)ImGuiCol.HeaderHovered], !isReachable))
-                ButtonCenterText(GameObject.ToString(), Name);
-
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
-            {
-                if (isReachable)
-                    ModuleManager.GetModule<FastObjectInteract>()?.InteractWithObject((GameObject*)GameObject, Kind);
-                else
-                    TargetSystem.Instance()->Target = (GameObject*)GameObject;
-            }
-
-            return ShowContextMenu();
-        }
-
-        public bool ButtonNoTarget()
-        {
-            var isReachable = IsReachable();
-
-            using (ImRaii.Disabled(!isReachable))
-            {
-                if (ButtonCenterText(GameObject.ToString(), Name) && isReachable)
-                    ModuleManager.GetModule<FastObjectInteract>()?.InteractWithObject((GameObject*)GameObject, Kind);
-            }
-
-            return ShowContextMenu();
-        }
-
-        private bool ShowContextMenu()
-        {
-            var       state   = false;
-            using var context = ImRaii.ContextPopupItem($"{GameObject}_{Name}");
-            if (!context) return state;
-
-            if (ImGui.MenuItem(GetLoc("FastObjectInteract-AddToBlacklist")))
-            {
-                var cleanName = FastObjectInteractTitleRegex().Replace(Name, string.Empty).Trim();
-
-                if (ModuleConfig.BlacklistKeys.Add(cleanName))
-                {
-                    state             = true;
-                    ForceObjectUpdate = true;
-                }
-            }
-
-            return state;
-        }
-
-        public bool IsReachable()
-        {
-            var localPlayer   = (GameObject*)Control.GetLocalPlayer();
-            var currentObject = (GameObject*)GameObject;
-            if (localPlayer == null || currentObject == null) return false;
-
-            return EventFramework.Instance()->CheckInteractRange(localPlayer, currentObject, INTERACT_CHECK_TYPE, false);
-        }
-
-
-        public bool Equals(ObjectToSelect? other)
-        {
-            if (other is null) return false;
-            return GameObject == other.GameObject;
-        }
-
-        public override bool Equals(object? obj) => Equals(obj as ObjectToSelect);
-
-        public override int GetHashCode() => GameObject.GetHashCode();
-    }
-
-    private readonly struct OptimizedObjectDistanceComparer : IComparer<ObjectToSelect>
-    {
-        public int Compare(ObjectToSelect? x, ObjectToSelect? y)
-        {
-            if (ReferenceEquals(x, y)) return 0;
-            if (x is null) return -1;
-            if (y is null) return 1;
-
-            var xDistance = x.Distance;
-            var yDistance = y.Distance;
-
-            if (xDistance < yDistance) return -1;
-            if (xDistance > yDistance) return 1;
-
-            return GetObjectTypePriority(x.Kind).CompareTo(GetObjectTypePriority(y.Kind));
-        }
-
-        private static int GetObjectTypePriority(ObjectKind kind) => kind switch
-        {
-            ObjectKind.Aetheryte      => 1,
-            ObjectKind.EventNpc       => 2,
-            ObjectKind.EventObj       => 3,
-            ObjectKind.Treasure       => 4,
-            ObjectKind.GatheringPoint => 5,
-            _                         => 10
-        };
-
-        public static readonly OptimizedObjectDistanceComparer Instance = new();
-    }
-
+    
     private sealed class Config : ModuleConfiguration
     {
         public HashSet<string>     BlacklistKeys = [];
@@ -776,6 +633,47 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
         public bool  WindowVisibleWhenCombat     = true;
     }
 
-    [GeneratedRegex("\\[.*?\\]")]
+    [GeneratedRegex(@"\[.*?\]")]
     private static partial Regex FastObjectInteractTitleRegex();
+    
+    private readonly struct InteractableObject
+    (
+        GameObject* ptr,
+        string      name,
+        ObjectKind  kind,
+        float       distSq
+    )
+    {
+        public readonly GameObject* Pointer    = ptr;
+        public readonly string      Name       = name;
+        public readonly ObjectKind  Kind       = kind;
+        public readonly float       DistanceSq = distSq;
+
+
+        public nint ID => (nint)Pointer;
+    }
+
+    private class InteractableObjectComparer : IComparer<InteractableObject>
+    {
+        public static readonly InteractableObjectComparer Instance = new();
+
+        public int Compare(InteractableObject x, InteractableObject y)
+        {
+            var c = x.DistanceSq.CompareTo(y.DistanceSq);
+            if (c != 0) return c;
+            
+            return GetPriority(x.Kind).CompareTo(GetPriority(y.Kind));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int GetPriority(ObjectKind kind) => kind switch
+        {
+            ObjectKind.Aetheryte      => 1,
+            ObjectKind.EventNpc       => 2,
+            ObjectKind.EventObj       => 3,
+            ObjectKind.Treasure       => 4,
+            ObjectKind.GatheringPoint => 5,
+            _                         => 10
+        };
+    }
 }
