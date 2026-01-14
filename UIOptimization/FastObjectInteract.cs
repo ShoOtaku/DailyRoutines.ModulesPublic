@@ -50,8 +50,6 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
 
     private static Config ModuleConfig = null!;
     
-    private static readonly Throttler<string> MonitorThrottler  = new();
-
     private static Dictionary<uint, string> DCWorlds = [];
     
     private static string BlacklistKeyInput = string.Empty;
@@ -137,7 +135,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
             return;
         }
         
-        if (ForceObjectUpdate || MonitorThrottler.Throttle("Monitor"))
+        if (ForceObjectUpdate || Throttler.Throttle("FastObjectInteract-Monitor"))
         {
             IsUpdatingObjects = true;
             ForceObjectUpdate = false;
@@ -165,12 +163,137 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        RenderFontScaleSettings();
-        RenderButtonWidthSettings();
-        RenderMaxDisplayAmountSetting();
-        RenderObjectKindsSelection();
-        RenderBlacklistSettings();
-        RenderWindowOptions();
+        var changed = false;
+
+        using var width = ImRaii.ItemWidth(300f * GlobalFontScale);
+        
+        changed |= ImGui.Checkbox(GetLoc("FastObjectInteract-WindowInvisibleWhenInteract"), ref ModuleConfig.WindowInvisibleWhenInteract);
+        changed |= ImGui.Checkbox(GetLoc("FastObjectInteract-WindowInvisibleWhenCombat"),   ref ModuleConfig.WindowVisibleWhenCombat);
+
+        if (ImGui.Checkbox(GetLoc("FastObjectInteract-LockWindow"), ref ModuleConfig.LockWindow))
+        {
+            changed = true;
+            UpdateWindowFlags();
+        }
+
+        if (ImGui.Checkbox(GetLoc("FastObjectInteract-OnlyDisplayInViewRange"), ref ModuleConfig.OnlyDisplayInViewRange))
+        {
+            changed           = true;
+            ForceObjectUpdate = true;
+        }
+
+        changed |= ImGui.Checkbox(GetLoc("FastObjectInteract-AllowClickToTarget"), ref ModuleConfig.AllowClickToTarget);
+        
+        ImGui.NewLine();
+        
+        ImGui.InputFloat($"{GetLoc("FontScale")}##FontScaleInput", ref ModuleConfig.FontScale, format: "%.1f");
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            changed = true;
+            
+            ModuleConfig.FontScale = Math.Max(0.1f, ModuleConfig.FontScale);
+        }
+
+        ImGui.InputFloat($"{GetLoc("FastObjectInteract-MinButtonWidth")}##MinButtonWidthInput", ref ModuleConfig.MinButtonWidth, format: "%.1f");
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            changed = true;
+
+            ValidateButtonWidthSettings();
+        }
+        
+        ImGui.InputFloat($"{GetLoc("FastObjectInteract-MaxButtonWidth")}##MaxButtonWidthInput", ref ModuleConfig.MaxButtonWidth, format: "%.1f");
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            changed = true;
+
+            ValidateButtonWidthSettings();
+        }
+
+        ImGui.InputInt($"{GetLoc("FastObjectInteract-MaxDisplayAmount")}##MaxDisplayAmountInput", ref ModuleConfig.MaxDisplayAmount);
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            changed = true;
+            
+            ModuleConfig.MaxDisplayAmount = Math.Max(1, ModuleConfig.MaxDisplayAmount);
+        }
+        
+        using (var combo = ImRaii.Combo
+        (
+            $"{GetLoc("FastObjectInteract-SelectedObjectKinds")}##ObjectKindsSelection",
+            GetLoc("FastObjectInteract-SelectedObjectKindsAmount", ModuleConfig.SelectedKinds.Count),
+            ImGuiComboFlags.HeightLarge
+        ))
+        {
+            if (combo)
+            {
+                foreach (var kind in Enum.GetValues<ObjectKind>())
+                {
+                    var state = ModuleConfig.SelectedKinds.Contains(kind);
+
+                    if (ImGui.Checkbox(kind.ToString(), ref state))
+                    {
+                        changed = true;
+                        
+                        if (state)
+                            ModuleConfig.SelectedKinds.Add(kind);
+                        else
+                            ModuleConfig.SelectedKinds.Remove(kind);
+                        
+                        ForceObjectUpdate = true;
+                    }
+                }
+            }
+        }
+        
+        using (var combo = ImRaii.Combo
+               (
+                   $"{GetLoc("FastObjectInteract-BlacklistKeysList")}##BlacklistObjectsSelection",
+                   GetLoc("FastObjectInteract-BlacklistKeysListAmount", ModuleConfig.BlacklistKeys.Count),
+                   ImGuiComboFlags.HeightLarge
+               ))
+        {
+            if (combo)
+            {
+                if (ImGuiOm.ButtonIcon("###BlacklistKeyInputAdd", FontAwesomeIcon.Plus, GetLoc("Add")))
+                {
+                    if (ModuleConfig.BlacklistKeys.Add(BlacklistKeyInput))
+                    {
+                        SaveConfig(ModuleConfig);
+                        ForceObjectUpdate = true;
+                    }
+                }
+
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(-1);
+                ImGui.InputTextWithHint("###BlacklistKeyInput", $"{GetLoc("FastObjectInteract-BlacklistKeysListInputHelp")}", ref BlacklistKeyInput, 100);
+
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                var listToRemove = new List<string>();
+                foreach (var key in ModuleConfig.BlacklistKeys.ToList())
+                {
+                    if (ImGuiOm.ButtonIcon(key, FontAwesomeIcon.TrashAlt, GetLoc("Delete")))
+                    {
+                        changed = true;
+
+                        listToRemove.Add(key);
+                        ForceObjectUpdate = true;
+                    }
+
+                    ImGui.SameLine();
+                    ImGui.TextUnformatted(key);
+                }
+
+                if (listToRemove.Count > 0)
+                    ModuleConfig.BlacklistKeys.RemoveRange(listToRemove);
+            }
+        }
+
+        if (changed) 
+            SaveConfig(ModuleConfig);
     }
     
     protected override void OverlayUI()
@@ -193,45 +316,7 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
         WindowWidth = Math.Clamp(ImGui.GetItemRectSize().X, ModuleConfig.MinButtonWidth, ModuleConfig.MaxButtonWidth);
     }
 
-    private void RenderFontScaleSettings()
-    {
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted($"{GetLoc("FontScale")}:");
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(80f * GlobalFontScale);
-
-        if (ImGui.InputFloat("###FontScaleInput", ref ModuleConfig.FontScale, 0f, 0f, "%.1f"))
-        {
-
-        }
-
-        if (ImGui.IsItemDeactivatedAfterEdit())
-        {
-            ModuleConfig.FontScale = Math.Max(0.1f, ModuleConfig.FontScale);
-            SaveConfig(ModuleConfig);
-        }
-    }
-
-    private void RenderButtonWidthSettings()
-    {
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-MinButtonWidth")}:");
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(80f * GlobalFontScale);
-        ImGui.InputFloat("###MinButtonWidthInput", ref ModuleConfig.MinButtonWidth);
-        if (ImGui.IsItemDeactivatedAfterEdit()) ValidateButtonWidthSettings();
-
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-MaxButtonWidth")}:");
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(80f * GlobalFontScale);
-        ImGui.InputFloat("###MaxButtonWidthInput", ref ModuleConfig.MaxButtonWidth);
-        if (ImGui.IsItemDeactivatedAfterEdit()) ValidateButtonWidthSettings();
-    }
-
-    private void ValidateButtonWidthSettings()
+    private static void ValidateButtonWidthSettings()
     {
         if (ModuleConfig.MinButtonWidth >= ModuleConfig.MaxButtonWidth)
         {
@@ -241,124 +326,6 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
 
         ModuleConfig.MinButtonWidth = Math.Max(1, ModuleConfig.MinButtonWidth);
         ModuleConfig.MaxButtonWidth = Math.Max(1, ModuleConfig.MaxButtonWidth);
-        SaveConfig(ModuleConfig);
-    }
-
-    private void RenderMaxDisplayAmountSetting()
-    {
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-MaxDisplayAmount")}:");
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(80f * GlobalFontScale);
-        ImGui.InputInt("###MaxDisplayAmountInput", ref ModuleConfig.MaxDisplayAmount);
-
-        if (ImGui.IsItemDeactivatedAfterEdit())
-        {
-            ModuleConfig.MaxDisplayAmount = Math.Max(1, ModuleConfig.MaxDisplayAmount);
-            SaveConfig(ModuleConfig);
-        }
-    }
-
-    private void RenderObjectKindsSelection()
-    {
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-SelectedObjectKinds")}:");
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
-
-        using var combo = ImRaii.Combo
-        (
-            "###ObjectKindsSelection",
-            GetLoc("FastObjectInteract-SelectedObjectKindsAmount", ModuleConfig.SelectedKinds.Count),
-            ImGuiComboFlags.HeightLarge
-        );
-
-        if (combo)
-        {
-            foreach (var kind in Enum.GetValues<ObjectKind>())
-            {
-                var state = ModuleConfig.SelectedKinds.Contains(kind);
-
-                if (ImGui.Checkbox(kind.ToString(), ref state))
-                {
-                    if (state) ModuleConfig.SelectedKinds.Add(kind);
-                    else ModuleConfig.SelectedKinds.Remove(kind);
-
-                    SaveConfig(ModuleConfig);
-                    ForceObjectUpdate = true;
-                }
-            }
-        }
-    }
-
-    private void RenderBlacklistSettings()
-    {
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted($"{GetLoc("FastObjectInteract-BlacklistKeysList")}:");
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
-
-        using (ImRaii.Combo
-               (
-                   "###BlacklistObjectsSelection",
-                   GetLoc("FastObjectInteract-BlacklistKeysListAmount", ModuleConfig.BlacklistKeys.Count),
-                   ImGuiComboFlags.HeightLarge
-               ))
-        {
-
-        }
-
-        ImGui.SetNextItemWidth(250f * GlobalFontScale);
-        ImGui.InputTextWithHint("###BlacklistKeyInput", $"{GetLoc("FastObjectInteract-BlacklistKeysListInputHelp")}", ref BlacklistKeyInput, 100);
-        ImGui.SameLine();
-
-        if (ImGuiOm.ButtonIcon("###BlacklistKeyInputAdd", FontAwesomeIcon.Plus, GetLoc("Add")))
-        {
-            if (ModuleConfig.BlacklistKeys.Add(BlacklistKeyInput))
-            {
-                SaveConfig(ModuleConfig);
-                ForceObjectUpdate = true;
-            }
-        }
-
-        ImGui.Separator();
-
-
-        foreach (var key in ModuleConfig.BlacklistKeys.ToList())
-        {
-            if (ImGuiOm.ButtonIcon(key, FontAwesomeIcon.TrashAlt, GetLoc("Delete")))
-            {
-                ModuleConfig.BlacklistKeys.Remove(key);
-                SaveConfig(ModuleConfig);
-                ForceObjectUpdate = true;
-            }
-
-            ImGui.SameLine();
-            ImGui.TextUnformatted(key);
-        }
-    }
-
-    private void RenderWindowOptions()
-    {
-        var changed = false;
-        changed |= ImGui.Checkbox(GetLoc("FastObjectInteract-WindowInvisibleWhenInteract"), ref ModuleConfig.WindowInvisibleWhenInteract);
-        changed |= ImGui.Checkbox(GetLoc("FastObjectInteract-WindowInvisibleWhenCombat"),   ref ModuleConfig.WindowVisibleWhenCombat);
-
-        if (ImGui.Checkbox(GetLoc("FastObjectInteract-LockWindow"), ref ModuleConfig.LockWindow))
-        {
-            changed = true;
-            UpdateWindowFlags();
-        }
-
-        if (ImGui.Checkbox(GetLoc("FastObjectInteract-OnlyDisplayInViewRange"), ref ModuleConfig.OnlyDisplayInViewRange))
-        {
-            changed           = true;
-            ForceObjectUpdate = true;
-        }
-
-        changed |= ImGui.Checkbox(GetLoc("FastObjectInteract-AllowClickToTarget"), ref ModuleConfig.AllowClickToTarget);
-
-        if (changed) SaveConfig(ModuleConfig);
     }
     
     private void RenderObjectButtons(out InteractableObject? instanceChangeObject, out InteractableObject? worldTravelObject)
