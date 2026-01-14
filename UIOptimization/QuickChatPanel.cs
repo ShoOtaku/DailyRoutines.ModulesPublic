@@ -916,7 +916,7 @@ public static class QuickChatPanelExtensions
         {
             Name           = macro.Name.ToString(),
             IconID         = macro.IconId,
-            LastUpdateTime = DateTime.Now
+            LastUpdateTime = StandardTimeManager.Instance().Now
         };
 
         return savedMacro;

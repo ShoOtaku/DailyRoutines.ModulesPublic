@@ -243,7 +243,7 @@ public class AutoMessageScheduler : DailyModuleBase
             var now = GetNow(sched.Mode);
             var todayStart = sched.Mode switch
             {
-                TimeMode.LocalTime                         => new DateTimeOffset(DateTime.Today).ToUnixTimeSeconds(),
+                TimeMode.LocalTime                         => new DateTimeOffset(StandardTimeManager.Instance().Today).ToUnixTimeSeconds(),
                 TimeMode.ServerTime or TimeMode.EorzeaTime => now - (now % 86400),
                 _                                          => throw new ArgumentOutOfRangeException()
             };
@@ -285,7 +285,7 @@ public class AutoMessageScheduler : DailyModuleBase
 
     private static long GetNow(TimeMode mode) => mode switch
     {
-        TimeMode.LocalTime  => new DateTimeOffset(DateTime.Now).ToUnixTimeSeconds(),
+        TimeMode.LocalTime  => new DateTimeOffset(StandardTimeManager.Instance().Now).ToUnixTimeSeconds(),
         TimeMode.ServerTime => Framework.GetServerTime(),
         TimeMode.EorzeaTime => EorzeaDate.GetTime().EorzeaTimeStamp,
         _                   => throw new ArgumentOutOfRangeException(nameof(mode), mode, null)

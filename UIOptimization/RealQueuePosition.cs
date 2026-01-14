@@ -32,7 +32,7 @@ public unsafe class RealQueuePosition : DailyModuleBase
     private delegate        byte                                          ContentFinderQueuePositionDataDelegate(nint a1, uint a2, nint a3);
     private static          Hook<ContentFinderQueuePositionDataDelegate>? ContentFinderQueuePositionDataHook;
     
-    private DateTime ETA = DateTime.Now;
+    private DateTime ETA = StandardTimeManager.Instance().Now;
 
     protected override void Init()
     {
@@ -69,7 +69,7 @@ public unsafe class RealQueuePosition : DailyModuleBase
         if (type == 1)
         {
             var position = *(int*)(a2 + 20);
-            ETA = DateTime.Now.AddSeconds(CalculateWaitTime(position));
+            ETA = StandardTimeManager.Instance().Now.AddSeconds(CalculateWaitTime(position));
         }
 
         UpdateWorldTravelDataHook.Original(a1, a2);
@@ -95,7 +95,7 @@ public unsafe class RealQueuePosition : DailyModuleBase
         a3->SetValue(index, builder.Builder.Append(LuminaWrapper.GetAddonText(12522)).Append(positionStr).GetViewAsSpan());
         
         var queueTime = TimeSpan.FromSeconds(*(int*)(agentData + 0x128));
-        var info      = GetLoc("RealQueuePosition-ETA", @$"{queueTime:mm\:ss}", @$"{ETA - DateTime.Now:mm\:ss}");
+        var info      = GetLoc("RealQueuePosition-ETA", @$"{queueTime:mm\:ss}", @$"{ETA - StandardTimeManager.Instance().Now:mm\:ss}");
         a3->SetValue(index + 1, info);
 
         return true;

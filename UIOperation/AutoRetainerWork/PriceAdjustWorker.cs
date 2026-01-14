@@ -2106,7 +2106,7 @@ public unsafe partial class AutoRetainerWork
 
             public void RemoveExpiredEntries(TimeSpan expirationTime)
             {
-                var now = DateTime.Now;
+                var now = StandardTimeManager.Instance().Now;
                 var expiredKeys = data
                                   .Where(kvp => now - kvp.Value.LastUpdateTime > expirationTime)
                                   .Select(kvp => kvp.Key)
@@ -2137,9 +2137,9 @@ public unsafe partial class AutoRetainerWork
                 data[key] = new CacheEntry
                 {
                     Price          = price,
-                    LastUpdateTime = DateTime.Now
+                    LastUpdateTime = StandardTimeManager.Instance().Now
                 };
-                LastUpdateTime = DateTime.Now;
+                LastUpdateTime = StandardTimeManager.Instance().Now;
             }
 
             public void Clear()

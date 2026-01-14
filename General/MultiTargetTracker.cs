@@ -145,7 +145,7 @@ public class MultiTargetTracker : DailyModuleBase
                 if (trackPlayer.ContentID != playerStruct->ContentId) continue;
                 if (validPlayers.ContainsKey(trackPlayer.ContentID)) continue;
 
-                trackPlayer.LastSeen         = DateTime.Now;
+                trackPlayer.LastSeen         = StandardTimeManager.Instance().Now;
                 trackPlayer.LastSeenLocation = currentZoneData.ExtractPlaceName();
 
                 validPlayers.Add(playerStruct->ContentId, player.Position);
@@ -159,7 +159,7 @@ public class MultiTargetTracker : DailyModuleBase
                 if (trackPlayer.ContentID != playerStruct->ContentId) continue;
                 if (validPlayers.ContainsKey(trackPlayer.ContentID)) continue;
 
-                trackPlayer.LastSeen         = DateTime.Now;
+                trackPlayer.LastSeen         = StandardTimeManager.Instance().Now;
                 trackPlayer.LastSeenLocation = currentZoneData.ExtractPlaceName();
 
                 validPlayers.Add(playerStruct->ContentId, player.Position);
@@ -221,7 +221,7 @@ public class MultiTargetTracker : DailyModuleBase
             Name      = name;
             WorldName = world;
 
-            Added    = DateTime.Now;
+            Added    = StandardTimeManager.Instance().Now;
             LastSeen = DateTime.MinValue;
         }
 

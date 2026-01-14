@@ -90,7 +90,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
 
     private static void OnUpdate(IFramework framework)
     {
-        var currentMinute = DateTime.Now.Minute;
+        var currentMinute = StandardTimeManager.Instance().Now.Minute;
         if (currentMinute is > 5 and < 55) return;
 
         RunCheck();

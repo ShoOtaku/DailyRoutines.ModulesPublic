@@ -39,16 +39,16 @@ public unsafe class NoAutoClosePartyFinder : DailyModuleBase
         
         isPrevented = true;
         
-        LastPartyMemberChangeTime = DateTime.UtcNow.AddSeconds(1);
+        LastPartyMemberChangeTime = StandardTimeManager.Instance().UTCNow.AddSeconds(1);
         if (LookingForGroupDetail->IsAddonAndNodesReady())
-            LastViewTime = DateTime.UtcNow.AddSeconds(1);
+            LastViewTime = StandardTimeManager.Instance().UTCNow.AddSeconds(1);
     }
 
     private static void LookingForGroupHideDetour(AgentLookingForGroup* agent)
     {
-        if (DateTime.UtcNow < LastPartyMemberChangeTime)
+        if (StandardTimeManager.Instance().UTCNow < LastPartyMemberChangeTime)
         {
-            if (DateTime.UtcNow < LastViewTime)
+            if (StandardTimeManager.Instance().UTCNow < LastViewTime)
             {
                 if (LookingForGroupDetail->IsAddonAndNodesReady())
                     LookingForGroupDetail->Close(true);

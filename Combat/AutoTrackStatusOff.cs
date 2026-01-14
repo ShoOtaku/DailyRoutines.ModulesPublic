@@ -96,7 +96,7 @@ public class AutoTrackStatusOff : DailyModuleBase
         
         // 不是自己给的 Status 不记录
         if (sourceID != LocalPlayerState.EntityID) return;
-        Records[statusID] = ((float)remainingTime.TotalSeconds, sourceID, DateTime.Now, player.EntityID);
+        Records[statusID] = ((float)remainingTime.TotalSeconds, sourceID, StandardTimeManager.Instance().Now, player.EntityID);
     }
 
     private static void OnLoseStatus(IBattleChara player, ushort statusID, ushort param, ushort stackCount, ulong sourceID)
@@ -110,7 +110,7 @@ public class AutoTrackStatusOff : DailyModuleBase
         if (Records.TryGetValue(statusID, out var buffInfo))
         {
             var expectedDuration = buffInfo.Duration;
-            var actualDuration   = (DateTime.Now - buffInfo.GainTime).TotalSeconds;
+            var actualDuration   = (StandardTimeManager.Instance().Now - buffInfo.GainTime).TotalSeconds;
 
             // 死了当然全没了啊
             if (actualDuration < expectedDuration * TimeThreshold && !player.IsDead)

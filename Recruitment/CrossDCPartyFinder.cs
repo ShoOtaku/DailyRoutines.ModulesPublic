@@ -469,14 +469,14 @@ public class CrossDCPartyFinder : DailyModuleBase
         (
             async () =>
             {
-                if (DateTime.Now - LastUpdate < TimeSpan.FromSeconds(30) && LastRequest.Equals(req))
+                if (StandardTimeManager.Instance().Now - LastUpdate < TimeSpan.FromSeconds(30) && LastRequest.Equals(req))
                 {
                     ListingsDisplay = FilterAndSort(Listings);
                     return;
                 }
 
                 IsNeedToDisable = true;
-                LastUpdate      = DateTime.Now;
+                LastUpdate      = StandardTimeManager.Instance().Now;
                 LastRequest     = req;
 
                 var testResult = await testReq.Request().ConfigureAwait(false);

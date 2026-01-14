@@ -234,7 +234,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
             if (submarine.RankId == 0) continue;
 
             var returnTime      = submarine.GetReturnTime();
-            var leftTimeSeconds = (returnTime - DateTime.Now.ToUniversalTime()).TotalSeconds;
+            var leftTimeSeconds = (returnTime - StandardTimeManager.Instance().Now.ToUniversalTime()).TotalSeconds;
             if (leftTimeSeconds > 0) continue;
 
             index = i;

@@ -500,7 +500,7 @@ public class AutoCheckFoodUsage : DailyModuleBase
         ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 2) == 0;
     
     private static bool IsCooldownElapsed() => 
-        (DateTime.Now - LastFoodUsageTime).TotalSeconds >= FOOD_USAGE_COOLDOWN_SECONDS;
+        (StandardTimeManager.Instance().Now - LastFoodUsageTime).TotalSeconds >= FOOD_USAGE_COOLDOWN_SECONDS;
     
     private static uint ToFoodRowID(uint id) => 
         LuminaGetter.GetRow<ItemFood>(LuminaGetter.GetRowOrDefault<Item>(id).ItemAction.Value.Data[1])?.RowId ?? 0;

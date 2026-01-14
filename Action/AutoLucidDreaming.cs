@@ -110,7 +110,7 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
 
     private bool PreventAbilityUse()
     {
-        var timeSinceLastUse = (DateTime.Now - LastLucidDreamingUseTime).TotalMilliseconds;
+        var timeSinceLastUse = (StandardTimeManager.Instance().Now - LastLucidDreamingUseTime).TotalMilliseconds;
         
         var shouldLock = timeSinceLastUse < ABILITY_LOCK_TIME_MS;
         IsAbilityLocked = shouldLock;
@@ -131,7 +131,7 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
         
         var statusManager    = localPlayer->StatusManager;
         var currentMp        = localPlayer->Mana;
-        var timeSinceLastUse = (DateTime.Now - LastLucidDreamingUseTime).TotalMilliseconds;
+        var timeSinceLastUse = (StandardTimeManager.Instance().Now - LastLucidDreamingUseTime).TotalMilliseconds;
         
         if (timeSinceLastUse < ABILITY_LOCK_TIME_MS || currentMp >= ModuleConfig.MpThreshold)
             return true;
@@ -159,7 +159,7 @@ public unsafe class AutoLucidDreaming : DailyModuleBase
                 return true;
         }
 
-        var capturedTime = DateTime.Now;
+        var capturedTime = StandardTimeManager.Instance().Now;
         TaskHelper.Enqueue(() =>
                            {
                                if (IsAbilityLocked) return false;

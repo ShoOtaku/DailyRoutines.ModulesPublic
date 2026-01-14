@@ -120,13 +120,13 @@ public partial class BetterCommandInput : DailyModuleBase
             handledMessage = $"{lower}{command[spaceIndex..]}";
         }
 
-        LastChatTime = DateTime.Now;
+        LastChatTime = StandardTimeManager.Instance().Now;
         return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsValid(ReadOnlySpan<char> chars) =>
-        (DateTime.Now - LastChatTime).TotalMilliseconds >= 500f && 
+        (StandardTimeManager.Instance().Now - LastChatTime).TotalMilliseconds >= 500f && 
         (ContainsUppercase(chars) || ContainsFullWidth(chars) || ContainsSpace(chars));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

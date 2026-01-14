@@ -294,7 +294,7 @@ public unsafe class OptimizedMacro : DailyModuleBase
             if (string.IsNullOrWhiteSpace(presetName))
                 return;
 
-            var createdAt = DateTime.Now;
+            var createdAt = StandardTimeManager.Instance().Now;
 
             if (isOverwrite && ModuleConfig.Presets.TryGetValue(presetName, out var preset))
                 createdAt = preset.CreatedAt;
@@ -554,7 +554,7 @@ public unsafe class OptimizedMacro : DailyModuleBase
 
     private class PresetData
     {
-        public DateTime        CreatedAt        { get; set; } = DateTime.Now;
+        public DateTime        CreatedAt        { get; set; } = StandardTimeManager.Instance().Now;
         public List<MacroData> IndividualMacros { get; set; } = [];
         public List<MacroData> SharedMacros     { get; set; } = [];
     }

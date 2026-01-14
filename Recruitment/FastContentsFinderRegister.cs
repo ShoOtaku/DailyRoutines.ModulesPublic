@@ -211,7 +211,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
 
         public static ContentFinderCacheData? GetCachedData()
         {
-            if (cachedData != null && DateTime.Now - cachedData.LastUpdateTime > TimeSpan.FromSeconds(5))
+            if (cachedData != null && StandardTimeManager.Instance().Now - cachedData.LastUpdateTime > TimeSpan.FromSeconds(5))
                 cachedData = null;
                 
             return cachedData;
@@ -229,7 +229,7 @@ public unsafe class FastContentsFinderRegister : DailyModuleBase
                 {
                     CurrentTab     = ContentsFinder->AtkValues[26].UInt,
                     InDutyQueue    = DService.Instance().Condition[ConditionFlag.InDutyQueue],
-                    LastUpdateTime = DateTime.Now
+                    LastUpdateTime = StandardTimeManager.Instance().Now
                 };
 
                 var listComponent = (AtkComponentNode*)ContentsFinder->GetNodeById(52);

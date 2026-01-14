@@ -427,7 +427,7 @@ public class HealerHelper : DailyModuleBase
         if (flag is ConditionFlag.InCombat && AutoPlayCardService.CurrentDutySection == AutoPlayCardManager.DutySection.Enter)
         {
             AutoPlayCardService.CurrentDutySection = AutoPlayCardManager.DutySection.Start;
-            AutoPlayCardService.StartTime          = DateTime.UtcNow;
+            AutoPlayCardService.StartTime          = StandardTimeManager.Instance().UTCNow;
         }
     }
 
@@ -562,7 +562,7 @@ public class HealerHelper : DailyModuleBase
 
         public DutySection CurrentDutySection;
         public DateTime    StartTime;
-        public bool        IsOpener => (DateTime.UtcNow - StartTime).TotalSeconds > 90;
+        public bool        IsOpener => (StandardTimeManager.Instance().UTCNow - StartTime).TotalSeconds > 90;
         public bool        NeedReorder;
 
         public class Storage

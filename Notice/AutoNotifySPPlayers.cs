@@ -356,7 +356,7 @@ public class AutoNotifySPPlayers : DailyModuleBase
             {
                 var message = Lang.Get("AutoNotifySPPlayers-NoticeMessage", playerName);
 
-                Chat($"{message}\n     ({GetLoc("CurrentTime")}: {DateTime.Now})");
+                Chat($"{message}\n     ({GetLoc("CurrentTime")}: {StandardTimeManager.Instance().Now})");
                 NotificationInfo(message);
                 Speak(message);
 

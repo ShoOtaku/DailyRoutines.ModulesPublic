@@ -87,7 +87,7 @@ public unsafe class AutoRefuseTrade : DailyModuleBase
         }
 
         if (ModuleConfig.SendChat)
-            Chat($"{message}\n    ({GetLoc("Time")}: {DateTime.Now.ToShortTimeString()})");
+            Chat($"{message}\n    ({GetLoc("Time")}: {StandardTimeManager.Instance().Now.ToShortTimeString()})");
 
         if (!string.IsNullOrWhiteSpace(ModuleConfig.ExtraCommands))
         {

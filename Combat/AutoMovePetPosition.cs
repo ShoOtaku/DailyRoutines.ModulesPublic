@@ -318,7 +318,7 @@ public class AutoMovePetPosition : DailyModuleBase
     }
 
     private static void StartBattleTimer() => 
-        BattleStartTime = DateTime.Now;
+        BattleStartTime = StandardTimeManager.Instance().Now;
 
     private static void ResetBattleTimer() => 
         BattleStartTime = DateTime.MinValue;
@@ -335,7 +335,7 @@ public class AutoMovePetPosition : DailyModuleBase
             if (!ValidJobs.Contains(localPlayer.ClassJob.RowId)) return;
             
             var enabledSchedules     = schedulesForThisDuty.Where(x => x.Enabled).ToList();
-            var elapsedTimeInSeconds = (DateTime.Now - BattleStartTime).TotalSeconds;
+            var elapsedTimeInSeconds = (StandardTimeManager.Instance().Now - BattleStartTime).TotalSeconds;
 
             if (DService.Instance().Condition[ConditionFlag.InCombat])
             {

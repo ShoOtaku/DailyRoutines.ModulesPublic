@@ -1078,11 +1078,11 @@ public class AutoReplyChatBot : DailyModuleBase
     private static bool IsCooldownReady()
     {
         var cd = TimeSpan.FromSeconds(Math.Max(5, ModuleConfig.CooldownSeconds));
-        return DateTime.UtcNow - LastTs >= cd;
+        return StandardTimeManager.Instance().UTCNow - LastTs >= cd;
     }
 
     private static void SetCooldown() => 
-        LastTs = DateTime.UtcNow;
+        LastTs = StandardTimeManager.Instance().UTCNow;
     
     private static (string Name, ushort WorldID, string? WorldName) ExtractNameWorld(SeString sender)
     {
@@ -1416,7 +1416,7 @@ public class AutoReplyChatBot : DailyModuleBase
         [GameContextType.CurrentWorld] = () => GameState.CurrentWorldData.Name.ToString(),
         [GameContextType.CurrentZone]  = () => LuminaWrapper.GetZonePlaceName(GameState.TerritoryType),
         [GameContextType.Weather]      = () => GameState.WeatherData.Name.ToString(),
-        [GameContextType.LocalTime]    = () => new DateTimeOffset(DateTime.Now).ToString("yyyy/MM/dd HH:mm"),
+        [GameContextType.LocalTime]    = () => new DateTimeOffset(StandardTimeManager.Instance().Now).ToString("yyyy/MM/dd HH:mm"),
         [GameContextType.EorzeaTime]   = () => EorzeaDate.GetTime().ToString()
     };
     

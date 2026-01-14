@@ -18,7 +18,7 @@ public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
     private static Config ModuleConfig = null!;
 
     private static DateTime NextLeveCheck = DateTime.MinValue;
-    private static DateTime FinishTime    = DateTime.UtcNow;
+    private static DateTime FinishTime    = StandardTimeManager.Instance().UTCNow;
     private static int      LastLeve;
 
     protected override void Init()
@@ -56,7 +56,7 @@ public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
         if (!DService.Instance().ClientState.IsLoggedIn || DService.Instance().ObjectTable.LocalPlayer == null)
             return;
 
-        var nowUTC         = DateTime.UtcNow;
+        var nowUTC         = StandardTimeManager.Instance().UTCNow;
         var leveAllowances = QuestManager.Instance()->NumLeveAllowances;
         if (LastLeve == leveAllowances) return;
 
