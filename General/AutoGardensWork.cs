@@ -282,6 +282,8 @@ public unsafe class AutoGardensWork : DailyModuleBase
     {
         if (!IsEnvironmentValid(out var objectIDs)) return;
 
+        TaskHelper.Enqueue(() => TargetManager.Target = null, "移除当前目标");
+
         foreach (var garden in objectIDs)
         {
             TaskHelper.Enqueue(() => new EventStartPackt(garden, 721047).Send(), $"交互园圃: {garden}");
