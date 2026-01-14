@@ -1,10 +1,11 @@
 using System.Linq;
 using DailyRoutines.Abstracts;
-using Dalamud.Game.ClientState.Fates;
 using Dalamud.Hooking;
+using FFXIVClientStructs.FFXIV.Client.Game.Fate;
 using FFXIVClientStructs.FFXIV.Client.Game.Network;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using Lumina.Excel.Sheets;
+using FateState = Dalamud.Game.ClientState.Fates.FateState;
 using TerritoryIntendedUse = FFXIVClientStructs.FFXIV.Client.Enums.TerritoryIntendedUse;
 
 namespace DailyRoutines.ModulesPublic;
@@ -64,6 +65,9 @@ public unsafe class AutoFateStart : DailyModuleBase
         if (LuminaGetter.GetRow<Fate>(packet->Common.FateId) is not { ClassJobLevel: > 0, Name.IsEmpty: false } row)
             return;
 
+        if (FateManager.Instance()->GetCurrentFateId() == packet->Common.FateId)
+            return;
+        
         if (DService.Instance().Fate.FirstOrDefault(x => x.FateId == packet->Common.FateId) is not { State: FateState.Preparation })
             return;
         
