@@ -1,10 +1,10 @@
+using System.Collections.Frozen;
+using System.Numerics;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 
-namespace DailyRoutines.Modules;
+namespace DailyRoutines.ModulesPublic;
 
 public unsafe class AutoWoof : DailyModuleBase
 {
@@ -16,16 +16,59 @@ public unsafe class AutoWoof : DailyModuleBase
         Author      = ["逆光"]
     };
 
-    protected override void Init() => FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1500);
+    private static readonly FrozenSet<ConditionFlag> InvalidConditions = [ConditionFlag.InFlight, ConditionFlag.Diving];
 
-    private static void OnUpdate(IFramework framework)
+    protected override void Init()
     {
-        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
-        if (!DService.Instance().Condition[ConditionFlag.Mounted] || localPlayer.CurrentMount?.RowId != 294) return;
-        if (ActionManager.Instance()->GetActionStatus(ActionType.Action, 29463) != 0) return;
+        TaskHelper ??= new();
 
-        UseActionManager.Instance().UseAction(ActionType.Action, 29463);
+        DService.Instance().Condition.ConditionChange += OnConditionChanged;
+        UseActionManager.Instance().RegPostUseActionLocation(OnPostUseAction);
     }
 
-    protected override void Uninit() => FrameworkManager.Instance().Unreg(OnUpdate);
+    protected override void Uninit()
+    {
+        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
+        UseActionManager.Instance().Unreg(OnPostUseAction);
+    }
+
+    private void OnConditionChanged(ConditionFlag flag, bool value)
+    {
+        if (InvalidConditions.Contains(flag))
+        {
+            if (value)
+                TaskHelper.Abort();
+            else
+            {
+                if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer || localPlayer.CurrentMount?.RowId != 294) return;
+                TaskHelper.Enqueue(UseAction);
+            }
+        }
+
+        if (flag == ConditionFlag.Mounted)
+        {
+            if (value)
+            {
+                if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer || localPlayer.CurrentMount?.RowId != 294) return;
+                TaskHelper.Enqueue(UseAction);
+            }
+            else
+                TaskHelper.Abort();
+        }
+
+    }
+
+    private void OnPostUseAction(bool result, ActionType actionType, uint actionID, ulong targetID, Vector3 location, uint extraParam, byte a7)
+    {
+        if (actionType != ActionType.Action || actionID != 29463) return;
+        TaskHelper.Enqueue(UseAction);
+    }
+
+    private static bool UseAction()
+    {
+        if (ActionManager.Instance()->GetActionStatus(ActionType.Action, 29463) != 0) return false;
+
+        ActionManager.Instance()->UseAction(ActionType.Action, 29463);
+        return true;
+    }
 }
