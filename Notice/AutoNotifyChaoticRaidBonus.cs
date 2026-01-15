@@ -137,7 +137,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
             }
             catch (Exception)
             {
-                /* ignored */
+                // ignored
             }
         }
     }
@@ -145,12 +145,13 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
     private static Task<StateSnapshot?> GetStateSnapshot()
     {
         var tcs = new TaskCompletionSource<StateSnapshot?>();
+
         DService.Instance().Framework.RunOnTick
         (() =>
             {
                 try
                 {
-                    if (!DService.Instance().ClientState.IsLoggedIn)
+                    if (!GameState.IsLoggedIn)
                     {
                         tcs.SetResult(null);
                         return;
@@ -178,28 +179,32 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
         return tcs.Task;
     }
 
-    private static async Task RunCheckAsync(StateSnapshot state) =>
-        await Task.WhenAll(AllDataCenters.Select(dcName => CheckDC(dcName, state)));
+    private static async Task RunCheckAsync(StateSnapshot state)
+    {
+        var results = await Task.WhenAll(AllDataCenters.Select(dcName => CheckDC(dcName, state)));
 
-    private static async Task CheckDC(string dcName, StateSnapshot state)
+        foreach (var result in results)
+        {
+            if (result != null)
+                ModuleConfig.DataCentersNotifyTime[result.Value.DC] = result.Value.Time;
+        }
+    }
+
+    private static async Task<(string DC, long Time)?> CheckDC(string dcName, StateSnapshot state)
     {
         if (!ModuleConfig.DataCenters.TryGetValue(dcName, out var isEnabled) ||
             !isEnabled && state.CurrentDC != dcName)
-            return;
+            return null;
 
         var lastTime = ModuleConfig.DataCentersNotifyTime.GetValueOrDefault(dcName, 0);
-        if (state.ServerTime - lastTime < 10800) return;
+        if (state.ServerTime - lastTime < 10800) return null;
 
         if (state is { IsLoggedIn: true, IsInInstance: false } && state.CurrentDC == dcName)
         {
             if (state.IsBonusActive)
             {
                 Notify(dcName);
-
-                lock (ModuleConfig.DataCentersNotifyTime)
-                {
-                    ModuleConfig.DataCentersNotifyTime[dcName] = state.ServerTime;
-                }
+                return (dcName, state.ServerTime);
             }
         }
         else
@@ -212,11 +217,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
                 if (content is { IsUptime: true })
                 {
                     Notify(dcName);
-
-                    lock (ModuleConfig.DataCentersNotifyTime)
-                    {
-                        ModuleConfig.DataCentersNotifyTime[dcName] = state.ServerTime;
-                    }
+                    return (dcName, state.ServerTime);
                 }
             }
             catch
@@ -224,6 +225,8 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
                 /* ignored */
             }
         }
+
+        return null;
     }
 
     private static void Notify(string dcName)
@@ -260,7 +263,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
         [JsonProperty("last_bonus_starts")] public List<DateTime> LastBonusStartTimes { get; set; }
         [JsonProperty("last_bonus_ends")]   public List<DateTime> LastBonusEndTimes   { get; set; }
     }
-    
+
     private record StateSnapshot
     (
         string CurrentDC,
