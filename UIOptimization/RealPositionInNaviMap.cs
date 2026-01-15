@@ -1,13 +1,14 @@
 using DailyRoutines.Abstracts;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Nodes;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class RealPositionInNaviMap : DailyModuleBase
+public unsafe class RealPositionInNaviMap : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
@@ -19,6 +20,9 @@ public class RealPositionInNaviMap : DailyModuleBase
     private static Config ModuleConfig = null!;
     
     private static TextButtonNode? PositionButton;
+
+    private static int LastX;
+    private static int LastY;
     
     protected override void Init()
     {
@@ -44,7 +48,7 @@ public class RealPositionInNaviMap : DailyModuleBase
         OnAddon(AddonEvent.PreFinalize, null);
     }
 
-    private static unsafe void OnAddon(AddonEvent type, AddonArgs args)
+    private static void OnAddon(AddonEvent type, AddonArgs args)
     {
         switch (type)
         {
@@ -58,12 +62,26 @@ public class RealPositionInNaviMap : DailyModuleBase
                     if (origTextNode != null)
                         origTextNode->ToggleVisibility(true);
                 }
+
+                LastX = LastY = 0;
                 
                 break;
 
             case AddonEvent.PostRequestedUpdate:
-                if (!NaviMap->IsAddonAndNodesReady()) return;
+                var numberArray = AtkStage.Instance()->GetNumberArrayData(NumberArrayType.AreaMap);
+                if (numberArray == null) return;
 
+                // 跳跃的时候始终要更新位置
+                if (!DService.Instance().Condition[ConditionFlag.Jumping])
+                {
+                    if (numberArray->IntArray[0] != LastX)
+                        LastX = numberArray->IntArray[0];
+                    else if (numberArray->IntArray[1] != LastY)
+                        LastY = numberArray->IntArray[1];
+                    else
+                        return;
+                }
+                
                 if (PositionButton == null)
                 {
                     var origTextNode = NaviMap->GetTextNodeById(6);
