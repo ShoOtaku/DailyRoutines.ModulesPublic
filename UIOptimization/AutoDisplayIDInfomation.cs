@@ -7,7 +7,6 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -51,28 +50,30 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw,  "_TargetInfo",           OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw,  "_TargetInfoMainTarget", OnAddon);
 
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1000);
+        DService.Instance().ClientState.MapIdChanged     += OnMapChanged;
+        DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+        UpdateDTRInfo();
     }
 
-    private static void OnUpdate(IFramework framework)
+    protected override void Uninit()
     {
-        if (ModuleConfig.ShowZoneInfo)
-        {
-            var mapID  = GameState.Map;
-            var zoneID = GameState.TerritoryType;
+        ZoneInfoEntry?.Remove();
+        ZoneInfoEntry = null;
 
-            if (mapID == 0 || zoneID == 0)
-            {
-                ZoneInfoEntry.Shown = false;
-                return;
-            }
+        GameTooltipManager.Instance().Unreg(generateItemModifiers: ModifyItemTooltip);
+        GameTooltipManager.Instance().Unreg(generateActionModifiers: ModifyActionTooltip);
+        GameTooltipManager.Instance().Unreg(ModifyStatusTooltip);
+        GameTooltipManager.Instance().Unreg(ModifyWeatherTooltip);
 
-            ZoneInfoEntry.Shown = true;
+        GameTooltipManager.Instance().RemoveItemDetail(ItemModification);
+        GameTooltipManager.Instance().RemoveItemDetail(ActionModification);
+        GameTooltipManager.Instance().RemoveItemDetail(StatusModification);
+        GameTooltipManager.Instance().RemoveWeather(WeatherModification);
 
-            ZoneInfoEntry.Text = $"{LuminaWrapper.GetAddonText(870)}: {zoneID} / {LuminaWrapper.GetAddonText(670)}: {mapID}";
-        }
-        else
-            ZoneInfoEntry.Shown = false;
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+        DService.Instance().ClientState.MapIdChanged     -= OnMapChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+
     }
 
     protected override void ConfigUI()
@@ -135,6 +136,12 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         if (ImGui.Checkbox($"{LuminaWrapper.GetAddonText(870)}", ref ModuleConfig.ShowZoneInfo))
             SaveConfig(ModuleConfig);
     }
+
+    private static void OnMapChanged(uint obj) =>
+        UpdateDTRInfo();
+
+    private static void OnZoneChanged(ushort obj) =>
+        UpdateDTRInfo();
 
     private static void OnAddon(AddonEvent type, AddonArgs args)
     {
@@ -346,23 +353,25 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         }
     }
 
-    protected override void Uninit()
+    private static void UpdateDTRInfo()
     {
-        ZoneInfoEntry?.Remove();
-        ZoneInfoEntry = null;
+        if (ModuleConfig.ShowZoneInfo)
+        {
+            var mapID  = GameState.Map;
+            var zoneID = GameState.TerritoryType;
 
-        GameTooltipManager.Instance().Unreg(generateItemModifiers: ModifyItemTooltip);
-        GameTooltipManager.Instance().Unreg(generateActionModifiers: ModifyActionTooltip);
-        GameTooltipManager.Instance().Unreg(ModifyStatusTooltip);
-        GameTooltipManager.Instance().Unreg(ModifyWeatherTooltip);
+            if (mapID == 0 || zoneID == 0)
+            {
+                ZoneInfoEntry.Shown = false;
+                return;
+            }
 
-        GameTooltipManager.Instance().RemoveItemDetail(ItemModification);
-        GameTooltipManager.Instance().RemoveItemDetail(ActionModification);
-        GameTooltipManager.Instance().RemoveItemDetail(StatusModification);
-        GameTooltipManager.Instance().RemoveWeather(WeatherModification);
+            ZoneInfoEntry.Shown = true;
 
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
-        FrameworkManager.Instance().Unreg(OnUpdate);
+            ZoneInfoEntry.Text = $"{LuminaWrapper.GetAddonText(870)}: {zoneID} / {LuminaWrapper.GetAddonText(670)}: {mapID}";
+        }
+        else
+            ZoneInfoEntry.Shown = false;
     }
 
     public class Config : ModuleConfiguration
