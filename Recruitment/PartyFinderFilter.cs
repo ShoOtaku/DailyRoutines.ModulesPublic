@@ -253,7 +253,7 @@ public class PartyFinderFilter : DailyModuleBase
 
         var job = LocalPlayerState.ClassJobData;
         // 生产职业 / 基础职业
-        if (job.DohDolJobIndex == -1 || job.ClassJobParent.RowId == job.RowId)
+        if (job.DohDolJobIndex != -1 || job.ClassJobParent.RowId == job.RowId)
             return true;
 
         foreach (var present in listing.JobsPresent)
@@ -289,8 +289,8 @@ public class PartyFinderFilter : DailyModuleBase
             1 => JobTypeCounter(1, ModuleConfig.FilterJobTypeCountData.Tank,           job),
             2 => JobTypeCounter(2, ModuleConfig.FilterJobTypeCountData.PureHealer,     job),
             3 => JobTypeCounter(3, ModuleConfig.FilterJobTypeCountData.Melee,          job),
-            4 => JobTypeCounter(3, ModuleConfig.FilterJobTypeCountData.PhysicalRanged, job),
-            5 => JobTypeCounter(3, ModuleConfig.FilterJobTypeCountData.MagicalRanged,  job),
+            4 => JobTypeCounter(4, ModuleConfig.FilterJobTypeCountData.PhysicalRanged, job),
+            5 => JobTypeCounter(5, ModuleConfig.FilterJobTypeCountData.MagicalRanged,  job),
             6 => JobTypeCounter(6, ModuleConfig.FilterJobTypeCountData.ShieldHealer,   job),
             _ => true,
         };
