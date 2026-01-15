@@ -1,7 +1,7 @@
-using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
@@ -159,44 +159,28 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
 
         switch (typeRaw)
         {
-            case "ground":
-                if (!WorldDirectionToNormalizedDirection.TryGetValue(valueRaw, out var dirGround))
-                {
-                    NotifyCommandError();
-                    return;
-                }
-
+            case "ground" when WorldDirectionToNormalizedDirection.TryGetValue(valueRaw, out var dirGround):
                 LockOnRotation = WorldDirHToCharaRotation(dirGround);
                 LockOn         = true;
-
                 localPlayer.ToStruct()->SetRotation(LockOnRotation);
                 break;
-            case "chara":
-                if (!float.TryParse(valueRaw, out var rotation))
-                {
-                    NotifyCommandError();
-                    return;
-                }
 
+            case "chara" when float.TryParse(valueRaw, out var rotation):
                 LockOnRotation = rotation;
                 LockOn         = true;
                 break;
-            case "camera":
-                if (!float.TryParse(valueRaw, out var dirCamera))
-                {
-                    NotifyCommandError();
-                    return;
-                }
 
+            case "camera" when float.TryParse(valueRaw, out var dirCamera):
                 LockOnRotation = CameraDirHToCharaRotation(dirCamera);
                 LockOn         = true;
-
                 localPlayer.ToStruct()->SetRotation(LockOnRotation);
                 break;
+
             case "off":
                 LockOn         = false;
                 LockOnRotation = 0;
                 break;
+
             default:
                 NotifyCommandError();
                 return;
@@ -206,7 +190,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
 
         localPlayer.ToStruct()->SetRotation(LockOnRotation);
 
-        if (BoundByDuty)
+        if (GameState.ContentFinderCondition != 0)
             PositionUpdateInstancePacket.Send(LockOnRotation, localPlayer.Position);
         else
             new PositionUpdatePacket(LockOnRotation, localPlayer.Position).Send();
@@ -242,44 +226,56 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         CameraUpdateRotationHook.Original(camera);
         CacheCamera = camera;
 
-        if (MovementManager.IsManagerBusy ||
-            OccupiedInEvent               ||
-            DService.Instance().ObjectTable.LocalPlayer is not { CurrentHp: > 0 } localPlayer)
-            return;
+        if (ShouldSkipUpdate()) return;
 
-        switch (ModuleConfig.WorkMode)
+        var localPlayer = DService.Instance().ObjectTable.LocalPlayer!;
+
+        // 不能发包, 发了直接断读条
+        if (localPlayer.IsCasting) return;
+
+        var targetRotation  = LockOn ? LockOnRotation : CameraDirHToCharaRotation(camera->DirH);
+        var currentRotation = localPlayer.Rotation;
+
+        if (!LockOn && !IsRotationChanged(targetRotation, currentRotation)) return;
+
+        localPlayer.ToStruct()->SetRotation(targetRotation);
+
+        SyncRotationToServer(localPlayer, targetRotation, currentRotation);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool ShouldSkipUpdate()
+    {
+        if (MovementManager.IsManagerBusy || OccupiedInEvent) return true;
+        if (DService.Instance().ObjectTable.LocalPlayer is not { CurrentHp: > 0 }) return true;
+
+        var isConflict = IsConflictKeyPressed();
+        return ModuleConfig.WorkMode switch
         {
-            case false when !IsConflictKeyPressed():
-            case true when IsConflictKeyPressed():
+            false => isConflict, // WorkMode=false: 按下打断键时跳过 (即不工作)
+            true  => !isConflict // WorkMode=true:  没按下打断键时跳过 (即不工作)
+        };
+    }
 
-                // 不能发包, 发了直接断读条
-                if (localPlayer.IsCasting) break;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void SyncRotationToServer(IPlayerCharacter localPlayer, float targetRotation, float currentRotation)
+    {
+        var isCombat = DService.Instance().Condition[ConditionFlag.InCombat];
+        if (!IsRotationChanged(targetRotation, currentRotation) && !isCombat) return;
 
-                var currentRotation = MathF.Round(localPlayer.Rotation,                                              2);
-                var targetRotation  = MathF.Round(LockOn ? LockOnRotation : CameraDirHToCharaRotation(camera->DirH), 4);
+        var moveState = MovementManager.CurrentZoneMoveState;
 
-                var isRotationChanged = IsRotationChanged(currentRotation, targetRotation);
-                var currentMoveState  = MovementManager.CurrentZoneMoveState;
+        if (GameState.ContentFinderCondition != 0)
+        {
+            var moveType = (PositionUpdateInstancePacket.MoveType)(moveState * 0x10000);
+            new PositionUpdateInstancePacket(targetRotation, localPlayer.Position, moveType).Send();
+        }
+        else
+        {
+            if (!Throttler.Throttle("AutoFaceCameraDirection-UpdateRotation", 20)) return;
 
-                localPlayer.ToStruct()->SetRotation(targetRotation);
-
-                if (GameState.ContentFinderCondition != 0)
-                {
-                    if (!isRotationChanged && !DService.Instance().Condition[ConditionFlag.InCombat]) break;
-
-                    var moveType = (PositionUpdateInstancePacket.MoveType)(currentMoveState * 0x10000);
-                    new PositionUpdateInstancePacket(targetRotation, localPlayer.Position, moveType).Send();
-                }
-                else
-                {
-                    if (!isRotationChanged && !DService.Instance().Condition[ConditionFlag.InCombat]) break;
-                    if (!Throttler.Throttle("AutoFaceCameraDirection-UpdateRotation", 20)) break;
-
-                    var moveType = (PositionUpdatePacket.MoveType)(currentMoveState * 0x10000);
-                    new PositionUpdatePacket(targetRotation, localPlayer.Position, moveType).Send();
-                }
-
-                break;
+            var moveType = (PositionUpdatePacket.MoveType)(moveState * 0x10000);
+            new PositionUpdatePacket(targetRotation, localPlayer.Position, moveType).Send();
         }
     }
 
