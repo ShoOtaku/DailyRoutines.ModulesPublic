@@ -57,6 +57,9 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
     protected override void Uninit()
     {
+        DService.Instance().ClientState.MapIdChanged     -= OnMapChanged;
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        
         ZoneInfoEntry?.Remove();
         ZoneInfoEntry = null;
 
@@ -71,8 +74,6 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
         GameTooltipManager.Instance().RemoveWeather(WeatherModification);
 
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
-        DService.Instance().ClientState.MapIdChanged     -= OnMapChanged;
-        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
 
     }
 
