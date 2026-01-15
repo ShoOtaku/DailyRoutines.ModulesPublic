@@ -3,7 +3,6 @@ using DailyRoutines.Windows;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Gui.PartyFinder.Types;
-using Dalamud.Interface;
 using Dalamud.Interface.Components;
 using Lumina.Excel.Sheets;
 using System;
@@ -89,17 +88,43 @@ public class PartyFinderFilter : DailyModuleBase
         if (!ModuleConfig.HighEndFilterRoleCount)
             return;
 
+        var changed = false;
+        
         using var pushIndent = ImRaii.PushIndent();
-        ImGui.SetNextItemWidth(60f * GlobalFontScale);
-        ImGui.InputInt($"{LuminaWrapper.GetAddonText(1082)} / {LuminaWrapper.GetAddonText(11300)} / {LuminaWrapper.GetAddonText(11301)}",
-                        ref ModuleConfig.HighEndFilterRoleCountData[0]);
-        if (ImGui.IsItemDeactivatedAfterEdit())
-            SaveConfig(ModuleConfig);
+        using var itemWidth  = ImRaii.ItemWidth(50f * GlobalFontScale);
 
-        ImGui.SetNextItemWidth(60f * GlobalFontScale);
-        ImGui.InputInt($"{LuminaWrapper.GetAddonText(1084)} / {LuminaWrapper.GetAddonText(1085)} / {LuminaWrapper.GetAddonText(1086)}",
-                       ref ModuleConfig.HighEndFilterRoleCountData[3]);
-        if (ImGui.IsItemDeactivatedAfterEdit())
+        using (ImRaii.Group())
+        {
+            ImGui.InputInt($"{LuminaWrapper.GetAddonText(1082)}", ref ModuleConfig.FilterJobTypeCountData.Tank);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+                changed = true;
+        
+            ImGui.InputInt($"{LuminaWrapper.GetAddonText(11300)}", ref ModuleConfig.FilterJobTypeCountData.PureHealer);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+                changed = true;
+        
+            ImGui.InputInt($"{LuminaWrapper.GetAddonText(11301)}", ref ModuleConfig.FilterJobTypeCountData.ShieldHealer);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+                changed = true;
+        }
+
+        ImGui.SameLine();
+        using (ImRaii.Group())
+        {
+            ImGui.InputInt($"{LuminaWrapper.GetAddonText(1084)}", ref ModuleConfig.FilterJobTypeCountData.Melee);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+                changed = true;
+        
+            ImGui.InputInt($"{LuminaWrapper.GetAddonText(1085)}", ref ModuleConfig.FilterJobTypeCountData.PhysicalRanged);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+                changed = true;
+        
+            ImGui.InputInt($"{LuminaWrapper.GetAddonText(1086)}", ref ModuleConfig.FilterJobTypeCountData.MagicalRanged);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+                changed = true;
+        }
+        
+        if (changed)
             SaveConfig(ModuleConfig);
     }
 
@@ -224,15 +249,16 @@ public class PartyFinderFilter : DailyModuleBase
     private static bool FilterByHighEndSameJob(IPartyFinderListing listing)
     {
         if (!ModuleConfig.HighEndFilterSameJob) return true;
-        if (!IsRaid || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return true;
+        if (!IsRaid) return true;
 
-        var job = localPlayer.ClassJob.Value;
-        if (job.Role == 0)
-            return true; // 生产职业 / 基础职业
+        var job = LocalPlayerState.ClassJobData;
+        // 生产职业 / 基础职业
+        if (job.DohDolJobIndex == -1 || job.ClassJobParent.RowId == job.RowId)
+            return true;
 
         foreach (var present in listing.JobsPresent)
         {
-            if (present.RowId == localPlayer.ClassJob.RowId)
+            if (present.RowId == LocalPlayerState.ClassJob)
                 return false;
         }
 
@@ -242,35 +268,34 @@ public class PartyFinderFilter : DailyModuleBase
     private static bool FilterByHighEndSameRole(IPartyFinderListing listing)
     {
         if (!ModuleConfig.HighEndFilterRoleCount) return true;
-        if (!IsRaid || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return true;
+        if (!IsRaid) return true;
 
-        var job = localPlayer.ClassJob.Value;
-
+        var job = LocalPlayerState.ClassJobData;
         if (ManualMode)
         {
-            var filter0 = RoleCounter(1, ModuleConfig.HighEndFilterRoleCountData[0], job);
-            var filter1 = RoleCounter(2, ModuleConfig.HighEndFilterRoleCountData[1], job);
-            var filter2 = RoleCounter(6, ModuleConfig.HighEndFilterRoleCountData[2], job);
-            var filter3 = RoleCounter(3, ModuleConfig.HighEndFilterRoleCountData[3], job);
-            var filter4 = RoleCounter(4, ModuleConfig.HighEndFilterRoleCountData[4], job);
-            var filter5 = RoleCounter(5, ModuleConfig.HighEndFilterRoleCountData[5], job);
+            var filter0 = JobTypeCounter(1, ModuleConfig.FilterJobTypeCountData.Tank,           job);
+            var filter1 = JobTypeCounter(2, ModuleConfig.FilterJobTypeCountData.PureHealer,     job);
+            var filter2 = JobTypeCounter(6, ModuleConfig.FilterJobTypeCountData.ShieldHealer,   job);
+            var filter3 = JobTypeCounter(3, ModuleConfig.FilterJobTypeCountData.Melee,          job);
+            var filter4 = JobTypeCounter(4, ModuleConfig.FilterJobTypeCountData.PhysicalRanged, job);
+            var filter5 = JobTypeCounter(5, ModuleConfig.FilterJobTypeCountData.MagicalRanged,  job);
 
             return filter0 && filter1 && filter2 && filter3 && filter4 && filter5;
         }
-        else
-        {
-            return job.Role switch
-            {
-                0           => true,
-                1           => RoleCounter(1,        ModuleConfig.HighEndFilterRoleCountData[0],        job),
-                2           => RoleCounter(2,        ModuleConfig.HighEndFilterRoleCountData[1],        job),
-                6           => RoleCounter(6,        ModuleConfig.HighEndFilterRoleCountData[2],        job),
-                3 or 4 or 5 => RoleCounter(job.Role, ModuleConfig.HighEndFilterRoleCountData[job.Role], job),
-                _           => true,
-            };
-        }
 
-        bool RoleCounter(int roleType, int maxCount, ClassJob currentJob)
+        return job.JobType switch
+        {
+            0 => true,
+            1 => JobTypeCounter(1, ModuleConfig.FilterJobTypeCountData.Tank,           job),
+            2 => JobTypeCounter(2, ModuleConfig.FilterJobTypeCountData.PureHealer,     job),
+            3 => JobTypeCounter(3, ModuleConfig.FilterJobTypeCountData.Melee,          job),
+            4 => JobTypeCounter(3, ModuleConfig.FilterJobTypeCountData.PhysicalRanged, job),
+            5 => JobTypeCounter(3, ModuleConfig.FilterJobTypeCountData.MagicalRanged,  job),
+            6 => JobTypeCounter(6, ModuleConfig.FilterJobTypeCountData.ShieldHealer,   job),
+            _ => true,
+        };
+
+        bool JobTypeCounter(int jobType, int maxCount, ClassJob currentJob)
         {
             if (maxCount == -1)
                 return true;
@@ -278,7 +303,7 @@ public class PartyFinderFilter : DailyModuleBase
             var count = 0;
             var hasSlot = false;
 
-            var slots = listing.Slots.ToList();
+            var slots       = listing.Slots.ToList();
             var jobsPresent = listing.JobsPresent.ToList();
             foreach (var i in Enumerable.Range(0, 8))
             {
@@ -288,7 +313,7 @@ public class PartyFinderFilter : DailyModuleBase
                 if (jobsPresent.ElementAt(i).Value.RowId != 0)
                 {
                     // 如果该位置已有玩家，检查职业类型
-                    if (jobsPresent.ElementAt(i).Value.Role == roleType)
+                    if (jobsPresent.ElementAt(i).Value.JobType == jobType)
                         count++;
                 }
                 else if (!hasSlot) // 有空位后不再检查
@@ -297,7 +322,7 @@ public class PartyFinderFilter : DailyModuleBase
                     if (ManualMode)
                     {
                         // 手动模式：检查所有同类角色是否有空位
-                        foreach (var playerJob in LuminaGetter.Get<ClassJob>().Where(j => j.RowId != 0 && j.Role == roleType))
+                        foreach (var playerJob in LuminaGetter.Get<ClassJob>().Where(j => j.RowId != 0 && j.JobType == jobType))
                         {
                             if (Enum.TryParse<JobFlags>(playerJob.NameEnglish.ToString().Replace(" ", string.Empty), out var flag) &&
                                 slots.ElementAt(i)[flag])
@@ -339,6 +364,8 @@ public class PartyFinderFilter : DailyModuleBase
         public bool HighEndFilterSameJob = true;
 
         public bool HighEndFilterRoleCount = true;
-        public int[] HighEndFilterRoleCountData = [2, 1, 1, 2, 1, 2]; // T2, 血奶1, 盾奶1, 近2, 远1, 法2
+        
+        // T2, 血奶1, 盾奶1, 近2, 远1, 法2
+        public (int Tank, int PureHealer, int ShieldHealer, int Melee, int PhysicalRanged, int MagicalRanged) FilterJobTypeCountData = (2, 1, 1, 2, 1, 2); 
     }
 }
