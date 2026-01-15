@@ -37,13 +37,13 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
     private static readonly byte[] DamagePhysicalStr = new SeString(new IconPayload(BitmapFontIcon.DamagePhysical)).Encode();
     private static readonly byte[] DamageMagicalStr  = new SeString(new IconPayload(BitmapFontIcon.DamageMagical)).Encode();
-    
+
     private static Config                   ModuleConfig = null!;
     private static CancellationTokenSource? RemoteFetchCancelSource;
     private static IDtrBarEntry?            BarEntry;
 
     private static readonly MitigationState State = new();
-    
+
     private static bool IsCombatEventsRegistered;
     private static bool IsNeedToDrawOnPartyList;
 
@@ -58,18 +58,20 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         DService.Instance().Condition.ConditionChange    += OnConditionChanged;
-        
+
+        if (GameState.ContentFinderCondition != 0)
+            OnZoneChanged(0);
         if (DService.Instance().Condition[ConditionFlag.InCombat])
             OnConditionChanged(ConditionFlag.InCombat, true);
     }
 
     protected override void Uninit()
     {
-        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().Condition.ConditionChange    -= OnConditionChanged;
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
 
         UnregCombatEvents();
-        
+
         BarEntry?.Remove();
         BarEntry = null;
 
@@ -234,8 +236,14 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
     #region 事件
 
-    private void OnZoneChanged(ushort obj) =>
+    private void OnZoneChanged(ushort obj)
+    {
         UnregCombatEvents();
+
+        if (GameState.ContentFinderCondition == 0) return;
+
+        RegCombatEvents();
+    }
 
     private void OnConditionChanged(ConditionFlag flag, bool value)
     {
@@ -249,7 +257,13 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
     private void OnUpdate(IFramework _)
     {
-        if (GameState.IsInPVPArea || !DService.Instance().Condition[ConditionFlag.InCombat])
+        if (GameState.IsInPVPArea)
+        {
+            UnregCombatEvents();
+            return;
+        }
+
+        if (!DService.Instance().Condition[ConditionFlag.InCombat] && GameState.ContentFinderCondition == 0)
         {
             UnregCombatEvents();
             return;
@@ -268,10 +282,10 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
         WindowManager.Draw += Draw;
         FrameworkManager.Instance().Reg(OnUpdate, 500);
-        
+
         BarEntry         ??= DService.Instance().DTRBar.Get("DailyRoutines-AutoDisplayMitigationInfo");
         BarEntry.OnClick =   _ => Overlay?.IsOpen ^= true;
-        
+
         IsCombatEventsRegistered = true;
     }
 
@@ -283,14 +297,14 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
         WindowManager.Draw -= Draw;
         FrameworkManager.Instance().Unreg(OnUpdate);
         State.Clear();
-        
+
         if (BarEntry != null)
         {
             BarEntry.Shown   = false;
             BarEntry.Tooltip = null;
             BarEntry.Text    = null;
         }
-        
+
         IsCombatEventsRegistered = false;
     }
 
@@ -298,7 +312,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
     {
         if (BarEntry == null)
             return;
-        
+
         if (State.IsLocalEmpty)
         {
             BarEntry.Shown   = false;
@@ -354,7 +368,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
         BarEntry.Tooltip = tipBuilder.Build();
         BarEntry.Shown   = true;
-        
+
         return;
 
         void AppendSummary(ref SeStringBuilder builder, ref bool first, BitmapFontIcon icon, float value, bool suffixPercent)
@@ -665,9 +679,11 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
         private void UpdateParty(GameBattleChara* localPlayer, FrozenDictionary<uint, MitigationDefinition> definitions)
         {
-            Span<PartyMitigationSnapshot> buffer   = stackalloc PartyMitigationSnapshot[9];
-            var                           hasAny   = false;
-            var                           maxIndex = 0;
+            Span<PartyMitigationSnapshot> buffer = stackalloc PartyMitigationSnapshot[9];
+            buffer.Clear();
+
+            buffer[0] = new PartyMitigationSnapshot(localPlayer->EntityId, LocalPhysical, LocalMagical, LocalShield);
+            var maxIndex = 1;
 
             var enemyPhysicalFactor = 1f;
             var enemyMagicalFactor  = 1f;
@@ -683,7 +699,9 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
                 if (member.Index < 0 || member.Index >= buffer.Length)
                     continue;
 
-                hasAny = true;
+                if (member.Index == 0)
+                    continue;
+
                 if (member.Index + 1 > maxIndex)
                     maxIndex = member.Index + 1;
 
@@ -715,16 +733,6 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
                 buffer[member.Index] = new PartyMitigationSnapshot(entityID, physicalReduction, magicalReduction, shield);
             }
-
-            if (!hasAny)
-            {
-                partySnapshotBuffer[0] = new PartyMitigationSnapshot(localPlayer->EntityId, LocalPhysical, LocalMagical, LocalShield);
-                partyCount             = 1;
-                return;
-            }
-
-            if (maxIndex == 0)
-                maxIndex = 1;
 
             buffer[..maxIndex].CopyTo(partySnapshotBuffer);
             partyCount = maxIndex;
@@ -842,7 +850,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
                 new(s.StatusId, s.SourceObject.ObjectId);
         }
     }
-    
+
     private static class RemoteRepoManager
     {
         private const string URI = "https://assets.sumemo.dev";

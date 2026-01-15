@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using DailyRoutines.Abstracts;
 using DailyRoutines.Helpers;
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Objects.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -46,8 +47,8 @@ public class HealerHelper : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig        = LoadConfig<ModuleStorage>() ?? new ModuleStorage();
-        EasyHealService     = new EasyHealManager(ModuleConfig.EasyHealStorage);
-        AutoPlayCardService = new AutoPlayCardManager(ModuleConfig.AutoPlayCardStorage);
+        EasyHealService     = new(ModuleConfig.EasyHealStorage);
+        AutoPlayCardService = new(ModuleConfig.AutoPlayCardStorage);
 
         Task.Run(async () => await RemoteRepoManager.FetchAll());
 
@@ -408,21 +409,41 @@ public class HealerHelper : DailyModuleBase
         if (!isHealer && !isRangedWithRaised) return;
 
         var healConfig = ModuleConfig.EasyHealStorage;
-
+        var gameObject = DService.Instance().ObjectTable.SearchByID(targetID, IObjectTable.CharactersRange);
         if (isHealer)
         {
             if (LocalPlayerState.ClassJob == 33                        &&
                 AutoPlayCardManager.PlayCardActions.Contains(actionID) &&
                 ModuleConfig.AutoPlayCardStorage.AutoPlayCard != AutoPlayCardManager.AutoPlayCardStatus.Disable)
+            {
+                if (gameObject is not IBattleChara chara || chara.StatusFlags.IsSetAny(StatusFlags.Hostile))
+                    targetID = UNSPECIFIC_TARGET_ID;
+                
                 AutoPlayCardService.OnPrePlayCard(ref targetID, ref actionID);
+            }
             else if (healConfig.EasyHeal == EasyHealManager.EasyHealStatus.Enable && healConfig.ActiveHealActions.Contains(actionID))
+            {
+                if (gameObject is not IBattleChara chara || chara.StatusFlags.IsSetAny(StatusFlags.Hostile))
+                    targetID = UNSPECIFIC_TARGET_ID;
+                
                 EasyHealService.OnPreHeal(ref targetID, ref actionID, ref isPrevented);
+            }
             else if (healConfig.EasyDispel == EasyHealManager.EasyDispelStatus.Enable && actionID == 7568)
+            {
+                if (gameObject is not IBattleChara chara || chara.StatusFlags.IsSetAny(StatusFlags.Hostile))
+                    targetID = UNSPECIFIC_TARGET_ID;
+                
                 EasyHealService.OnPreDispel(ref targetID);
+            }
         }
 
         if (healConfig.EasyRaise == EasyHealManager.EasyRaiseStatus.Enable && EasyHealManager.RaiseActions.Contains(actionID))
+        {
+            if (gameObject is not IBattleChara chara || chara.StatusFlags.IsSetAny(StatusFlags.Hostile))
+                targetID = UNSPECIFIC_TARGET_ID;
+            
             EasyHealService.OnPreRaise(ref targetID, ref actionID);
+        }
     }
 
     private static void OnZoneChanged(ushort _) =>
@@ -648,31 +669,25 @@ public class HealerHelper : DailyModuleBase
             }
         }
 
-        private unsafe BattleChara* FetchCandidateObject(string role, uint actionID)
+        private unsafe BattleChara* FetchCandidateObject(string role)
         {
             var          candidates       = role == "Melee" ? meleeCandidateOrder : rangeCandidateOrder;
             BattleChara* fallbackObj      = null;
             var          fallbackPriority = 0.0;
-            var          maxDistSq        = ActionManager.GetActionRange(37023).Pow(2);
-            var          lpPos            = DService.Instance().ObjectTable.LocalPlayer.Position;
 
+            var actionRange = ActionManager.GetActionRange(37023).Pow(2);
             foreach (var member in candidates)
             {
                 var candidate = AgentHUD.Instance()->PartyMembers.ToArray().FirstOrDefault(m => m.EntityId == member.id);
-                if (candidate.EntityId == 0    ||
-                    candidate.Object   == null ||
-                    ActionManager.GetActionInRangeOrLoS
-                    (
-                        actionID,
-                        (GameObject*)Control.GetLocalPlayer(),
-                        (GameObject*)candidate.Object
-                    ) !=
-                    0)
+                var obj       = candidate.Object;
+
+                if (candidate.EntityId == 0                                                       ||
+                    obj                == null                                                    ||
+                    obj->IsDead()                                                                 ||
+                    obj->Health                                                              <= 0 ||
+                    Vector3.DistanceSquared(LocalPlayerState.Object.Position, obj->Position) >= actionRange)
                     continue;
-
-                var obj = candidate.Object;
-                if (obj->IsDead() || obj->Health <= 0 || Vector3.DistanceSquared(obj->Position, lpPos) > maxDistSq) continue;
-
+                
                 if (obj->StatusManager.HasStatus(43) || obj->StatusManager.HasStatus(44)) // Weakness
                 {
                     fallbackObj      = candidate.Object;
@@ -680,7 +695,8 @@ public class HealerHelper : DailyModuleBase
                     continue;
                 }
 
-                if (member.priority >= fallbackPriority - 2) return candidate.Object;
+                if (member.priority >= fallbackPriority - 2) 
+                    return candidate.Object;
             }
 
             return fallbackObj;
@@ -690,9 +706,9 @@ public class HealerHelper : DailyModuleBase
         {
             if (targetID != UNSPECIFIC_TARGET_ID) return;
 
-            var finalTarget = actionID == 37023 ? FetchCandidateObject("Melee", actionID) : FetchCandidateObject("Range", actionID);
+            var finalTarget = actionID == 37023 ? FetchCandidateObject("Melee") : FetchCandidateObject("Range");
             if (finalTarget == null || finalTarget->EntityId == targetID) return;
-
+            
             targetID = finalTarget->EntityId;
             NotifyTargetChange
             (
