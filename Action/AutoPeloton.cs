@@ -31,13 +31,13 @@ public unsafe class AutoPeloton : DailyModuleBase
         ModuleConfig =   LoadConfig<Config>() ?? new();
 
         LocalPlayerState.Instance().PlayerMoveStateChanged += OnMoveStateChanged;
-        PlayerStatusManager.Instance().RegLose(OnLoseStatus);
+        CharacterStatusManager.Instance().RegLose(OnLoseStatus);
     }
 
     protected override void Uninit()
     {
         LocalPlayerState.Instance().PlayerMoveStateChanged -= OnMoveStateChanged;
-        PlayerStatusManager.Instance().Unreg(OnLoseStatus);
+        CharacterStatusManager.Instance().Unreg(OnLoseStatus);
     }
 
     protected override void ConfigUI()

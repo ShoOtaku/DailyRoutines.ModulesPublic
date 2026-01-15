@@ -39,8 +39,8 @@ public class AutoTrackStatusOff : DailyModuleBase
         if (ModuleConfig.StatusToMonitor.Count > 0)
             StatusSelectCombo.SelectedStatusIDs = ModuleConfig.StatusToMonitor.ToHashSet();
 
-        PlayerStatusManager.Instance().RegGain(OnGainStatus);
-        PlayerStatusManager.Instance().RegLose(OnLoseStatus);
+        CharacterStatusManager.Instance().RegGain(OnGainStatus);
+        CharacterStatusManager.Instance().RegLose(OnLoseStatus);
     }
 
     protected override void ConfigUI()
@@ -138,8 +138,8 @@ public class AutoTrackStatusOff : DailyModuleBase
 
     protected override void Uninit()
     {
-        PlayerStatusManager.Instance().Unreg(OnGainStatus);
-        PlayerStatusManager.Instance().Unreg(OnLoseStatus);
+        CharacterStatusManager.Instance().Unreg(OnGainStatus);
+        CharacterStatusManager.Instance().Unreg(OnLoseStatus);
 
         Records.Clear();
     }

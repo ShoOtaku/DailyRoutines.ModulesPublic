@@ -29,18 +29,18 @@ public class AutoStellarSprint : DailyModuleBase
     {
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChange;
         FrameworkManager.Instance().Unreg(OnUpdate);
-        PlayerStatusManager.Instance().Unreg(OnLoseStatus);
+        CharacterStatusManager.Instance().Unreg(OnLoseStatus);
     }
 
     private static void OnZoneChange(ushort zone)
     {
         FrameworkManager.Instance().Unreg(OnUpdate);
-        PlayerStatusManager.Instance().Unreg(OnLoseStatus);
+        CharacterStatusManager.Instance().Unreg(OnLoseStatus);
 
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.CosmicExploration) return;
 
         FrameworkManager.Instance().Reg(OnUpdate, 2_000);
-        PlayerStatusManager.Instance().RegLose(OnLoseStatus);
+        CharacterStatusManager.Instance().RegLose(OnLoseStatus);
     }
 
     private static void OnLoseStatus(IBattleChara player, ushort id, ushort param, ushort stackCount, ulong sourceID)
@@ -49,11 +49,11 @@ public class AutoStellarSprint : DailyModuleBase
 
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.CosmicExploration)
         {
-            PlayerStatusManager.Instance().Unreg(OnLoseStatus);
+            CharacterStatusManager.Instance().Unreg(OnLoseStatus);
             return;
         }
 
-        PlayerStatusManager.Instance().Unreg(OnLoseStatus);
+        CharacterStatusManager.Instance().Unreg(OnLoseStatus);
 
         FrameworkManager.Instance().Unreg(OnUpdate);
         FrameworkManager.Instance().Reg(OnUpdate, 2_000);
@@ -73,8 +73,8 @@ public class AutoStellarSprint : DailyModuleBase
         {
             FrameworkManager.Instance().Unreg(OnUpdate);
 
-            PlayerStatusManager.Instance().Unreg(OnLoseStatus);
-            PlayerStatusManager.Instance().RegLose(OnLoseStatus);
+            CharacterStatusManager.Instance().Unreg(OnLoseStatus);
+            CharacterStatusManager.Instance().RegLose(OnLoseStatus);
             return;
         }
 
