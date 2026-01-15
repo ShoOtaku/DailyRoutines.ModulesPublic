@@ -1,132 +1,157 @@
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
-using Dalamud.Game.ClientState.Fates;
-using Dalamud.Plugin.Services;
-using Lumina.Excel.Sheets;
 using System.Collections.Generic;
 using System.Linq;
+using DailyRoutines.Abstracts;
+using Dalamud.Game.ClientState.Fates;
 using Dalamud.Game.Text.SeStringHandling;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using Lumina.Excel.Sheets;
 
-namespace DailyRoutines.Modules;
+namespace DailyRoutines.ModulesPublic;
 
 public class AutoNotifyBonusFate : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title = GetLoc("AutoNotifyBonusFateTitle"),
+        Title       = GetLoc("AutoNotifyBonusFateTitle"),
         Description = GetLoc("AutoNotifyBonusFateDescription"),
-        Category = ModuleCategories.Notice,
-        Author = ["Due"]
+        Category    = ModuleCategories.Notice,
+        Author      = ["Due"]
     };
 
-    private static readonly HashSet<uint> ValidTerritory =
+    private static readonly HashSet<uint> ValidTerritories =
         LuminaGetter.Get<TerritoryType>()
                     .Where(x => x.TerritoryIntendedUse.RowId == 1)
                     .Where(x => x.ExVersion.Value.RowId      >= 2)
                     .Select(x => x.RowId)
                     .ToHashSet();
-    
+
     private static Config ModuleConfig = null!;
-    
-    private static List<IFate> LastFates = [];
+
+    private static readonly HashSet<ushort> NotifiedFates = [];
 
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
-        
+        ModuleConfig =   LoadConfig<Config>() ?? new();
+        TaskHelper   ??= new();
+
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
+    }
+
+    protected override void Uninit()
+    {
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        ExecuteCommandManager.Instance().Unreg(OnPostExecuteCommand);
+
+        NotifiedFates.Clear();
     }
 
     protected override void ConfigUI()
     {
         if (ImGui.Checkbox(GetLoc("SendChat"), ref ModuleConfig.SendChat))
             SaveConfig(ModuleConfig);
-        
+
         if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
             SaveConfig(ModuleConfig);
-        
+
         if (ImGui.Checkbox(GetLoc("SendTTS"), ref ModuleConfig.SendTTS))
             SaveConfig(ModuleConfig);
-        
-        ImGui.Spacing();
-        
+
+        ImGui.NewLine();
+
         if (ImGui.Checkbox(GetLoc("OpenMap"), ref ModuleConfig.AutoOpenMap))
             SaveConfig(ModuleConfig);
     }
 
-    private static void OnZoneChanged(ushort zone)
+    private void OnZoneChanged(ushort zone)
     {
-        FrameworkManager.Instance().Unreg(OnUpdate);
-        LastFates.Clear();
+        ExecuteCommandManager.Instance().Unreg(OnPostExecuteCommand);
+        TaskHelper.Abort();
+        NotifiedFates.Clear();
 
-        if (ValidTerritory.Contains(GameState.TerritoryType))
-            FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 5_000);
+        if (!ValidTerritories.Contains(GameState.TerritoryType)) return;
+
+        ExecuteCommandManager.Instance().RegPost(OnPostExecuteCommand);
     }
 
-    private static unsafe void OnUpdate(IFramework _)
+    private void OnPostExecuteCommand(ExecuteCommandFlag command, uint param1, uint param2, uint param3, uint param4)
     {
-        var zoneID = GameState.TerritoryType;
-        if (!ValidTerritory.Contains(zoneID))
+        if (command != ExecuteCommandFlag.FateLoad) return;
+
+        TaskHelper.Abort();
+        TaskHelper.DelayNext(200);
+        TaskHelper.Enqueue(UpdateAndNotify);
+    }
+
+    private static void UpdateAndNotify()
+    {
+        if (!ValidTerritories.Contains(GameState.TerritoryType) || GameState.Map == 0) return;
+
+        var fateTable = DService.Instance().Fate;
+
+        if (fateTable.Length == 0)
         {
-            FrameworkManager.Instance().Unreg(OnUpdate);
+            if (NotifiedFates.Count > 0) NotifiedFates.Clear();
             return;
         }
-        
-        if (BetweenAreas || DService.Instance().ObjectTable.LocalPlayer == null) return;
 
-        if (DService.Instance().Fate is not { Length: > 0 } fateTable) return;
-        if (LastFates.Count != 0 && fateTable.SequenceEqual(LastFates)) return;
-        var newFates = LastFates.Count == 0 ? fateTable : fateTable.Except(LastFates);
-        
-        var mapID  = DService.Instance().ClientState.MapId;
-        if (!LuminaGetter.TryGetRow<Map>(mapID, out var mapRow)) return;
-        
-        foreach (var fate in newFates)
+        var currentBonusFates = new HashSet<ushort>();
+
+        foreach (var fate in fateTable)
         {
-            if (fate == null || !fate.HasBonus) continue;
+            if (!fate.HasBonus) continue;
 
-            var mapPos = WorldToMap(fate.Position.ToVector2(), mapRow);
-            
-            var chatMessage = GetSLoc("AutoNotifyBonusFate-Chat", fate.Name.ToString(), fate.Progress, SeString.CreateMapLink(zoneID, mapID, mapPos.X, mapPos.Y));
-            var notificationMessage = GetLoc("AutoNotifyBonusFate-Notification", fate.Name.ToString(), fate.Progress);
+            currentBonusFates.Add(fate.FateId);
 
-            if (ModuleConfig.SendChat) 
-                Chat(chatMessage);
-            if (ModuleConfig.SendNotification) 
-                NotificationInfo(notificationMessage);
-            if (ModuleConfig.SendTTS) 
-                Speak(notificationMessage);
-
-            if (ModuleConfig.AutoOpenMap)
-            {
-                var instance         = AgentMap.Instance();
-                var currentZoneMapID = instance->CurrentMapId;
-                instance->SelectedMapId = currentZoneMapID;
-
-                if (!instance->IsAgentActive()) 
-                    instance->Show();
-                instance->SetFlagMapMarker(GameState.TerritoryType, currentZoneMapID, fate.Position);
-                instance->OpenMap(currentZoneMapID, GameState.TerritoryType, fate.Name.ToString());
-            }
-            break;
+            if (NotifiedFates.Add(fate.FateId))
+                NotifyFate(fate);
         }
-        
-        LastFates = [.. fateTable];
+
+        if (NotifiedFates.Count > 0)
+            NotifiedFates.IntersectWith(currentBonusFates);
     }
 
-    protected override void Uninit()
+    private static unsafe void NotifyFate(IFate fate)
     {
-        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-        FrameworkManager.Instance().Unreg(OnUpdate);
+        var mapPos = WorldToMap(fate.Position.ToVector2(), GameState.MapData);
+
+        var chatMessage = GetSLoc
+        (
+            "AutoNotifyBonusFate-Chat",
+            fate.Name.ToString(),
+            fate.Progress,
+            SeString.CreateMapLink(GameState.TerritoryType, GameState.Map, mapPos.X, mapPos.Y)
+        );
+        var notificationMessage = GetLoc("AutoNotifyBonusFate-Notification", fate.Name.ToString(), fate.Progress);
+
+        if (ModuleConfig.SendChat)
+            Chat(chatMessage);
+        if (ModuleConfig.SendNotification)
+            NotificationInfo(notificationMessage);
+        if (ModuleConfig.SendTTS)
+            Speak(notificationMessage);
+
+        if (ModuleConfig.AutoOpenMap)
+        {
+            var instance = AgentMap.Instance();
+            if (instance == null) return;
+
+            var currentZoneMapID = instance->CurrentMapId;
+            instance->SelectedMapId = currentZoneMapID;
+
+            if (!instance->IsAgentActive())
+                instance->Show();
+
+            instance->SetFlagMapMarker(GameState.TerritoryType, currentZoneMapID, fate.Position);
+            instance->OpenMap(currentZoneMapID, GameState.TerritoryType, fate.Name.ToString());
+        }
     }
 
     private class Config : ModuleConfiguration
     {
         public bool SendChat;
         public bool SendNotification = true;
-        public bool SendTTS = true;
-        public bool AutoOpenMap = true;
+        public bool SendTTS          = true;
+        public bool AutoOpenMap      = true;
     }
 }
