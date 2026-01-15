@@ -3,16 +3,12 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
-using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
-using Dalamud.Interface;
 using Dalamud.Interface.Textures;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using LuminaAction = Lumina.Excel.Sheets.Action;
 using Status = Lumina.Excel.Sheets.Status;
 
@@ -37,23 +33,24 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
 
     private static StatusSelectCombo? StatusCombo;
     private static ActionSelectCombo? ActionCombo;
-    
+
     public static float Countdown                = 4.0f;
     public static bool  KeepHighlightAfterExpire = true;
 
     public static readonly  HashSet<uint>            ActionsToHighlight = [];
     private static          uint                     LastActionID;
     private static readonly Dictionary<ushort, uint> LastStatusTarget = [];
-    
+
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
+
         if (ModuleConfig.MonitoredStatus.Count == 0)
         {
-            ModuleConfig.MonitoredStatus = statusConfigs.ToDictionary(x => x.Key, x => x.Value);
+            ModuleConfig.MonitoredStatus = StatusConfigs.ToDictionary(x => x.Key, x => x.Value);
             SaveConfig(ModuleConfig);
         }
-        
+
         StatusCombo ??= new("StatusCombo", PresetSheet.Statuses.Values);
         ActionCombo ??= new("ActionCombo", PresetSheet.PlayerActions.Values);
 
@@ -61,7 +58,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         IsActionHighlightedHook.Enable();
 
         UseActionManager.Instance().RegPreUseActionLocation(OnPreUseActionLocation);
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 500);
+        FrameworkManager.Instance().Reg(OnUpdate, 500);
     }
 
     protected override void Uninit()
@@ -100,9 +97,9 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
             {
                 ModuleConfig.MonitoredStatus[StatusCombo.SelectedStatusID] = new StatusConfig
                 {
-                    BindActions = ActionCombo.SelectedActionIDs.ToList(),
-                    Countdown   = Countdown,
-                    KeepHighlight       = KeepHighlightAfterExpire,
+                    BindActions   = ActionCombo.SelectedActionIDs.ToList(),
+                    Countdown     = Countdown,
+                    KeepHighlight = KeepHighlightAfterExpire
                 };
                 ModuleConfig.Save(this);
             }
@@ -113,7 +110,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         using var table = ImRaii.Table("PlayersInList", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY, new(0, 200f * GlobalFontScale));
         if (!table)
             return;
-        
+
         ImGui.TableSetupColumn("##Delete",                                                   ImGuiTableColumnFlags.WidthFixed);
         ImGui.TableSetupColumn(GetLoc("Status"),                                             ImGuiTableColumnFlags.WidthStretch, 15);
         ImGui.TableSetupColumn(GetLoc("Action"),                                             ImGuiTableColumnFlags.WidthStretch, 40);
@@ -129,6 +126,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
             ImGui.TableNextRow();
 
             ImGui.TableNextColumn();
+
             if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, GetLoc("Delete")))
             {
                 ModuleConfig.MonitoredStatus.Remove(status);
@@ -149,6 +147,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
                 StatusCombo.SelectedStatusID = status;
 
             ImGui.TableNextColumn();
+
             using (ImRaii.Group())
             {
                 foreach (var action in statusConfig.BindActions)
@@ -161,6 +160,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
                     ImGui.SameLine();
                 }
             }
+
             if (ImGui.IsItemHovered())
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
             if (ImGui.IsItemClicked())
@@ -184,7 +184,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
 
     private static void OnUpdate(IFramework _)
     {
-        if (GameState.IsInPVPArea || !DService.Instance().Condition[ConditionFlag.InCombat] || Control.GetLocalPlayer() == null)
+        if (GameState.IsInPVPArea || !DService.Instance().Condition[ConditionFlag.InCombat] || LocalPlayerState.Object is not { } gameObject)
         {
             // clear record when leaving combat
             ActionsToHighlight.Clear();
@@ -192,12 +192,12 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
             return;
         }
 
+        var localPlayer = gameObject.ToBCStruct();
+        if (localPlayer == null) return;
+
         var actionToHighlight = new Dictionary<uint, (float, float)>();
 
         // status on local player
-        var localPlayer = Control.GetLocalPlayer();
-        if (localPlayer == null)
-            return;
 
         foreach (var status in localPlayer->StatusManager.Status)
         {
@@ -213,6 +213,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
 
         // status on current target
         var currentTarget = TargetManager.Target;
+
         if (currentTarget is IBattleNPC { IsDead: false } battleNpc)
         {
             foreach (var status in battleNpc.ToBCStruct()->StatusManager.Status)
@@ -233,10 +234,12 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         {
             // check entity is still valid
             var lastTarget = CharacterManager.Instance()->LookupBattleCharaByEntityId(status.Value);
+
             if (lastTarget != null && !lastTarget->IsDead())
             {
                 // check if status is still active
                 var isActive = false;
+
                 foreach (var validStatus in lastTarget->StatusManager.Status)
                 {
                     if (validStatus.StatusId == status.Key)
@@ -263,6 +266,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         // highlight actions
         var manager = ActionManager.Instance();
         ActionsToHighlight.Clear();
+
         foreach (var (actionId, time) in actionToHighlight)
         {
             var actionChain = FetchComboChain(actionId);
@@ -276,20 +280,23 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         }
     }
 
-    private static void OnPreUseActionLocation(
+    private static void OnPreUseActionLocation
+    (
         ref bool       isPrevented,
         ref ActionType type,
         ref uint       actionID,
         ref ulong      targetID,
         ref Vector3    location,
         ref uint       extraParam,
-        ref byte       a7)
+        ref byte       a7
+    )
     {
         ActionsToHighlight.Remove(actionID);
         LastActionID = actionID;
     }
 
-    private static bool IsActionHighlightedDetour(ActionManager* actionManager, ActionType actionType, uint actionID) => 
+    [return: MarshalAs(UnmanagedType.U1)]
+    private static bool IsActionHighlightedDetour(ActionManager* actionManager, ActionType actionType, uint actionID) =>
         ActionsToHighlight.Contains(actionID) || IsActionHighlightedHook.Original(actionManager, actionType, actionID);
 
     private static uint[] FetchComboChain(uint actionID)
@@ -297,6 +304,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         var chain = new List<uint>();
 
         var cur = actionID;
+
         while (cur != 0 && LuminaGetter.TryGetRow<LuminaAction>(cur, out var action))
         {
             chain.Add(cur);
@@ -317,7 +325,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
     }
 
     // default status to monitor
-    private static readonly Dictionary<uint, StatusConfig> statusConfigs = new()
+    private static readonly Dictionary<uint, StatusConfig> StatusConfigs = new()
     {
         // AST
         [838]  = new StatusConfig { BindActions = [3599], Countdown  = 4.0f, KeepHighlight  = true },
@@ -345,13 +353,13 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         [1299] = new StatusConfig { BindActions = [7485], Countdown  = 4.0f, KeepHighlight = true },
         [2719] = new StatusConfig { BindActions = [25772], Countdown = 4.0f, KeepHighlight = true },
         // WAR
-        [2677] = new StatusConfig { BindActions = [45], Countdown = 4.0f, KeepHighlight = true },
+        [2677] = new StatusConfig { BindActions = [45], Countdown = 4.0f, KeepHighlight = true }
     };
 
     private class StatusConfig
     {
-        public List<uint> BindActions { get; init; } = [];
-        public float      Countdown   { get; init; } = 4.0f;
-        public bool       KeepHighlight       { get; init; } = true;
+        public List<uint> BindActions   { get; init; } = [];
+        public float      Countdown     { get; init; } = 4.0f;
+        public bool       KeepHighlight { get; init; } = true;
     }
 }
