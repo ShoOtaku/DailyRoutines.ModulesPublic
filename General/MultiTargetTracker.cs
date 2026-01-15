@@ -1,19 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Helpers;
 using DailyRoutines.Infos;
 using DailyRoutines.Managers;
-using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using FFXIVClientStructs.FFXIV.Client.UI;
-using Lumina.Excel.Sheets;
-using OmenTools.Extensions;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -25,9 +18,9 @@ public class MultiTargetTracker : DailyModuleBase
         Description     = GetLoc("MultiTargetTrackerDescription"),
         Category        = ModuleCategories.General,
         Author          = ["KirisameVanilla"],
-        ModulesConflict = ["AutoHighlightFlagMarker"],
+        ModulesConflict = ["AutoHighlightFlagMarker"]
     };
-    
+
     private static Config ModuleConfig = null!;
 
     private static readonly TempTrackMenuItem      TempTrackItem      = new();
@@ -39,15 +32,17 @@ public class MultiTargetTracker : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        FrameworkManager.Instance().Reg(OnUpdate, 1500);
+        PlayersManager.ReceivePlayersAround              += OnReceivePlayers;
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         DService.Instance().ContextMenu.OnMenuOpened     += OnMenuOpen;
     }
 
     protected override void Uninit()
     {
-        DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpen;
+        PlayersManager.ReceivePlayersAround -= OnReceivePlayers;
         FrameworkManager.Instance().Unreg(OnUpdate);
+
+        DService.Instance().ContextMenu.OnMenuOpened     -= OnMenuOpen;
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
 
         TempTrackedPlayers.Clear();
@@ -56,11 +51,11 @@ public class MultiTargetTracker : DailyModuleBase
     protected override void ConfigUI()
     {
         ImGui.TextUnformatted(GetLoc("MultiTargetTracker-TempTrackHelp"));
-        
+
         ImGui.Spacing();
-        
+
         if (ModuleConfig.PermanentTrackedPlayers.Count == 0) return;
-        
+
         using var table = ImRaii.Table("PermanentTrackedPlayers", 4);
         if (!table) return;
 
@@ -118,37 +113,44 @@ public class MultiTargetTracker : DailyModuleBase
         args.AddMenuItem(PermanentTrackItem.Get());
     }
 
-    private static void OnZoneChanged(ushort obj) => 
+    private static void OnZoneChanged(ushort obj) =>
         TempTrackedPlayers.Clear();
 
-    private static unsafe void OnUpdate(IFramework framework)
+    // 反正不会重复注册大胆造
+    private static void OnReceivePlayers(IReadOnlyList<IPlayerCharacter> characters)
     {
-        if (BetweenAreas || !UIModule.IsScreenReady() || GameState.TerritoryType == 0) return;
+        if (characters.Count == 0)
+            FrameworkManager.Instance().Unreg(OnUpdate);
+        else
+            FrameworkManager.Instance().Reg(OnUpdate);
+    }
+
+    private static void OnUpdate(IFramework framework)
+    {
         if (ModuleConfig.PermanentTrackedPlayers.Count == 0 && TempTrackedPlayers.Count == 0) return;
 
-        if (!LuminaGetter.TryGetRow<TerritoryType>(GameState.TerritoryType, out var currentZoneData)) return;
+        if (PlayersManager.PlayersAroundCount == 0 || !GameState.IsLoggedIn)
+        {
+            FrameworkManager.Instance().Unreg(OnUpdate);
+            return;
+        }
 
-        Dictionary<ulong, Vector3> validPlayers = [];
+        List<(ulong, Vector3)> validPlayers = new(8);
 
-        foreach (var player in DService.Instance().ObjectTable)
+        foreach (var player in PlayersManager.PlayersAround)
         {
             if (validPlayers.Count >= 8) break;
 
-            if (player.ObjectKind != ObjectKind.Player || player is not IPlayerCharacter) continue;
-
-            var playerStruct = (Character*)player.Address;
-            if (playerStruct == null || playerStruct->ContentId == 0) continue;
-
             var isAdd = false;
+
             foreach (var trackPlayer in TempTrackedPlayers)
             {
-                if (trackPlayer.ContentID != playerStruct->ContentId) continue;
-                if (validPlayers.ContainsKey(trackPlayer.ContentID)) continue;
+                if (trackPlayer.ContentID != player.ContentID) continue;
 
                 trackPlayer.LastSeen         = StandardTimeManager.Instance().Now;
-                trackPlayer.LastSeenLocation = currentZoneData.ExtractPlaceName();
+                trackPlayer.LastSeenLocation = GameState.TerritoryTypeData.ExtractPlaceName();
 
-                validPlayers.Add(playerStruct->ContentId, player.Position);
+                validPlayers.Add(new(player.ContentID, player.Position));
                 isAdd = true;
             }
 
@@ -156,29 +158,27 @@ public class MultiTargetTracker : DailyModuleBase
 
             foreach (var trackPlayer in ModuleConfig.PermanentTrackedPlayers)
             {
-                if (trackPlayer.ContentID != playerStruct->ContentId) continue;
-                if (validPlayers.ContainsKey(trackPlayer.ContentID)) continue;
+                if (trackPlayer.ContentID != player.ContentID) continue;
 
                 trackPlayer.LastSeen         = StandardTimeManager.Instance().Now;
-                trackPlayer.LastSeenLocation = currentZoneData.ExtractPlaceName();
+                trackPlayer.LastSeenLocation = GameState.TerritoryTypeData.ExtractPlaceName();
 
-                validPlayers.Add(playerStruct->ContentId, player.Position);
+                validPlayers.Add(new(player.ContentID, player.Position));
             }
         }
 
-        // 防止溢出
-        validPlayers = validPlayers.Take(8).ToDictionary(x => x.Key, x => x.Value);
         PlaceFieldMarkers(validPlayers);
     }
 
-    private static unsafe void PlaceFieldMarkers(IReadOnlyDictionary<ulong, Vector3> founds)
+    private static unsafe void PlaceFieldMarkers(List<(ulong ContentID, Vector3 Position)> founds)
     {
         var counter = 0U;
+
         foreach (var found in founds)
         {
             if (counter > 8) break;
 
-            MarkingController.Instance()->PlaceFieldMarkerLocal((FieldMarkerPoint)counter, found.Value);
+            MarkingController.Instance()->PlaceFieldMarkerLocal((FieldMarkerPoint)counter, found.Position);
             counter++;
         }
     }
@@ -186,9 +186,9 @@ public class MultiTargetTracker : DailyModuleBase
     private static bool ShouldMenuOpen(IMenuOpenedArgs args)
     {
         if (args.Target is not MenuTargetDefault target) return false;
-        return target.TargetContentId != 0;
+        return target.TargetContentId != 0 && target.TargetContentId != LocalPlayerState.ContentID;
     }
-    
+
     private class Config : ModuleConfiguration
     {
         public List<TrackPlayer> PermanentTrackedPlayers = [];
@@ -247,8 +247,13 @@ public class MultiTargetTracker : DailyModuleBase
         {
             if (args.Target is not MenuTargetDefault target) return;
 
-            var data = new TrackPlayer(target.TargetContentId,
-                                       target.TargetName, target.TargetHomeWorld.ValueNullable?.Name.ToString());
+            var data = new TrackPlayer
+            (
+                target.TargetContentId,
+                target.TargetName,
+                target.TargetHomeWorld.ValueNullable?.Name.ToString()
+            );
+
             if (!TempTrackedPlayers.Add(data))
             {
                 TempTrackedPlayers.Remove(data);
@@ -268,10 +273,10 @@ public class MultiTargetTracker : DailyModuleBase
         {
             var target = args.Target as MenuTargetDefault;
             if (IPlayerCharacter.Create(target.TargetObject.Address) is not { } player ||
-                string.IsNullOrEmpty(player.Name.ToString())                        ||
+                string.IsNullOrEmpty(player.Name.ToString())                           ||
                 player.ClassJob.RowId == 0)
                 return;
-            
+
             if (ModuleConfig.PermanentTrackedPlayers.Contains(new(player)))
             {
                 ModuleConfig.PermanentTrackedPlayers.Remove(new(player));
