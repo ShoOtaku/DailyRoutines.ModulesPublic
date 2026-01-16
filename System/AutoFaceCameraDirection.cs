@@ -1,3 +1,5 @@
+/*
+using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Numerics;
@@ -8,6 +10,8 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using Dalamud.Interface.Components;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.System.Input;
 using Camera = FFXIVClientStructs.FFXIV.Client.Game.Camera;
 
 namespace DailyRoutines.ModulesPublic;
@@ -30,6 +34,10 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
     private delegate        void                               CameraUpdateRotationDelegate(Camera* camera);
     private static          Hook<CameraUpdateRotationDelegate> CameraUpdateRotationHook;
 
+    private static readonly CompSig                      UpdateVisualRotationSig = new("40 53 48 83 EC ?? 83 B9 ?? ?? ?? ?? ?? 48 8B D9 0F 85 ?? ?? ?? ?? F6 81");
+    private delegate        void*                        UpdateVisualRotationDelegate(GameObject* gameObject);
+    private static readonly UpdateVisualRotationDelegate UpdateVisualRotation = UpdateVisualRotationSig.GetDelegate<UpdateVisualRotationDelegate>();
+    
     private static Config ModuleConfig = null!;
 
     private static float LocalPlayerRotationInput;
@@ -103,7 +111,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
             foreach (var kvp in WorldDirectionToNormalizedDirection)
             {
                 if (ImGui.Button($"{kvp.Key}##WorldDirectionToNormalizedDirection"))
-                    localPlayer.ToStruct()->SetRotation(WorldDirHToCharaRotation(kvp.Value));
+                    SetRotation((GameObject*)localPlayer.ToStruct(), WorldDirHToCharaRotation(kvp.Value));
                 ImGui.SameLine();
             }
 
@@ -117,7 +125,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         {
             ImGui.InputFloat($"{GetLoc("Settings")}##SetCharaRotation", ref LocalPlayerRotationInput, format: "%.2f");
             if (ImGui.IsItemDeactivatedAfterEdit())
-                localPlayer.ToStruct()->SetRotation(LocalPlayerRotationInput);
+                SetRotation((GameObject*)localPlayer.ToStruct(), LocalPlayerRotationInput);
 
             var currentRotation = localPlayer.Rotation;
             ImGui.InputFloat($"{GetLoc("Current")}##CurrentCharaRotation", ref currentRotation, format: "%.2f", flags: ImGuiInputTextFlags.ReadOnly);
@@ -162,7 +170,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
             case "ground" when WorldDirectionToNormalizedDirection.TryGetValue(valueRaw, out var dirGround):
                 LockOnRotation = WorldDirHToCharaRotation(dirGround);
                 LockOn         = true;
-                localPlayer.ToStruct()->SetRotation(LockOnRotation);
+                SetRotation((GameObject*)localPlayer.ToStruct(), LockOnRotation);
                 break;
 
             case "chara" when float.TryParse(valueRaw, out var rotation):
@@ -173,7 +181,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
             case "camera" when float.TryParse(valueRaw, out var dirCamera):
                 LockOnRotation = CameraDirHToCharaRotation(dirCamera);
                 LockOn         = true;
-                localPlayer.ToStruct()->SetRotation(LockOnRotation);
+                SetRotation((GameObject*)localPlayer.ToStruct(), LockOnRotation);
                 break;
 
             case "off":
@@ -188,7 +196,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
 
         if (!LockOn) return;
 
-        localPlayer.ToStruct()->SetRotation(LockOnRotation);
+        SetRotation((GameObject*)localPlayer.ToStruct(), LockOnRotation);
 
         var moveState = MovementManager.CurrentZoneMoveState;
         if (GameState.ContentFinderCondition != 0)
@@ -243,13 +251,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         if (localPlayer.IsCasting) return;
 
         var targetRotation  = LockOn ? LockOnRotation : CameraDirHToCharaRotation(camera->DirH);
-        var currentRotation = localPlayer.Rotation;
-
-        if (!LockOn && !IsRotationChanged(targetRotation, currentRotation)) return;
-
-        localPlayer.ToStruct()->SetRotation(targetRotation);
-
-        SyncRotationToServer(localPlayer, targetRotation, currentRotation);
+        SetAndSyncRotationToServer(localPlayer, targetRotation);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -267,13 +269,11 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SyncRotationToServer(IPlayerCharacter localPlayer, float targetRotation, float currentRotation)
+    private static void SetAndSyncRotationToServer(IPlayerCharacter localPlayer, float targetRotation)
     {
-        var isCombat = DService.Instance().Condition[ConditionFlag.InCombat];
-        if (!IsRotationChanged(targetRotation, currentRotation) && !isCombat) return;
+        if (!SetRotation((GameObject*)localPlayer.ToStruct(), targetRotation)) return;
 
         var moveState = MovementManager.CurrentZoneMoveState;
-
         if (GameState.ContentFinderCondition != 0)
         {
             var moveType = (PositionUpdateInstancePacket.MoveType)(moveState * 0x10000);
@@ -281,11 +281,25 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         }
         else
         {
-            if (!Throttler.Throttle("AutoFaceCameraDirection-UpdateRotation", 20)) return;
+            if (!Throttler.Throttle("AutoFaceCameraDirection-UpdateRotation", 100)) return;
 
             var moveType = (PositionUpdatePacket.MoveType)(moveState * 0x10000);
             new PositionUpdatePacket(targetRotation, localPlayer.Position, moveType).Send();
         }
+    }
+
+    private static bool SetRotation(GameObject* gameObject, float value)
+    {
+        
+        if (!IsRotationChanged(gameObject->Rotation, value, 0.01f)) return false;
+        
+        gameObject->Rotation = value;
+        UpdateVisualRotation(gameObject);
+        
+        var ptr = (nint)gameObject + 0x9C;
+        *(int*)ptr = 0;
+        
+        return true;
     }
 
     private class Config : ModuleConfiguration
@@ -345,3 +359,4 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
 
     private static readonly string GroundValuesString = string.Join(" / ", WorldDirectionToNormalizedDirection.Keys);
 }
+*/
