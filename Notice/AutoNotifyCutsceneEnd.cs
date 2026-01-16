@@ -34,12 +34,14 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         DService.Instance().DutyState.DutyCompleted      += OnDutyComplete;
+        DService.Instance().Condition.ConditionChange    += OnConditionChanged;
         
         OnZoneChanged(0);
     }
 
     protected override void Uninit()
     {
+        DService.Instance().Condition.ConditionChange    -= OnConditionChanged;
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         DService.Instance().DutyState.DutyCompleted      -= OnDutyComplete;
 
@@ -84,6 +86,22 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
             "检查是否需要开始监控"
         );
     }
+    
+    private void OnConditionChanged(ConditionFlag flag, bool value)
+    {
+        if (flag                             != ConditionFlag.InCombat ||
+            GameState.ContentFinderCondition == 0                      ||
+            GameState.IsInPVPArea                                      ||
+            GroupManager.Instance()->MainGroup.MemberCount < 2)
+            return;
+
+        if (!value)
+        {
+            if (IsDutyEnd) return;
+
+            DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_PartyList", OnAddon);
+        }
+    }
 
     private void OnAddon(AddonEvent type, AddonArgs args)
     {
@@ -110,6 +128,7 @@ public unsafe class AutoNotifyCutsceneEnd : DailyModuleBase
             if (Stopwatch.IsRunning)
                 CheckStopwatchAndRelay();
 
+            DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
             return;
         }
 

@@ -807,13 +807,15 @@ public class HealerHelper : DailyModuleBase
 
         private unsafe BattleChara* TargetNeedHealObject(uint actionID)
         {
-            var lowRatio = 2f;
+            var          lowRatio   = 2f;
+            BattleChara* bestTarget = null;
 
             foreach (var member in AgentHUD.Instance()->PartyMembers)
             {
                 if (member.EntityId == 0 || member.Object == null) continue;
 
                 var obj = member.Object;
+        
                 if (obj->IsDead()    ||
                     obj->Health <= 0 ||
                     ActionManager.GetActionInRangeOrLoS
@@ -821,20 +823,19 @@ public class HealerHelper : DailyModuleBase
                         actionID,
                         (GameObject*)Control.GetLocalPlayer(),
                         (GameObject*)member.Object
-                    ) !=
-                    0)
+                    ) != 0)
                     continue;
 
                 var ratio = obj->Health / (float)obj->MaxHealth;
 
                 if (ratio < lowRatio && ratio <= config.NeedHealThreshold)
                 {
-                    lowRatio = ratio;
-                    return member.Object;
+                    lowRatio   = ratio;
+                    bestTarget = member.Object;
                 }
             }
 
-            return null;
+            return bestTarget;
         }
 
         private static unsafe BattleChara* FindTarget(uint actionID, Func<HudPartyMember, bool> predicate, bool reverse = false)
