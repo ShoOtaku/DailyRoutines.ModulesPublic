@@ -4,6 +4,7 @@ using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Enums;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.Interop;
 using BattleNpcSubKind = Dalamud.Game.ClientState.Objects.Enums.BattleNpcSubKind;
@@ -87,7 +88,7 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
     private static void UpdateAllObjects(GameObjectManager* manager)
     {
         if (manager == null) return;
-        if (!DService.Instance().ClientState.IsLoggedIn) return;
+        if (!GameState.IsLoggedIn) return;
         
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent)
         {
@@ -96,115 +97,151 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
                 GameState.TerritoryIntendedUse == TerritoryIntendedUse.IslandSanctuary)
                 return;
         }
+        else
+        {
+            // 在两歧塔里
+            if ((LocalPlayerState.Object?.Position.Y ?? -100) < 0)
+                return;
+        }
 
         var playerCount   = 0;
         var targetAddress = TargetManager.Target?.Address ?? nint.Zero;
-        foreach (var entry in manager->Objects.IndexSorted)
+
+        if (GameState.TerritoryIntendedUse                == TerritoryIntendedUse.OccultCrescent &&
+            (LocalPlayerState.Object?.Position.Y ?? -100) < 0)
+            return;
+        
+        for (var index = 0; index < manager->Objects.IndexSorted.Length; index++)
         {
+            if (index > 629)
+                break;
+            
+            if (index is > 200 and < 489)
+            {
+                index = 488;
+                continue;
+            }
+            
+            var entry = manager->Objects.IndexSorted[index];
+
             if (GameState.TerritoryIntendedUse == TerritoryIntendedUse.OccultCrescent)
             {
-                if ((LocalPlayerState.Object?.Position.Y ?? -100) < 0) continue;
-                if (!ShouldFilterOccultCrescent(entry.Value, targetAddress, ref playerCount)) 
+                if (!ShouldFilterOccultCrescent(entry.Value, targetAddress, ref playerCount, (uint)index))
                     continue;
             }
             else
             {
-                if (!ShouldFilter(ModuleConfig.DefaultConfig, entry.Value))
+                if (!ShouldFilter(ModuleConfig.DefaultConfig, entry.Value, (uint)index))
                     continue;
             }
-            
+
             entry.Value->RenderFlags |= (VisibilityFlags)256;
             ProcessedObjects.Add((nint)entry.Value);
         }
     }
     
-    private static bool ShouldFilter(FilterConfig config, GameObject* gameObject)
+    private static bool ShouldFilter(FilterConfig config, GameObject* gameObject, uint index)
     {
-        if (gameObject                  == null) return false;
-        if ((nint)gameObject            == (LocalPlayerState.Object?.Address ?? nint.Zero)) return false;
-        if (((RenderFlag)gameObject->RenderFlags).HasFlag(RenderFlag.Invisible)) return false;
+        if (gameObject == null) return false;
+        
+        if (gameObject->EntityId == LocalPlayerState.EntityID) return false;
+        
+        if (((RenderFlag)gameObject->RenderFlags).IsSet(RenderFlag.Invisible)) return false;
+        
         if (gameObject->NamePlateIconId != 0) return false;
         
         // 玩家
-        if (config.HidePlayer                       &&
-            gameObject->ObjectKind == ObjectKind.Pc &&
-            IPlayerCharacter.Create((nint)gameObject) is { } player)
+        if (config.HidePlayer             &&
+            index                  <= 200 &&
+            index % 2              == 0   &&
+            gameObject->ObjectKind == ObjectKind.Pc)
         {
-            // 假玩家
-            if (player.ClassJob.RowId == 0 || string.IsNullOrEmpty(player.Name.TextValue)) 
-                return false;
-            
-            if (player.StatusFlags.HasFlag(StatusFlags.Friend))
+            var player = (BattleChara*)gameObject;
+
+            if (player->IsFriend)
                 return false;
 
             if (LocalPlayerState.IsInParty &&
-                (player.StatusFlags.HasFlag(StatusFlags.PartyMember) ||
-                 player.StatusFlags.HasFlag(StatusFlags.AllianceMember)))
+                (player->IsPartyMember || player->IsAllianceMember))
                 return false;
-            
+
             return true;
         }
-        
-        // 不重要 NPC
-        if (config.HideUnimportantENPC                    &&
-            gameObject->ObjectKind == ObjectKind.EventNpc &&
-            string.IsNullOrEmpty(gameObject->NameString))
-            return true;
-        
+
         // 宠物
-        if (config.HidePet                                                            &&
-            gameObject->ObjectKind                            == ObjectKind.BattleNpc &&
-            IBattleNPC.Create((nint)gameObject).BattleNPCKind == BattleNpcSubKind.Pet &&
-            gameObject->OwnerId                               != LocalPlayerState.EntityID)
+        if (config.HidePet            &&
+            index               <= 200 &&
+            index % 2           == 1  &&
+            gameObject->OwnerId != LocalPlayerState.EntityID)
             return true;
         
         // 陆行鸟
-        if (config.HideChocobo                                                            &&
-            gameObject->ObjectKind                            == ObjectKind.BattleNpc     &&
-            IBattleNPC.Create((nint)gameObject).BattleNPCKind == BattleNpcSubKind.Chocobo &&
-            gameObject->OwnerId                               != LocalPlayerState.EntityID)
+        if (config.HideChocobo                                                &&
+            index                                 <= 200                      &&
+            index % 2                             == 0                        &&
+            gameObject->ObjectKind                == ObjectKind.BattleNpc     &&
+            (BattleNpcSubKind)gameObject->SubKind == BattleNpcSubKind.Chocobo &&
+            gameObject->OwnerId                   != LocalPlayerState.EntityID)
+            return true;
+
+        // 不重要 NPC
+        if (config.HideUnimportantENPC                                              &&
+            index is >= 489 and <= 629                                              &&
+            !gameObject->TargetableStatus.IsSet(ObjectTargetableFlags.IsTargetable) &&
+            gameObject->EventHandler == null)
             return true;
         
         return false;
     }
 
-    private static bool ShouldFilterOccultCrescent(GameObject* gameObject, nint targetAddress, ref int playerCount)
+    private static bool ShouldFilterOccultCrescent(GameObject* gameObject, nint targetAddress, ref int playerCount, uint index)
     {
-        if (gameObject       == null) return false;
-        if ((nint)gameObject == (LocalPlayerState.Object?.Address ?? nint.Zero)) return false;
+        if (gameObject == null) return false;
+
+        if (gameObject->EntityId == LocalPlayerState.EntityID) return false;
+
         if (gameObject->NamePlateIconId != 0) return false;
         
         // 玩家
-        if (gameObject->ObjectKind == ObjectKind.Pc &&
-            IPlayerCharacter.Create((nint)gameObject) is { } player)
+        if (index                  <= 200 &&
+            index % 2              == 0   &&
+            gameObject->ObjectKind == ObjectKind.Pc)
         {
+            var player = (BattleChara*)gameObject;
+            
             playerCount++;
 
-            if (player.IsDead || player.Address == targetAddress)
+            if (player->IsDead() || (nint)gameObject == targetAddress)
             {
                 gameObject->RenderFlags &= ~(VisibilityFlags)256;
                 ProcessedObjects.Remove((nint)gameObject);
                 return false;
             }
 
-            if (player.StatusFlags.HasFlag(StatusFlags.Friend))
+            if (player->IsFriend)
                 return false;
 
             if (LocalPlayerState.IsInParty &&
-                (player.StatusFlags.HasFlag(StatusFlags.PartyMember) ||
-                 player.StatusFlags.HasFlag(StatusFlags.AllianceMember)))
+                (player->IsPartyMember || player->IsAllianceMember))
                 return false;
 
             return playerCount >= 10;
         }
 
         // 不重要 NPC
-        if (gameObject->ObjectKind == ObjectKind.EventNpc &&
-            string.IsNullOrEmpty(gameObject->NameString))
+        if (index is >= 489 and <= 629                                              &&
+            !gameObject->TargetableStatus.IsSet(ObjectTargetableFlags.IsTargetable) &&
+            gameObject->EventHandler == null)
             return true;
 
-        if (gameObject->ObjectKind == ObjectKind.BattleNpc &&
-            IBattleNPC.Create((nint)gameObject) is { OwnerID: not (0xE0000000 or 0) })
+        // 其他玩家的召唤物
+        if (gameObject->ObjectKind == ObjectKind.BattleNpc      &&
+            index                  <= 200                       &&
+            index % 2              == 0                         &&
+            gameObject->ObjectKind == ObjectKind.BattleNpc      &&
+            gameObject->OwnerId    != LocalPlayerState.EntityID &&
+            gameObject->OwnerId    != 0                         &&
+            gameObject->OwnerId    != 0xE0000000)
             return true;
 
         return false;
