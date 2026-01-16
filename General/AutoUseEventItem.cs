@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -6,7 +7,6 @@ using DailyRoutines.Abstracts;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -43,7 +43,7 @@ public unsafe class AutoUseEventItem : DailyModuleBase
                         group => group.Select(item => item.RowId).ToHashSet()
                     );
 
-    private static readonly HashSet<uint> InvalidLogMessageID =
+    private static readonly FrozenSet<uint> InvalidLogMessageID =
     [
         7732, // 当前状态下无法进行该操作。
         563   // 无法指定目标。
@@ -68,7 +68,10 @@ public unsafe class AutoUseEventItem : DailyModuleBase
     {
         if (InvalidLogMessageID.Contains(logMessageID))
             isPrevented = true;
-        if (logMessageID == 579 && LuminaGetter.TryGetRow<EventItem>((uint)values.Parameters[0].IntValue, out _)) // 当前状态无法使用
+
+        if (logMessageID            == 579 &&
+            values.Parameters.Count > 0    &&
+            LuminaGetter.TryGetRow<EventItem>((uint)values.Parameters[0].IntValue, out _)) // 当前状态无法使用
             OnAddonInventoryEvent();
     }
 
@@ -103,7 +106,7 @@ public unsafe class AutoUseEventItem : DailyModuleBase
     {
         questRowID = 0;
         if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
-            
+
         var validMarkers = AgentHUD.Instance()->MapMarkers
                            .AsSpan()
                            .ToArray()
