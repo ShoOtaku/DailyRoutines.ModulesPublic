@@ -190,10 +190,19 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
 
         localPlayer.ToStruct()->SetRotation(LockOnRotation);
 
+        var moveState = MovementManager.CurrentZoneMoveState;
         if (GameState.ContentFinderCondition != 0)
-            PositionUpdateInstancePacket.Send(LockOnRotation, localPlayer.Position);
+        {
+            var moveType = (PositionUpdateInstancePacket.MoveType)(moveState * 0x10000);
+            new PositionUpdateInstancePacket(LockOnRotation, localPlayer.Position, moveType).Send();
+        }
         else
-            new PositionUpdatePacket(LockOnRotation, localPlayer.Position).Send();
+        {
+            if (!Throttler.Throttle("AutoFaceCameraDirection-UpdateRotation", 20)) return;
+
+            var moveType = (PositionUpdatePacket.MoveType)(moveState * 0x10000);
+            new PositionUpdatePacket(LockOnRotation, localPlayer.Position, moveType).Send();
+        }
 
         return;
 

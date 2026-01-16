@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
+using DailyRoutines.Managers;
 using Dalamud.Utility.Numerics;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
@@ -15,7 +15,7 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
     {
         Title       = GetLoc("AutoActionAlignCameraTitle"),
         Description = GetLoc("AutoActionAlignCameraDescription"),
-        Category    = ModuleCategories.Action,
+        Category    = ModuleCategories.Action
     };
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
@@ -25,9 +25,12 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new() { ActionReversed = [94, 29494, 24402] };
-        
+
         UseActionManager.Instance().RegPreUseActionLocation(OnPreUseAction);
     }
+
+    protected override void Uninit() =>
+        UseActionManager.Instance().Unreg(OnPreUseAction);
 
     protected override void ConfigUI()
     {
@@ -45,14 +48,14 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
         ImGuiOm.Text(GetLoc("Action"));
 
         ImGui.TableNextColumn();
-        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (4f * GlobalFontScale));
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 4f * GlobalFontScale);
         ImGuiOm.Text(FontAwesomeIcon.Undo.ToIconString());
         ImGuiOm.TooltipHover(GetLoc("AutoActionAlignCamera-ReverseDirection"));
 
         foreach (var actionPair in ModuleConfig.ActionEnabled)
         {
             if (!LuminaGetter.TryGetRow<Action>(actionPair.Key, out var data)) continue;
-            
+
             var actionIcon = DService.Instance().Texture.GetFromGameIcon(new(data.Icon)).GetWrapOrDefault();
             if (actionIcon == null) continue;
 
@@ -61,22 +64,24 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
 
             ImGui.TableNextColumn();
             var isEnabled = actionPair.Value;
+
             if (ImGui.Checkbox($"###{actionPair.Key}", ref isEnabled))
             {
                 ModuleConfig.ActionEnabled[actionPair.Key] = isEnabled;
                 ModuleConfig.Save(this);
             }
-            
+
             ImGui.TableNextColumn();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (4f * GlobalFontScale));
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4f * GlobalFontScale);
             ImGui.Image(actionIcon.Handle, new(ImGui.GetTextLineHeight()));
-            
+
             ImGui.SameLine();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (2f * GlobalFontScale));
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2f * GlobalFontScale);
             ImGui.TextUnformatted($"{data.Name.ToString()}");
 
             ImGui.TableNextColumn();
             var isReversed = ModuleConfig.ActionReversed.Contains(actionPair.Key);
+
             if (ImGui.Checkbox($"###{actionPair.Key}-IsReversed", ref isReversed))
             {
                 if (!ModuleConfig.ActionReversed.Remove(actionPair.Key))
@@ -86,14 +91,16 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
         }
     }
 
-    private static void OnPreUseAction(
+    private static void OnPreUseAction
+    (
         ref bool       isPrevented,
         ref ActionType type,
         ref uint       actionID,
         ref ulong      targetID,
         ref Vector3    location,
         ref uint       extraParam,
-        ref byte       a7)
+        ref byte       a7
+    )
     {
         if (type != ActionType.Action) return;
 
@@ -102,15 +109,22 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
 
         if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
 
-        var transformedRotation = CameraDirHToCharaRotation(((CameraEx*)CameraManager.Instance()->Camera)->DirH);
+        var transformedRotation = CameraDirHToCharaRotation(CameraManager.Instance()->Camera->DirH);
+
         if (ModuleConfig.ActionReversed.Contains(adjustedID))
             transformedRotation = CharaRotationSymmetricTransform(transformedRotation);
 
-        if (BoundByDuty)
-            PositionUpdateInstancePacket.Send(transformedRotation, localPlayer.Position);
+        if (GameState.ContentFinderCondition != 0)
+        {
+            var moveType = (PositionUpdateInstancePacket.MoveType)(MovementManager.CurrentZoneMoveState * 0x10000);
+            new PositionUpdateInstancePacket(transformedRotation, localPlayer.Position, moveType).Send();
+        }
         else
-            PositionUpdatePacket.Send(transformedRotation, localPlayer.Position);
-        
+        {
+            var moveType = (PositionUpdatePacket.MoveType)(MovementManager.CurrentZoneMoveState * 0x10000);
+            new PositionUpdatePacket(transformedRotation, localPlayer.Position, moveType).Send();
+        }
+
         localPlayer.ToStruct()->SetRotation(transformedRotation);
     }
 
@@ -185,7 +199,7 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
             // 魔之符文
             [34572] = true,
             // 启示录
-            [34581] = true,
+            [34581] = true
         };
     }
 }
