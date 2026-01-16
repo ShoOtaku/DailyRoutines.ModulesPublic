@@ -9,6 +9,7 @@ using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Lumina.Excel.Sheets;
@@ -77,22 +78,27 @@ public unsafe class AutoUseEventItem : DailyModuleBase
 
     private static void OnAddonInventoryEvent()
     {
-        if (IsCasting                                             ||
+        if (!UIModule.Instance()->IsInventoryOpen()               ||
+            IsCasting                                             ||
             DService.Instance().Condition[ConditionFlag.InCombat] ||
             Request != null                                       ||
             !IsAnyQuestNearby(out var questRowID))
             return;
-
+        
         IGameObject gameObj;
         if (TargetManager.Target != null)
             gameObj = TargetManager.Target;
         else
             IsAnyMTQNearby(out gameObj);
-
+        
         if (!QuestRowIDToEventItems.TryGetValue(questRowID, out var eventItemList)) return;
 
-        Marshal.WriteByte(DService.Instance().Condition.Address + (nint)ConditionFlag.OccupiedInQuestEvent, 0);
-
+        if (DService.Instance().Condition[ConditionFlag.OccupiedInQuestEvent])
+        {
+            DService.Instance().Framework.RunOnTick(OnAddonInventoryEvent);
+            return;
+        }
+        
         var filterItems = FilterEItemsByInventory(eventItemList);
 
         foreach (var eItem in filterItems)
