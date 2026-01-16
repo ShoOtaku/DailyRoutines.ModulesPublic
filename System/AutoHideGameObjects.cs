@@ -1,12 +1,10 @@
 using System.Collections.Generic;
 using DailyRoutines.Abstracts;
-using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using FFXIVClientStructs.Interop;
 using BattleNpcSubKind = Dalamud.Game.ClientState.Objects.Enums.BattleNpcSubKind;
 using ObjectKind = FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectKind;
 
@@ -22,7 +20,7 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
     };
 
     private static readonly CompSig                          UpdateObjectArraysSig = new("40 57 48 83 EC ?? 48 89 5C 24 ?? 33 DB");
-    private delegate        nint                             UpdateObjectArraysDelegate(GameObjectManager* objectManager);
+    private delegate        void*                            UpdateObjectArraysDelegate(GameObjectManager* objectManager);
     private static          Hook<UpdateObjectArraysDelegate> UpdateObjectArraysHook;
     
     private static Config ModuleConfig = null!;
@@ -43,6 +41,14 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1_000);
+    }
+    
+    protected override void Uninit()
+    {
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        
+        ResetAllObjects();
     }
 
     protected override void ConfigUI()
@@ -70,15 +76,7 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
         }
     }
 
-    protected override void Uninit()
-    {
-        FrameworkManager.Instance().Unreg(OnUpdate);
-        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-        
-        ResetAllObjects();
-    }
-
-    private static nint UpdateObjectArraysDetour(GameObjectManager* objectManager)
+    private static void* UpdateObjectArraysDetour(GameObjectManager* objectManager)
     {
         var orig = UpdateObjectArraysHook.Original(objectManager);
         UpdateAllObjects(objectManager);
@@ -169,10 +167,11 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
         }
 
         // 宠物
-        if (config.HidePet            &&
-            index               <= 200 &&
-            index % 2           == 1  &&
-            gameObject->OwnerId != LocalPlayerState.EntityID)
+        if (config.HidePet                             &&
+            index                  <= 200              &&
+            index % 2              == 1                &&
+            gameObject->ObjectKind != ObjectKind.Mount &&
+            gameObject->OwnerId    != LocalPlayerState.EntityID)
             return true;
         
         // 陆行鸟
