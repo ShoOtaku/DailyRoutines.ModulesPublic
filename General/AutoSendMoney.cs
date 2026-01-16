@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -8,13 +9,13 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
-using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
+using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace DailyRoutines.ModulesPublic;
@@ -58,7 +59,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
 
-        ApplyConfigChanges();
+        ValidateConfigChanges();
         TaskHelper ??= new() { TimeoutMS = 5_000 };
     }
 
@@ -72,97 +73,79 @@ public unsafe class AutoSendMoney : DailyModuleBase
         if (NameLength < 0)
             NameLength = ImGui.CalcTextSize(GetLoc("All")).X;
 
-        DrawSettings();
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Settings")}");
 
-        using (ImRaii.PushId("All"))
-            DrawGlobalPlan();
-
-        foreach (var p in Members)
+        using (ImRaii.PushIndent())
+        using (ImRaii.ItemWidth(100f * GlobalFontScale))
         {
-            using (ImRaii.PushId(p.EntityID.ToString()))
-                DrawMemberPlan(p);
-        }
-    }
-
-    private void DrawSettings()
-    {
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Settings")}:");
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted($"{GetLoc("AutoSendMoney-Step", 1)}:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(50f * GlobalFontScale);
-        ImGui.InputInt("###Step1Input", ref ModuleConfig.Step1, flags: ImGuiInputTextFlags.CharsDecimal);
-
-        if (ImGui.IsItemDeactivatedAfterEdit())
-        {
-            ApplyConfigChanges();
-            ModuleConfig.Save(this);
-        }
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted($"{GetLoc("AutoSendMoney-Step", 2)}:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("###Step2Input", ref ModuleConfig.Step2, flags: ImGuiInputTextFlags.CharsDecimal);
-
-        if (ImGui.IsItemDeactivatedAfterEdit())
-        {
-            ApplyConfigChanges();
-            ModuleConfig.Save(this);
+            ImGui.InputInt($"{GetLoc("AutoSendMoney-Step", 1)}##Step1Input", ref ModuleConfig.Step1, flags: ImGuiInputTextFlags.CharsDecimal);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                ValidateConfigChanges();
+                ModuleConfig.Save(this);
+            }
+            
+            ImGui.InputInt($"{GetLoc("AutoSendMoney-Step", 2)}##Step2Input", ref ModuleConfig.Step2, flags: ImGuiInputTextFlags.CharsDecimal);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                ValidateConfigChanges();
+                ModuleConfig.Save(this);
+            }
+            
+            ImGui.InputInt($"{GetLoc("AutoSendMoney-DelayLowerLimit")}##DelayLowerLimitInput", ref ModuleConfig.Delay1, flags: ImGuiInputTextFlags.CharsDecimal);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                ValidateConfigChanges();
+                ModuleConfig.Save(this);
+            }
+            
+            ImGui.InputInt($"{GetLoc("AutoSendMoney-DelayUpperLimit")}##DelayUpperLimitInput", ref ModuleConfig.Delay2, flags: ImGuiInputTextFlags.CharsDecimal);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                ValidateConfigChanges();
+                ModuleConfig.Save(this);
+            }
         }
 
-        ImGui.SameLine();
-        ImGui.TextUnformatted($"{GetLoc("AutoSendMoney-DelayLowerLimit")}:");
+        ImGui.NewLine();
 
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("###DelayLowerLimitInput", ref ModuleConfig.Delay1, flags: ImGuiInputTextFlags.CharsDecimal);
-
-        if (ImGui.IsItemDeactivatedAfterEdit())
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Control")}");
+        
+        using (ImRaii.PushIndent())
         {
-            ApplyConfigChanges();
-            ModuleConfig.Save(this);
+            using (ImRaii.Disabled(IsRunning))
+            {
+                if (ImGui.Button($"{FontAwesomeIcon.FlagCheckered.ToIconString()} {GetLoc("Start")}"))
+                    Start();
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button($"{FontAwesomeIcon.Stop.ToIconString()} {GetLoc("Stop")}"))
+                Stop();
         }
+        
+        ImGui.NewLine();
+        
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoSendMoney-ListToTrade")}");
 
-        ImGui.SameLine();
-        ImGui.TextUnformatted($"{GetLoc("AutoSendMoney-DelayUpperLimit")}:");
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
-        ImGui.InputInt("###DelayUpperLimitInput", ref ModuleConfig.Delay2, flags: ImGuiInputTextFlags.CharsDecimal);
-
-        if (ImGui.IsItemDeactivatedAfterEdit())
+        using (ImRaii.PushIndent())
         {
-            ApplyConfigChanges();
-            ModuleConfig.Save(this);
+            if (ImGui.Button(GetLoc("AutoSendMoney-AddPartyList")))
+                AddPartyMembers();
+
+            ImGui.SameLine();
+            if (ImGui.Button(GetLoc("AutoSendMoney-AddTarget")))
+                AddCurrentTarget();
+            
+            using (ImRaii.PushId("All"))
+                DrawGlobalPlan();
+
+            foreach (var p in Members)
+            {
+                using (ImRaii.PushId(p.EntityID.ToString()))
+                    DrawMemberPlan(p);
+            }
         }
-
-        ImGui.Spacing();
-
-        using (ImRaii.Disabled(IsRunning))
-        {
-            if (ImGui.Button(GetLoc("Start")))
-                Start();
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button(GetLoc("Stop")))
-            Stop();
-
-        ImGui.SameLine();
-        ImGui.TextDisabled("|");
-
-        ImGui.SameLine();
-        if (ImGui.Button(GetLoc("AutoSendMoney-UpdatePartyList")))
-            RefreshMembers();
-
-        ImGui.SameLine();
-        if (ImGui.Button(GetLoc("AutoSendMoney-AddTarget")))
-            AddCurrentTarget();
     }
 
     private static void DrawGlobalPlan()
@@ -294,7 +277,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         }
     }
 
-    public static void RefreshMembers()
+    public static void AddPartyMembers()
     {
         Members.Clear();
         var cwProxy = InfoProxyCrossRealm.Instance();
@@ -381,7 +364,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
     private void Start()
     {
         if (Runtime != null) return;
-        ApplyConfigChanges();
+        ValidateConfigChanges();
         Runtime = new SendMoneyRuntime(this);
     }
 
@@ -405,7 +388,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         return distanceSq < 16;
     }
     
-    private static int GetRandomDelayMs()
+    private static int GetRandomDelayMS()
     {
         var min = Math.Max(0, ModuleConfig.Delay1);
         var max = Math.Max(0, ModuleConfig.Delay2);
@@ -413,7 +396,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         return Random.Shared.Next(min, max);
     }
 
-    private static void ApplyConfigChanges()
+    private static void ValidateConfigChanges()
     {
         ModuleConfig.Step1 = Math.Abs(ModuleConfig.Step1);
         ModuleConfig.Step2 = Math.Abs(ModuleConfig.Step2);
@@ -491,6 +474,8 @@ public unsafe class AutoSendMoney : DailyModuleBase
         private Hook<TradeRequestDelegate>?      tradeRequestHook;
         private Hook<TradeStatusUpdateDelegate>? tradeStatusUpdateHook;
 
+        private static readonly FrozenSet<uint> TradeFinishLogMessages = [10920, 10921, 10922, 10923];
+
         public SendMoneyRuntime(AutoSendMoney owner)
         {
             this.owner = owner;
@@ -505,6 +490,8 @@ public unsafe class AutoSendMoney : DailyModuleBase
             DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "Trade", OnTradeAddonSetup);
             FrameworkManager.Instance().Reg(OnFrameworkTick, 1_000);
 
+            LogMessageManager.Instance().RegPost(OnLogMessage);
+
             TryQueueNextTrade();
         }
 
@@ -516,23 +503,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
             FrameworkManager.Instance().Unreg(OnFrameworkTick);
             DService.Instance().AddonLifecycle.UnregisterListener(AddonEvent.PostSetup, "Trade", OnTradeAddonSetup);
 
-            try
-            {
-                tradeRequestHook?.Disable();
-            }
-            catch
-            {
-                // ignored
-            }
-
-            try
-            {
-                tradeStatusUpdateHook?.Disable();
-            }
-            catch
-            {
-                // ignored
-            }
+            LogMessageManager.Instance().Unreg(OnLogMessage);
 
             tradeRequestHook?.Dispose();
             tradeRequestHook = null;
@@ -545,6 +516,15 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
         public long GetRemaining(uint entityID) =>
             tradePlan.GetValueOrDefault(entityID, 0);
+        
+        private void OnLogMessage(uint logMessageID, LogMessageQueueItem item)
+        {
+            if (!TradeFinishLogMessages.Contains(logMessageID)) return;
+            if (Trade == null) return;
+            
+            Trade->Close(true);
+            CompleteTrade();
+        }
 
         private void OnTradeAddonSetup(AddonEvent type, AddonArgs args)
         {
@@ -553,14 +533,14 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
             if (!tradePlan.TryGetValue(lastTradeEntityID, out var value))
             {
-                owner.TaskHelper?.DelayNext(GetRandomDelayMs());
+                owner.TaskHelper?.DelayNext(GetRandomDelayMS());
                 owner.TaskHelper?.Enqueue(CancelTradeAddon, nameof(CancelTradeAddon));
             }
             else
             {
-                owner.TaskHelper?.DelayNext(GetRandomDelayMs());
+                owner.TaskHelper?.DelayNext(GetRandomDelayMS());
                 owner.TaskHelper?.Enqueue(() => SetTradeGil((uint)Math.Min(value, MAXIMUM_GIL_PER_TRADE)), nameof(SetTradeGil));
-                owner.TaskHelper?.DelayNext(GetRandomDelayMs());
+                owner.TaskHelper?.DelayNext(GetRandomDelayMS());
                 owner.TaskHelper?.Enqueue(ConfirmPreCheck, nameof(ConfirmPreCheck));
             }
         }
@@ -608,9 +588,6 @@ public unsafe class AutoSendMoney : DailyModuleBase
                 case 7:
                     CancelTrade();
                     break;
-                case 17:
-                    CompleteTrade();
-                    break;
             }
 
             return tradeStatusUpdateHook == null ? 0 : tradeStatusUpdateHook.Original(manager, entityID, a3);
@@ -634,14 +611,14 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
             if (!tradePlan.TryGetValue(lastTradeEntityID, out var value))
             {
-                owner.TaskHelper?.DelayNext(GetRandomDelayMs());
+                owner.TaskHelper?.DelayNext(GetRandomDelayMS());
                 owner.TaskHelper?.Enqueue(CancelTradeAddon, nameof(CancelTradeAddon));
                 return;
             }
 
             if (currentMoney <= value && checkState is { SelfConfirmed: false, OtherConfirmed: true })
             {
-                owner.TaskHelper?.DelayNext(GetRandomDelayMs());
+                owner.TaskHelper?.DelayNext(GetRandomDelayMS());
                 owner.TaskHelper?.Enqueue(ConfirmPreCheck, nameof(ConfirmPreCheck));
             }
         }
@@ -650,7 +627,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         {
             if (tradePlan.TryGetValue(lastTradeEntityID, out var value) && currentMoney <= value)
             {
-                owner.TaskHelper?.DelayNext(GetRandomDelayMs());
+                owner.TaskHelper?.DelayNext(GetRandomDelayMS());
                 owner.TaskHelper?.Enqueue(() => FinalCheckTradeAddon(), nameof(FinalCheckTradeAddon));
             }
         }
@@ -690,22 +667,26 @@ public unsafe class AutoSendMoney : DailyModuleBase
         private void IssueTradeRequest(uint entityID, GameObject* gameObjectAddress)
         {
             TargetSystem.Instance()->Target = gameObjectAddress;
-            OnTradeRequest(InventoryManager.Instance(), entityID);
+            InventoryManager.Instance()->SendTradeRequest(entityID);
         }
 
-        private void SetTradeGil(uint money)
+        private bool SetTradeGil(uint money)
         {
+            if (!Trade->IsAddonAndNodesReady()) return false;
+            
             InventoryManager.Instance()->SetTradeGilAmount(money);
             currentMoney = money;
+            return true;
         }
 
-        private void ConfirmPreCheck()
+        private bool ConfirmPreCheck()
         {
-            if (!checkState.SelfConfirmed)
-            {
-                PreCheckTradeAddon();
-                checkState = checkState with { SelfConfirmed = true };
-            }
+            if (!Trade->IsAddonAndNodesReady()) return false;
+            if (checkState.SelfConfirmed) return true;
+            
+            Trade->GetComponentButtonById(33)->Click();
+            checkState = checkState with { SelfConfirmed = true };
+            return true;
         }
 
         private void OnFrameworkTick(IFramework framework) =>
@@ -730,7 +711,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
                 if (!pendingTradeRequests.Add(entityID))
                     return;
 
-                taskHelper.DelayNext(GetRandomDelayMs(), $"{nameof(AutoSendMoney)}-IssueTradeRequest");
+                taskHelper.DelayNext(GetRandomDelayMS(), $"{nameof(AutoSendMoney)}-IssueTradeRequest");
                 taskHelper.Enqueue(() => IssueTradeRequest(entityID, (GameObject*)targetAddress), $"{nameof(IssueTradeRequest)}({entityID})");
             }
         }
@@ -779,12 +760,6 @@ public unsafe class AutoSendMoney : DailyModuleBase
         {
             if (Trade == null) return;
             Trade->Callback(1, 0);
-        }
-
-        private static void PreCheckTradeAddon()
-        {
-            if (Trade == null) return;
-            Trade->Callback(0, 0);
         }
 
         private static void FinalCheckTradeAddon(bool confirm = true)
