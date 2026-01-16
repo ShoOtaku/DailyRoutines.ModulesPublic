@@ -22,8 +22,6 @@ namespace DailyRoutines.ModulesPublic;
 
 public class HealerHelper : DailyModuleBase
 {
-    #region Core
-
     public override ModuleInfo Info { get; } = new()
     {
         Title       = GetLoc("HealerHelperTitle"),
@@ -70,8 +68,6 @@ public class HealerHelper : DailyModuleBase
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
         DService.Instance().Condition.ConditionChange    -= OnConditionChanged;
     }
-
-    #endregion
 
     #region UI
 
@@ -416,21 +412,21 @@ public class HealerHelper : DailyModuleBase
                 AutoPlayCardManager.PlayCardActions.Contains(actionID) &&
                 ModuleConfig.AutoPlayCardStorage.AutoPlayCard != AutoPlayCardManager.AutoPlayCardStatus.Disable)
             {
-                if (gameObject is not IBattleChara chara || chara.StatusFlags.IsSetAny(StatusFlags.Hostile))
+                if (gameObject is not IBattleChara chara || !ActionManager.CanUseActionOnTarget(37023, (GameObject*)chara.ToStruct()))
                     targetID = UNSPECIFIC_TARGET_ID;
                 
                 AutoPlayCardService.OnPrePlayCard(ref targetID, ref actionID);
             }
             else if (healConfig.EasyHeal == EasyHealManager.EasyHealStatus.Enable && healConfig.ActiveHealActions.Contains(actionID))
             {
-                if (gameObject is not IBattleChara chara || chara.StatusFlags.IsSetAny(StatusFlags.Hostile))
+                if (gameObject is not IBattleChara chara || !ActionManager.CanUseActionOnTarget(3595, (GameObject*)chara.ToStruct()))
                     targetID = UNSPECIFIC_TARGET_ID;
                 
                 EasyHealService.OnPreHeal(ref targetID, ref actionID, ref isPrevented);
             }
             else if (healConfig.EasyDispel == EasyHealManager.EasyDispelStatus.Enable && actionID == 7568)
             {
-                if (gameObject is not IBattleChara chara || chara.StatusFlags.IsSetAny(StatusFlags.Hostile))
+                if (gameObject is not IBattleChara chara || !ActionManager.CanUseActionOnTarget(7568, (GameObject*)chara.ToStruct()))
                     targetID = UNSPECIFIC_TARGET_ID;
                 
                 EasyHealService.OnPreDispel(ref targetID);
@@ -675,20 +671,25 @@ public class HealerHelper : DailyModuleBase
             BattleChara* fallbackObj      = null;
             var          fallbackPriority = 0.0;
 
-            var actionRange = ActionManager.GetActionRange(37023).Pow(2);
+            var actionRange = MathF.Pow(ActionManager.GetActionRange(37023), 2);
             foreach (var member in candidates)
             {
                 var candidate = AgentHUD.Instance()->PartyMembers.ToArray().FirstOrDefault(m => m.EntityId == member.id);
                 var obj       = candidate.Object;
 
-                if (candidate.EntityId == 0                                                       ||
-                    obj                == null                                                    ||
-                    obj->IsDead()                                                                 ||
-                    obj->Health                                                              <= 0 ||
-                    Vector3.DistanceSquared(LocalPlayerState.Object.Position, obj->Position) >= actionRange)
+                if (candidate.EntityId == 0    ||
+                    obj                == null ||
+                    obj->IsDead()              ||
+                    obj->Health <= 0)
                     continue;
                 
-                if (obj->StatusManager.HasStatus(43) || obj->StatusManager.HasStatus(44)) // Weakness
+                if (Vector3.DistanceSquared(LocalPlayerState.Object.Position, obj->Position) >= actionRange)
+                    continue;
+
+                if (obj->IsMounted()                                  ||
+                    obj->MovementState != MovementStateOptions.Normal ||
+                    obj->StatusManager.HasStatus(43)                  ||
+                    obj->StatusManager.HasStatus(44)) // Weakness
                 {
                     fallbackObj      = candidate.Object;
                     fallbackPriority = member.priority;
@@ -994,9 +995,4 @@ public class HealerHelper : DailyModuleBase
     }
 
     #endregion
-}
-
-static file class Extensions
-{
-    public static float Pow(this float x, float y) => MathF.Pow(x, y);
 }
