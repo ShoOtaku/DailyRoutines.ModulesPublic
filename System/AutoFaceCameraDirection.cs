@@ -240,14 +240,14 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         var moveState = MovementManager.CurrentZoneMoveState;
         if (GameState.ContentFinderCondition != 0)
         {
-            var moveType = (PositionUpdateInstancePacket.MoveType)(moveState * 0x10000);
+            var moveType = (PositionUpdateInstancePacket.MoveType)(moveState << 16);
             new PositionUpdateInstancePacket(LockOnRotation, localPlayer.Position, moveType).Send();
         }
         else
         {
             if (!Throttler.Throttle("AutoFaceCameraDirection-UpdateRotation", 20)) return;
 
-            var moveType = (PositionUpdatePacket.MoveType)(moveState * 0x10000);
+            var moveType = (PositionUpdatePacket.MoveType)(moveState << 16);
             new PositionUpdatePacket(LockOnRotation, localPlayer.Position, moveType).Send();
         }
 
@@ -288,6 +288,8 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         var isDuty      = GameState.ContentFinderCondition != 0;
         var interval    = isDuty ? 33 : 100;
 
+        SetLocalRotation((GameObject*)localPlayer, CameraCharaRotation);
+        
         if (currentTick - LastUpdateTick < interval) return;
         LastUpdateTick = currentTick;
 
@@ -302,8 +304,6 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
             var moveType = (PositionUpdatePacket.MoveType)(moveState << 16);
             new PositionUpdatePacket(CameraCharaRotation, localPlayer->Position, moveType).Send();
         }
-
-        SetLocalRotation((GameObject*)localPlayer, CameraCharaRotation);
     }
     
     // 获取摄像机到人物的旋转角度

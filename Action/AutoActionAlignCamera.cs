@@ -116,12 +116,12 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
 
         if (GameState.ContentFinderCondition != 0)
         {
-            var moveType = (PositionUpdateInstancePacket.MoveType)(MovementManager.CurrentZoneMoveState * 0x10000);
+            var moveType = (PositionUpdateInstancePacket.MoveType)(MovementManager.CurrentZoneMoveState << 16);
             new PositionUpdateInstancePacket(transformedRotation, localPlayer.Position, moveType).Send();
         }
         else
         {
-            var moveType = (PositionUpdatePacket.MoveType)(MovementManager.CurrentZoneMoveState * 0x10000);
+            var moveType = (PositionUpdatePacket.MoveType)(MovementManager.CurrentZoneMoveState << 16);
             new PositionUpdatePacket(transformedRotation, localPlayer.Position, moveType).Send();
         }
 

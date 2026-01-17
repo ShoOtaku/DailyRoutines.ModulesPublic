@@ -549,7 +549,7 @@ public partial class OccultCrescentHelper
         {
             if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
 
-            var moveType = (PositionUpdateInstancePacket.MoveType)(MovementManager.CurrentZoneMoveState * 0x10000);
+            var moveType = (PositionUpdateInstancePacket.MoveType)(MovementManager.CurrentZoneMoveState << 16);
             new PositionUpdateInstancePacket(localPlayer.Rotation, obj.Position, moveType).Send();
             new TreasureOpenPacket(obj.EntityID).Send();
             new PositionUpdateInstancePacket(localPlayer.Rotation, localPlayer.Position, moveType).Send();
