@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.InteropServices;
 using System.Threading;
 using DailyRoutines.Abstracts;
@@ -27,6 +28,8 @@ public unsafe class NoRenderWhenBackground : DailyModuleBase
     private static          Hook<NamePlateDrawDelegate>? NamePlateDrawHook;
     
     private static Config ModuleConfig = null!;
+
+    private static long NextRenderTick;
 
     private static bool IsOnNoRender;
 
@@ -61,8 +64,10 @@ public unsafe class NoRenderWhenBackground : DailyModuleBase
         }
 
         // 每过 5 秒必定渲染一帧, 防止堆积过多
-        if (Throttler.Throttle("NoRenderWhenBackground-Detour", 5_000))
+        var currentTick = Environment.TickCount64;
+        if (NextRenderTick - currentTick < 0)
         {
+            NextRenderTick = currentTick + 5_000;
             DeviceDX11PostTickHook.Original(instance);
             return;
         }
