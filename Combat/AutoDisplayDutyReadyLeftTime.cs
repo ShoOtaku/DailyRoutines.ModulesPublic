@@ -23,7 +23,7 @@ public unsafe class AutoDisplayDutyReadyLeftTime : DailyModuleBase
 
     private static void OnConditionChanged(ConditionFlag flag, bool value)
     {
-        if (flag != ConditionFlag.WaitingForDuty) return;
+        if (flag != ConditionFlag.WaitingForDutyFinder) return;
         
         Timer?.Stop();
         Timer?.Dispose();
