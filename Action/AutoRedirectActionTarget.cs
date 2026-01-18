@@ -2,11 +2,12 @@
 using System.Numerics;
 using DailyRoutines.Abstracts;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Arrays;
 using Action = Lumina.Excel.Sheets.Action;
-using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -62,39 +63,46 @@ public unsafe class AutoRedirectActionTarget : DailyModuleBase
                 return;
         }
         
-        var gameObject = targetID == 0xE0000000 ? null : DService.Instance().ObjectTable.SearchByID(targetID, IObjectTable.CharactersRange);
-        if (gameObject == null || !ActionManager.CanUseActionOnTarget(actionID, gameObject.ToStruct()))
+        var gameObject = targetID == 0xE0000000 ? null : CharacterManager.Instance()->LookupBattleCharaByEntityId((uint)targetID);
+        if (gameObject == null || !ActionManager.CanUseActionOnTarget(actionID, (GameObject*)gameObject))
         {
-            var targetToSelect = GetAvailableTargetID(actionID, actionRow.CanTargetHostile);
-            if (targetToSelect != 0xE0000000)
-                targetID = targetToSelect;
+            var targetToSelect = GetAvailableTarget(actionID, actionRow.CanTargetHostile);
+            if (targetToSelect != null)
+            {
+                targetID = targetToSelect->EntityId;
+                if (TargetSystem.Instance()->Target == null)
+                    TargetSystem.Instance()->SetHardTarget((GameObject*)targetToSelect);
+            }
         }
     }
 
-    private static uint GetAvailableTargetID(uint actionID, bool isTargetEnemy)
+    private static BattleChara* GetAvailableTarget(uint actionID, bool isTargetEnemy)
     {
         var localPosition = LocalPlayerState.Object.Position;
         var actionRange = MathF.Pow(ActionManager.GetActionRange(actionID), 2);
 
-        if (TargetManager.PreviousTarget is { } previousTarget                      &&
-            ActionManager.CanUseActionOnTarget(actionID, previousTarget.ToStruct()) &&
-            Vector3.DistanceSquared(localPosition, previousTarget.Position) <= actionRange)
-            return previousTarget.EntityID;
+        var previousTarget = TargetSystem.Instance()->PreviousTarget;
+        if (previousTarget != null                                       &&
+            ActionManager.CanUseActionOnTarget(actionID, previousTarget) &&
+            Vector3.DistanceSquared(localPosition, previousTarget->Position) <= actionRange)
+            return (BattleChara*)previousTarget;
 
         if (isTargetEnemy)
         {
             var array = EnemyListNumberArray.Instance();
-            if (array->EnemyCount == 0) return 0xE0000000;
+            if (array->EnemyCount == 0) return null;
 
             for (var i = 0; i < array->EnemyCount; i++)
             {
                 var enemyData = array->Enemies[i];
                 if ((uint)enemyData.EntityId is 0 or 0xE0000000 || !enemyData.ActiveInList || enemyData.RemainingHPPercent == 0) continue;
-                if (DService.Instance().ObjectTable.SearchByEntityID((uint)enemyData.EntityId, IObjectTable.CharactersRange) is not { } obj) continue;
+
+                var obj = CharacterManager.Instance()->LookupBattleCharaByEntityId((uint)enemyData.EntityId);
+                if (obj == null) continue;
                 
-                if (ActionManager.CanUseActionOnTarget(actionID, obj.ToStruct()) &&
-                    Vector3.DistanceSquared(localPosition, obj.Position) <= actionRange)
-                    return obj.EntityID;
+                if (ActionManager.CanUseActionOnTarget(actionID, (GameObject*)obj) &&
+                    Vector3.DistanceSquared(localPosition, obj->Position) <= actionRange)
+                    return obj;
             }
         }
         else
@@ -107,25 +115,22 @@ public unsafe class AutoRedirectActionTarget : DailyModuleBase
                     if (partyMember.ContentId == 0 || partyMember.Object == null) continue;
                     if (ActionManager.CanUseActionOnTarget(actionID, (GameObject*)partyMember.Object) &&
                         Vector3.DistanceSquared(localPosition, partyMember.Object->Position) <= actionRange)
-                        return partyMember.EntityId;
+                        return partyMember.Object;
                 }
             }
             
             for (var i = 0; i < 200; i++)
             {
-                var obj = DService.Instance().ObjectTable[i];
+                var obj = CharacterManager.Instance()->BattleCharas[i].Value;
                 if (obj == null) continue;
                 
-                if (ActionManager.CanUseActionOnTarget(actionID, obj.ToStruct()) &&
-                    Vector3.DistanceSquared(localPosition, obj.Position) <= actionRange)
-                    return obj.EntityID;
-
-                if (obj.ObjectKind == ObjectKind.Player)
-                    i++;
+                if (ActionManager.CanUseActionOnTarget(actionID, (GameObject*)obj) &&
+                    Vector3.DistanceSquared(localPosition, obj->Position) <= actionRange)
+                    return obj;
             }
         }
         
-        return 0xE0000000;
+        return null;
     }
 
     private class Config : ModuleConfiguration
