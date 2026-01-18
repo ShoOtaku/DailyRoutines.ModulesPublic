@@ -210,7 +210,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             var gameObj = DService.Instance().ObjectTable.SearchByID(gameObjectID);
             if (gameObj is not IBattleChara bc || !HaterInfo.TryGetValue(gameObj.EntityID, out var enmity))
             {
-                textNode.SeString           = string.Empty;
+                textNode.String             = string.Empty;
                 backgroundNode.IsVisible    = false;
                 statusNodes.ShouldBeVisible = false;
                 continue;
@@ -320,7 +320,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
                 4 + ModuleConfig.TextOffset.Y
             );
 
-            if (!string.IsNullOrWhiteSpace(textNode.String))
+            if (!string.IsNullOrWhiteSpace(textNode.String.ToString()))
             {
                 var textHeight = textNode.GetTextDrawSize().Y;
                 var textWidth  = textNode.GetTextDrawSize(false).X;
@@ -350,7 +350,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
             var textNode = new TextNode
             {
-                SeString      = string.Empty,
+                String        = string.Empty,
                 FontSize      = ModuleConfig.FontSize,
                 IsVisible     = true,
                 Size          = new(160f, 25f),

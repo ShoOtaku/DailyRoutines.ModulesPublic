@@ -114,7 +114,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         IsVisible = true,
                         IsChecked = ModuleConfig.FastMoveItem,
                         IsEnabled = true,
-                        SeString  = GetLoc("OptimizedFreeCompanyChest-FastMove"),
+                        String    = GetLoc("OptimizedFreeCompanyChest-FastMove"),
                         OnClick = newState =>
                         {
                             ModuleConfig.FastMoveItem = newState;
@@ -141,7 +141,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         IsVisible = true,
                         IsChecked = false,
                         IsEnabled = true,
-                        SeString  = GetLoc("OptimizedFreeCompanyChest-DefaultPage"),
+                        String    = GetLoc("OptimizedFreeCompanyChest-DefaultPage"),
                         OnClick = newState =>
                         {
                             switch (newState)
@@ -207,7 +207,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         IsVisible        = true,
                         Position         = new(-55, 50),
                         Size             = new(395, 24),
-                        SeString         = $"({GetLoc("OptimizedFreeCompanyChest-ExchangableItemsTotalValue")})",
+                        String           = $"({GetLoc("OptimizedFreeCompanyChest-ExchangableItemsTotalValue")})",
                         FontSize         = 8,
                         TextColor        = ColorHelper.GetColor(50),
                         TextFlags        = TextFlags.Edge,
@@ -220,7 +220,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         Position         = new(-55, 30),
                         Size             = new(395, 28),
                         IsVisible        = true,
-                        SeString         = "0\ue049",
+                        String           = "0\ue049",
                         TextFlags        = TextFlags.Glare | TextFlags.Edge,
                         TextOutlineColor = ColorHelper.GetColor(32),
                         FontSize         = 14,

@@ -173,7 +173,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     {
                         Position = new(228, 490),
                         Size     = new(140, 32),
-                        SeString = GetLoc("OptimizedRecipeNote-Button-CaculateRecipe"),
+                        String   = GetLoc("OptimizedRecipeNote-Button-CaculateRecipe"),
                     };
                     RecipeCaculationButton.OnClick = () =>
                     {
@@ -232,7 +232,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     {
                         Position = new(228, 490),
                         Size     = new(140, 32),
-                        SeString = GetLoc("OptimizedRecipeNote-Button-SwitchJob"),
+                        String   = GetLoc("OptimizedRecipeNote-Button-SwitchJob"),
                     };
                     SwitchJobButton.OnClick = () =>
                     {
@@ -269,7 +269,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     {
                         Position  = new(0, -32),
                         Size      = new(140, 32),
-                        SeString  = GetLoc("OptimizedRecipeNote-Button-ShowOtherRecipes"),
+                        String    = GetLoc("OptimizedRecipeNote-Button-ShowOtherRecipes"),
                         IsVisible = true,
                         OnClick = () =>
                         {
@@ -290,10 +290,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                         }
                     };
 
-                    var labelNode = DisplayOthersButton.LabelNode;
-                    while (labelNode.FontSize > 1 && labelNode.GetTextDrawSize(labelNode.SeString).X > labelNode.Size.X)
-                        labelNode.FontSize--;
-                    
+                    DisplayOthersButton.LabelNode.AutoAdjustTextSize();
                     DisplayOthersButton.AttachNode(RecipeNoteAddon->GetNodeById(57));
                 }
 
@@ -804,14 +801,14 @@ public class OptimizedRecipeNote : DailyModuleBase
             {
                 IsVisible = true,
                 TextFlags = TextFlags.AutoAdjustNodeSize,
-                SeString = new SeStringBuilder()
+                String   = new SeStringBuilder()
                            .AddText($"{LuminaWrapper.GetAddonText(294)}: ")
                            .AddIcon(Result.GetJob().ToBitmapFontIcon())
                            .AddText(Result.GetJob().Name.ToString())
                            .Build()
                            .Encode()
             };
-            jobTextNode.Size =  jobTextNode.GetTextDrawSize($"{jobTextNode.SeString}123");
+            jobTextNode.Size =  jobTextNode.GetTextDrawSize($"{jobTextNode.String}123");
             statsRow.Width   += jobTextNode.Width;
             statsRow.AddNode(jobTextNode);
 
@@ -819,7 +816,7 @@ public class OptimizedRecipeNote : DailyModuleBase
             {
                 IsVisible = true,
                 TextFlags = TextFlags.AutoAdjustNodeSize,
-                SeString  = $"{LuminaWrapper.GetAddonText(3261)}: {Result.Craftmanship}"
+                String    = $"{LuminaWrapper.GetAddonText(3261)}: {Result.Craftmanship}"
             };
             statsRow.Width += craftmanshipTextNode.Width;
             statsRow.AddNode(craftmanshipTextNode);
@@ -831,7 +828,7 @@ public class OptimizedRecipeNote : DailyModuleBase
             {
                 IsVisible = true,
                 TextFlags = TextFlags.AutoAdjustNodeSize,
-                SeString  = $"{LuminaWrapper.GetAddonText(3262)}: {Result.Control}"
+                String    = $"{LuminaWrapper.GetAddonText(3262)}: {Result.Control}"
             };
             statsRow.Width       += controlTextNode.Width;
             statsRow.AddNode(controlTextNode);
@@ -843,7 +840,7 @@ public class OptimizedRecipeNote : DailyModuleBase
             {
                 IsVisible = true,
                 TextFlags = TextFlags.AutoAdjustNodeSize,
-                SeString  = $"{LuminaWrapper.GetAddonText(3223)}: {Result.CraftPoint}"
+                String    = $"{LuminaWrapper.GetAddonText(3223)}: {Result.CraftPoint}"
             };
             statsRow.Width          += craftPointTextNode.Width;
             statsRow.AddNode(craftPointTextNode);
@@ -861,7 +858,7 @@ public class OptimizedRecipeNote : DailyModuleBase
             {
                 IsVisible = true,
                 Size      = new(100, 24),
-                SeString  = GetLoc("Execute"),
+                String    = GetLoc("Execute"),
                 OnClick = () =>
                 {
                     if (Synthesis == null) return;
@@ -898,7 +895,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                 {
                     IsVisible = true,
                     Size      = new(120, 24),
-                    SeString  = GetLoc("OptimizedRecipeNote-Button-CopyMacro", macroIndex + 1),
+                    String    = GetLoc("OptimizedRecipeNote-Button-CopyMacro", macroIndex + 1),
                     OnClick = () =>
                     {
                         var startIndex = macroIndex * 15;
@@ -988,7 +985,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                 {
                     IsVisible        = true,
                     Position         = new(-4),
-                    SeString         = $"{index + 1}",
+                    String           = $"{index + 1}",
                     FontType         = FontType.MiedingerMed,
                     TextFlags        = TextFlags.Edge,
                     TextOutlineColor = KnownColor.OrangeRed.ToVector4()
@@ -1084,7 +1081,7 @@ public class OptimizedRecipeNote : DailyModuleBase
             {
                 IsVisible = true,
                 TextFlags = TextFlags.AutoAdjustNodeSize,
-                SeString  = LuminaWrapper.GetItemName(ShopInfo.ItemID),
+                String    = LuminaWrapper.GetItemName(ShopInfo.ItemID),
                 FontSize  = 18,
                 Position  = new(0, 6)
             };
@@ -1097,7 +1094,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     IconId      = 60570,
                     TextTooltip = LuminaWrapper.GetAddonText(548),
                     Size        = new(32),
-                    Position    = itemInfoRow.Position + new Vector2(itemNameNode.GetTextDrawSize(itemNameNode.SeString).X + itemIconNode.Size.X + 15f, 2),
+                    Position    = itemInfoRow.Position + new Vector2(itemNameNode.GetTextDrawSize(itemNameNode.String).X + itemIconNode.Size.X + 15f, 2),
                     IsVisible   = true,
                     OnClick     = () => ChatManager.Instance().SendMessage($"/pdr market {ShopInfo.GetItem().Name}")
                 };
@@ -1148,7 +1145,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                 var npcNameNode = new TextNode
                 {
                     IsVisible = true,
-                    SeString  = npcInfo.Name,
+                    String    = npcInfo.Name,
                     Position  = new(0, 4)
                 };
                 npcNameNode.AttachNode(row);
@@ -1157,7 +1154,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                 var npcLocationNode = new TextButtonNode
                 {
                     IsVisible   = true,
-                    SeString    = locationName,
+                    String      = locationName,
                     Size        = new(locationColumnWidth, 28f),
                     Position    = new(nameColumnWidth, 0),
                     IsEnabled   = npcInfo.Location.TerritoryID != 282,
@@ -1205,7 +1202,7 @@ public class OptimizedRecipeNote : DailyModuleBase
                     {
                         IsVisible = true,
                         TextFlags = TextFlags.AutoAdjustNodeSize,
-                        SeString  = costInfo.ToString().Replace(LuminaWrapper.GetItemName(costInfo.ItemID), string.Empty).Trim(),
+                        String    = costInfo.ToString().Replace(LuminaWrapper.GetItemName(costInfo.ItemID), string.Empty).Trim(),
                         Position  = new(4, 6)
                     };
                     costInfoComponent.AddNode(costNode);

@@ -60,13 +60,13 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
                         agent->LastViewedListing.LeaderString)
                         return;
                     
-                    if (RecruitmentTextNode is { IsFocused: false, SeString.IsEmpty: true })
+                    if (RecruitmentTextNode is { IsFocused: false, String.IsEmpty: true })
                     {
                         var seString = new ReadOnlySeStringSpan(agent->LastViewedListing.Comment).PraseAutoTranslate().ToDalamudString();
-                        RecruitmentTextNode.SeString = seString.Encode();
+                        RecruitmentTextNode.String = seString.Encode();
                     }
                     
-                    if (RecruitmentTextNode is { IsVisible: false, SeString.IsEmpty: false })
+                    if (RecruitmentTextNode is { IsVisible: false, String.IsEmpty: false })
                         RecruitmentTextNode.IsVisible = true;
                     
                     return;

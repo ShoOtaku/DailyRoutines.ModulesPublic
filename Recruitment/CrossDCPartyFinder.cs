@@ -238,7 +238,7 @@ public class CrossDCPartyFinder : DailyModuleBase
                         IsVisible = true,
                         IsChecked = dataCenter == SelectedDataCenter,
                         IsEnabled = true,
-                        SeString  = dataCenter,
+                        String    = dataCenter,
                         OnClick = _ =>
                         {
                             SelectedDataCenter = dataCenter;

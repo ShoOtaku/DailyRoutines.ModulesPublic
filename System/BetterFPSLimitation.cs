@@ -206,8 +206,8 @@ public class BetterFPSLimitation : DailyModuleBase
             if (FPSDisplayNumberNode != null)
             {
                 var text       = LuminaGetter.GetRow<Addon>(4002).GetValueOrDefault().Text.ToDalamudString();
-                text.Payloads[0] = new TextPayload($"{Framework.Instance()->FrameRate:F0}");
-                FPSDisplayNumberNode.SeString = text.Encode();
+                text.Payloads[0]            = new TextPayload($"{Framework.Instance()->FrameRate:F0}");
+                FPSDisplayNumberNode.String = text.Encode();
             }
 
             if (IsEnabledNode != null)
@@ -241,7 +241,7 @@ public class BetterFPSLimitation : DailyModuleBase
                 IsVisible = true,
                 IsChecked = ModuleConfig.IsEnabled,
                 IsEnabled = true,
-                SeString  = GetLoc("Enable"),
+                String    = GetLoc("Enable"),
                 OnClick = newState =>
                 {
                     ModuleConfig.IsEnabled = newState;
@@ -259,7 +259,7 @@ public class BetterFPSLimitation : DailyModuleBase
 
             var fpsLimitationTextNode = new TextNode
             {
-                SeString      = GetLoc("BetterFPSLimitation-MaxFPS"),
+                String        = GetLoc("BetterFPSLimitation-MaxFPS"),
                 FontSize      = 14,
                 IsVisible     = true,
                 Size          = new(150f, 25f),
@@ -299,7 +299,7 @@ public class BetterFPSLimitation : DailyModuleBase
 
             var fpsDisplayTextNode = new TextNode
             {
-                SeString      = GetLoc("BetterFPSLimitation-CurrentFPS"),
+                String        = GetLoc("BetterFPSLimitation-CurrentFPS"),
                 FontSize      = 12,
                 IsVisible     = true,
                 Size          = new(20f, 25f),
@@ -309,7 +309,7 @@ public class BetterFPSLimitation : DailyModuleBase
 
             FPSDisplayNumberNode = new TextNode
             {
-                SeString      = "0",
+                String        = "0",
                 FontSize      = 12,
                 IsVisible     = true,
                 Size          = new(30f, 25f),
@@ -327,7 +327,7 @@ public class BetterFPSLimitation : DailyModuleBase
 
             var fastSetTextNode = new TextNode
             {
-                SeString      = GetLoc("BetterFPSLimitation-FastSetFPSLimitation"),
+                String        = GetLoc("BetterFPSLimitation-FastSetFPSLimitation"),
                 FontSize      = 14,
                 IsVisible     = true,
                 Size          = new(150f, 20f),
@@ -360,7 +360,7 @@ public class BetterFPSLimitation : DailyModuleBase
                     {
                         Size      = new(60f, 25f),
                         IsVisible = true,
-                        SeString  = threshold.ToString(),
+                        String    = threshold.ToString(),
                         OnClick = () =>
                         {
                             ModuleConfig.Limitation = threshold;

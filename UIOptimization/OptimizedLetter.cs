@@ -148,7 +148,7 @@ public class OptimizedLetter : DailyModuleBase
 
                 if (ListNode != null)
                 {
-                    var shouldDisplay = !string.IsNullOrWhiteSpace(TextInputButton.SeString.ToString());
+                    var shouldDisplay = !string.IsNullOrWhiteSpace(TextInputButton.String.ToString());
                     ListNode.IsVisible = shouldDisplay;
                 }
                 
@@ -213,7 +213,7 @@ public class OptimizedLetter : DailyModuleBase
                 IsVisible = true,
                 IsEnabled = true,
                 Size      = new(layoutNode.Size.X - 10, 38),
-                SeString  = $"{GetLoc("OptimizedLetter-DeleteMails")} ({GetLoc("All")})",
+                String    = $"{GetLoc("OptimizedLetter-DeleteMails")} ({GetLoc("All")})",
                 OnClick = () =>
                 {
                     if (!TryFindLetters(_ => true, out var letters)) return;
@@ -232,7 +232,7 @@ public class OptimizedLetter : DailyModuleBase
                 IsVisible = true,
                 IsEnabled = true,
                 Size      = new(layoutNode.Size.X - 10, 38),
-                SeString  = $"{GetLoc("OptimizedLetter-DeleteMails")} ({GetLoc("OptimizedLetter-DeleteMails-ExceptPlayers")})",
+                String    = $"{GetLoc("OptimizedLetter-DeleteMails")} ({GetLoc("OptimizedLetter-DeleteMails-ExceptPlayers")})",
                 OnClick = () =>
                 {
                     if (!TryFindLetters(x => x.SenderContentId < 100000000000, out var letters)) return;
@@ -253,7 +253,7 @@ public class OptimizedLetter : DailyModuleBase
                 IsVisible = true,
                 IsEnabled = true,
                 Size      = new(layoutNode.Size.X - 10, 38),
-                SeString  = GetLoc("OptimizedLetter-ClaimMails"),
+                String    = GetLoc("OptimizedLetter-ClaimMails"),
                 OnClick = () =>
                 {
                     if (!TryFindLetters(x => x.Attachments.ToArray().Any(d => d.Count > 0), out var letters)) return;

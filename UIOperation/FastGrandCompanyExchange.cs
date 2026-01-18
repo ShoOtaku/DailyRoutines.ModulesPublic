@@ -237,7 +237,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
                 IsVisible = true,
                 IsEnabled = true,
                 Size      = new(layoutNode.Size.X - 10, 38),
-                SeString  = GetLoc("Exchange"),
+                String    = GetLoc("Exchange"),
                 OnClick = () =>
                 {
                     if (instance.TaskHelper.IsBusy) return;
@@ -254,7 +254,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
                 IsVisible = true,
                 Size      = new(layoutNode.Size.X - 20, 24),
                 FontSize  = 14,
-                SeString  = GetLoc("Item")
+                String    = GetLoc("Item")
             };
 
             layoutNode.AddNode(itemLableNode);
@@ -263,13 +263,13 @@ public class FastGrandCompanyExchange : DailyModuleBase
             {
                 IsVisible       = true,
                 Size            = new(layoutNode.Size.X - 10, 35),
-                SeString        = ModuleConfig.ExchangeItemName,
+                String          = ModuleConfig.ExchangeItemName,
                 OnInputReceived = x => ModuleConfig.ExchangeItemName = x.ToString()
             };
 
             itemNameInputNode.OnInputComplete = UpdateExchangeItem;
-            itemNameInputNode.OnEditComplete  = _ => UpdateExchangeItem(itemNameInputNode.SeString);
-            itemNameInputNode.OnUnfocused     = () => UpdateExchangeItem(itemNameInputNode.SeString);
+            itemNameInputNode.OnEditComplete  = _ => UpdateExchangeItem(itemNameInputNode.String);
+            itemNameInputNode.OnUnfocused     = () => UpdateExchangeItem(itemNameInputNode.String);
 
             itemNameInputNode.CursorNode.ScaleY        =  1.4f;
             itemNameInputNode.CurrentTextNode.FontSize =  14;
@@ -284,7 +284,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
                 IsVisible = true,
                 Size      = new(layoutNode.Size.X - 20, 24),
                 FontSize  = 14,
-                SeString  = GetLoc("Amount")
+                String    = GetLoc("Amount")
             };
 
             layoutNode.AddNode(countLableNode);

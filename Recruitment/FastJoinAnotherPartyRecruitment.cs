@@ -87,7 +87,7 @@ public unsafe class FastJoinAnotherPartyRecruitment : DailyModuleBase
             Size      = new(140, 28),
             Position  = new(100, 0),
             IsVisible = false,
-            SeString  = GetLoc("FastJoinAnotherPartyRecruitment-LeaveAndJoin"),
+            String    = GetLoc("FastJoinAnotherPartyRecruitment-LeaveAndJoin"),
             OnClick   = () => Enqueue(taskHelper)
         };
 

@@ -137,7 +137,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
             IsVisible = true,
             IsChecked = ModuleConfig.OnlyInactive,
             IsEnabled = true,
-            SeString  = GetLoc("AutoRefreshPartyFinder-OnlyInactive"),
+            String    = GetLoc("AutoRefreshPartyFinder-OnlyInactive"),
             OnClick = newState =>
             {
                 ModuleConfig.OnlyInactive = newState;
@@ -170,7 +170,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
 
         LeftTimeNode ??= new TextNode
         {
-            SeString         = $"({ModuleConfig.RefreshInterval})  ",
+            String           = $"({ModuleConfig.RefreshInterval})  ",
             FontSize         = 12,
             IsVisible        = true,
             Size             = new(0, 28f),

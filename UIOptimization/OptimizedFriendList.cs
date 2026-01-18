@@ -486,7 +486,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 IsVisible = true,
                 Position  = new(10, 36),
                 Size      = new(100, 48),
-                SeString = new SeStringBuilder()
+                String   = new SeStringBuilder()
                            .Append(Name)
                            .AddIcon(BitmapFontIcon.CrossWorld)
                            .Append(WorldName)
@@ -503,7 +503,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 IsVisible        = true,
                 Position         = new(10, 80),
                 Size             = new(100, 28),
-                SeString         = $"{LuminaWrapper.GetAddonText(15207)}",
+                String           = $"{LuminaWrapper.GetAddonText(15207)}",
                 FontSize         = 14,
                 AlignmentType    = AlignmentType.Left,
                 TextFlags        = TextFlags.Bold,
@@ -527,7 +527,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 IsVisible        = true,
                 Position         = new(10, 140),
                 Size             = new(100, 28),
-                SeString         = $"{LuminaWrapper.GetAddonText(13294).TrimEnd(':')}",
+                String           = $"{LuminaWrapper.GetAddonText(13294).TrimEnd(':')}",
                 FontSize         = 14,
                 AlignmentType    = AlignmentType.Left,
                 TextFlags        = TextFlags.Bold,
@@ -555,15 +555,15 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 Position  = new(10, 264),
                 Size      = new(140, 28),
                 IsVisible = true,
-                SeString  = GetLoc("Confirm"),
+                String    = GetLoc("Confirm"),
                 OnClick = () =>
                 {
                     ModuleConfig.PlayerInfos[ContentID] = new()
                     {
                         ContentID = ContentID,
                         Name      = Name,
-                        Nickname  = nicknameInputNode.String,
-                        Remark    = remarkInputNode.String,
+                        Nickname  = nicknameInputNode.String.ToString(),
+                        Remark    = remarkInputNode.String.ToString(),
                     };
                     ModuleConfig.Save(Instance);
                     
@@ -578,7 +578,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 Position  = new(160, 264),
                 Size      = new(140, 28),
                 IsVisible = true,
-                SeString  = GetLoc("Clear"),
+                String    = GetLoc("Clear"),
                 OnClick = () =>
                 {
                     ModuleConfig.PlayerInfos.Remove(ContentID);
@@ -595,7 +595,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 Position  = new(310, 264),
                 Size      = new(140, 28),
                 IsVisible = true,
-                SeString  = GetLoc("OptimizedFriendList-ObtainUsedNames"),
+                String    = GetLoc("OptimizedFriendList-ObtainUsedNames"),
                 OnClick = () =>
                 {
                     var request = OnlineDataManager.GetRequest<PlayerUsedNamesRequest>();
@@ -654,7 +654,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
             var searchTypeTitleNode = new TextNode
             {
                 IsVisible = true,
-                SeString  = GetLoc("OptimizedFriendList-SearchType"),
+                String    = GetLoc("OptimizedFriendList-SearchType"),
                 FontSize  = 16,
                 TextFlags = TextFlags.AutoAdjustNodeSize,
                 Position  = new(10f, 42f)
@@ -674,7 +674,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 IsVisible = true,
                 IsChecked = ModuleConfig.SearchName,
                 IsEnabled = true,
-                SeString  = GetLoc("Name"),
+                String    = GetLoc("Name"),
                 OnClick = newState =>
                 {
                     ModuleConfig.SearchName = newState;
@@ -691,7 +691,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 IsVisible = true,
                 IsChecked = ModuleConfig.SearchNickname,
                 IsEnabled = true,
-                SeString  = LuminaWrapper.GetAddonText(15207),
+                String    = LuminaWrapper.GetAddonText(15207),
                 OnClick = newState =>
                 {
                     ModuleConfig.SearchNickname = newState;
@@ -708,7 +708,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 IsVisible = true,
                 IsChecked = ModuleConfig.SearchRemark,
                 IsEnabled = true,
-                SeString  = LuminaWrapper.GetAddonText(13294).TrimEnd(':'),
+                String    = LuminaWrapper.GetAddonText(13294).TrimEnd(':'),
                 OnClick = newState =>
                 {
                     ModuleConfig.SearchRemark = newState;
@@ -725,7 +725,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
             var searchGroupIgnoreTitleNode = new TextNode
             {
                 IsVisible = true,
-                SeString  = GetLoc("OptimizedFriendList-SearchIgnoreGroup"),
+                String    = GetLoc("OptimizedFriendList-SearchIgnoreGroup"),
                 FontSize  = 16,
                 TextFlags = TextFlags.AutoAdjustNodeSize,
                 Position  = new(10f, searchTypeLayoutNode.Position.Y + searchTypeLayoutNode.Height + 12f)
@@ -752,7 +752,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                     IsVisible = true,
                     IsChecked = ModuleConfig.IgnoredGroup[i],
                     IsEnabled = true,
-                    SeString  = groupFormatText.Encode(),
+                    String    = groupFormatText.Encode(),
                     OnClick = newState =>
                     {
                         ModuleConfig.IgnoredGroup[index] = newState;

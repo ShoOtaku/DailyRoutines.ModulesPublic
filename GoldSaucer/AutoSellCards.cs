@@ -72,7 +72,7 @@ public unsafe class AutoSellCards : DailyModuleBase
                         BackgroundColor  = Vector4.Zero,
                         Size             = new(86, 31),
                         Position         = new(15, 465),
-                        SeString         = Info.Title
+                        String           = Info.Title
                     };
                     TitleNode.AttachNode(TripleTriadCoinExchange->RootNode);
                     
@@ -87,7 +87,7 @@ public unsafe class AutoSellCards : DailyModuleBase
                     {
                         IsVisible = true,
                         Size      = new(260, 35),
-                        SeString  = GetLoc("Start"),
+                        String    = GetLoc("Start"),
                         OnClick = () =>
                         {
                             TaskHelper.Abort();
@@ -100,7 +100,7 @@ public unsafe class AutoSellCards : DailyModuleBase
                     {
                         IsVisible = true,
                         Size      = new(260, 35),
-                        SeString  = GetLoc("Stop"),
+                        String    = GetLoc("Stop"),
                         OnClick   = () => TaskHelper.Abort()
                     };
                     LayoutNode.AddNode(StopButton);

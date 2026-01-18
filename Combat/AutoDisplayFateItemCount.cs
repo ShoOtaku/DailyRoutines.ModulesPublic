@@ -77,7 +77,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
             NameNode = new()
             {
                 Size             = new(160, 64),
-                SeString         = "测试物品",
+                String           = "测试物品",
                 FontSize         = 20,
                 Position         = new(2),
                 TextFlags        = TextFlags.Edge,
@@ -98,7 +98,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
 
             HoldLabelNode = new()
             {
-                SeString         = GetLoc("AutoDisplayFateItemCount-HoldCount"),
+                String           = GetLoc("AutoDisplayFateItemCount-HoldCount"),
                 FontSize         = 14,
                 TextFlags        = TextFlags.Edge,
                 TextOutlineColor = ColorHelper.GetColor(37),
@@ -108,7 +108,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
             
             HoldCountNode = new()
             {
-                SeString         = "0",
+                String           = "0",
                 FontSize         = 18,
                 TextFlags        = TextFlags.Edge,
                 FontType         = FontType.Miedinger,
@@ -119,7 +119,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
             
             HandInLabelNode = new()
             {
-                SeString         = GetLoc("AutoDisplayFateItemCount-HandInCount"),
+                String           = GetLoc("AutoDisplayFateItemCount-HandInCount"),
                 FontSize         = 14,
                 TextFlags        = TextFlags.Edge,
                 TextOutlineColor = ColorHelper.GetColor(37),
@@ -129,7 +129,7 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
             
             HandInCountNode = new()
             {
-                SeString         = "0",
+                String           = "0",
                 FontSize         = 18,
                 TextFlags        = TextFlags.Edge,
                 FontType         = FontType.Miedinger,
@@ -194,9 +194,9 @@ public unsafe class AutoDisplayFateItemCount : DailyModuleBase
         {
             HeaderNode.IsVisible  = true;
             
-            IconNode.IconId   = item.Icon;
-            NameNode.SeString = $"{item.Singular}";
-            while (NameNode.FontSize > 1 && NameNode.GetTextDrawSize(NameNode.SeString).X > NameNode.Size.X)
+            IconNode.IconId = item.Icon;
+            NameNode.String = $"{item.Singular}";
+            while (NameNode.FontSize > 1 && NameNode.GetTextDrawSize(NameNode.String).X > NameNode.Size.X)
                 NameNode.FontSize--;
         }
     }

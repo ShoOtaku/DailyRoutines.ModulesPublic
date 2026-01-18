@@ -61,7 +61,7 @@ public unsafe class AutoDesynthesizeItems : DailyModuleBase
                 {
                     IsVisible = true,
                     Size      = new(200, 28),
-                    SeString  = $"{Info.Title}",
+                    String    = $"{Info.Title}",
                     OnClick   = StartDesynthesizeAll,
                 };
                 

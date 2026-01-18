@@ -520,9 +520,9 @@ public unsafe class OptimizedMacro : DailyModuleBase
 
         protected override void OnConfirmClick()
         {
-            if (inputNode != null && !string.IsNullOrWhiteSpace(inputNode.String))
+            if (inputNode != null && !string.IsNullOrWhiteSpace(inputNode.String.ToString()))
             {
-                OnInputComplete?.Invoke(inputNode.String);
+                OnInputComplete?.Invoke(inputNode.String.ToString());
                 Close();
             }
         }

@@ -157,7 +157,7 @@ public unsafe class AutoMateriaTransmutation : DailyModuleBase
                         Size      = new(150, 28),
                         Position  = new(40, 166),
                         IsVisible = true,
-                        SeString  = GetLoc("Start"),
+                        String    = GetLoc("Start"),
                         OnClick = () =>
                         {
                             if (TaskHelper.IsBusy)

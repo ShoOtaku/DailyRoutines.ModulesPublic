@@ -193,7 +193,7 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
                         Position  = new(158, 24),
                         Size      = new(36),
                         IsVisible = true,
-                        SeString  = string.Empty,
+                        String    = string.Empty,
                         OnClick   = () => AddonDRFastSetWeather.Addon.Toggle()
                     };
 

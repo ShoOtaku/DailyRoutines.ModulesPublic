@@ -410,7 +410,7 @@ public partial class OccultCrescentHelper
                             Position    = new(-1f, 32f),
                             Size        = new(48, 24),
                             IsVisible   = true,
-                            SeString    = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementalLevel).Build().Encode(),
+                            String      = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementalLevel).Build().Encode(),
                             TextTooltip = GetLoc("OccultCrescentHelper-Command-PBuff-Help"),
                             OnClick     = () => ChatManager.Instance().SendMessage("/pdr pbuff")
                         };
@@ -449,7 +449,7 @@ public partial class OccultCrescentHelper
                             Position    = new(41, 94),
                             Size        = new(40f, 32f),
                             IsVisible   = true,
-                            SeString    = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle).Build().Encode(),
+                            String      = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle).Build().Encode(),
                             TextTooltip = MainModule.Info.Title,
                             OnClick     = () => MainModule.Overlay.IsOpen ^= true
                         };
@@ -911,7 +911,7 @@ public partial class OccultCrescentHelper
 
                     var textNode = new TextNode
                     {
-                        SeString      = new SeStringBuilder().AddUiGlow(32).Append($"{data.Name}").AddUiGlowOff().Build().Encode(),
+                        String        = new SeStringBuilder().AddUiGlow(32).Append($"{data.Name}").AddUiGlowOff().Build().Encode(),
                         FontSize      = 12,
                         IsVisible     = true,
                         Size          = new(53f, 24),
@@ -937,12 +937,12 @@ public partial class OccultCrescentHelper
                     var maxLevelText = presetJob.MaxLevel == 0 ? "∞" : $"{presetJob.MaxLevel}";
                     var currentLevelNode = new TextNode
                     {
-                        SeString = new SeStringBuilder()
-                                   .AddUiGlow(34)
-                                   .Append($"{presetJob.CurrentLevel} / {maxLevelText}")
-                                   .AddUiGlowOff()
-                                   .Build()
-                                   .Encode(),
+                        String = new SeStringBuilder()
+                                 .AddUiGlow(34)
+                                 .Append($"{presetJob.CurrentLevel} / {maxLevelText}")
+                                 .AddUiGlowOff()
+                                 .Build()
+                                 .Encode(),
                         FontSize      = 14,
                         IsVisible     = presetJob.CurrentLevel > 0 && presetJob.CurrentLevel != presetJob.MaxLevel,
                         Size          = new(53f, 24),
@@ -1065,7 +1065,7 @@ public partial class OccultCrescentHelper
                     Size             = new(86f, 31f),
                     Position         = new(12f, 7f),
                     IsVisible        = true,
-                    SeString         = Title
+                    String           = Title
                 };
                 anotherWindowTitleNode.AttachNode(this);
 
@@ -1228,7 +1228,7 @@ public partial class OccultCrescentHelper
 
                         var actionTextNode = new TextNode
                         {
-                            SeString         = $"\ue06a {jobLevel.ToSESmallCount()}: {action.Name.ToString()}",
+                            String           = $"\ue06a {jobLevel.ToSESmallCount()}: {action.Name.ToString()}",
                             FontSize         = 14,
                             IsVisible        = true,
                             Size             = new(Size.X - 20f, 40f),
@@ -1239,7 +1239,7 @@ public partial class OccultCrescentHelper
                         };
                         row.AddNode(actionTextNode);
 
-                        while (actionTextNode.FontSize > 1 && actionTextNode.GetTextDrawSize(actionTextNode.SeString).X > actionTextNode.Size.X)
+                        while (actionTextNode.FontSize > 1 && actionTextNode.GetTextDrawSize(actionTextNode.String).X > actionTextNode.Size.X)
                             actionTextNode.FontSize--;
 
                         ActionListNode.AddNode(row);
@@ -1279,7 +1279,7 @@ public partial class OccultCrescentHelper
 
                         var traitTextNode = new TextNode
                         {
-                            SeString         = $"\ue06a {jobLevel.ToSESmallCount()}: {traitRow.Name.ToString()}",
+                            String           = $"\ue06a {jobLevel.ToSESmallCount()}: {traitRow.Name.ToString()}",
                             FontSize         = 14,
                             IsVisible        = true,
                             Size             = new(Size.X - 20f, 44f),
@@ -1387,7 +1387,7 @@ public partial class OccultCrescentHelper
                         IsVisible = true,
                         Position  = new(10, 8),
                         Size      = new(Width, 28),
-                        SeString  = GetLoc("OccultCrescentHelper-OthersManager-DragRealActionIcon"),
+                        String    = GetLoc("OccultCrescentHelper-OthersManager-DragRealActionIcon"),
                         TextTooltip = new SeStringBuilder()
                                       .AddIcon(BitmapFontIcon.ExclamationRectangle)
                                       .AddText($" {GetLoc("OccultCrescentHelper-OthersManager-DragRealActionIcon-Help")}")

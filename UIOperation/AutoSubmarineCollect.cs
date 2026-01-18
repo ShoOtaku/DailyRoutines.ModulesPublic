@@ -545,7 +545,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                         IsVisible = true,
                         Position  = new(-10, 0),
                         Size      = new(width - 15, 30),
-                        SeString  = Info.Title,
+                        String    = Info.Title,
                         OnClick   = () =>
                         {
                             TaskHelper.Abort();
@@ -697,7 +697,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                 Position  = new(0, 6),
                 TextFlags = TextFlags.AutoAdjustNodeSize,
                 FontSize  = 14,
-                SeString  = LuminaWrapper.GetItemName(ItemID),
+                String    = LuminaWrapper.GetItemName(ItemID),
             };
             
             AddNode(NameNode);
@@ -719,7 +719,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                 TextColor        = ColorHelper.GetColor(50),
                 TextOutlineColor = ColorHelper.GetColor((uint)(itemCount > 20 ? 28 : 17)),
                 FontSize         = 16,
-                SeString         = textBuilder.Build().Encode()
+                String           = textBuilder.Build().Encode()
             };
             CountNode.AttachNode(this);
         }
@@ -733,7 +733,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
                            .AddText(" ");
             textBuilder.AddText($"{itemCount}");
             
-            CountNode.SeString         = textBuilder.Build().Encode();
+            CountNode.String           = textBuilder.Build().Encode();
             CountNode.TextOutlineColor = ColorHelper.GetColor((uint)(itemCount > 20 ? 28 : 17));
         }
 

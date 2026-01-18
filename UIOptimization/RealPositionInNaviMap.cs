@@ -92,7 +92,7 @@ public unsafe class RealPositionInNaviMap : DailyModuleBase
                         Position  = new(0),
                         Size      = new(130, 18),
                         IsVisible = true,
-                        SeString  = string.Empty,
+                        String    = string.Empty,
                         OnClick = () =>
                         {
                             if (DService.Instance().ObjectTable.LocalPlayer is not { } player) return;

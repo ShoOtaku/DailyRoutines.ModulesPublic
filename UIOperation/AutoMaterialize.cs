@@ -147,7 +147,7 @@ public unsafe class AutoMaterialize : DailyModuleBase
                         IsVisible     = true,
                         Position      = new(135, 8),
                         Size          = new(150, 28),
-                        SeString      = $"{Info.Title}",
+                        String        = $"{Info.Title}",
                         FontSize      = 14,
                         AlignmentType = AlignmentType.Right,
                         TextFlags     = TextFlags.AutoAdjustNodeSize | TextFlags.Edge
@@ -162,7 +162,7 @@ public unsafe class AutoMaterialize : DailyModuleBase
                         Position  = new(295, 10),
                         Size      = new(100, 28),
                         IsVisible = true,
-                        SeString  = GetLoc("Start"),
+                        String    = GetLoc("Start"),
                         OnClick   = StartARoundAll
                     };
                     StartButtonNode.AttachNode(Materialize->RootNode);
@@ -177,7 +177,7 @@ public unsafe class AutoMaterialize : DailyModuleBase
                         Position  = new(400, 10),
                         Size      = new(100, 28),
                         IsVisible = true,
-                        SeString  = GetLoc("Stop"),
+                        String    = GetLoc("Stop"),
                         OnClick   = () => TaskHelper.Abort()
                     };
                     StopButtonNode.AttachNode(Materialize->RootNode);

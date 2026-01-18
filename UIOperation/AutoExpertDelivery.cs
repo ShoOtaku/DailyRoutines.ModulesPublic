@@ -271,7 +271,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 IsVisible = true,
                 IsEnabled = true,
                 Size      = new(tabNode.Size.X - 10, 38),
-                SeString  = GetLoc("Start"),
+                String    = GetLoc("Start"),
                 OnClick = () =>
                 {
                     if (Instance.TaskHelper.IsBusy) return;
@@ -284,7 +284,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 IsVisible = true,
                 IsEnabled = true,
                 Size      = new(tabNode.Size.X - 10, 38),
-                SeString  = GetLoc("Stop"),
+                String    = GetLoc("Stop"),
                 OnClick = () =>
                 {
                     if (!Instance.TaskHelper.IsBusy) return;
@@ -297,7 +297,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 IsVisible = true,
                 IsEnabled = true,
                 Size      = new(tabNode.Size.X - 10, 38),
-                SeString  = LuminaWrapper.GetAddonText(3280),
+                String    = LuminaWrapper.GetAddonText(3280),
                 OnClick = () =>
                 {
                     if (Instance.TaskHelper.IsBusy) return;
@@ -310,7 +310,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 IsVisible = true,
                 IsEnabled = true,
                 Size      = new(tabNode.Size.X - 5, 38),
-                SeString  = $"{LuminaWrapper.GetAddonText(3280)} [{GetLoc("Exchange")}]",
+                String    = $"{LuminaWrapper.GetAddonText(3280)} [{GetLoc("Exchange")}]",
                 OnClick = () =>
                 {
                     if (Instance.TaskHelper.IsBusy) return;
@@ -334,7 +334,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 IsEnabled = true,
                 IsChecked = ModuleConfig.SkipWhenHQ,
                 Size      = new(100, 27),
-                SeString  = GetLoc("AutoExpertDelivery-SkipHQ"),
+                String    = GetLoc("AutoExpertDelivery-SkipHQ"),
                 OnClick = x =>
                 {
                     ModuleConfig.SkipWhenHQ = x;
@@ -343,9 +343,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
             };
             
             skipHQSettingNode.Label.Width = tabNode.Size.X - 20;
-            while (skipHQSettingNode.Label.FontSize                                      >= 1 && 
-                   skipHQSettingNode.Label.GetTextDrawSize(skipHQSettingNode.SeString).X > skipHQSettingNode.Label.Width)
-                skipHQSettingNode.Label.FontSize--;
+            skipHQSettingNode.Label.AutoAdjustTextSize();
             skipHQSettingNode.Height = skipHQSettingNode.Label.FontSize * 1.5f;
             
             SettingTabLayout.AddNode(skipHQSettingNode);
@@ -356,7 +354,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 IsEnabled = true,
                 IsChecked = ModuleConfig.SkipWhenMateria,
                 Size      = new(100, 27),
-                SeString  = GetLoc("AutoExpertDelivery-SkipMaterias"),
+                String    = GetLoc("AutoExpertDelivery-SkipMaterias"),
                 OnClick = x =>
                 {
                     ModuleConfig.SkipWhenMateria = x;
@@ -365,9 +363,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
             };
             
             skipMateriaSettingNode.Label.Width = tabNode.Size.X - 20;
-            while (skipMateriaSettingNode.Label.FontSize                                           >= 1 && 
-                   skipMateriaSettingNode.Label.GetTextDrawSize(skipMateriaSettingNode.SeString).X > skipMateriaSettingNode.Label.Width)
-                skipMateriaSettingNode.Label.FontSize--;
+            skipMateriaSettingNode.Label.AutoAdjustTextSize();
             skipMateriaSettingNode.Height = skipMateriaSettingNode.Label.FontSize * 1.5f;
             
             SettingTabLayout.AddNode(skipMateriaSettingNode);
@@ -378,12 +374,10 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 IsVisible = true,
                 Size      = new(tabNode.Size.X - 20, 27),
                 FontSize  = 16,
-                SeString  = GetLoc("AutoExpertDelivery-DefaultPage"),
+                String    = GetLoc("AutoExpertDelivery-DefaultPage"),
             };
-            
-            while (defaultPageTitleNode.FontSize                                         >= 1 && 
-                   defaultPageTitleNode.GetTextDrawSize(defaultPageTitleNode.SeString).X > defaultPageTitleNode.Width)
-                defaultPageTitleNode.FontSize--;
+
+            defaultPageTitleNode.AutoAdjustTextSize();
             defaultPageTitleNode.Height = defaultPageTitleNode.FontSize * 1.5f;
 
             SettingTabLayout.AddNode(defaultPageTitleNode);
@@ -399,7 +393,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                     IsEnabled = true,
                     IsChecked = ModuleConfig.DefaultPage == i,
                     Size      = new(100, 27),
-                    SeString  = LuminaWrapper.GetAddonText(4572 + i)
+                    String    = LuminaWrapper.GetAddonText(4572 + i)
                 };
                 
                 defaultPageNode.OnClick = x =>

@@ -656,7 +656,7 @@ public class FastWorldTravel : DailyModuleBase
                 {
                     var pluginHelpNode = new TextNode
                     {
-                        SeString         = message.Encode(),
+                        String           = message.Encode(),
                         FontSize         = 14,
                         IsVisible        = true,
                         Size             = new(150f, 25f),
@@ -819,7 +819,7 @@ public class FastWorldTravel : DailyModuleBase
 
             var header = new TextNode
             {
-                SeString      = dcName,
+                String        = dcName,
                 FontSize      = 20,
                 IsVisible     = true,
                 Size          = new(150f, 30f),
@@ -951,7 +951,7 @@ public class FastWorldTravel : DailyModuleBase
                 {
                     Size      = new(150f, 40f),
                     IsVisible = true,
-                    SeString  = worldNameBuilder.Build().Encode(),
+                    String    = worldNameBuilder.Build().Encode(),
                     OnClick = () =>
                     {
                         Addon.Close();

@@ -528,7 +528,7 @@ public unsafe class OptimizedTargetInfo : DailyModuleBase
                         IsVisible   = true,
                         Size        = new(32),
                         Position    = new(-13, 12),
-                        SeString    = "\ue04c",
+                        String      = "\ue04c",
                         TextTooltip = GetLoc("OptimizedTargetInfo-ClearFocusTarget"),
                         OnClick     = () => TargetSystem.Instance()->SetFocusTargetByObjectId(0xE0000000)
                     };
