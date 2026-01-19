@@ -95,11 +95,7 @@ public class DungeonLoggerUploader : DailyModuleBase
     {
         if (!IsLoggedIn) return;
 
-        var zoneID = GameState.TerritoryType;
-        if (zoneID == 0) return;
-        
-        var contentFinderCondition = GameState.TerritoryTypeData.ContentFinderCondition;
-        if (contentFinderCondition.RowId == 0) return;
+        if (GameState.TerritoryType == 0 || GameState.ContentFinderCondition == 0) return;
 
         unsafe
         {
@@ -114,7 +110,7 @@ public class DungeonLoggerUploader : DailyModuleBase
         }
         
         InDungeon   = true;
-        DungeonName = contentFinderCondition.Value.Name.ToString();
+        DungeonName = GameState.ContentFinderConditionData.Name.ToString();
         JobName     = LocalPlayerState.ClassJobData.Name.ToString();
 
         if (ModuleConfig.SendChat)
