@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DailyRoutines.Helpers;
+using DailyRoutines.Managers;
 using Dalamud.Game.Text;
 using Dalamud.Utility;
 using Newtonsoft.Json;
@@ -19,7 +20,7 @@ public partial class AutoReplyChatBot
     private static readonly Dictionary<APIProvider, IChatBackend> Backends = new()
     {
         [APIProvider.OpenAI] = new OpenAIBackend(),
-        [APIProvider.Ollama] = new OllamaBackend()
+        [APIProvider.Ollama] = new OllamaBackend(),
     };
 
     private static async Task GenerateAndReplyAsync(string name, string world, XivChatType originalType)
@@ -145,7 +146,6 @@ public partial class AutoReplyChatBot
         if (cfg.EnableFilter && !string.IsNullOrWhiteSpace(cfg.FilterModel))
         {
             var filteredMessage = await FilterMessageAsync(cfg, userMessage, ct);
-
             switch (filteredMessage)
             {
                 case null:
@@ -157,19 +157,23 @@ public partial class AutoReplyChatBot
                 if (ModuleConfig.Histories.TryGetValue(historyKey, out var originalList))
                 {
                     for (var i = originalList.Count - 1; i >= 0; i--)
+                    {
                         if (originalList[i].Role == "user")
                         {
                             originalList[i] = new ChatMessage(originalList[i].Role, filteredMessage, originalList[i].Timestamp, originalList[i].Name);
                             break;
                         }
+                    }
                 }
 
                 for (var i = hist.Count - 1; i >= 0; i--)
+                {
                     if (hist[i].Role == "user")
                     {
                         hist[i] = new ChatMessage(hist[i].Role, filteredMessage, hist[i].Timestamp, hist[i].Name);
                         break;
                     }
+                }
             }
         }
 
@@ -186,11 +190,9 @@ public partial class AutoReplyChatBot
                       : currentPrompt.Content;
 
         var worldBookContext = string.Empty;
-
         if (cfg is { EnableWorldBook: true, WorldBookEntry.Count: > 0 })
         {
             var lastUserMessage = hist.LastOrDefault(x => x.Role == "user").Text;
-
             if (!string.IsNullOrWhiteSpace(lastUserMessage))
             {
                 var relevantEntries = WorldBookManager.FindRelevantEntries(lastUserMessage, cfg.WorldBookEntry);
@@ -207,7 +209,6 @@ public partial class AutoReplyChatBot
             messages.Add(new { role = "system", content = worldBookContext });
 
         var messagesToSend = hist;
-
         if (cfg is { EnableContextLimit: true, MaxContextMessages: > 0 })
         {
             // 每轮对话包含用户和 AI 消息
@@ -228,7 +229,7 @@ public partial class AutoReplyChatBot
 
         var jsonResponse = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
-        var jObj = JObject.Parse(jsonResponse);
+        var jObj         = JObject.Parse(jsonResponse);
 
         var final = Backends[cfg.Provider].ParseContent(jObj);
 
@@ -263,7 +264,7 @@ public partial class AutoReplyChatBot
             resp.EnsureSuccessStatusCode();
 
             var jsonResponse = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            var jObj         = JObject.Parse(jsonResponse);
+            var jObj = JObject.Parse(jsonResponse);
 
             var content = Backends[cfg.Provider].ParseContent(jObj);
 
@@ -281,7 +282,7 @@ public partial class AutoReplyChatBot
         string BuildURL(string baseURL);
 
         /// <summary>
-        ///     组装完整的请求体，包括 messages / model 以及 provider 特定参数。
+        /// 组装完整的请求体，包括 messages / model 以及 provider 特定参数。
         /// </summary>
         /// <param name="messages">聊天消息数组</param>
         /// <param name="model">model name</param>
@@ -291,14 +292,14 @@ public partial class AutoReplyChatBot
         Dictionary<string, object> BuildRequestBody(List<object> messages, string model, int maxTokens, float temperature);
 
         /// <summary>
-        ///     从后端返回的 JSON 字符串中解析出最终的回复文本。
+        /// 从后端返回的 JSON 字符串中解析出最终的回复文本。
         /// </summary>
         /// <param name="jsonObject">
-        ///     已经解析好的 <see cref="JObject" />，对应完整的接口响应。
+        /// 已经解析好的 <see cref="JObject"/>，对应完整的接口响应。
         /// </param>
         /// <returns>
-        ///     - 如果成功，返回 <c>string</c> 类型的对话回复内容。<br />
-        ///     - 如果失败（没有 content 字段或结构不符），返回 <c>null</c>。
+        /// - 如果成功，返回 <c>string</c> 类型的对话回复内容。<br/>
+        /// - 如果失败（没有 content 字段或结构不符），返回 <c>null</c>。
         /// </returns>
         string? ParseContent(JObject jsonObject);
     }
@@ -311,9 +312,9 @@ public partial class AutoReplyChatBot
         {
             var body = new Dictionary<string, object>
             {
-                ["messages"]    = messages,
-                ["model"]       = model,
-                ["max_tokens"]  = maxTokens,
+                ["messages"] = messages,
+                ["model"]    = model,
+                ["max_tokens"] = maxTokens,
                 ["temperature"] = temperature
             };
             return body;
@@ -338,7 +339,7 @@ public partial class AutoReplyChatBot
                 ["model"]    = model,
                 ["stream"]   = false,
                 ["think"]    = false,
-                ["options"] = new Dictionary<string, object>
+                ["options"]  = new Dictionary<string, object>
                 {
                     ["num_predict"] = maxTokens,
                     ["temperature"] = temperature
