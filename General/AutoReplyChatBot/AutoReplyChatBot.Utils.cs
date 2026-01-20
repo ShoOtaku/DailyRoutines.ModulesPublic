@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using DailyRoutines.Managers;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
@@ -29,17 +28,14 @@ public partial class AutoReplyChatBot
 
         list.Add(new ChatMessage(role, text, displayName));
         // 不再删除历史记录，全部保留
-        ModuleConfig.Save(ModuleManager.GetModule<AutoReplyChatBot>());
+        RequestSaveConfig();
     }
 
-    private static bool IsCooldownReady()
-    {
-        var cd = TimeSpan.FromSeconds(Math.Max(5, ModuleConfig.CooldownSeconds));
-        return StandardTimeManager.Instance().UTCNow - LastTs >= cd;
-    }
+    private static bool IsCooldownReady(string key) =>
+        GetSession(key).IsCooldownReady(ModuleConfig.CooldownSeconds);
 
-    private static void SetCooldown() =>
-        LastTs = StandardTimeManager.Instance().UTCNow;
+    private static void SetCooldown(string key) =>
+        GetSession(key).SetCooldown();
 
     private static (string Name, ushort WorldID, string? WorldName) ExtractNameWorld(SeString sender)
     {

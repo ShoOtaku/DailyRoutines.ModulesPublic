@@ -1,6 +1,10 @@
 using System;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Security.Authentication;
 using DailyRoutines.Abstracts;
+using DailyRoutines.Helpers;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 
@@ -9,8 +13,6 @@ namespace DailyRoutines.ModulesPublic;
 public partial class AutoReplyChatBot : DailyModuleBase
 {
     private static Config ModuleConfig = null!;
-
-    private static DateTime LastTs = DateTime.MinValue;
 
     public override ModuleInfo Info { get; } = new()
     {
@@ -24,8 +26,6 @@ public partial class AutoReplyChatBot : DailyModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeoutMS = 30_000 };
-
         ModuleConfig = LoadConfig<Config>() ?? new();
 
         if (ModuleConfig.SystemPrompts is not { Count: > 0 })
@@ -43,10 +43,15 @@ public partial class AutoReplyChatBot : DailyModuleBase
         DService.Instance().Chat.ChatMessage += OnChat;
     }
 
-    protected override void Uninit() =>
+    protected override void Uninit()
+    {
         DService.Instance().Chat.ChatMessage -= OnChat;
+        FlushSaveConfig();
+        DisposeSaveConfigScheduler();
+        DisposeAllSessions();
+    }
 
-    private void OnChat(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
+    private static void OnChat(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
         if (!ModuleConfig.ValidChatTypes.Contains(type)) return;
 
@@ -58,11 +63,13 @@ public partial class AutoReplyChatBot : DailyModuleBase
         var userText = message.TextValue;
         if (string.IsNullOrWhiteSpace(userText)) return;
 
-        AppendHistory($"{playerName}@{worldName}", "user", userText);
+        var historyKey = $"{playerName}@{worldName}";
+        AppendHistory(historyKey, "user", userText);
 
-        TaskHelper.Abort();
-        TaskHelper.DelayNext(1000, "等待 1 秒收集更多消息");
-        TaskHelper.Enqueue(IsCooldownReady);
-        TaskHelper.EnqueueAsync(() => GenerateAndReplyAsync(playerName, worldName, type));
+        var helper = GetSession(historyKey).TaskHelper;
+        helper.Abort();
+        helper.DelayNext(1000, "等待 1 秒收集更多消息");
+        helper.Enqueue(() => IsCooldownReady(historyKey));
+        helper.EnqueueAsync(ct => GenerateAndReplyAsync(playerName, worldName, type, ct));
     }
 }
