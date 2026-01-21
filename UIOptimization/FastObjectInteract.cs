@@ -60,21 +60,17 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
     private static readonly List<InteractableObject> CurrentObjects = new(20);
     private static          bool                     ForceObjectUpdate;
 
-    private static FrozenDictionary<uint, string> LoadEnpcTitles()
-    {
-        return LuminaGetter.Get<ENpcResident>()
-                           .Where(x => x.Unknown1 && !string.IsNullOrWhiteSpace(x.Title.ToString()))
-                           .ToDictionary(x => x.RowId, x => x.Title.ToString())
-                           .ToFrozenDictionary();
-    }
+    private static FrozenDictionary<uint, string> LoadEnpcTitles() =>
+        LuminaGetter.Get<ENpcResident>()
+                    .Where(x => x.Unknown1 && !string.IsNullOrWhiteSpace(x.Title.ToString()))
+                    .ToDictionary(x => x.RowId, x => x.Title.ToString())
+                    .ToFrozenDictionary();
 
-    private static FrozenSet<uint> LoadImportantEnpcs()
-    {
-        return LuminaGetter.Get<ENpcResident>()
-                           .Where(x => x.Unknown1)
-                           .Select(x => x.RowId)
-                           .ToFrozenSet();
-    }
+    private static FrozenSet<uint> LoadImportantEnpcs() =>
+        LuminaGetter.Get<ENpcResident>()
+                    .Where(x => x.Unknown1)
+                    .Select(x => x.RowId)
+                    .ToFrozenSet();
 
     protected override void Init()
     {
@@ -90,11 +86,14 @@ public unsafe partial class FastObjectInteract : DailyModuleBase
 
         TaskHelper ??= new() { TimeoutMS = 5_000 };
 
-        Overlay = new Overlay(this, $"{GetLoc("FastObjectInteractTitle")}")
+        Overlay = new Overlay(this, $"##{nameof(FastObjectInteract)}")
         {
-            Flags = ImGuiWindowFlags.NoScrollbar      |
-                    ImGuiWindowFlags.AlwaysAutoResize |
-                    ImGuiWindowFlags.NoBringToFrontOnFocus
+            Flags = ImGuiWindowFlags.NoScrollbar           |
+                    ImGuiWindowFlags.AlwaysAutoResize      |
+                    ImGuiWindowFlags.NoBringToFrontOnFocus |
+                    ImGuiWindowFlags.NoDecoration          |
+                    ImGuiWindowFlags.NoFocusOnAppearing    |
+                    ImGuiWindowFlags.NoDocking
         };
 
         UpdateWindowFlags();
