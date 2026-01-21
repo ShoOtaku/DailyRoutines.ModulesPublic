@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using DailyRoutines.Abstracts;
@@ -441,7 +442,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
 
     private class Config : ModuleConfiguration
     {
-        public Dictionary<ulong, PlayerInfo> PlayerInfos = [];
+        public ConcurrentDictionary<ulong, PlayerInfo> PlayerInfos = [];
         
         public bool SearchName     = true;
         public bool SearchNickname = true;
@@ -581,7 +582,7 @@ public unsafe class OptimizedFriendList : DailyModuleBase
                 String    = GetLoc("Clear"),
                 OnClick = () =>
                 {
-                    ModuleConfig.PlayerInfos.Remove(ContentID);
+                    ModuleConfig.PlayerInfos.TryRemove(ContentID, out _);
                     ModuleConfig.Save(Instance);
                     
                     InfoProxyFriendList.Instance()->RequestData();
