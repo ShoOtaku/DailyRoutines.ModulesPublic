@@ -20,7 +20,7 @@ public unsafe class NameplateIconAdjustment : DailyModuleBase
 
     protected override void Init()
     {
-        ModuleConfig = new Config().Load(this);
+        ModuleConfig = LoadConfig<Config>() ?? new();
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "NamePlate", OnAddon);
     }

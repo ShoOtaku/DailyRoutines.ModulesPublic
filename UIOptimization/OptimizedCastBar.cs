@@ -260,9 +260,7 @@ public unsafe class OptimizedCastBar : DailyModuleBase
                 SlideMarkerLineNode?.Dispose();
                 SlideMarkerLineNode = null;
 
-                ModuleConfig = new();
                 UpdateOriginalAddonNodes();
-                ModuleConfig = ModuleConfig.Load(ModuleManager.GetModule<OptimizedCastBar>());
                 return;
             case AddonEvent.PostDraw:
                 if (CastBar == null) return;
@@ -343,7 +341,7 @@ public unsafe class OptimizedCastBar : DailyModuleBase
 
     private static void UpdateOriginalAddonNodes()
     {
-        if (CastBar == null) return;
+        if (CastBar == null || ModuleConfig == null) return;
         
         var interruptedTextNode = CastBar->GetTextNodeById(2);
         if (interruptedTextNode != null)

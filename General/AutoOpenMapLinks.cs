@@ -37,7 +37,7 @@ public partial class AutoOpenMapLinks : DailyModuleBase
 
     protected override void Init()
     {
-        ModuleConfig = new Config().Load(this);
+        ModuleConfig = LoadConfig<Config>() ?? new();
 
         DService.Instance().Chat.ChatMessage         += HandleChatMessage;
         DService.Instance().ContextMenu.OnMenuOpened += OnMenuOpen;
