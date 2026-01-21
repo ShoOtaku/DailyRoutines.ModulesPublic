@@ -25,7 +25,7 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
     
     protected override void Init()
     {
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw,     "LookingForGroupDetail", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "LookingForGroupDetail", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddon);
     }
     
@@ -39,7 +39,7 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
                 
                 break;
             
-            case AddonEvent.PreDraw:
+            case AddonEvent.PostDraw:
                 if (!LookingForGroupDetail->IsAddonAndNodesReady()) return;
 
                 var agent = AgentLookingForGroup.Instance();
@@ -56,8 +56,14 @@ public unsafe class SelectableRecruitmentText : DailyModuleBase
                     RecruitmentTextNode.Position = new Vector2(origButton->OwnerNode->X, origButton->OwnerNode->Y) - new Vector2(10, 8);
                     
                     var formatAddon = (AddonLookingForGroupDetail*)LookingForGroupDetail;
-                    if (formatAddon->PartyLeaderTextNode->NodeText.StringPtr.ExtractText() !=
-                        agent->LastViewedListing.LeaderString)
+
+                    var leaderNode = formatAddon->PartyLeaderTextNode;
+                    if (leaderNode == null) return;
+
+                    var leaderText = leaderNode->NodeText;
+                    if (leaderText.IsEmpty || !leaderText.StringPtr.HasValue) return;
+                    
+                    if (leaderText.StringPtr.ExtractText() != agent->LastViewedListing.LeaderString)
                         return;
                     
                     if (RecruitmentTextNode is { IsFocused: false, String.IsEmpty: true })
