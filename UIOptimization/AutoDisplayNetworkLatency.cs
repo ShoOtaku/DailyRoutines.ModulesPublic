@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers.Binary;
+using System.Globalization;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Numerics;
@@ -8,8 +9,10 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using DailyRoutines.Abstracts;
+using DailyRoutines.Helpers;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Text.SeStringHandling;
+using Newtonsoft.Json;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -37,6 +40,10 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
 
         Overlay       ??= new(this);
         Overlay.Flags &=  ~ImGuiWindowFlags.AlwaysAutoResize;
+        Overlay.SizeConstraints = new()
+        {
+            MinimumSize = ScaledVector2(300f, 200f)
+        };
 
         CancelSource  ??= new();
         Monitor       ??= new();
@@ -78,13 +85,20 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
     {
         if (Monitor == null) return;
 
-        float min        = 9999f, max = 0f, sum = 0f;
-        var   validCount = 0;
+        float min          = 9999f, max = 0f, sum = 0f;
+        var   validCount   = 0;
+        var   lossCount    = 0;
+        var   totalSamples = Monitor.FilledCount;
 
-        foreach (var val in Monitor.History)
+        for (var i = 0; i < totalSamples; i++)
         {
+            var val = Monitor.History[i];
+
             if (val <= 0.1f)
+            {
+                lossCount++;
                 continue;
+            }
 
             if (val < min) min = val;
             if (val > max) max = val;
@@ -92,18 +106,13 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
             validCount++;
         }
 
-        var avg = validCount > 0 ? sum / validCount : 0f;
+        var avg      = validCount   > 0 ? sum              / validCount : 0f;
+        var lossRate = totalSamples > 0 ? (float)lossCount / totalSamples : 0f;
         if (min == 9999f)
             min = 0f;
 
         var currentPing = Monitor.LastPing;
-        var color = currentPing switch
-        {
-            < 0   => KnownColor.Gray.ToVector4(),
-            < 100 => KnownColor.SpringGreen.ToVector4(),
-            < 200 => KnownColor.Orange.ToVector4(),
-            _     => KnownColor.Red.ToVector4()
-        };
+        var color       = GetPingColor(currentPing);
 
         ImGui.SetWindowFontScale(1.5f);
         ImGui.TextColored(color, $"{currentPing}");
@@ -119,6 +128,29 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
         if (availX > ipSize.X)
             ImGui.SetCursorPosX(ImGui.GetCursorPosX() + availX - ipSize.X);
         ImGui.TextDisabled(ipText);
+        var ipRectMax = ImGui.GetItemRectMax();
+
+        if (Monitor.AddressInfo is { } info)
+        {
+            using (FontManager.Instance().UIFont80.Push())
+            {
+                var locText = $"{info.CountryName} - {info.CityName}";
+
+                if (!string.IsNullOrWhiteSpace(locText))
+                {
+                    var locSize = ImGui.CalcTextSize(locText);
+
+                    var windowPos = ImGui.GetWindowPos();
+                    var scrollY   = ImGui.GetScrollY();
+                    ImGui.SetCursorPosY(ipRectMax.Y - windowPos.Y + scrollY);
+
+                    var locAvailX = ImGui.GetContentRegionAvail().X;
+                    if (locAvailX > locSize.X)
+                        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + locAvailX - locSize.X);
+                    ImGui.TextDisabled(locText);
+                }
+            }
+        }
 
         ImGui.Spacing();
 
@@ -126,13 +158,21 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
 
         ImGui.SameLine();
 
-        using (var table = ImRaii.Table("##StatsTable", 3, ImGuiTableFlags.SizingStretchProp))
+        using (var table = ImRaii.Table("##StatsTable", 4, ImGuiTableFlags.SizingStretchProp))
         {
             if (table)
             {
-                DrawStatColumn("AVG", $"{avg:F0}", KnownColor.White.ToVector4());
-                DrawStatColumn("MIN", $"{min:F0}", KnownColor.SpringGreen.ToVector4());
-                DrawStatColumn("MAX", $"{max:F0}", KnownColor.Orange.ToVector4());
+                DrawStatColumn("AVG", $"{avg:F0}", GetPingColor(avg));
+                DrawStatColumn("MIN", $"{min:F0}", GetPingColor(min));
+                DrawStatColumn("MAX", $"{max:F0}", GetPingColor(max));
+
+                var lossColor = lossRate switch
+                {
+                    0f      => KnownColor.SpringGreen.ToVector4(),
+                    < 0.05f => KnownColor.Orange.ToVector4(),
+                    _       => KnownColor.Red.ToVector4()
+                };
+                DrawStatColumn("LOSS", $"{lossRate:P0}", lossColor);
             }
         }
 
@@ -174,9 +214,19 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
 
         return;
 
+        static Vector4 GetPingColor(float ping) =>
+            ping switch
+            {
+                < 0   => KnownColor.Gray.ToVector4(),
+                < 100 => KnownColor.SpringGreen.ToVector4(),
+                < 200 => KnownColor.Orange.ToVector4(),
+                _     => KnownColor.Red.ToVector4()
+            };
+
         static void DrawStatColumn(string label, string value, Vector4 color)
         {
             ImGui.TableNextColumn();
+            ImGui.Spacing();
             ImGui.TextDisabled(label);
 
             ImGui.SameLine(0, 8f * GlobalFontScale);
@@ -212,11 +262,7 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
                     {
                         if (Entry == null || CancelSource.IsCancellationRequested) return;
 
-                        var isConnected = currentPing != -1;
-                        if (Entry.Shown != isConnected)
-                            Entry.Shown = isConnected;
-
-                        if (!isConnected) return;
+                        Entry.Shown = true;
 
                         if (lastPing != currentPing)
                         {
@@ -244,29 +290,47 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
         public string Format = GetLoc("AutoDisplayNetworkLatency-DefaultFormat");
     }
 
-    public partial class ServerPingMonitor : IDisposable
+    private partial class ServerPingMonitor : IDisposable
     {
-        private readonly Ping  pingSender = new();
-        private unsafe   byte* buffer;
-        private          int   bufferSize;
+        private readonly Ping pingSender = new();
 
-        public IPAddress ServerAddress { get; private set; } = IPAddress.Loopback;
-        public ushort    ServerPort    { get; private set; }
+        private unsafe byte* buffer;
+        private        int   bufferSize;
 
-        public long LastPing { get; private set; } = -1;
+        private bool needToRefreshAddress;
 
-        public float[] History = new float[100];
-        public int     HistoryIndex;
+        public IPAddress     ServerAddress { get; private set; } = IPAddress.Loopback;
+        public ushort        ServerPort    { get; private set; }
+        public IPLocationDTO AddressInfo   { get; private set; }
+        public long          LastPing      { get; private set; } = -1;
+        public float[]       History       { get; private set; } = new float[100];
+        public int           HistoryIndex  { get; private set; }
+        public int           FilledCount   { get; private set; }
+
+        private const string TARGET_IP_QUERY_API = "http://ip-api.com/json/{0}?lang={1}";
 
         private const int AF_INET                         = 2;
         private const int TCP_TABLE_OWNER_PID_CONNECTIONS = 4;
         private const int MIB_TCP_STATE_ESTABLISHED       = 5;
 
+        public ServerPingMonitor() =>
+            DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+
+        private void OnZoneChanged(ushort obj) =>
+            needToRefreshAddress = true;
+
         public async Task UpdateAsync()
         {
             try
             {
-                UpdateAddressInfo();
+                if (UpdateAddressInfo())
+                {
+                    if (HTTPClientHelper.Get() is var httpClient)
+                    {
+                        var response = await httpClient.GetStringAsync(string.Format(TARGET_IP_QUERY_API, ServerAddress, CultureInfo.CurrentUICulture));
+                        AddressInfo = JsonConvert.DeserializeObject<IPLocationDTO>(response);
+                    }
+                }
 
                 if (ServerAddress.Equals(IPAddress.Loopback))
                 {
@@ -280,17 +344,22 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
 
                 History[HistoryIndex] = LastPing == -1 ? 0 : (float)LastPing;
                 HistoryIndex          = (HistoryIndex + 1) % History.Length;
+                if (FilledCount < History.Length) FilledCount++;
             }
             catch
             {
                 LastPing              = -1;
                 History[HistoryIndex] = 0;
                 HistoryIndex          = (HistoryIndex + 1) % History.Length;
+                if (FilledCount < History.Length) FilledCount++;
             }
         }
 
-        private unsafe void UpdateAddressInfo()
+        private unsafe bool UpdateAddressInfo()
         {
+            if (!needToRefreshAddress && !ServerAddress.Equals(IPAddress.Loopback) && ServerPort != 0)
+                return false;
+
             var requiredSize = 0;
             GetExtendedTCPTable(nint.Zero, ref requiredSize, false, AF_INET, TCP_TABLE_OWNER_PID_CONNECTIONS);
 
@@ -306,7 +375,7 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
                 if (GetExtendedTCPTable((nint)buffer, ref requiredSize, false, AF_INET, TCP_TABLE_OWNER_PID_CONNECTIONS) != 0)
                 {
                     ResetAddress();
-                    return;
+                    return false;
                 }
 
                 var numEntries = Unsafe.Read<int>(buffer);
@@ -323,16 +392,14 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
                             continue;
 
                         var port = BinaryPrimitives.ReverseEndianness((ushort)row.RemotePort);
+                        if (!InXIVPortRange(port)) continue;
 
-                        if (InXIVPortRange(port))
-                        {
-                            var newAddress = new IPAddress(row.RemoteAddress);
-                            if (!newAddress.Equals(ServerAddress))
-                                ServerAddress = newAddress;
+                        var newAddress = new IPAddress(row.RemoteAddress);
+                        ServerAddress = newAddress;
+                        ServerPort    = port;
 
-                            ServerPort = port;
-                            return;
-                        }
+                        needToRefreshAddress = false;
+                        return true;
                     }
                 }
 
@@ -342,6 +409,8 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
             {
                 ResetAddress();
             }
+
+            return false;
         }
 
         private void ResetAddress()
@@ -381,6 +450,10 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
 
         public void Dispose()
         {
+            DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+
+            needToRefreshAddress = false;
+
             pingSender.Dispose();
 
             unsafe
@@ -397,5 +470,42 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
 
         ~ServerPingMonitor() =>
             Dispose();
+    }
+
+    private class IPLocationDTO
+    {
+        [JsonProperty("status")] public string? Status { get; set; }
+
+        [JsonProperty("country")] public string? CountryName { get; set; }
+
+        [JsonProperty("countryCode")] public string? CountryCode { get; set; }
+
+        [JsonProperty("region")] public string? RegionCode { get; set; }
+
+        [JsonProperty("regionName")] public string? RegionName { get; set; }
+
+        [JsonProperty("city")] public string? CityName { get; set; }
+
+        [JsonProperty("zip")] public string? ZipCode { get; set; }
+
+        [JsonProperty("lat")] public double? Latitude { get; set; }
+
+        [JsonProperty("lon")] public double? Longitude { get; set; }
+
+        [JsonProperty("timezone")] public string? TimeZone { get; set; }
+
+        [JsonProperty("isp")] public string? InternetServiceProvider { get; set; }
+
+        [JsonProperty("org")] public string? Organization { get; set; }
+
+        /// <summary>
+        ///     自治系统 (AS) 编号和名称
+        /// </summary>
+        [JsonProperty("as")] public string? AutonomousSystem { get; set; }
+
+        /// <summary>
+        ///     查询的源 IP 地址
+        /// </summary>
+        [JsonProperty("query")] public string? IPAddress { get; set; }
     }
 }
