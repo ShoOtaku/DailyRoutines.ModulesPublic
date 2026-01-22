@@ -94,6 +94,27 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
         FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 10 * 60 * 1_000);
         GameState.Instance().Login += OnLogin;
     }
+    
+    protected override void Uninit()
+    {
+        LogMessageManager.Instance().Unreg(OnPreSendLogMessage);
+        CommandManager.RemoveSubCommand(COMMAND);
+
+        DService.Instance().AddonLifecycle.UnregisterListener(OnExplorationResult);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectYesno);
+        
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectString);
+        OnAddonSelectString(AddonEvent.PreFinalize, null);
+
+        FrameworkManager.Instance().Unreg(OnUpdate);
+        GameState.Instance().Login -= OnLogin;
+
+        IsJustLogin = false;
+        
+        if (CollectSubmarinePayload != null)
+            LinkPayloadManager.Instance().Unreg(CollectSubmarinePayload.CommandId);
+        CollectSubmarinePayload = null;
+    }
 
     protected override void ConfigUI()
     {
@@ -305,15 +326,14 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     // 发包获取情报
     private static void SendRefreshSubmarineInfo()
     {
-        if (!GameState.IsLoggedIn                || 
-            OccupiedInEvent                      || 
+        if (!GameState.IsLoggedIn                ||
             GameState.ContentFinderCondition > 0 ||
-            GameState.HomeWorld != GameState.CurrentWorld) 
+            GameState.HomeWorld              != GameState.CurrentWorld)
             return;
 
         ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RefreshSubmarineInfo, 1);
     }
-    
+
     private static string SantisizeText(string text)
     {
         char[] charsToReplace = ['(', '.', ')', ']', ':', '/'];
@@ -639,28 +659,7 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     }
 
     #endregion
-
-    protected override void Uninit()
-    {
-        LogMessageManager.Instance().Unreg(OnPreSendLogMessage);
-        CommandManager.RemoveSubCommand(COMMAND);
-
-        DService.Instance().AddonLifecycle.UnregisterListener(OnExplorationResult);
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectYesno);
-        
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectString);
-        OnAddonSelectString(AddonEvent.PreFinalize, null);
-
-        FrameworkManager.Instance().Unreg(OnUpdate);
-        GameState.Instance().Login -= OnLogin;
-
-        IsJustLogin = false;
-        
-        if (CollectSubmarinePayload != null)
-            LinkPayloadManager.Instance().Unreg(CollectSubmarinePayload.CommandId);
-        CollectSubmarinePayload = null;
-    }
-
+    
     private class Config : ModuleConfiguration
     {
         public bool NotifyWhenLogin = true;

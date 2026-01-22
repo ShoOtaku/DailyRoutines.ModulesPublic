@@ -25,6 +25,12 @@ public unsafe class ThePraetoriumHelper : DailyModuleBase
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
+    
+    protected override void Uninit()
+    {
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
+    }
 
     private static void OnZoneChanged(ushort zoneID)
     {
@@ -55,7 +61,8 @@ public unsafe class ThePraetoriumHelper : DailyModuleBase
 
     private static IGameObject? GetMostCanTargetObjects()
     {
-        var allTargets = DService.Instance().ObjectTable.Where(o => o.IsTargetable && ActionManager.CanUseActionOnTarget(7, o.ToStruct())).ToList();
+        var allTargets = DService.Instance().ObjectTable.SearchObjects
+            (o => o.IsTargetable && ActionManager.CanUseActionOnTarget(7, o.ToStruct()), IObjectTable.CharactersRange).ToList();
         if (allTargets.Count <= 0) return null;
 
         IGameObject? preObjects = null;
@@ -74,21 +81,15 @@ public unsafe class ThePraetoriumHelper : DailyModuleBase
         
         return preObjects;
     }
-    private static int GetTargetAoECount(IGameObject target, IEnumerable<IGameObject> AllTarget)
+    private static int GetTargetAoECount(IGameObject target, IEnumerable<IGameObject> allTarget)
     {
         var count = 0;
-        foreach (var b in AllTarget)
+        foreach (var b in allTarget)
         {
             if (Vector3.DistanceSquared(target.Position, b.Position) - b.HitboxRadius <= 36)
                 count++;
         }
         
         return count;
-    }
-
-    protected override void Uninit()
-    {
-        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 }

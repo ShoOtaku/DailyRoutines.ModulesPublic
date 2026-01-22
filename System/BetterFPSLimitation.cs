@@ -67,6 +67,18 @@ public class BetterFPSLimitation : DailyModuleBase
 
         CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("BetterFPSLimitation-CommandHelp") }); 
     }
+    
+    protected override void Uninit()
+    {
+        CommandManager.RemoveSubCommand(COMMAND); 
+        
+        FrameworkManager.Instance().Unreg(OnUpdate);
+
+        HandleDtrEntry(false);
+        
+        Addon?.Dispose();
+        Addon = null;
+    }
 
     protected override void ConfigUI()
     {
@@ -157,18 +169,6 @@ public class BetterFPSLimitation : DailyModuleBase
                 Entry = null;
                 break;
         }
-    }
-
-    protected override void Uninit()
-    {
-        CommandManager.RemoveSubCommand(COMMAND); 
-        
-        FrameworkManager.Instance().Unreg(OnUpdate);
-
-        HandleDtrEntry(false);
-        
-        Addon?.Dispose();
-        Addon = null;
     }
 
     private class Config : ModuleConfiguration

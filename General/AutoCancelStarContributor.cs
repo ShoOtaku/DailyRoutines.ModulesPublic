@@ -16,7 +16,7 @@ public unsafe class AutoCancelStarContributor : DailyModuleBase
         Author      = ["Shiyuvi"]
     };
     
-    private const uint StarContributorBuffID = 4409;
+    private const uint STAR_CONTRIBUTOR_BUFF_ID = 4409;
 
     protected override void Init()
     {
@@ -57,8 +57,8 @@ public unsafe class AutoCancelStarContributor : DailyModuleBase
         if (BetweenAreas || DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
         
         var statusManager = localPlayer.ToStruct()->StatusManager;
-        if (!statusManager.HasStatus(StarContributorBuffID)) return;
+        if (!statusManager.HasStatus(STAR_CONTRIBUTOR_BUFF_ID)) return;
         
-        StatusManager.ExecuteStatusOff(StarContributorBuffID);
+        StatusManager.ExecuteStatusOff(STAR_CONTRIBUTOR_BUFF_ID);
     }
 }

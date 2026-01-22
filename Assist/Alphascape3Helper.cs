@@ -20,6 +20,12 @@ public class Alphascape3Helper : DailyModuleBase
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
+    
+    protected override void Uninit()
+    {
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
+    }
 
     private static void OnZoneChanged(ushort zoneID)
     {
@@ -43,11 +49,5 @@ public class Alphascape3Helper : DailyModuleBase
         if (obj is not { IsTargetable: true }) return;
 
         UseActionManager.Instance().UseAction(ActionType.Action, 12911, obj.EntityID);
-    }
-
-    protected override void Uninit()
-    {
-        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 }

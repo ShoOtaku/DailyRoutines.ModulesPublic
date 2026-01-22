@@ -90,7 +90,7 @@ public unsafe class AutoFaceCameraDirection : DailyModuleBase
         SetRotationHook.Enable();
         
         GamePacketManager.Instance().RegPreSendPacket(OnPreSendPacket);
-        FrameworkManager.Instance().Reg(OnUpdate, 10);
+        FrameworkManager.Instance().Reg(OnUpdate);
 
         UseActionManager.Instance().RegPostUseActionLocation(OnPostUseAction);
         

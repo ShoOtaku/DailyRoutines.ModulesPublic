@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using DailyRoutines.Abstracts;
@@ -20,21 +21,22 @@ public unsafe class AutoCancelCast : DailyModuleBase
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private static readonly HashSet<ObjectKind> ValidObjectKinds =
+    private static readonly FrozenSet<ObjectKind> ValidObjectKinds =
     [
         ObjectKind.Player,
         ObjectKind.BattleNpc
     ];
 
-    private static readonly HashSet<ConditionFlag> ValidConditions =
+    private static readonly FrozenSet<ConditionFlag> ValidConditions =
     [
         ConditionFlag.Casting
     ];
 
-    private static HashSet<uint> TargetAreaActions { get; } =
+    private static FrozenSet<uint> TargetAreaActions { get; } =
         LuminaGetter.Get<LuminaAction>()
                     .Where(x => x.TargetArea)
-                    .Select(x => x.RowId).ToHashSet();
+                    .Select(x => x.RowId)
+                    .ToFrozenSet();
 
     protected override void Init() =>
         DService.Instance().Condition.ConditionChange += OnConditionChanged;

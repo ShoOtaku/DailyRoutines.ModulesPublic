@@ -39,6 +39,12 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
         if (WeeklyPuzzle != null)
             OnWeeklyPuzzleEvent(AddonEvent.PostSetup, null);
     }
+    
+    protected override void Uninit()
+    {
+        DService.Instance().AddonLifecycle.UnregisterListener(OnWeeklyPuzzleEvent);
+        FrameworkManager.Instance().Unreg(OnUpdate);
+    }
 
     protected override void ConfigUI()
     {
@@ -65,12 +71,6 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
         ImGui.Separator();
 
         ConfigUI();
-    }
-
-    protected override void Uninit()
-    {
-        DService.Instance().AddonLifecycle.UnregisterListener(OnWeeklyPuzzleEvent);
-        FrameworkManager.Instance().Unreg(OnUpdate);
     }
 
     private void OnWeeklyPuzzleEvent(AddonEvent type, AddonArgs? args)

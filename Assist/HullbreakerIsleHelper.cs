@@ -34,6 +34,7 @@ public class HullbreakerIsleHelper : DailyModuleBase
 
         WindowManager.Draw -= OnDraw;
         FrameworkManager.Instance().Unreg(OnUpdate);
+        
         TrapPositions.Clear();
         FakeTreasurePositions.Clear();
     }

@@ -30,6 +30,12 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
         if (LotteryDaily != null)
             OnAddon(AddonEvent.PostSetup, null);
     }
+    
+    protected override void Uninit()
+    {
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
+        FrameworkManager.Instance().Unreg(OnUpdate);
+    }
 
     private void OnAddon(AddonEvent type, AddonArgs args)
     {
@@ -52,8 +58,8 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
         var agent = AgentLotteryDaily.Instance();
         if (addon == null || agent == null) return;
 
-        Span<byte> state = stackalloc byte[MiniCactpotSolver.TotalNumbers];
-        for (var i = 0; i < MiniCactpotSolver.TotalNumbers; i++) 
+        Span<byte> state = stackalloc byte[MiniCactpotSolver.TOTAL_NUMBERS];
+        for (var i = 0; i < MiniCactpotSolver.TOTAL_NUMBERS; i++) 
             state[i] = agent->Numbers[i];
 
         switch (agent->Status)
@@ -62,7 +68,7 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
             case 1:
             {
                 var solution = Solver.Solve(state);
-                for (var i = 0; i < MiniCactpotSolver.TotalNumbers; i++)
+                for (var i = 0; i < MiniCactpotSolver.TOTAL_NUMBERS; i++)
                 {
                     if (solution[i])
                     {
@@ -78,7 +84,7 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
             {
                 var solution = Solver.Solve(state);
                 ReadOnlySpan<int> map = [6, 3, 4, 5, 7, 0, 1, 2];
-                for (var i = 0; i < MiniCactpotSolver.TotalLanes; i++)
+                for (var i = 0; i < MiniCactpotSolver.TOTAL_LANES; i++)
                 {
                     if (solution[map[i]])
                     {
@@ -119,17 +125,11 @@ public unsafe class AutoMiniCactpot : DailyModuleBase
 
         addon->AtkUnitBase.Callback(2, unkNumber3D4);
     }
-    
-    protected override void Uninit()
-    {
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
-        FrameworkManager.Instance().Unreg(OnUpdate);
-    }
 
     internal sealed class MiniCactpotSolver
     {
-        public const int TotalNumbers = 9;
-        public const int TotalLanes   = 8;
+        public const int TOTAL_NUMBERS = 9;
+        public const int TOTAL_LANES   = 8;
 
         private static readonly ushort[] Payouts =
         [

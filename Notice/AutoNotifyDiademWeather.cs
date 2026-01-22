@@ -31,6 +31,14 @@ public class AutoNotifyDiademWeather : DailyModuleBase
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
+    
+    protected override void Uninit()
+    {
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+        FrameworkManager.Instance().Unreg(OnUpdate);
+
+        LastWeather = 0;
+    }
 
     protected override void ConfigUI()
     {
@@ -88,14 +96,6 @@ public class AutoNotifyDiademWeather : DailyModuleBase
         var message = GetLoc("AutoNotifyDiademWeather-Notification", weather.Name.ToString());
         Chat(message);
         NotificationInfo(message);
-    }
-
-    protected override void Uninit()
-    {
-        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-        FrameworkManager.Instance().Unreg(OnUpdate);
-
-        LastWeather = 0;
     }
 
     private class Config : ModuleConfiguration

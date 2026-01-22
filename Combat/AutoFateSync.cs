@@ -47,6 +47,20 @@ public class AutoFateSync : DailyModuleBase
 
         GameState.Instance().EnterFate += OnEnterFate;
     }
+    
+    protected override void Uninit()
+    {
+        GameState.Instance().EnterFate -= OnEnterFate;
+        FrameworkManager.Instance().Unreg(OnFlying);
+
+        if (CancelSource != null)
+        {
+            if (!CancelSource.IsCancellationRequested)
+                CancelSource.Cancel();
+            CancelSource.Dispose();
+            CancelSource = null;
+        }
+    }
 
     protected override void ConfigUI()
     {
@@ -139,15 +153,6 @@ public class AutoFateSync : DailyModuleBase
                 return true;
             });
         }
-    }
-
-    protected override void Uninit()
-    {
-        GameState.Instance().EnterFate -= OnEnterFate;
-        
-        CancelSource?.Cancel();
-        CancelSource?.Dispose();
-        CancelSource = null;
     }
 
     private class Config : ModuleConfiguration

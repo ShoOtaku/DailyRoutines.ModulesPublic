@@ -3,7 +3,7 @@ using DailyRoutines.Abstracts;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 
-namespace DailyRoutines.Modules;
+namespace DailyRoutines.ModulesPublic;
 
 public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
 {
@@ -24,8 +24,11 @@ public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
     protected override void Init()
     {
         ModuleConfig = LoadConfig<Config>() ?? new();
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 60_000);
+        FrameworkManager.Instance().Reg(OnUpdate, 60_000);
     }
+
+    protected override void Uninit() =>
+        FrameworkManager.Instance().Unreg(OnUpdate);
 
     protected override void ConfigUI()
     {
@@ -53,7 +56,7 @@ public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
 
     private static void OnUpdate(IFramework _)
     {
-        if (!DService.Instance().ClientState.IsLoggedIn || DService.Instance().ObjectTable.LocalPlayer == null)
+        if (!GameState.IsLoggedIn)
             return;
 
         var nowUTC         = StandardTimeManager.Instance().UTCNow;
@@ -83,14 +86,13 @@ public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
 
     private static DateTime MathFinishTime(int num, DateTime nowUTC)
     {
-        if (num >= 100) return nowUTC;
+        if (num >= 100) 
+            return nowUTC;
+        
         var requiredPeriods      = (100 - num + 2) / 3;
         var lastIncrementTimeUTC = new DateTime(nowUTC.Year, nowUTC.Month, nowUTC.Day, nowUTC.Hour >= 12 ? 12 : 0, 0, 0, DateTimeKind.Utc);
         return lastIncrementTimeUTC.AddHours(12 * requiredPeriods);
     }
-
-    protected override void Uninit() =>
-        FrameworkManager.Instance().Unreg(OnUpdate);
 
     private class Config : ModuleConfiguration
     {

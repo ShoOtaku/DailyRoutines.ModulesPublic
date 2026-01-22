@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
@@ -19,16 +18,16 @@ public unsafe class ScrollableTabs : DailyModuleBase
         Title       = GetLoc("ScrollableTabsTitle"),
         Description = GetLoc("ScrollableTabsDescription"),
         Category    = ModuleCategories.UIOptimization,
-        Author      = ["Cyf5119"],
+        Author      = ["Cyf5119"]
     };
-    
-    private const int NumArmouryBoardTabs           = 12;
-    private const int NumInventoryTabs              = 5;
-    private const int NumInventoryLargeTabs         = 4;
-    private const int NumInventoryExpansionTabs     = 2;
-    private const int NumInventoryRetainerTabs      = 6;
-    private const int NumInventoryRetainerLargeTabs = 3;
-    private const int NumBuddyTabs                  = 3;
+
+    private const int NUM_ARMOURY_BOARD_TABS            = 12;
+    private const int NUM_INVENTORY_TABS                = 5;
+    private const int NUM_INVENTORY_LARGE_TABS          = 4;
+    private const int NUM_INVENTORY_EXPANSION_TABS      = 2;
+    private const int NUM_INVENTORY_RETAINER_TABS       = 6;
+    private const int NUM_INVENTORY_RETAINER_LARGE_TABS = 3;
+    private const int NUM_BUDDY_TABS                    = 3;
 
     private static Config ModuleConfig = null!;
     private static int    WheelState;
@@ -42,14 +41,17 @@ public unsafe class ScrollableTabs : DailyModuleBase
     private static bool IsPrev =>
         WheelState == (!ModuleConfig.Invert ? -1 : 1);
 
-    private delegate        void                                   AddonUpdateHandler(AtkUnitBase* unitBase);
-    private static readonly Dictionary<string, AddonUpdateHandler> UIHandlerMapping = new();
-    private static readonly Dictionary<string, string>             UINameMapping    = new();
+    private delegate void AddonUpdateHandler(AtkUnitBase* unitBase);
+
+    private static readonly Dictionary<string, AddonUpdateHandler> UIHandlerMapping = [];
+    private static readonly Dictionary<string, string>             UINameMapping    = [];
 
     static ScrollableTabs()
     {
         InitUINameMapping();
         InitUIHandlerMapping();
+
+        return;
 
         static void InitUINameMapping()
         {
@@ -167,7 +169,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
             SaveConfig(ModuleConfig);
     }
 
-    protected override void Uninit() => 
+    protected override void Uninit() =>
         FrameworkManager.Instance().Unreg(OnUpdate);
 
     private static void OnUpdate(IFramework _)
@@ -183,6 +185,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
             WheelState *= -1;
 
         var hoveredUnitBase = RaptureAtkModule.Instance()->AtkCollisionManager.IntersectingAddon;
+
         if (hoveredUnitBase == null)
         {
             WheelState = 0;
@@ -190,6 +193,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
         }
 
         var originalName = hoveredUnitBase->NameString;
+
         if (string.IsNullOrEmpty(originalName))
         {
             WheelState = 0;
@@ -203,8 +207,8 @@ public unsafe class ScrollableTabs : DailyModuleBase
         }
 
         // InventoryCrystalGrid
-        if (originalName == "InventoryCrystalGrid" && 
-            DService.Instance().GameConfig.UiConfig.TryGet("ItemInventryWindowSizeType", out uint itemInventryWindowSizeType) && 
+        if (originalName == "InventoryCrystalGrid"                                                                            &&
+            DService.Instance().GameConfig.UiConfig.TryGet("ItemInventryWindowSizeType", out uint itemInventryWindowSizeType) &&
             itemInventryWindowSizeType == 2)
             mappedName = "InventoryExpansion";
 
@@ -222,10 +226,11 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
     private static void HandleCharacterUI(AtkUnitBase* unitBase)
     {
-        var name = unitBase->NameString;
+        var name           = unitBase->NameString;
         var addonCharacter = name == "Character" ? (AddonCharacter*)unitBase : GetAddonByName<AddonCharacter>("Character");
 
-        if (addonCharacter == null || !addonCharacter->AddonControl.IsChildSetupComplete ||
+        if (addonCharacter == null                             ||
+            !addonCharacter->AddonControl.IsChildSetupComplete ||
             IntersectingCollisionNode == addonCharacter->PreviewController.CollisionNode)
         {
             WheelState = 0;
@@ -250,7 +255,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
     private static void UpdateArmouryBoard(AddonArmouryBoard* addon)
     {
-        var tabIndex = GetTabIndex(addon->TabIndex, NumArmouryBoardTabs);
+        var tabIndex = GetTabIndex(addon->TabIndex, NUM_ARMOURY_BOARD_TABS);
 
         if (addon->TabIndex < tabIndex)
             addon->NextTab(0);
@@ -260,7 +265,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
     private static void UpdateInventory(AddonInventory* addon)
     {
-        if (addon->TabIndex == NumInventoryTabs - 1 && WheelState > 0)
+        if (addon->TabIndex == NUM_INVENTORY_TABS - 1 && WheelState > 0)
         {
             var values = stackalloc AtkValue[3];
 
@@ -280,7 +285,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
         }
         else
         {
-            var tabIndex = GetTabIndex(addon->TabIndex, NumInventoryTabs);
+            var tabIndex = GetTabIndex(addon->TabIndex, NUM_INVENTORY_TABS);
 
             if (addon->TabIndex == tabIndex)
                 return;
@@ -313,6 +318,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
         else
         {
             var numEnabledButtons = 0;
+
             foreach (ref var button in addon->Buttons)
             {
                 if ((button.Value->AtkComponentButton.Flags & 0x40000) != 0)
@@ -330,7 +336,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
     private static void UpdateInventoryLarge(AddonInventoryLarge* addon)
     {
-        var tabIndex = GetTabIndex(addon->TabIndex, NumInventoryLargeTabs);
+        var tabIndex = GetTabIndex(addon->TabIndex, NUM_INVENTORY_LARGE_TABS);
 
         if (addon->TabIndex == tabIndex)
             return;
@@ -340,7 +346,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
     private static void UpdateInventoryExpansion(AddonInventoryExpansion* addon)
     {
-        var tabIndex = GetTabIndex(addon->TabIndex, NumInventoryExpansionTabs);
+        var tabIndex = GetTabIndex(addon->TabIndex, NUM_INVENTORY_EXPANSION_TABS);
 
         if (addon->TabIndex == tabIndex)
             return;
@@ -350,7 +356,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
     private static void UpdateInventoryRetainer(AddonInventoryRetainer* addon)
     {
-        var tabIndex = GetTabIndex(addon->TabIndex, NumInventoryRetainerTabs);
+        var tabIndex = GetTabIndex(addon->TabIndex, NUM_INVENTORY_RETAINER_TABS);
 
         if (addon->TabIndex == tabIndex)
             return;
@@ -360,7 +366,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
     private static void UpdateInventoryRetainerLarge(AddonInventoryRetainerLarge* addon)
     {
-        var tabIndex = GetTabIndex(addon->TabIndex, NumInventoryRetainerLargeTabs);
+        var tabIndex = GetTabIndex(addon->TabIndex, NUM_INVENTORY_RETAINER_LARGE_TABS);
 
         if (addon->TabIndex == tabIndex)
             return;
@@ -396,7 +402,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
         addon->SetTab(tabIndex);
 
-        for (var i = 0; i < addon->Tabs.Length; i++) 
+        for (var i = 0; i < addon->Tabs.Length; i++)
             addon->Tabs[i].Value->IsSelected = i == tabIndex;
     }
 
@@ -416,7 +422,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
             return;
 
         var atkEvent   = new AtkEvent();
-        var eventParam = Math.Clamp((addon->CurrentNoteIndex % 10) + WheelState, -1, addon->MaxNoteIndex - 1);
+        var eventParam = Math.Clamp(addon->CurrentNoteIndex % 10 + WheelState, -1, addon->MaxNoteIndex - 1);
 
         if (eventParam == -1)
         {
@@ -506,59 +512,55 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
     private static void UpdateCurrency(AddonCurrency* addon)
     {
-        var atkStage = AtkStage.Instance();
+        var atkStage    = AtkStage.Instance();
         var numberArray = atkStage->GetNumberArrayData(NumberArrayType.Currency);
-        var currentTab = numberArray->IntArray[0];
-        var newTab = currentTab;
-    
+        var currentTab  = numberArray->IntArray[0];
+        var newTab      = currentTab;
+
         var enableStates = new bool[addon->Tabs.Length];
         for (var i = 0; i < addon->Tabs.Length; i++)
             enableStates[i] = addon->Tabs[i].Value != null && addon->Tabs[i].Value->IsEnabled;
-        
-    
+
+
         if (WheelState > 0 && currentTab < enableStates.Length)
         {
             for (var i = currentTab + 1; i < enableStates.Length; i++)
-            {
                 if (enableStates[i])
                 {
                     newTab = i;
                     break;
                 }
-            }
         }
         else if (currentTab > 0)
         {
             for (var i = currentTab - 1; i >= 0; i--)
-            {
                 if (enableStates[i])
                 {
                     newTab = i;
                     break;
                 }
-            }
         }
-    
+
         if (currentTab == newTab)
             return;
-    
+
         numberArray->SetValue(0, newTab);
         addon->AtkUnitBase.OnRequestedUpdate(atkStage->GetNumberArrayData(), atkStage->GetStringArrayData());
     }
 
     private static void UpdateBuddy(AddonBuddy* addon)
     {
-        var tabIndex = GetTabIndex(addon->TabIndex, NumBuddyTabs);
+        var tabIndex = GetTabIndex(addon->TabIndex, NUM_BUDDY_TABS);
 
         if (addon->TabIndex == tabIndex)
             return;
 
         addon->SetTab(tabIndex);
 
-        for (var i = 0; i < NumBuddyTabs; i++)
+        for (var i = 0; i < NUM_BUDDY_TABS; i++)
         {
             var button = addon->RadioButtons.GetPointer(i);
-            if (button->Value != null) 
+            if (button->Value != null)
                 button->Value->IsSelected = i == addon->TabIndex;
         }
     }
@@ -580,10 +582,10 @@ public unsafe class ScrollableTabs : DailyModuleBase
         var prevButton = !ModuleConfig.Invert ? addon->PrevButton : addon->NextButton;
         var nextButton = !ModuleConfig.Invert ? addon->NextButton : addon->PrevButton;
 
-        if (prevButton == null || (IsPrev && !prevButton->IsEnabled))
+        if (prevButton == null || IsPrev && !prevButton->IsEnabled)
             return;
 
-        if (nextButton == null || (IsNext && !nextButton->IsEnabled))
+        if (nextButton == null || IsNext && !nextButton->IsEnabled)
             return;
 
         // if (IsAddonOpen("MiragePrismPrismBoxFilter"))
@@ -609,7 +611,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
         for (var i = 0; i < addon->TabCount; i++)
         {
             var button = addon->Tabs.GetPointer(i);
-            if (button->Value != null) 
+            if (button->Value != null)
                 button->Value->IsSelected = i == addon->TabIndex;
         }
     }
@@ -650,7 +652,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
         data.ListItemData.SelectedIndex = tabIndex; // technically the index of an id array, but it's literally the same value
         addon->AtkUnitBase.ReceiveEvent((AtkEventType)37, 0, &atkEvent, &data);
     }
-    
+
     private class Config : ModuleConfiguration
     {
         public bool Invert = true;
