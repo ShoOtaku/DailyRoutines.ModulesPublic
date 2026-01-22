@@ -79,7 +79,7 @@ public unsafe class AutoCountPlayers : DailyModuleBase
         PlayersManager.ReceivePlayersAround      += OnReceivePlayers;
         PlayersManager.ReceivePlayersTargetingMe += OnPlayersTargetingMeUpdate;
 
-        var instance = (InfoProxy24*)InfoModule.Instance();
+        var instance = (InfoProxy24*)InfoModule.Instance()->GetInfoProxyById((InfoProxyId)24);
         InfoProxy24EndRequestHook ??= instance->VirtualTable->HookVFuncFromName
         (
             "EndRequest",
