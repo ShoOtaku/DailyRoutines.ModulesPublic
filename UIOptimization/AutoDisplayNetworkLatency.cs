@@ -400,9 +400,8 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
 
                 ResetAddress();
 
-                var currentPid = (uint)Environment.ProcessId;
-
-                if (!TryFindBestEndpointForPID(currentPid, out var observed))
+                var currentPID = (uint)Environment.ProcessId;
+                if (!TryFindBestEndpointForPID(currentPID, out var observed))
                 {
                     ResetAddress();
                     return false;
@@ -449,6 +448,9 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
                 or >= 55006 and <= 55007
                 or >= 55021 and <= 55040
                 or >= 55296 and <= 55551;
+
+        private static bool IsFilteredPort(ushort port) =>
+            port is 80 or 443;
 
         private bool TryFindBestEndpointForPID(uint pid, out ConnectionEndpoint endpoint)
         {
@@ -505,6 +507,8 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
                             continue;
 
                         var port = BinaryPrimitives.ReverseEndianness((ushort)row.RemotePort);
+                        if (IsFilteredPort(port))
+                            continue;
                         if (onlyXivPorts && !InXIVPortRange(port))
                             continue;
 
@@ -538,6 +542,8 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
                             continue;
 
                         var port = BinaryPrimitives.ReverseEndianness((ushort)row.RemotePort);
+                        if (IsFilteredPort(port))
+                            continue;
                         if (onlyXivPorts && !InXIVPortRange(port))
                             continue;
 
