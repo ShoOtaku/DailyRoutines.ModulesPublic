@@ -289,34 +289,31 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
 
         var maxCount      = packet->GetAvailableCount();
         var finishedCount = packet->GetFinishCount();
-        if (DService.Instance().ClientState.IsClientIdle())
+        if ((ModuleConfig.NotifyWhenLogin && IsJustLogin) ||
+            (ModuleConfig.NotifyCount > 0 && finishedCount >= Math.Min(maxCount, ModuleConfig.NotifyCount)))
         {
-            if ((ModuleConfig.NotifyWhenLogin && IsJustLogin) ||
-                (ModuleConfig.NotifyCount > 0 && finishedCount >= Math.Min(maxCount, ModuleConfig.NotifyCount)))
-            {
-                IsJustLogin = false;
+            IsJustLogin = false;
 
-                var messageBuilder = new SeStringBuilder();
-                messageBuilder.AddText(GetLoc("AutoSubmarineCollect-Notification-SubmarineInfo", maxCount - finishedCount, finishedCount));
+            var messageBuilder = new SeStringBuilder();
+            messageBuilder.AddText(GetLoc("AutoSubmarineCollect-Notification-SubmarineInfo", maxCount - finishedCount, finishedCount));
 
+            messageBuilder.Add(NewLinePayload.Payload)
+                          .AddText($"{GetLoc("AutoSubmarineCollect-Notification-LatestReturnTime")}: {packet->GetLatestReturnTime()}");
+            if (finishedCount == maxCount)
+                messageBuilder.AddText($" ({packet->GetLatestReturnTime().TimeAgo()})");
+
+            if (finishedCount > 0)
                 messageBuilder.Add(NewLinePayload.Payload)
-                              .AddText($"{GetLoc("AutoSubmarineCollect-Notification-LatestReturnTime")}: {packet->GetLatestReturnTime()}");
-                if (finishedCount == maxCount)
-                    messageBuilder.AddText($" ({packet->GetLatestReturnTime().TimeAgo()})");
+                              .Add(RawPayload.LinkTerminator)
+                              .Add(CollectSubmarinePayload)
+                              .AddText("[")
+                              .AddUiForeground(35)
+                              .AddText($"{GetLoc("AutoSubmarineCollect-Payload-TeleportAndCollect")}")
+                              .AddUiForegroundOff()
+                              .AddText("]")
+                              .Add(RawPayload.LinkTerminator);
 
-                if (finishedCount > 0)
-                    messageBuilder.Add(NewLinePayload.Payload)
-                                  .Add(RawPayload.LinkTerminator)
-                                  .Add(CollectSubmarinePayload)
-                                  .AddText("[")
-                                  .AddUiForeground(35)
-                                  .AddText($"{GetLoc("AutoSubmarineCollect-Payload-TeleportAndCollect")}")
-                                  .AddUiForegroundOff()
-                                  .AddText("]")
-                                  .Add(RawPayload.LinkTerminator);
-
-                Chat(messageBuilder.Build());
-            }
+            Chat(messageBuilder.Build());
         }
 
         if (ModuleConfig.AutoCollectCount > 0 && finishedCount >= Math.Min(maxCount, ModuleConfig.AutoCollectCount))
@@ -324,15 +321,8 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     }
 
     // 发包获取情报
-    private static void SendRefreshSubmarineInfo()
-    {
-        if (!GameState.IsLoggedIn                ||
-            GameState.ContentFinderCondition > 0 ||
-            GameState.HomeWorld              != GameState.CurrentWorld)
-            return;
-
+    private static void SendRefreshSubmarineInfo() =>
         ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RefreshSubmarineInfo, 1);
-    }
 
     private static string SantisizeText(string text)
     {
