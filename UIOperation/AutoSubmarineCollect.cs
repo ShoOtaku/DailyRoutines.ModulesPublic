@@ -321,8 +321,11 @@ public unsafe class AutoSubmarineCollect : DailyModuleBase
     }
 
     // 发包获取情报
-    private static void SendRefreshSubmarineInfo() =>
+    private static void SendRefreshSubmarineInfo()
+    {
+        if (!GameState.IsLoggedIn) return;
         ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RefreshSubmarineInfo, 1);
+    }
 
     private static string SantisizeText(string text)
     {
