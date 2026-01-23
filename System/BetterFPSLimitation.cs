@@ -132,11 +132,14 @@ public class BetterFPSLimitation : DailyModuleBase
         
         if (Entry == null) return;
 
-        var text       = LuminaGetter.GetRow<Addon>(4002).GetValueOrDefault().Text.ToDalamudString();
-        text.Payloads[0] = new TextPayload($"{Framework.Instance()->FrameRate:F0}");
+        var text = DService.Instance().SeStringEvaluator.EvaluateFromAddon(4002, [(int)Framework.Instance()->FrameRate]).ToDalamudString();
 
         if (ModuleConfig.IsEnabled)
-            text = new SeStringBuilder().AddUiGlow(37).Append(text).AddUiGlowOff().Build();
+            text = new SeStringBuilder()
+                   .AddUiGlow(37)
+                   .Append(text)
+                   .AddUiGlowOff()
+                   .Build();
         
         Entry.Text = text;
     }
