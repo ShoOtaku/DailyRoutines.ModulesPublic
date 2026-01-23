@@ -34,8 +34,8 @@ public class OptimizedLetter : DailyModuleBase
 
     private static AddonDROptimizedLetter? Addon;
     
-    private static TextInputNode?          TextInputButton;
-    private static DropDownListButtonNode? ListNode;
+    private static TextInputNode?      TextInputButton;
+    private static TextButtonListNode? ListNode;
     
     protected override void Init()
     {
