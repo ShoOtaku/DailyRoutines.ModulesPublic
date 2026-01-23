@@ -78,7 +78,7 @@ public unsafe class AutoReadOutTalk : DailyModuleBase
         var speaker = name.HasValue ? name.ExtractText() : string.Empty;
         var line    = text.HasValue ? text.ExtractText() : string.Empty;
 
-        if (string.IsNullOrEmpty(line)) return;
+        if (string.IsNullOrEmpty(line) || string.IsNullOrEmpty(speaker) || duration < 3) return;
 
         CancelBefore();
         Speak(string.Format(ModuleConfig.Format, speaker, line));
@@ -103,7 +103,7 @@ public unsafe class AutoReadOutTalk : DailyModuleBase
         var speaker = name.HasValue ? name.ExtractText() : string.Empty;
         var line    = text.HasValue ? text.ExtractText() : string.Empty;
 
-        if (string.IsNullOrEmpty(line)) return;
+        if (string.IsNullOrEmpty(line) || string.IsNullOrEmpty(speaker) || duration < 3) return;
         
         CancelBefore();
         Speak(string.Format(ModuleConfig.Format, speaker, line));
