@@ -341,15 +341,20 @@ public class CrossDCPartyFinder : DailyModuleBase
                     ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{listing.Duty}");
                 }
 
+                ImGui.SameLine(0, 8f * GlobalFontScale);
+                var startCursorPos = ImGui.GetCursorPos();
                 using (ImRaii.PushColor(ImGuiCol.Text, KnownColor.DarkGray.ToVector4()))
                 using (FontManager.Instance().UIFont90.Push())
                 using (ImRaii.Group())
                 {
-                    ImGui.SameLine(0, 8f * GlobalFontScale);
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 3f * GlobalFontScale);
                     ImGuiOm.RenderPlayerInfo(listing.PlayerName, listing.HomeWorldName);
                 }
 
+                ImGui.SameLine();
+                ImGui.SetCursorPos(startCursorPos);
+                ImGui.InvisibleButton($"PlayerName##{listing.ID}", ImGui.CalcTextSize($"{listing.PlayerName}@{listing.HomeWorldName}"));
+                
                 ImGuiOm.TooltipHover($"{listing.PlayerName}@{listing.HomeWorldName}");
 
                 if (ImGui.IsItemHovered())
