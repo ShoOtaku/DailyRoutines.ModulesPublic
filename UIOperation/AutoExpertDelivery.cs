@@ -15,6 +15,7 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
+using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
 using GrandCompany = FFXIVClientStructs.FFXIV.Client.UI.Agent.GrandCompany;
@@ -226,7 +227,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
         public int DefaultPage = 2;
     }
 
-    private class DRAutoExpertDelivery(AutoExpertDelivery Instance) : NativeAddon
+    private class DRAutoExpertDelivery(AutoExpertDelivery instance) : NativeAddon
     {
         private static VerticalListNode ControlTabLayout;
         private static VerticalListNode SettingTabLayout;
@@ -235,6 +236,18 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
         
         protected override void OnSetup(AtkUnitBase* addon)
         {
+            // 禁止 ESC 键关闭
+            FlagHelper.UpdateFlag(ref addon->Flags1A1, 0x4, true);
+        
+            // 禁止聚焦
+            FlagHelper.UpdateFlag(ref addon->Flags1A0, 0x80, true);
+        
+            // 禁止自动聚焦
+            FlagHelper.UpdateFlag(ref addon->Flags1A1, 0x40, true);
+        
+            // 禁止右键菜单
+            FlagHelper.UpdateFlag(ref addon->Flags1A3, 0x1, true);
+            
             DefaultPageCheckboxes.Clear();
             
             var tabNode = new TabBarNode
@@ -274,8 +287,8 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 String    = GetLoc("Start"),
                 OnClick = () =>
                 {
-                    if (Instance.TaskHelper.IsBusy) return;
-                    Instance.EnqueueDelivery();
+                    if (instance.TaskHelper.IsBusy) return;
+                    instance.EnqueueDelivery();
                 }
             };
             
@@ -287,8 +300,8 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 String    = GetLoc("Stop"),
                 OnClick = () =>
                 {
-                    if (!Instance.TaskHelper.IsBusy) return;
-                    Instance.TaskHelper.Abort();
+                    if (!instance.TaskHelper.IsBusy) return;
+                    instance.TaskHelper.Abort();
                 }
             };
             
@@ -300,8 +313,8 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 String    = LuminaWrapper.GetAddonText(3280),
                 OnClick = () =>
                 {
-                    if (Instance.TaskHelper.IsBusy) return;
-                    Instance.EnqueueGrandCompanyExchangeOpen(false);
+                    if (instance.TaskHelper.IsBusy) return;
+                    instance.EnqueueGrandCompanyExchangeOpen(false);
                 }
             };
             
@@ -313,8 +326,8 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 String    = $"{LuminaWrapper.GetAddonText(3280)} [{GetLoc("Exchange")}]",
                 OnClick = () =>
                 {
-                    if (Instance.TaskHelper.IsBusy) return;
-                    Instance.EnqueueGrandCompanyExchangeOpen(true);
+                    if (instance.TaskHelper.IsBusy) return;
+                    instance.EnqueueGrandCompanyExchangeOpen(true);
                 }
             };
             
@@ -338,7 +351,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 OnClick = x =>
                 {
                     ModuleConfig.SkipWhenHQ = x;
-                    ModuleConfig.Save(Instance);
+                    ModuleConfig.Save(instance);
                 }
             };
             
@@ -358,7 +371,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                 OnClick = x =>
                 {
                     ModuleConfig.SkipWhenMateria = x;
-                    ModuleConfig.Save(Instance);
+                    ModuleConfig.Save(instance);
                 }
             };
             
@@ -405,7 +418,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
                     }
 
                     ModuleConfig.DefaultPage = (int)index;
-                    ModuleConfig.Save(Instance);
+                    ModuleConfig.Save(instance);
 
                     for (var d = 0; d < DefaultPageCheckboxes.Count; d++)
                     {
@@ -437,7 +450,7 @@ public unsafe class AutoExpertDelivery : DailyModuleBase
 
         protected override void OnFinalize(AtkUnitBase* addon) 
         {
-            if (GrandCompanySupplyList == null || Instance.TaskHelper.IsBusy) return;
+            if (GrandCompanySupplyList == null || instance.TaskHelper.IsBusy) return;
             GrandCompanySupplyList->Close(true);
         }
     }
