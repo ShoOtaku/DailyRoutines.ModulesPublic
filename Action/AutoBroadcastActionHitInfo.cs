@@ -13,7 +13,7 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
     {
         Title       = GetLoc("AutoBroadcastActionHitInfoTitle"),
         Description = GetLoc("AutoBroadcastActionHitInfoDescription"),
-        Category    = ModuleCategories.Combat,
+        Category    = ModuleCategories.Action,
         Author      = ["Xww"]
     };
 
