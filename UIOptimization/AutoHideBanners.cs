@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Numerics;
 using DailyRoutines.Abstracts;
+using Dalamud.Game.Addon.Lifecycle;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Hooking;
 using Dalamud.Interface;
 using Dalamud.Utility.Numerics;
@@ -25,6 +27,7 @@ public unsafe class AutoHideBanners : DailyModuleBase
     private static          Hook<SetImageTextureDelegate>? SetImageTextureHook;
     
     private static Config ModuleConfig = null!;
+    private static readonly HashSet<uint> WKSMissionChainBannerIDs = [128527, 128528, 128529, 128530, 128531, 128532];
 
     protected override void Init()
     {
@@ -42,7 +45,11 @@ public unsafe class AutoHideBanners : DailyModuleBase
         
         SetImageTextureHook ??= SetImageTextureSig.GetHook<SetImageTextureDelegate>(SetImageTextureDetour);
         SetImageTextureHook.Enable();
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw, "_WKSMissionChain", OnAddon);
     }
+
+    protected override void Uninit() =>
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
     protected override void ConfigUI()
     {
@@ -101,9 +108,50 @@ public unsafe class AutoHideBanners : DailyModuleBase
             }
         }
     }
+    
+    private static void OnAddon(AddonEvent type, AddonArgs args)
+    {
+        var addon = args.Addon.ToStruct();
+        if (addon == null) return;
 
-    private static void* SetImageTextureDetour(AtkUnitBase* addon, uint bannerID, uint a3, int soundEffectID) => 
-        ModuleConfig.HiddenBanners.GetValueOrDefault(bannerID) ? null : SetImageTextureHook.Original(addon, bannerID, a3, soundEffectID);
+        var shouldHide = ShouldHideWKSMissionChain(addon);
+        addon->RootNode->ToggleVisibility(!shouldHide);
+    }
+
+    private static bool ShouldHideWKSMissionChain(AtkUnitBase* addon)
+    {
+        for (var i = 0; i < addon->UldManager.NodeListCount; i++)
+        {
+            var node = addon->UldManager.NodeList[i];
+            if (node == null || node->Type != NodeType.Image) continue;
+
+            var iconID = GetImageNodeIconID(node->GetAsAtkImageNode());
+            if (iconID == 0) continue;
+            if (IsWKSMissionChainBannerSelected(iconID)) return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsWKSMissionChainBannerSelected(uint iconID) =>
+        WKSMissionChainBannerIDs.Contains(iconID) && ModuleConfig.HiddenBanners.GetValueOrDefault(iconID);
+
+    private static uint GetImageNodeIconID(AtkImageNode* imageNode)
+    {
+        var parts = imageNode->PartsList->Parts;
+        var asset = parts[imageNode->PartId].UldAsset;
+        return asset->AtkTexture.Resource->IconId;
+    }
+
+    private static void* SetImageTextureDetour(AtkUnitBase* addon, uint bannerID, uint a3, int soundEffectID)
+    {
+        if (IsWKSMissionChainBannerSelected(bannerID))
+            return SetImageTextureHook.Original(addon, bannerID, a3, soundEffectID);
+
+        return ModuleConfig.HiddenBanners.GetValueOrDefault(bannerID)
+            ? null
+            : SetImageTextureHook.Original(addon, bannerID, a3, soundEffectID);
+    }
 
     private class Config : ModuleConfiguration
     {
@@ -115,7 +163,8 @@ public unsafe class AutoHideBanners : DailyModuleBase
     [
         120031, 120032, 120055, 120081, 120082, 120083, 120084, 120085, 120086,
         120093, 120094, 120095, 120096, 120141, 120142, 121081, 121082, 121561,
-        121562, 121563, 128370, 128371, 128372, 128373
+        121562, 121563, 128370, 128371, 128372, 128373, 128525, 128526,
+        128527, 128528, 128529, 128530, 128531, 128532
     ];
 
     private static readonly HashSet<uint> DefaultEnabledBanners = [120031, 120032, 120055, 120095, 120096, 120141, 120142];
@@ -125,4 +174,3 @@ public unsafe class AutoHideBanners : DailyModuleBase
     private static readonly Vector4 ButtonHoveredColor  = ImGui.ColorConvertU32ToFloat4(ImGui.GetColorU32(ImGuiCol.ButtonHovered)).WithAlpha(0.4f);
     private static readonly Vector4 ButtonSelectedColor = ImGui.ColorConvertU32ToFloat4(ImGui.GetColorU32(ImGuiCol.Button)).WithAlpha(0.6f);
 }
-
