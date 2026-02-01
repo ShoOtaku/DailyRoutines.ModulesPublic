@@ -16,7 +16,7 @@ using Lumina.Excel.Sheets;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoMJIWorkshopImport : DailyModuleBase
+public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
@@ -516,7 +516,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
         }
     }
 
-    public class WorkshopAssignment
+    public partial class WorkshopAssignment
     {
         public List<SlotRec> Slots  { get; } = [];
         public bool          IsRest { get; private set; }
@@ -534,7 +534,7 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
                 return workshop;
             }
 
-            var items = Regex.Split(tasks, @",\s*|、");
+            var items = ItemNameRegex().Split(tasks);
             var slot  = 0;
 
             foreach (var item in items)
@@ -564,6 +564,9 @@ public unsafe class AutoMJIWorkshopImport : DailyModuleBase
 
             return matchingItems.FirstOrDefault().Value;
         }
+
+        [GeneratedRegex(@",\s*|、")]
+        private static partial Regex ItemNameRegex();
     }
 
     public readonly record struct SlotRec
