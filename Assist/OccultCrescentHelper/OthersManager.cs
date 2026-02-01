@@ -1576,12 +1576,12 @@ public partial class OccultCrescentHelper
                 {
                     if (Throttler.Throttle("OccultCrescentHelper-OthersManager-LongTimeBuffButton"))
                     {
-                        isAnyNearby = CrescentSupportJob.TryFindKnowledgeCrystal(out var gameObject);
-                        if (isAnyNearby)
-                            nearbyPosition = gameObject.Position;
+                        isAnyNearby    = CrescentSupportJob.TryFindKnowledgeCrystal(out var gameObject);
+                        nearbyPosition = isAnyNearby ? gameObject.Position : Vector3.Zero;
                     }
 
-                    if (GameViewHelper.WorldToScreen(nearbyPosition, out var screenPos, out var inView) &&
+                    if (nearbyPosition != Vector3.Zero &&
+                        GameViewHelper.WorldToScreen(nearbyPosition, out var screenPos, out var inView) &&
                         inView)
                     {
                         buttonNode.IsEnabled = LocalPlayerState.DistanceTo2DSquared(nearbyPosition.ToVector2()) <= 10;
