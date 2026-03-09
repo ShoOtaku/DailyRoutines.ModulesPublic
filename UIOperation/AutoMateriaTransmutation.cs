@@ -99,8 +99,17 @@ public unsafe class AutoMateriaTransmutation : DailyModuleBase
                         var node = addon->WindowNode->Component->UldManager.NodeList[i];
                         if (node == null) continue;
 
+                        if (node->Width == 280)
+                            node->SetWidth(380);
+                        
                         if (node->Width == 286)
                             node->SetWidth(386);
+                        
+                        if (node->Width == 292)
+                            node->SetWidth(392);
+                        
+                        if (node->Width == 295)
+                            node->SetWidth(395);
                         
                         if (node->Width == 300)
                             node->SetWidth(400);
