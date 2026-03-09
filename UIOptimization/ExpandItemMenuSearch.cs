@@ -144,20 +144,20 @@ public class ExpandItemMenuSearch : DailyModuleBase
         public override string Name       { get; protected set; } = GetLoc("ExpandItemMenuSearch-SearchFFXIVSC");
         public override string Identifier { get; protected set; } = nameof(ExpandItemMenuSearch);
 
-        private const string URL = "https://v1.ffxivsc.cn/#/search?text={0}&type=armor";
+        private const string URL = "https://ff14risingstones.web.sdo.com/pc/index.html#/search?equipmentid={0}&section=glamour";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
-            var itemName = string.Empty;
+            var itemID = 0U;
 
-            // 优先使用幻化物品名称（如果配置了优先幻化且有幻化物品）
+            // 优先使用幻化物品 (如果配置了优先幻化且有幻化物品)
             if (ModuleConfig.GlamourPrioritize && ContextMenuItemManager.Instance().CurrentGlamourID > 0)
-                itemName = ContextMenuItemManager.Instance().CurrentGlamourItem?.Name.ToString();
+                itemID = ContextMenuItemManager.Instance().CurrentGlamourItem?.RowId ?? 0;
             else
-                itemName = ContextMenuItemManager.Instance().CurrentItem?.Name.ToString();
+                itemID = ContextMenuItemManager.Instance().CurrentItem?.RowId ?? 0;
 
-            if (!string.IsNullOrWhiteSpace(itemName))
-                Util.OpenLink(string.Format(URL, itemName));
+            if (itemID != 0)
+                Util.OpenLink(string.Format(URL, itemID));
         }
     }
 
