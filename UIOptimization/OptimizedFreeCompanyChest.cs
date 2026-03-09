@@ -14,6 +14,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
+using AgentFreeCompanyChest = OmenTools.Infos.AgentFreeCompanyChest;
 
 namespace DailyRoutines.ModulesPublic;
 
