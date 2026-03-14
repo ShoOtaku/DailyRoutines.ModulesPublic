@@ -9,6 +9,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using Lumina.Excel.Sheets;
+using Status = Lumina.Excel.Sheets.Status;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -202,7 +203,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
             {
                 foreach (var secondInfo in SecondStatuses)
                 {
-                    if (!secondInfo.isReverse)
+                    if (!secondInfo.IsReverse)
                     {
                         if (secondInfo.HasStatus())
                             return false;
@@ -217,7 +218,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
 
             foreach (var firstInfo in Statuses)
             {
-                if (!firstInfo.isReverse)
+                if (!firstInfo.IsReverse)
                 {
                     if (firstInfo.HasStatus(gameObjectID))
                         return true;
@@ -234,12 +235,13 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
         
     }
 
-    private sealed record DuplicateStatusInfo(uint StatusID, DetectType DetectType, bool isReverse = false)
+    private sealed record DuplicateStatusInfo(uint StatusID, DetectType DetectType, bool IsReverse = false)
     {
         private bool IsPermanent => 
-            PresetSheet.Statuses.TryGetValue(StatusID, out var statusInfo) && statusInfo.IsPermanent;
+            LuminaGetter.TryGetRow(StatusID, out Status row) && row.IsPermanent;
 
-        public IDalamudTextureWrap? GetIcon() => !PresetSheet.Statuses.TryGetValue(StatusID, out var rowData) ? null : DService.Instance().Texture.GetFromGameIcon(new(rowData.Icon)).GetWrapOrDefault();
+        public IDalamudTextureWrap? GetIcon() =>
+            !LuminaGetter.TryGetRow(StatusID, out Status row) ? null : DService.Instance().Texture.GetFromGameIcon(new(row.Icon)).GetWrapOrDefault();
 
         public string? GetName() => !PresetSheet.Statuses.TryGetValue(StatusID, out var rowData) ? null : rowData.Name.ToString();
 
@@ -363,7 +365,7 @@ public unsafe class AutoPreventDuplicateStatus : DailyModuleBase
         // 夺取
         [2248] = new([new(638, DetectType.Target)]),
         // 明镜止水
-        [7499] = new([new(1233, DetectType.Self)]),
+        [7499] = new([new(1233, DetectType.Self), new(3856, DetectType.Self)]),
         // 三连咏唱
         [7421] = new([new(1211, DetectType.Self)]),
         // 促进
