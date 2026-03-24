@@ -1240,7 +1240,7 @@ public partial class OccultCrescentHelper
                                 Int2 = (int)trait
                             },
                             IsClickable = false,
-                            OnRollOver  = node => node.ShowTooltip(AtkTooltipManager.AtkTooltipType.Action, ActionKind.Unk59),
+                            OnRollOver  = node => node.ShowTooltip(AtkTooltipManager.AtkTooltipType.Action, ActionKind.MKDTrait),
                             OnRollOut   = node => node.HideTooltip()
                         };
 
