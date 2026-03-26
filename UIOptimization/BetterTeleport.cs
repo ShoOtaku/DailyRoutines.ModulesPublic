@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using DailyRoutines.Abstracts;
+using DailyRoutines.Infos;
 using DailyRoutines.Managers;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Keys;
