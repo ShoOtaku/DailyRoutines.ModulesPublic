@@ -1,25 +1,31 @@
-using System;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoAllowMultipleGames : DailyModuleBase
+public unsafe class AutoAllowMultipleGames : ModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoAllowMultipleGamesTitle"),
-        Description = GetLoc("AutoAllowMultipleGamesDescription"),
-        Category    = ModuleCategories.System,
+        Title       = Lang.Get("AutoAllowMultipleGamesTitle"),
+        Description = Lang.Get("AutoAllowMultipleGamesDescription"),
+        Category    = ModuleCategory.System,
         Author      = ["Fragile"]
     };
 
     [DllImport("ntdll.dll")]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern int NtQueryInformationProcess(
-        ulong ProcessHandle, int ProcessInformationClass, void* ProcessInformation, uint ProcessInformationLength, uint* ReturnLength);
+    private static extern int NtQueryInformationProcess
+    (
+        ulong ProcessHandle,
+        int   ProcessInformationClass,
+        void* ProcessInformation,
+        uint  ProcessInformationLength,
+        uint* ReturnLength
+    );
 
     [DllImport("ntdll.dll")]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
@@ -37,7 +43,7 @@ public unsafe class AutoAllowMultipleGames : DailyModuleBase
             if (ObjectNameOrTypeName(handle, true) == "Mutant")
             {
                 var name = ObjectNameOrTypeName(handle, false);
-                if (name.Contains("6AA83AB5-BAC4-4a36-9F66-A309770760CB_ffxiv_game0", StringComparison.Ordinal)) 
+                if (name.Contains("6AA83AB5-BAC4-4a36-9F66-A309770760CB_ffxiv_game0", StringComparison.Ordinal))
                     CloseHandle(handle);
             }
         }
@@ -47,9 +53,11 @@ public unsafe class AutoAllowMultipleGames : DailyModuleBase
     {
         List<ulong> ret        = [];
         uint        bufferSize = 0x8000;
+
         while (true)
         {
             var buffer = new byte[bufferSize];
+
             fixed (byte* pbuf = &buffer[0])
             {
                 var psnap = (ProcessHandleSnapshotInformation*)pbuf;
@@ -57,6 +65,7 @@ public unsafe class AutoAllowMultipleGames : DailyModuleBase
                 // ProcessHandleInformation == 51
                 uint retSize = 0;
                 var  status  = NtQueryInformationProcess(ulong.MaxValue, 51, pbuf, bufferSize, &retSize);
+
                 if ((uint)status == 0xC0000004) // STATUS_INFO_LENGTH_MISMATCH
                 {
                     bufferSize = retSize;
@@ -81,10 +90,12 @@ public unsafe class AutoAllowMultipleGames : DailyModuleBase
     {
         const uint bufferSize = 1024;
         var        buffer     = new byte[bufferSize];
+
         fixed (byte* pBuf = &buffer[0])
         {
             uint retSize = 0;
             var  status  = NtQueryObject(handle, typeName ? 2 : 1, pBuf, bufferSize, &retSize);
+
             if (status >= 0)
             {
                 var name = (UnicodeString*)pBuf;

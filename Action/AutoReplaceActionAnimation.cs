@@ -1,26 +1,26 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using OmenTools.ImGuiOm.Widgets.Combos;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using Action = Lumina.Excel.Sheets.Action;
+using Control = FFXIVClientStructs.FFXIV.Client.Game.Control.Control;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoReplaceActionAnimation : DailyModuleBase
+public unsafe class AutoReplaceActionAnimation : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
+    public enum EffectType
     {
-        Title       = GetLoc("AutoReplaceActionAnimationTitle"),
-        Description = GetLoc("AutoReplaceActionAnimationDescription"),
-        Category    = ModuleCategories.Action
-    };
-
-    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
+        All,   // 所有目标
+        Self,  // 仅自身
+        Others // 仅他人
+    }
 
     private static Config ModuleConfig = null!;
 
@@ -29,10 +29,19 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
 
     private static EffectType EffectTypeInput = EffectType.All;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoReplaceActionAnimationTitle"),
+        Description = Lang.Get("AutoReplaceActionAnimationDescription"),
+        Category    = ModuleCategory.Action
+    };
+
+    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
-        
+        ModuleConfig = Config.Load(this) ?? new();
+
         if (InputCombo == null || OutputCombo == null)
         {
             var source = LuminaGetter.Get<Action>();
@@ -54,21 +63,22 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
     {
         using (ImRaii.Group())
         {
-            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            ImGui.SetNextItemWidth(300f * GlobalUIScale);
             using (ImRaii.PushId("Input"))
                 InputCombo.DrawRadio();
 
             ImGui.SameLine();
-            ImGui.TextUnformatted(GetLoc("Input"));
+            ImGui.TextUnformatted(Lang.Get("Input"));
 
-            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            ImGui.SetNextItemWidth(300f * GlobalUIScale);
             using (ImRaii.PushId("Output"))
                 OutputCombo.DrawRadio();
-            
-            ImGui.SameLine();
-            ImGui.TextUnformatted(GetLoc("Output"));
 
-            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            ImGui.SameLine();
+            ImGui.TextUnformatted(Lang.Get("Output"));
+
+            ImGui.SetNextItemWidth(300f * GlobalUIScale);
+
             using (ImRaii.PushId("Output"))
             using (var combo = ImRaii.Combo("###EffectTypeCombo", GetEffectTypeName(EffectTypeInput)))
             {
@@ -81,13 +91,14 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
                     }
                 }
             }
-            
+
             ImGui.SameLine();
-            ImGui.TextUnformatted(GetLoc("Range"));
+            ImGui.TextUnformatted(Lang.Get("Range"));
         }
 
-        ImGui.SameLine(0, 10f * GlobalFontScale);
-        if (ImGui.Button(GetLoc("Confirm"), new(ImGui.CalcTextSize(GetLoc("Confirm")).X * 2, ImGui.GetItemRectSize().Y)))
+        ImGui.SameLine(0, 10f * GlobalUIScale);
+
+        if (ImGui.Button(Lang.Get("Confirm"), new(ImGui.CalcTextSize(Lang.Get("Confirm")).X * 2, ImGui.GetItemRectSize().Y)))
         {
             if (InputCombo.SelectedItem.RowId != 0 && OutputCombo.SelectedItem.RowId != 0)
             {
@@ -110,37 +121,44 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
         ImGui.NewLine();
 
         if (ModuleConfig.ActionConfigs.Count == 0) return;
-        
-        using var table = ImRaii.Table("###Table", 10, ImGuiTableFlags.None, 
-                                       new(ImGui.GetContentRegionAvail().X - (4 * ImGui.GetStyle().ItemSpacing.X), 0));
+
+        using var table = ImRaii.Table
+        (
+            "###Table",
+            10,
+            ImGuiTableFlags.None,
+            new(ImGui.GetContentRegionAvail().X - 4 * ImGui.GetStyle().ItemSpacing.X, 0)
+        );
         if (!table) return;
-        
+
         ImGui.TableSetupColumn("操作 1", ImGuiTableColumnFlags.WidthFixed,   3 * ImGui.GetTextLineHeight());
         ImGui.TableSetupColumn("输入 1", ImGuiTableColumnFlags.WidthStretch, 20);
         ImGui.TableSetupColumn("箭头 1", ImGuiTableColumnFlags.WidthFixed,   ImGui.CalcTextSize("→").X * 3);
         ImGui.TableSetupColumn("输出 1", ImGuiTableColumnFlags.WidthStretch, 20);
-        ImGui.TableSetupColumn("范围 1", ImGuiTableColumnFlags.WidthFixed,   ImGui.CalcTextSize($"[{GetLoc("All")}]").X * 1.5f);
-        
+        ImGui.TableSetupColumn("范围 1", ImGuiTableColumnFlags.WidthFixed,   ImGui.CalcTextSize($"[{Lang.Get("All")}]").X * 1.5f);
+
         ImGui.TableSetupColumn("操作 2", ImGuiTableColumnFlags.WidthFixed,   3 * ImGui.GetTextLineHeight());
         ImGui.TableSetupColumn("输入 2", ImGuiTableColumnFlags.WidthStretch, 20);
         ImGui.TableSetupColumn("箭头 2", ImGuiTableColumnFlags.WidthFixed,   ImGui.CalcTextSize("→").X * 3);
         ImGui.TableSetupColumn("输出 2", ImGuiTableColumnFlags.WidthStretch, 20);
-        ImGui.TableSetupColumn("范围 2", ImGuiTableColumnFlags.WidthFixed,   ImGui.CalcTextSize($"[{GetLoc("All")}]").X * 1.5f);
-        
+        ImGui.TableSetupColumn("范围 2", ImGuiTableColumnFlags.WidthFixed,   ImGui.CalcTextSize($"[{Lang.Get("All")}]").X * 1.5f);
+
         var counter = 0;
+
         foreach (var (input, config) in ModuleConfig.ActionConfigs)
         {
             var output    = config.ReplacementActionID;
             var isEnabled = config.IsEnabled;
-            
+
             if (counter % 2 == 0)
                 ImGui.TableNextRow();
             counter++;
-            
+
             using var id    = ImRaii.PushId($"{input}_{output}");
             using var group = ImRaii.Group();
 
             ImGui.TableNextColumn();
+
             if (ImGui.Checkbox("##Enabled", ref isEnabled))
             {
                 config.IsEnabled = isEnabled;
@@ -155,37 +173,41 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
                 ModuleConfig.Save(this);
                 continue;
             }
-            
+
             ImGui.TableNextColumn();
+
             using (ImRaii.Group())
             {
                 var inputIcon = ImageHelper.GetGameIcon(LuminaGetter.GetRow<Action>(input)!.Value.Icon);
+
                 if (inputIcon != null)
                 {
                     ImGui.Image(inputIcon.Handle, ScaledVector2(24f));
-                    
+
                     ImGui.SameLine();
                 }
 
                 ImGui.TextUnformatted(LuminaWrapper.GetActionName(input));
             }
-            
+
             if (ImGui.IsItemHovered())
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
             if (ImGui.IsItemClicked())
                 InputCombo.SelectedID = input;
-            
+
             ImGui.TableNextColumn();
             ImGui.TextUnformatted("→");
-            
+
             ImGui.TableNextColumn();
+
             using (ImRaii.Group())
             {
                 var outputIcon = ImageHelper.GetGameIcon(LuminaGetter.GetRow<Action>(output)!.Value.Icon);
+
                 if (outputIcon != null)
                 {
                     ImGui.Image(outputIcon.Handle, ScaledVector2(24f));
-                    
+
                     ImGui.SameLine();
                 }
 
@@ -199,10 +221,10 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
 
             ImGui.TableNextColumn();
             ImGui.TextColored(KnownColor.Gray.ToVector4(), $"[{GetEffectTypeName(config.EffectType)}]");
-            
+
             if (ImGui.IsItemHovered())
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-            if (ImGui.IsItemClicked()) 
+            if (ImGui.IsItemClicked())
                 ImGui.OpenPopup($"ActionTargetPopup_{input}");
 
             using (var popupModify = ImRaii.Popup($"ActionTargetPopup_{input}"))
@@ -212,6 +234,7 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
                     foreach (var target in Enum.GetValues<EffectType>())
                     {
                         var isSelected = config.EffectType == target;
+
                         if (ImGui.Selectable(GetEffectTypeName(target), isSelected))
                         {
                             config.EffectType = target;
@@ -224,23 +247,28 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
 
         return;
 
-        static string GetEffectTypeName(EffectType target) => target switch
+        static string GetEffectTypeName(EffectType target)
         {
-            EffectType.All    => GetLoc("All"),
-            EffectType.Self   => GetLoc("AutoReplaceActionAnimation-EffectType-Self"),
-            EffectType.Others => GetLoc("AutoReplaceActionAnimation-EffectType-Others"),
-            _                 => string.Empty
-        };
+            return target switch
+            {
+                EffectType.All    => Lang.Get("All"),
+                EffectType.Self   => Lang.Get("AutoReplaceActionAnimation-EffectType-Self"),
+                EffectType.Others => Lang.Get("AutoReplaceActionAnimation-EffectType-Others"),
+                _                 => string.Empty
+            };
+        }
     }
 
-    private static void OnCharacterStartCast(
+    private static void OnCharacterStartCast
+    (
         ref bool         isPrevented,
         ref IBattleChara player,
         ref ActionType   type,
         ref uint         actionID,
         ref nint         a4,
         ref float        rotation,
-        ref float        a6)
+        ref float        a6
+    )
     {
         var localPlayer = Control.GetLocalPlayer();
         if (localPlayer == null) return;
@@ -264,7 +292,8 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
         actionID = config.ReplacementActionID;
     }
 
-    private static void OnCharacterCompleteCast(
+    private static void OnCharacterCompleteCast
+    (
         ref bool         isPrevented,
         ref IBattleChara player,
         ref ActionType   type,
@@ -275,7 +304,8 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
         ref float        rotation,
         ref short        lastUsedActionSequence,
         ref int          animationVariation,
-        ref int          ballistaEntityID)
+        ref int          ballistaEntityID
+    )
     {
         var localPlayer = Control.GetLocalPlayer();
         if (localPlayer == null) return;
@@ -297,23 +327,17 @@ public unsafe class AutoReplaceActionAnimation : DailyModuleBase
         };
         if (!shouldReplace) return;
 
-        if (isSelf && TargetManager.Target is { } target &&
+        if (isSelf                             &&
+            TargetManager.Target is { } target &&
             ActionManager.CanUseActionOnTarget(config.ReplacementActionID, target.ToStruct()))
             animationTargetID = target.GameObjectID;
 
         actionID = spellID = config.ReplacementActionID;
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public Dictionary<uint, ActionConfig> ActionConfigs = [];
-    }
-
-    public enum EffectType
-    {
-        All,   // 所有目标
-        Self,  // 仅自身
-        Others // 仅他人
     }
 
     public class ActionConfig

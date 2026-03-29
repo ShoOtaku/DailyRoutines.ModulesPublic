@@ -1,29 +1,31 @@
-using System;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class NoAutoClosePartyFinder : DailyModuleBase
+public unsafe class NoAutoClosePartyFinder : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("NoAutoClosePartyFinderTitle"),
-        Description = GetLoc("NoAutoClosePartyFinderDescription"),
-        Category    = ModuleCategories.Recruitment,
-        Author      = ["Nyy", "YLCHEN"]
-    };
-    
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
-    private delegate        void                               LookingForGroupHideDelegate(AgentLookingForGroup* agent);
     private static readonly CompSig                            LookingForGroupHideSig = new("48 89 5C 24 ?? 57 48 83 EC 20 83 A1 ?? ?? ?? ?? ??");
     private static          Hook<LookingForGroupHideDelegate>? LookingForGroupHideHook;
 
     private static DateTime LastPartyMemberChangeTime;
     private static DateTime LastViewTime;
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("NoAutoClosePartyFinderTitle"),
+        Description = Lang.Get("NoAutoClosePartyFinderDescription"),
+        Category    = ModuleCategory.Recruitment,
+        Author      = ["Nyy", "YLCHEN"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init()
     {
@@ -36,9 +38,9 @@ public unsafe class NoAutoClosePartyFinder : DailyModuleBase
     private static void OnPreReceiveMessage(ref bool isPrevented, ref uint logMessageID, ref LogMessageQueueItem values)
     {
         if (logMessageID != 947) return;
-        
+
         isPrevented = true;
-        
+
         LastPartyMemberChangeTime = StandardTimeManager.Instance().UTCNow.AddSeconds(1);
         if (LookingForGroupDetail->IsAddonAndNodesReady())
             LastViewTime = StandardTimeManager.Instance().UTCNow.AddSeconds(1);
@@ -55,13 +57,15 @@ public unsafe class NoAutoClosePartyFinder : DailyModuleBase
 
                 DService.Instance().Framework.RunOnTick(() => agent->OpenListing(agent->LastViewedListing.ListingId), TimeSpan.FromMilliseconds(100));
             }
-            
+
             return;
         }
-        
-        LookingForGroupHideHook.Original(agent); 
+
+        LookingForGroupHideHook.Original(agent);
     }
 
-    protected override void Uninit() => 
+    protected override void Uninit() =>
         LogMessageManager.Instance().Unreg(OnPreReceiveMessage);
+
+    private delegate void LookingForGroupHideDelegate(AgentLookingForGroup* agent);
 }

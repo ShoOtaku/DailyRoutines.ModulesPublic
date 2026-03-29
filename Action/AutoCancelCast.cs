@@ -1,26 +1,21 @@
 using System.Collections.Frozen;
-using System.Collections.Generic;
-using System.Linq;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using OmenTools.Info.Game.Enums;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using OmenTools.Threading;
 using LuminaAction = Lumina.Excel.Sheets.Action;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoCancelCast : DailyModuleBase
+public unsafe class AutoCancelCast : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoCancelCastTitle"),
-        Description = GetLoc("AutoCancelCastDescription"),
-        Category    = ModuleCategories.Action
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private static readonly FrozenSet<ObjectKind> ValidObjectKinds =
     [
         ObjectKind.Player,
@@ -31,6 +26,15 @@ public unsafe class AutoCancelCast : DailyModuleBase
     [
         ConditionFlag.Casting
     ];
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoCancelCastTitle"),
+        Description = Lang.Get("AutoCancelCastDescription"),
+        Category    = ModuleCategory.Action
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     private static FrozenSet<uint> TargetAreaActions { get; } =
         LuminaGetter.Get<LuminaAction>()
@@ -59,7 +63,7 @@ public unsafe class AutoCancelCast : DailyModuleBase
 
     private static void OnUpdate(IFramework _)
     {
-        if (!IsCasting)
+        if (!DService.Instance().Condition.IsCasting)
         {
             FrameworkManager.Instance().Unreg(OnUpdate);
             return;
@@ -104,7 +108,7 @@ public unsafe class AutoCancelCast : DailyModuleBase
 
         void ExecuteCancast()
         {
-            if (Throttler.Throttle("AutoCancelCast-CancelCast", 100))
+            if (Throttler.Shared.Throttle("AutoCancelCast-CancelCast", 100))
                 ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.CancelCast);
         }
     }

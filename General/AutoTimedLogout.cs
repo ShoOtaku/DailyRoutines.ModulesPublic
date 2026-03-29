@@ -1,36 +1,43 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
+using OmenTools.Dalamud;
+using OmenTools.OmenService;
 using Task = System.Threading.Tasks.Task;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoTimedLogout : DailyModuleBase
+public class AutoTimedLogout : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
+    public enum OperationMode
     {
-        Title               = GetLoc("AutoTimedLogoutTitle"),
-        Description         = GetLoc("AutoTimedLogoutDescription"),
-        Category            = ModuleCategories.General,
-        ModulesPrerequisite = ["InstantLogout"],
-        Author              = ["Wotou"]
-    };
+        Logout,
+        ShutdownGame,
+        ShutdownPC
+    }
 
     private static readonly Dictionary<OperationMode, string> ModeLoc = new()
     {
-        [OperationMode.Logout]       = GetLoc("AutoTimedLogout-Mode-Logout"),
-        [OperationMode.ShutdownGame] = GetLoc("AutoTimedLogout-Mode-ShutdownGame"),
-        [OperationMode.ShutdownPC]   = GetLoc("AutoTimedLogout-Mode-ShutdownPC")
+        [OperationMode.Logout]       = Lang.Get("AutoTimedLogout-Mode-Logout"),
+        [OperationMode.ShutdownGame] = Lang.Get("AutoTimedLogout-Mode-ShutdownGame"),
+        [OperationMode.ShutdownPC]   = Lang.Get("AutoTimedLogout-Mode-ShutdownPC")
     };
 
     private static int                      CustomMinutes = 30;
     private static long?                    ScheduledTime;
     private static OperationMode            CurrentOperation = OperationMode.Logout;
     private static CancellationTokenSource? CancelSource;
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title               = Lang.Get("AutoTimedLogoutTitle"),
+        Description         = Lang.Get("AutoTimedLogoutDescription"),
+        Category            = ModuleCategory.General,
+        ModulesPrerequisite = ["InstantLogout"],
+        Author              = ["Wotou"]
+    };
 
     protected override void Init() =>
         Abort();
@@ -58,13 +65,13 @@ public class AutoTimedLogout : DailyModuleBase
                 ImGui.TextUnformatted($" {hours:D2}:{minutes:D2}:{seconds:D2}");
             }
 
-            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Times, GetLoc("Cancel")))
+            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Times, Lang.Get("Cancel")))
                 Abort();
 
             return;
         }
 
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Operation"));
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("Operation"));
 
         using (ImRaii.PushIndent())
         {
@@ -81,45 +88,45 @@ public class AutoTimedLogout : DailyModuleBase
             }
         }
 
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Time"));
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("Time"));
 
         using (ImRaii.PushIndent())
         {
-            ImGui.SetNextItemWidth(150f * GlobalFontScale);
-            if (ImGui.InputInt($"{GetLoc("Minute")}##MinuteInput", ref CustomMinutes, 1, 10))
+            ImGui.SetNextItemWidth(150f * GlobalUIScale);
+            if (ImGui.InputInt($"{Lang.Get("Minute")}##MinuteInput", ref CustomMinutes, 1, 10))
                 CustomMinutes = Math.Clamp(CustomMinutes, 1, 14400);
 
-            if (ImGui.Button($"30 {GetLoc("Minute")}"))
+            if (ImGui.Button($"30 {Lang.Get("Minute")}"))
                 CustomMinutes = 30;
 
             ImGui.SameLine();
-            if (ImGui.Button($"1 {GetLoc("Hour")}"))
+            if (ImGui.Button($"1 {Lang.Get("Hour")}"))
                 CustomMinutes = 60;
 
             ImGui.SameLine();
-            if (ImGui.Button($"2 {GetLoc("Hour")}"))
+            if (ImGui.Button($"2 {Lang.Get("Hour")}"))
                 CustomMinutes = 120;
 
             ImGui.SameLine();
-            if (ImGui.Button($"3 {GetLoc("Hour")}"))
+            if (ImGui.Button($"3 {Lang.Get("Hour")}"))
                 CustomMinutes = 180;
 
             ImGui.SameLine();
-            if (ImGui.Button($"6 {GetLoc("Hour")}"))
+            if (ImGui.Button($"6 {Lang.Get("Hour")}"))
                 CustomMinutes = 360;
 
             ImGui.SameLine();
-            if (ImGui.Button($"12 {GetLoc("Hour")}"))
+            if (ImGui.Button($"12 {Lang.Get("Hour")}"))
                 CustomMinutes = 720;
 
             ImGui.SameLine();
-            if (ImGui.Button($"24 {GetLoc("Hour")}"))
+            if (ImGui.Button($"24 {Lang.Get("Hour")}"))
                 CustomMinutes = 1440;
         }
 
         ImGui.Spacing();
 
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Check, GetLoc("Confirm")))
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Check, Lang.Get("Confirm")))
             StartWithMinutes(CustomMinutes, CurrentOperation);
     }
 
@@ -180,7 +187,7 @@ public class AutoTimedLogout : DailyModuleBase
         }
         catch (Exception ex)
         {
-            Error($"尝试自动关闭电脑失败: {ex.Message}", ex);
+            DLog.Error($"尝试自动关闭电脑失败: {ex.Message}", ex);
         }
     }
 
@@ -196,12 +203,5 @@ public class AutoTimedLogout : DailyModuleBase
             CancelSource.Dispose();
             CancelSource = null;
         }
-    }
-
-    public enum OperationMode
-    {
-        Logout,
-        ShutdownGame,
-        ShutdownPC
     }
 }

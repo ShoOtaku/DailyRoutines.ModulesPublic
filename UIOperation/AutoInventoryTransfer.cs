@@ -1,19 +1,15 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Gui.ContextMenu;
+using OmenTools.Interop.Game.AddonEvent;
+using OmenTools.Interop.Game.Lumina;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoInventoryTransfer : DailyModuleBase
+public unsafe class AutoInventoryTransfer : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoInventoryTransferTitle"),
-        Description = GetLoc("AutoInventoryTransferDescription"),
-        Category    = ModuleCategories.UIOperation,
-        Author      = ["Yangdoubao"]
-    };
-
     private static readonly List<string> MenuTexts =
     [
         LuminaWrapper.GetAddonText(97),
@@ -22,6 +18,14 @@ public unsafe class AutoInventoryTransfer : DailyModuleBase
         LuminaWrapper.GetAddonText(887)
     ];
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoInventoryTransferTitle"),
+        Description = Lang.Get("AutoInventoryTransferDescription"),
+        Category    = ModuleCategory.UIOperation,
+        Author      = ["Yangdoubao"]
+    };
+
     protected override void Init()
     {
         TaskHelper ??= new() { TimeoutMS = 2_000 };
@@ -29,25 +33,27 @@ public unsafe class AutoInventoryTransfer : DailyModuleBase
         DService.Instance().ContextMenu.OnMenuOpened += OnContextMenuOpened;
     }
 
-    protected override void ConfigUI() => ConflictKeyText();
+    protected override void ConfigUI() => ImGuiOm.ConflictKeyText();
 
     private void OnContextMenuOpened(IMenuOpenedArgs args)
     {
-        if (!IsConflictKeyPressed() || !IsInventoryOpen()) return;
-        
+        if (!DRConfig.Instance().ConflictKeyBinding.IsPressed() || !IsInventoryOpen()) return;
+
         TaskHelper.Enqueue(() => ContextMenuAddon->IsAddonAndNodesReady());
-        TaskHelper.Enqueue(() => { ClickContextMenu(MenuTexts); });
-        
+        TaskHelper.Enqueue(() => { AddonContextMenuEvent.Select(MenuTexts); });
+
         return;
 
         bool IsInventoryOpen()
-            => Inventory->IsAddonAndNodesReady()          ||
-               InventoryLarge->IsAddonAndNodesReady()     ||
-               InventoryExpansion->IsAddonAndNodesReady() ||
-               InventoryRetainer->IsAddonAndNodesReady()  ||
-               InventoryRetainerLarge->IsAddonAndNodesReady();
+        {
+            return Inventory->IsAddonAndNodesReady()          ||
+                   InventoryLarge->IsAddonAndNodesReady()     ||
+                   InventoryExpansion->IsAddonAndNodesReady() ||
+                   InventoryRetainer->IsAddonAndNodesReady()  ||
+                   InventoryRetainerLarge->IsAddonAndNodesReady();
+        }
     }
 
-    protected override void Uninit() => 
+    protected override void Uninit() =>
         DService.Instance().ContextMenu.OnMenuOpened -= OnContextMenuOpened;
 }

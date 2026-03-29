@@ -1,22 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Helpers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Newtonsoft.Json;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using NotifyHelper = OmenTools.OmenService.NotifyHelper;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoNotifyChaoticRaidBonus : DailyModuleBase
+public class AutoNotifyChaoticRaidBonus : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoNotifyChaoticRaidBonusTitle"),
-        Description = GetLoc("AutoNotifyChaoticRaidBonusDescription"),
-        Category    = ModuleCategories.Notice
-    };
+    private const string BASE_URL = "https://api.ff14.xin/status?data_center={0}";
 
     private static readonly List<string> AllDataCenters =
     [
@@ -26,15 +21,20 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
         "Light", "Chaos", "Materia"
     ];
 
-    private const string BASE_URL = "https://api.ff14.xin/status?data_center={0}";
-
     private static Config ModuleConfig = null!;
 
     private static CancellationTokenSource? CancelSource;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoNotifyChaoticRaidBonusTitle"),
+        Description = Lang.Get("AutoNotifyChaoticRaidBonusDescription"),
+        Category    = ModuleCategory.Notice
+    };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         var state = false;
 
@@ -51,7 +51,7 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
         }
 
         if (state)
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
         CancelSource = new();
         Task.Run(() => CheckLoop(CancelSource.Token));
@@ -66,14 +66,14 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref ModuleConfig.SendNotification))
+            ModuleConfig.Save(this);
 
-        if (ImGui.Checkbox(GetLoc("SendChat"), ref ModuleConfig.SendChat))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendChat"), ref ModuleConfig.SendChat))
+            ModuleConfig.Save(this);
 
-        if (ImGui.Checkbox(GetLoc("SendTTS"), ref ModuleConfig.SendTTS))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendTTS"), ref ModuleConfig.SendTTS))
+            ModuleConfig.Save(this);
 
         ImGui.NewLine();
 
@@ -81,8 +81,8 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
         if (!table) return;
 
         ImGui.TableSetupColumn(LuminaWrapper.GetLobbyText(802));
-        ImGui.TableSetupColumn(GetLoc("Enable"));
-        ImGui.TableSetupColumn(GetLoc("AutoNotifyChaoticRaidBonus-LastBonusNotifyTime"));
+        ImGui.TableSetupColumn(Lang.Get("Enable"));
+        ImGui.TableSetupColumn(Lang.Get("AutoNotifyChaoticRaidBonus-LastBonusNotifyTime"));
 
         ImGui.TableHeadersRow();
 
@@ -234,34 +234,41 @@ public class AutoNotifyChaoticRaidBonus : DailyModuleBase
         DService.Instance().Framework.RunOnTick
         (() =>
             {
-                var text = GetLoc("AutoNotifyChaoticRaidBonus-Notification", dcName);
+                var text = Lang.Get("AutoNotifyChaoticRaidBonus-Notification", dcName);
 
                 if (ModuleConfig.SendNotification)
-                    NotificationInfo(text);
+                    NotifyHelper.NotificationInfo(text);
                 if (ModuleConfig.SendChat)
-                    Chat(text);
+                    NotifyHelper.Chat(text);
                 if (ModuleConfig.SendTTS)
-                    Speak(text);
+                    NotifyHelper.Speak(text);
             }
         );
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public Dictionary<string, bool> DataCenters           = [];
         public Dictionary<string, long> DataCentersNotifyTime = [];
+        public bool                     SendChat              = true;
 
         public bool SendNotification = true;
-        public bool SendChat         = true;
         public bool SendTTS          = true;
     }
 
     private class ChaoticUptimeData
     {
-        [JsonProperty("data_center")]       public string         DataCenter          { get; set; }
-        [JsonProperty("is_uptime")]         public bool           IsUptime            { get; set; }
-        [JsonProperty("last_bonus_starts")] public List<DateTime> LastBonusStartTimes { get; set; }
-        [JsonProperty("last_bonus_ends")]   public List<DateTime> LastBonusEndTimes   { get; set; }
+        [JsonProperty("data_center")]
+        public string DataCenter { get; set; }
+
+        [JsonProperty("is_uptime")]
+        public bool IsUptime { get; set; }
+
+        [JsonProperty("last_bonus_starts")]
+        public List<DateTime> LastBonusStartTimes { get; set; }
+
+        [JsonProperty("last_bonus_ends")]
+        public List<DateTime> LastBonusEndTimes { get; set; }
     }
 
     private record StateSnapshot

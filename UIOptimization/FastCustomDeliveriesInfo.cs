@@ -1,8 +1,9 @@
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Manager;
+using DailyRoutines.Verification;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -10,21 +11,15 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
-using OmenTools.Extensions;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using AgentReceiveEventDelegate = OmenTools.Interop.Game.Models.Native.AgentReceiveEventDelegate;
+using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
+public unsafe class FastCustomDeliveriesInfo : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("FastCustomDeliveriesInfoTitle"),
-        Description = GetLoc("FastCustomDeliveriesInfoDescription"),
-        Category    = ModuleCategories.UIOptimization
-    };
-
-    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
     private static readonly Dictionary<uint, CustomDeliveryInfo> Infos = new()
     {
         [11] = new(11, "尼托维凯", 1190, new(-355.7f, 19.6f, -108.7f)),
@@ -37,23 +32,34 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
         [4]  = new(4, "亚德基拉", 478, new(-64, 206.5f, 22)),
         [3]  = new(3, "红", 613, new(345, -120, -302)),
         [2]  = new(2, "梅·娜格", 635, new(162, 13, -88)),
-        [1]  = new(1, "熙洛·阿里亚珀", 478, new(-72, 206.5f, 28)),
+        [1]  = new(1, "熙洛·阿里亚珀", 478, new(-72, 206.5f, 28))
     };
 
-    private static bool IsEligibleForTeleporting =>
-        !(GameState.IsCN || GameState.IsTC) || AuthState.IsPremium;
-    
     private static Hook<AgentReceiveEventDelegate> AgentSatisfactionListReceiveEventHook;
 
     private static KeyValuePair<uint, CustomDeliveryInfo>? SelectedInfo;
 
     private static bool IsNeedToRefresh;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("FastCustomDeliveriesInfoTitle"),
+        Description = Lang.Get("FastCustomDeliveriesInfoDescription"),
+        Category    = ModuleCategory.UIOptimization
+    };
+
+    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
+
+    private static bool IsEligibleForTeleporting =>
+        !(GameState.IsCN || GameState.IsTC) || AuthState.IsPremium;
+
     protected override void Init()
     {
-        AgentSatisfactionListReceiveEventHook ??= DService.Instance().Hook.HookFromAddress<AgentReceiveEventDelegate>(
+        AgentSatisfactionListReceiveEventHook ??= DService.Instance().Hook.HookFromAddress<AgentReceiveEventDelegate>
+        (
             AgentModule.Instance()->GetAgentByInternalId(AgentId.SatisfactionList)->VirtualTable->GetVFuncByName("ReceiveEvent"),
-            AgentSatisfactionListReceiveEventDetour);
+            AgentSatisfactionListReceiveEventDetour
+        );
         AgentSatisfactionListReceiveEventHook.Enable();
 
         Overlay    ??= new(this);
@@ -75,8 +81,9 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
             IsNeedToRefresh = false;
             ImGui.SetWindowPos(ImGui.GetMousePos());
         }
-        
+
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), LuminaGetter.GetRow<Addon>(8813)!.Value.Text.ToString());
+
         using (ImRaii.PushIndent())
         {
             using (FontManager.Instance().UIFont120.Push())
@@ -88,10 +95,13 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
 
         var isNeedToClose = false;
 
-        using (ImRaii.Disabled(!IsEligibleForTeleporting && 
-                               MovementManager.SpeedDetectionAreas.Contains(SelectedInfo?.Value.Zone ?? 0)))
+        using (ImRaii.Disabled
+               (
+                   !IsEligibleForTeleporting &&
+                   MovementManager.SpeedDetectionAreas.Contains(SelectedInfo?.Value.Zone ?? 0)
+               ))
         {
-            if (ImGui.MenuItem(GetLoc("Teleport")))
+            if (ImGui.MenuItem(Lang.Get("Teleport")))
             {
                 switch (SelectedInfo?.Key)
                 {
@@ -105,12 +115,12 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
                         MovementManager.TPSmart_BetweenZone(SelectedInfo?.Value.Zone ?? 0, SelectedInfo?.Value.Position ?? default);
                         break;
                 }
-                
+
                 isNeedToClose = true;
             }
         }
-        
-        if (ImGui.MenuItem(GetLoc("FastCustomDeliveriesInfo-TeleportToZone")))
+
+        if (ImGui.MenuItem(Lang.Get("FastCustomDeliveriesInfo-TeleportToZone")))
         {
             switch (SelectedInfo?.Key)
             {
@@ -119,45 +129,55 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
                     EnqueueFirmament();
                     break;
                 default:
-                    MovementManager.TeleportNearestAetheryte(
-                        SelectedInfo?.Value.Position ?? default, SelectedInfo?.Value.Zone ?? 0, true);
+                    MovementManager.TeleportNearestAetheryte
+                    (
+                        SelectedInfo?.Value.Position ?? default,
+                        SelectedInfo?.Value.Zone     ?? 0,
+                        true
+                    );
                     break;
             }
-            
+
             isNeedToClose = true;
         }
-        
+
         if (ImGui.MenuItem(LuminaGetter.GetRow<Addon>(66)!.Value.Text.ToString()))
         {
             var instance = AgentMap.Instance();
 
             var zoneID = (uint)SelectedInfo?.Value.Zone!;
             var mapID  = LuminaGetter.GetRow<TerritoryType>(zoneID)!.Value.Map.RowId;
-            
+
             instance->SetFlagMapMarker(zoneID, mapID, (Vector3)SelectedInfo?.Value.Position!);
             instance->OpenMap(mapID, zoneID, SelectedInfo?.Value.Name ?? string.Empty);
 
             isNeedToClose = true;
         }
-        
+
         if (ImGui.MenuItem(LuminaGetter.GetRow<Addon>(1219)!.Value.Text.ToString()) | isNeedToClose)
         {
             Overlay.IsOpen = false;
             SelectedInfo   = null;
         }
     }
-    
-    private AtkValue* AgentSatisfactionListReceiveEventDetour(
-        AgentInterface* agent, AtkValue* returnValues, AtkValue* values, uint valueCount, ulong eventKind)
+
+    private AtkValue* AgentSatisfactionListReceiveEventDetour
+    (
+        AgentInterface* agent,
+        AtkValue*       returnValues,
+        AtkValue*       values,
+        uint            valueCount,
+        ulong           eventKind
+    )
     {
         if (agent == null || values == null || valueCount < 1)
             return InvokeOriginal();
-        
+
         // 非右键
         var valueType = values[0].Int;
         if (valueType != 1)
             return InvokeOriginal();
-        
+
         var customDeliveryIndex = values[1].UInt;
         if (customDeliveryIndex < 1)
             return InvokeOriginal();
@@ -168,12 +188,14 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
         SelectedInfo    = new(customDeliveryIndex, customDeliveryInfo);
         IsNeedToRefresh = true;
         Overlay.IsOpen  = true;
-        
-        var defaultValue = new AtkValue() { Type = ValueType.Bool, Bool = false };
+
+        var defaultValue = new AtkValue { Type = ValueType.Bool, Bool = false };
         return &defaultValue;
 
         AtkValue* InvokeOriginal()
-            => AgentSatisfactionListReceiveEventHook.Original(agent, returnValues, values, valueCount, eventKind);
+        {
+            return AgentSatisfactionListReceiveEventHook.Original(agent, returnValues, values, valueCount, eventKind);
+        }
     }
 
     // 进入天穹街
@@ -181,11 +203,21 @@ public unsafe class FastCustomDeliveriesInfo : DailyModuleBase
     {
         // 不在天穹街 → 先去伊修加德基础层
         TaskHelper.Enqueue(MovementManager.TeleportFirmament);
-        TaskHelper.Enqueue(() => GameState.TerritoryType == 886             && UIModule.IsScreenReady() &&
-                                 !DService.Instance().Condition[ConditionFlag.Jumping] && !MovementManager.IsManagerBusy);
+        TaskHelper.Enqueue
+        (() => GameState.TerritoryType == 886                        &&
+               UIModule.IsScreenReady()                              &&
+               !DService.Instance().Condition[ConditionFlag.Jumping] &&
+               !MovementManager.IsManagerBusy
+        );
     }
 
-    private record CustomDeliveryInfo(uint Index, string Name, uint Zone, Vector3 Position)
+    private record CustomDeliveryInfo
+    (
+        uint    Index,
+        string  Name,
+        uint    Zone,
+        Vector3 Position
+    )
     {
         public SatisfactionNpc GetRow()
             => LuminaGetter.GetRow<SatisfactionNpc>(Index).GetValueOrDefault();

@@ -1,6 +1,7 @@
-using System;
-using System.Linq;
 using System.Numerics;
+using DailyRoutines.Extensions;
+using OmenTools.Dalamud;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -78,24 +79,24 @@ public partial class AutoReplyChatBot
             return;
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted($"{GetLoc("AutoReplyChatBot-TestChat-Role")}:");
+        ImGui.TextUnformatted($"{Lang.Get("AutoReplyChatBot-TestChat-Role")}:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(150f * GlobalFontScale);
+        ImGui.SetNextItemWidth(150f * GlobalUIScale);
         ImGui.InputText("##CurrentRole", ref currentWindow.Role, 96);
         if (ImGui.IsItemDeactivatedAfterEdit())
             RequestSaveConfig();
 
         ImGui.SameLine();
-        ImGui.TextUnformatted($"{GetLoc("Name")}:");
+        ImGui.TextUnformatted($"{Lang.Get("Name")}:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(150f * GlobalFontScale);
+        ImGui.SetNextItemWidth(150f * GlobalUIScale);
         ImGui.InputText("##WindowName", ref currentWindow.Name, 96);
 
-        ImGui.SameLine(0, 10f * GlobalFontScale);
+        ImGui.SameLine(0, 10f * GlobalUIScale);
 
-        if (ImGui.Button($"{GetLoc("Clear")}"))
+        if (ImGui.Button($"{Lang.Get("Clear")}"))
         {
             var historyKey = currentWindow.HistoryKey;
             if (ModuleConfig.Histories.TryGetValue(historyKey, out var historyList))
@@ -104,10 +105,10 @@ public partial class AutoReplyChatBot
 
         ImGui.Spacing();
 
-        var chatHeight = 300f * GlobalFontScale;
+        var chatHeight = 300f * GlobalUIScale;
         var chatWidth  = ImGui.GetContentRegionAvail().X - 4 * ImGui.GetStyle().ItemSpacing.X;
 
-        using (var child = ImRaii.Child("##ChatMessages", new(chatWidth, chatHeight - 60f * GlobalFontScale), true))
+        using (var child = ImRaii.Child("##ChatMessages", new(chatWidth, chatHeight - 60f * GlobalUIScale), true))
         {
             var isAtBottom = ImGui.GetScrollY() >= ImGui.GetScrollMaxY() - 2f;
 
@@ -122,12 +123,12 @@ public partial class AutoReplyChatBot
                     var isUser  = message.Role.Equals("user", StringComparison.OrdinalIgnoreCase);
 
                     var textSize     = ImGui.CalcTextSize(message.Text) + new Vector2(2 * ImGui.GetStyle().ItemSpacing.X, 4 * ImGui.GetStyle().ItemSpacing.Y);
-                    var messageWidth = Math.Min(textSize.X + 20f                        * GlobalFontScale, chatWidth * 0.75f);
+                    var messageWidth = Math.Min(textSize.X + 20f                        * GlobalUIScale, chatWidth * 0.75f);
 
                     if (isUser)
-                        ImGui.SetCursorPosX(chatWidth - messageWidth - 16f * GlobalFontScale);
+                        ImGui.SetCursorPosX(chatWidth - messageWidth - 16f * GlobalUIScale);
                     else
-                        ImGui.SetCursorPosX(8f * GlobalFontScale);
+                        ImGui.SetCursorPosX(8f * GlobalUIScale);
 
                     var bgColor   = isUser ? KnownColor.CadetBlue.ToVector4() : KnownColor.SlateGray.ToVector4();
                     var textColor = isUser ? KnownColor.White.ToVector4() : new(0.9f, 0.9f, 0.9f, 1.0f);
@@ -152,13 +153,10 @@ public partial class AutoReplyChatBot
 
                                 if (context)
                                 {
-                                    if (ImGui.MenuItem($"{GetLoc("Copy")}"))
-                                    {
-                                        ImGui.SetClipboardText(message.Text);
-                                        NotificationSuccess($"{GetLoc("CopiedToClipboard")}");
-                                    }
+                                    ImGui.MenuItem($"{Lang.Get("Copy")}");
+                                    ImGuiOm.ClickToCopyAndNotify(message.Text);
 
-                                    if (ImGui.MenuItem($"{GetLoc("Delete")}"))
+                                    if (ImGui.MenuItem($"{Lang.Get("Delete")}"))
                                     {
                                         try
                                         {
@@ -186,7 +184,7 @@ public partial class AutoReplyChatBot
                             ImGui.TextDisabled($"[{timeStr}] {message.Name}");
                     }
 
-                    ScaledDummy(0, 6f);
+                    ImGuiOm.ScaledDummy(0, 6f);
                 }
             }
 
@@ -194,12 +192,12 @@ public partial class AutoReplyChatBot
                 ImGui.SetScrollHereY(1f);
         }
 
-        ImGui.SetNextItemWidth(chatWidth - ImGui.CalcTextSize(GetLoc("AutoReplyChatBot-Send")).X - 4 * ImGui.GetStyle().ItemSpacing.X);
+        ImGui.SetNextItemWidth(chatWidth - ImGui.CalcTextSize(Lang.Get("AutoReplyChatBot-Send")).X - 4 * ImGui.GetStyle().ItemSpacing.X);
         ImGui.InputText("##MessageInput", ref currentWindow.InputText, 512, ImGuiInputTextFlags.EnterReturnsTrue);
 
         ImGui.SameLine();
 
-        if ((ImGui.Button(GetLoc("AutoReplyChatBot-Send")) || ImGui.IsKeyPressed(ImGuiKey.Enter)) &&
+        if ((ImGui.Button(Lang.Get("AutoReplyChatBot-Send")) || ImGui.IsKeyPressed(ImGuiKey.Enter)) &&
             !string.IsNullOrWhiteSpace(currentWindow.InputText))
         {
             var text       = currentWindow.InputText;
@@ -231,8 +229,8 @@ public partial class AutoReplyChatBot
                     }
                     catch (Exception ex)
                     {
-                        NotificationError(GetLoc("AutoReplyChatBot-ErrorTitle"));
-                        Error($"{GetLoc("AutoReplyChatBot-ErrorTitle")}:", ex);
+                        NotifyHelper.NotificationError(Lang.Get("AutoReplyChatBot-ErrorTitle"));
+                        DLog.Error($"{Lang.Get("AutoReplyChatBot-ErrorTitle")}:", ex);
                     }
 
                     if (!string.IsNullOrWhiteSpace(reply))

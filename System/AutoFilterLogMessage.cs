@@ -1,29 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+﻿using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using OmenTools.ImGuiOm.Widgets.Combos;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoFilterLogMessage : DailyModuleBase
+public class AutoFilterLogMessage : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoFilterLogMessageTitle"),
-        Description = GetLoc("AutoFilterLogMessageDescription"),
-        Category    = ModuleCategories.System
-    };
-    
     private static Config          ModuleConfig = null!;
     private static LogMessageCombo Combo        = null!;
 
     private static readonly HashSet<uint> SeenLogMessages = [];
-    
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoFilterLogMessageTitle"),
+        Description = Lang.Get("AutoFilterLogMessageDescription"),
+        Category    = ModuleCategory.System
+    };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
-        Combo                       ??= new("LogMessage");
+        Combo             ??= new("LogMessage");
         Combo.SelectedIDs =   ModuleConfig.FilteredLogMessages;
 
         LogMessageManager.Instance().RegPre(OnLogMessage);
@@ -31,7 +34,7 @@ public class AutoFilterLogMessage : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("AutoFilterLogMessage-MessageToFilter"));
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("AutoFilterLogMessage-MessageToFilter"));
 
         using (ImRaii.PushIndent())
         {
@@ -41,16 +44,16 @@ public class AutoFilterLogMessage : DailyModuleBase
                 ModuleConfig.Save(this);
             }
         }
-        
+
         ImGui.NewLine();
-        
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Mode"));
+
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("Mode"));
 
         using (ImRaii.PushIndent())
         {
             foreach (var filterMode in Enum.GetValues<FilterMode>())
             {
-                if (ImGui.RadioButton(GetLoc($"AutoFilterLogMessage-Mode-{filterMode}"), ModuleConfig.Mode == filterMode))
+                if (ImGui.RadioButton(Lang.Get($"AutoFilterLogMessage-Mode-{filterMode}"), ModuleConfig.Mode == filterMode))
                 {
                     ModuleConfig.Mode = filterMode;
                     ModuleConfig.Save(this);
@@ -62,13 +65,13 @@ public class AutoFilterLogMessage : DailyModuleBase
     private static void OnLogMessage(ref bool isPrevented, ref uint logMessageID, ref LogMessageQueueItem item)
     {
         if (!ModuleConfig.FilteredLogMessages.Contains(logMessageID)) return;
-        
+
         switch (ModuleConfig.Mode)
         {
             case FilterMode.Always:
                 isPrevented = true;
                 break;
-            
+
             case FilterMode.PassFirst:
                 if (SeenLogMessages.Add(logMessageID)) return;
 
@@ -77,12 +80,12 @@ public class AutoFilterLogMessage : DailyModuleBase
         }
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public HashSet<uint> FilteredLogMessages = [];
         public FilterMode    Mode                = FilterMode.PassFirst;
     }
-    
+
     private enum FilterMode
     {
         Always,

@@ -1,12 +1,10 @@
-using System;
 using System.Collections.Frozen;
-using System.Collections.Generic;
 using System.Numerics;
-using System.Threading;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Helpers;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Text.SeStringHandling;
@@ -14,27 +12,21 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Newtonsoft.Json;
+using OmenTools.Dalamud;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using OmenTools.Threading;
+using Control = FFXIVClientStructs.FFXIV.Client.Game.Control.Control;
 using LuminaStatus = Lumina.Excel.Sheets.Status;
 using GameBattleChara = FFXIVClientStructs.FFXIV.Client.Game.Character.BattleChara;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoDisplayMitigationInfo : DailyModuleBase
+public class AutoDisplayMitigationInfo : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoDisplayMitigationInfoTitle"),
-        Description = GetLoc("AutoDisplayMitigationInfoDescription"),
-        Category    = ModuleCategories.Combat,
-        Author      = ["HaKu"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private static readonly byte[] DamagePhysicalStr = new SeString(new IconPayload(BitmapFontIcon.DamagePhysical)).Encode();
     private static readonly byte[] DamageMagicalStr  = new SeString(new IconPayload(BitmapFontIcon.DamageMagical)).Encode();
 
@@ -47,9 +39,19 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
     private static bool IsCombatEventsRegistered;
     private static bool IsNeedToDrawOnPartyList;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoDisplayMitigationInfoTitle"),
+        Description = Lang.Get("AutoDisplayMitigationInfoDescription"),
+        Category    = ModuleCategory.Combat,
+        Author      = ["HaKu"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new Config();
+        ModuleConfig = Config.Load(this) ?? new();
 
         SetOverlay();
 
@@ -82,9 +84,9 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("TransparentOverlay"), ref ModuleConfig.TransparentOverlay))
+        if (ImGui.Checkbox(Lang.Get("TransparentOverlay"), ref ModuleConfig.TransparentOverlay))
         {
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
             if (ModuleConfig.TransparentOverlay)
             {
@@ -98,9 +100,9 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
             }
         }
 
-        if (ImGui.Checkbox(GetLoc("ResizeableOverlay"), ref ModuleConfig.ResizeableOverlay))
+        if (ImGui.Checkbox(Lang.Get("ResizeableOverlay"), ref ModuleConfig.ResizeableOverlay))
         {
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
             if (ModuleConfig.ResizeableOverlay)
                 Overlay.Flags &= ~ImGuiWindowFlags.NoResize;
@@ -108,9 +110,9 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
                 Overlay.Flags |= ImGuiWindowFlags.NoResize;
         }
 
-        if (ImGui.Checkbox(GetLoc("MoveableOverlay"), ref ModuleConfig.MoveableOverlay))
+        if (ImGui.Checkbox(Lang.Get("MoveableOverlay"), ref ModuleConfig.MoveableOverlay))
         {
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
             if (!ModuleConfig.MoveableOverlay)
             {
@@ -138,7 +140,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
         if (!table)
             return;
 
-        ImGui.TableSetupColumn("Icon",  ImGuiTableColumnFlags.WidthFixed,   24f * GlobalFontScale);
+        ImGui.TableSetupColumn("Icon",  ImGuiTableColumnFlags.WidthFixed,   24f * GlobalUIScale);
         ImGui.TableSetupColumn("Name",  ImGuiTableColumnFlags.WidthStretch, 20);
         ImGui.TableSetupColumn("Value", ImGuiTableColumnFlags.WidthStretch, 20);
 
@@ -162,7 +164,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
             ImGui.TableNextColumn();
             ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted($"{GetLoc("Shield")}");
+            ImGui.TextUnformatted($"{Lang.Get("Shield")}");
 
             ImGui.TableNextColumn();
             ImGui.TextUnformatted($"{State.LocalShield}");
@@ -172,7 +174,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
     private void SetOverlay()
     {
         Overlay            ??= new(this);
-        Overlay.WindowName =   GetLoc("AutoDisplayMitigationInfoTitle");
+        Overlay.WindowName =   Lang.Get("AutoDisplayMitigationInfoTitle");
         Overlay.Flags      &=  ~ImGuiWindowFlags.NoTitleBar;
         Overlay.Flags      &=  ~ImGuiWindowFlags.AlwaysAutoResize;
 
@@ -233,47 +235,6 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
         ImGui.SameLine();
         ImGui.TextUnformatted($"{status.Magical}% ");
     }
-
-    #region 事件
-
-    private void OnZoneChanged(ushort obj)
-    {
-        UnregCombatEvents();
-
-        if (GameState.ContentFinderCondition == 0) return;
-
-        RegCombatEvents();
-    }
-
-    private void OnConditionChanged(ConditionFlag flag, bool value)
-    {
-        if (flag != ConditionFlag.InCombat) return;
-
-        if (value)
-            RegCombatEvents();
-        else
-            UnregCombatEvents();
-    }
-
-    private void OnUpdate(IFramework _)
-    {
-        if (GameState.IsInPVPArea)
-        {
-            UnregCombatEvents();
-            return;
-        }
-
-        if (!DService.Instance().Condition[ConditionFlag.InCombat] && GameState.ContentFinderCondition == 0)
-        {
-            UnregCombatEvents();
-            return;
-        }
-
-        State.Update();
-        UpdateStatusBar();
-    }
-
-    #endregion
 
     private void RegCombatEvents()
     {
@@ -350,7 +311,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
             if (!firstTipItem)
                 tipBuilder.Append("\n");
             tipBuilder.AddIcon(BitmapFontIcon.Tank);
-            tipBuilder.Append($"{GetLoc("Shield")}: {State.LocalShield}");
+            tipBuilder.Append($"{Lang.Get("Shield")}: {State.LocalShield}");
             firstTipItem = false;
         }
 
@@ -384,124 +345,6 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
             first = false;
         }
     }
-
-    #region PartyList
-
-    private static unsafe void Draw()
-    {
-        if (Throttler.Throttle("AutoDisplayMitigationInfo-OnUpdatePartyDrawCondition"))
-            IsNeedToDrawOnPartyList = PartyList->IsAddonAndNodesReady() && !GameState.IsInPVPArea;
-
-        if (!IsNeedToDrawOnPartyList)
-            return;
-
-        var drawList = ImGui.GetBackgroundDrawList();
-        var addon    = (AddonPartyList*)PartyList;
-
-        var snapshot = State.PartySnapshot;
-        var count    = snapshot.Length;
-
-        for (var i = 0; i < count; i++)
-        {
-            ref var partyMember = ref addon->PartyMembers[i];
-            if (partyMember.HPGaugeComponent is null || !partyMember.HPGaugeComponent->OwnerNode->IsVisible())
-                continue;
-
-            ref readonly var status = ref snapshot[i];
-            DrawMitigationNode(drawList, ref partyMember, status);
-            DrawShieldNode(drawList, ref partyMember, status);
-        }
-    }
-
-    private static unsafe void DrawMitigationNode
-    (
-        ImDrawListPtr                            drawList,
-        ref AddonPartyList.PartyListMemberStruct partyMember,
-        in  PartyMitigationSnapshot              status
-    )
-    {
-        var mitigationValue = MathF.Max(status.Physical, status.Magical);
-        if (mitigationValue <= 0)
-            return;
-
-        var nameNode = partyMember.NameAndBarsContainer;
-        if (nameNode is null || !nameNode->IsVisible())
-            return;
-
-        var nameTextNode = partyMember.Name;
-        if (nameTextNode is null || !nameTextNode->IsVisible())
-            return;
-
-        var partyListAddon = (AddonPartyList*)PartyList;
-        var partyScale     = partyListAddon->Scale;
-
-        using var fontPush = FontManager.Instance().MiedingerMidFont120.Push();
-
-        var text     = $"{mitigationValue:N0}%";
-        var textSize = ImGui.CalcTextSize(text);
-
-        var posX = nameNode->ScreenX + nameNode->GetWidth() * partyScale - textSize.X - 5 * partyScale;
-        var posY = nameNode->ScreenY                                     + 2              * partyScale;
-
-        var pos = new Vector2(posX, posY);
-
-        drawList.AddText(pos + new Vector2(1, 1), 0x9D00A2FF, text);
-        drawList.AddText(pos,                     0xFFFFFFFF, text);
-    }
-
-    private static unsafe void DrawShieldNode
-    (
-        ImDrawListPtr                            drawList,
-        ref AddonPartyList.PartyListMemberStruct partyMember,
-        in  PartyMitigationSnapshot              status
-    )
-    {
-        var shieldValue = status.Shield;
-
-        var hpComponent = partyMember.HPGaugeComponent;
-        if (hpComponent is null || !hpComponent->OwnerNode->IsVisible())
-            return;
-
-        var numNode = hpComponent->GetTextNodeById(2);
-        if (numNode is null || !numNode->IsVisible())
-            return;
-
-        var partyListAddon = (AddonPartyList*)PartyList;
-        var mpNode2        = partyMember.MPGaugeBar->GetTextNodeById(2)->GetAsAtkTextNode();
-        var mpNode3        = partyMember.MPGaugeBar->GetTextNodeById(3)->GetAsAtkTextNode();
-
-        if (shieldValue >= 1e5)
-        {
-            if (mpNode2 is not null && mpNode2->IsVisible())
-                mpNode2->SetAlpha(0);
-            if (mpNode3 is not null && mpNode3->IsVisible())
-                mpNode3->SetAlpha(0);
-        }
-        else
-        {
-            if (mpNode2 is not null && mpNode2->IsVisible())
-                mpNode2->SetAlpha(255);
-            if (mpNode3 is not null && mpNode3->IsVisible())
-                mpNode3->SetAlpha(255);
-        }
-
-        if (shieldValue <= 0)
-            return;
-
-        var partyScale = partyListAddon->Scale;
-
-        using var fontPush = FontManager.Instance().MiedingerMidFont120.Push();
-
-        var text = $"{shieldValue:F0}";
-
-        var posX = numNode->ScreenX                                                    + numNode->GetWidth() * partyListAddon->Scale + 3 * partyScale;
-        var posY = numNode->ScreenY + numNode->GetHeight() * partyListAddon->Scale / 2 - 3f                  * partyScale;
-
-        drawList.AddText(new Vector2(posX + 1, posY + 1), 0x9D00A2FF, text);
-        drawList.AddText(new Vector2(posX,     posY),     0xFFFFFFFF, text);
-    }
-
-    #endregion
 
     private readonly struct MitigationDefinition
     (
@@ -545,12 +388,12 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
     private sealed unsafe class MitigationState
     {
-        private          ActiveMitigation[]        localActiveStatusBuffer  = new ActiveMitigation[16];
-        private          ActiveMitigation[]        targetActiveStatusBuffer = new ActiveMitigation[16];
-        private readonly PartyMitigationSnapshot[] partySnapshotBuffer      = new PartyMitigationSnapshot[9];
+        private readonly PartyMitigationSnapshot[] partySnapshotBuffer = new PartyMitigationSnapshot[9];
         private          int                       localActiveCount;
-        private          int                       targetActiveCount;
+        private          ActiveMitigation[]        localActiveStatusBuffer = new ActiveMitigation[16];
         private          int                       partyCount;
+        private          int                       targetActiveCount;
+        private          ActiveMitigation[]        targetActiveStatusBuffer = new ActiveMitigation[16];
 
         public float LocalShield { get; private set; }
 
@@ -869,7 +712,7 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
 
                 if (resp == null)
                 {
-                    Error("[AutoDisplayMitigationInfo] 远程减伤技能文件解析失败");
+                    DLog.Error("[AutoDisplayMitigationInfo] 远程减伤技能文件解析失败");
                     return;
                 }
 
@@ -891,28 +734,195 @@ public class AutoDisplayMitigationInfo : DailyModuleBase
             }
             catch (Exception ex)
             {
-                Error($"[AutoDisplayMitigationInfo] 远程减伤技能文件获取失败: {ex}");
+                DLog.Error($"[AutoDisplayMitigationInfo] 远程减伤技能文件获取失败: {ex}");
             }
         }
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
-        public bool TransparentOverlay;
-        public bool ResizeableOverlay = true;
         public bool MoveableOverlay   = true;
+        public bool ResizeableOverlay = true;
+        public bool TransparentOverlay;
     }
 
     private sealed class MitigationInfoDto
     {
-        [JsonProperty("id")]         public uint           ID         { get; private set; }
-        [JsonProperty("mitigation")] public StatusInfoDto? Mitigation { get; private set; }
-        [JsonProperty("on_member")]  public bool           OnMember   { get; private set; }
+        [JsonProperty("id")]
+        public uint ID { get; private set; }
+
+        [JsonProperty("mitigation")]
+        public StatusInfoDto? Mitigation { get; private set; }
+
+        [JsonProperty("on_member")]
+        public bool OnMember { get; private set; }
     }
 
     private sealed class StatusInfoDto
     {
-        [JsonProperty("physical")] public float Physical { get; private set; }
-        [JsonProperty("magical")]  public float Magical  { get; private set; }
+        [JsonProperty("physical")]
+        public float Physical { get; private set; }
+
+        [JsonProperty("magical")]
+        public float Magical { get; private set; }
     }
+
+    #region 事件
+
+    private void OnZoneChanged(ushort obj)
+    {
+        UnregCombatEvents();
+
+        if (GameState.ContentFinderCondition == 0) return;
+
+        RegCombatEvents();
+    }
+
+    private void OnConditionChanged(ConditionFlag flag, bool value)
+    {
+        if (flag != ConditionFlag.InCombat) return;
+
+        if (value)
+            RegCombatEvents();
+        else
+            UnregCombatEvents();
+    }
+
+    private void OnUpdate(IFramework _)
+    {
+        if (GameState.IsInPVPArea)
+        {
+            UnregCombatEvents();
+            return;
+        }
+
+        if (!DService.Instance().Condition[ConditionFlag.InCombat] && GameState.ContentFinderCondition == 0)
+        {
+            UnregCombatEvents();
+            return;
+        }
+
+        State.Update();
+        UpdateStatusBar();
+    }
+
+    #endregion
+
+    #region PartyList
+
+    private static unsafe void Draw()
+    {
+        if (Throttler.Shared.Throttle("AutoDisplayMitigationInfo-OnUpdatePartyDrawCondition"))
+            IsNeedToDrawOnPartyList = PartyList->IsAddonAndNodesReady() && !GameState.IsInPVPArea;
+
+        if (!IsNeedToDrawOnPartyList)
+            return;
+
+        var drawList = ImGui.GetBackgroundDrawList();
+        var addon    = (AddonPartyList*)PartyList;
+
+        var snapshot = State.PartySnapshot;
+        var count    = snapshot.Length;
+
+        for (var i = 0; i < count; i++)
+        {
+            ref var partyMember = ref addon->PartyMembers[i];
+            if (partyMember.HPGaugeComponent is null || !partyMember.HPGaugeComponent->OwnerNode->IsVisible())
+                continue;
+
+            ref readonly var status = ref snapshot[i];
+            DrawMitigationNode(drawList, ref partyMember, status);
+            DrawShieldNode(drawList, ref partyMember, status);
+        }
+    }
+
+    private static unsafe void DrawMitigationNode
+    (
+        ImDrawListPtr                            drawList,
+        ref AddonPartyList.PartyListMemberStruct partyMember,
+        in  PartyMitigationSnapshot              status
+    )
+    {
+        var mitigationValue = MathF.Max(status.Physical, status.Magical);
+        if (mitigationValue <= 0)
+            return;
+
+        var nameNode = partyMember.NameAndBarsContainer;
+        if (nameNode is null || !nameNode->IsVisible())
+            return;
+
+        var nameTextNode = partyMember.Name;
+        if (nameTextNode is null || !nameTextNode->IsVisible())
+            return;
+
+        var partyListAddon = (AddonPartyList*)PartyList;
+        var partyScale     = partyListAddon->Scale;
+
+        using var fontPush = FontManager.Instance().MiedingerMidFont120.Push();
+
+        var text     = $"{mitigationValue:N0}%";
+        var textSize = ImGui.CalcTextSize(text);
+
+        var posX = nameNode->ScreenX + nameNode->GetWidth() * partyScale - textSize.X - 5 * partyScale;
+        var posY = nameNode->ScreenY                                     + 2              * partyScale;
+
+        var pos = new Vector2(posX, posY);
+
+        drawList.AddText(pos + new Vector2(1, 1), 0x9D00A2FF, text);
+        drawList.AddText(pos,                     0xFFFFFFFF, text);
+    }
+
+    private static unsafe void DrawShieldNode
+    (
+        ImDrawListPtr                            drawList,
+        ref AddonPartyList.PartyListMemberStruct partyMember,
+        in  PartyMitigationSnapshot              status
+    )
+    {
+        var shieldValue = status.Shield;
+
+        var hpComponent = partyMember.HPGaugeComponent;
+        if (hpComponent is null || !hpComponent->OwnerNode->IsVisible())
+            return;
+
+        var numNode = hpComponent->GetTextNodeById(2);
+        if (numNode is null || !numNode->IsVisible())
+            return;
+
+        var partyListAddon = (AddonPartyList*)PartyList;
+        var mpNode2        = partyMember.MPGaugeBar->GetTextNodeById(2)->GetAsAtkTextNode();
+        var mpNode3        = partyMember.MPGaugeBar->GetTextNodeById(3)->GetAsAtkTextNode();
+
+        if (shieldValue >= 1e5)
+        {
+            if (mpNode2 is not null && mpNode2->IsVisible())
+                mpNode2->SetAlpha(0);
+            if (mpNode3 is not null && mpNode3->IsVisible())
+                mpNode3->SetAlpha(0);
+        }
+        else
+        {
+            if (mpNode2 is not null && mpNode2->IsVisible())
+                mpNode2->SetAlpha(255);
+            if (mpNode3 is not null && mpNode3->IsVisible())
+                mpNode3->SetAlpha(255);
+        }
+
+        if (shieldValue <= 0)
+            return;
+
+        var partyScale = partyListAddon->Scale;
+
+        using var fontPush = FontManager.Instance().MiedingerMidFont120.Push();
+
+        var text = $"{shieldValue:F0}";
+
+        var posX = numNode->ScreenX                                                    + numNode->GetWidth() * partyListAddon->Scale + 3 * partyScale;
+        var posY = numNode->ScreenY + numNode->GetHeight() * partyListAddon->Scale / 2 - 3f                  * partyScale;
+
+        drawList.AddText(new Vector2(posX + 1, posY + 1), 0x9D00A2FF, text);
+        drawList.AddText(new Vector2(posX,     posY),     0xFFFFFFFF, text);
+    }
+
+    #endregion
 }

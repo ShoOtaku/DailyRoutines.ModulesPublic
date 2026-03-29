@@ -1,31 +1,34 @@
-using System;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Interop.Game.Helpers;
+using OmenTools.Threading;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoShowFrontlineKillCount : DailyModuleBase
+public unsafe class AutoShowFrontlineKillCount : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoShowFrontlineKillCountTitle"),
-        Description = GetLoc("AutoShowFrontlineKillCountDescription"),
-        Category    = ModuleCategories.Combat
-    };
-    
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-    
     private static uint LastKillCount;
 
     private static uint Preview = 1;
-    
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoShowFrontlineKillCountTitle"),
+        Description = Lang.Get("AutoShowFrontlineKillCountDescription"),
+        Category    = ModuleCategory.Combat
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override void Init()
     {
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "PvPFrontlineGauge", OnAddon);
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
-        
+
         if (PvPFrontlineGauge->IsAddonAndNodesReady())
         {
             try
@@ -41,15 +44,15 @@ public unsafe class AutoShowFrontlineKillCount : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Preview"));
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("Preview"));
 
         using (ImRaii.PushIndent())
         {
-            if (ImGui.Button(GetLoc("Confirm")))
+            if (ImGui.Button(Lang.Get("Confirm")))
                 DisplayKillCount(Preview);
-            
+
             ImGui.SameLine();
-            ImGui.SetNextItemWidth(100f * GlobalFontScale);
+            ImGui.SetNextItemWidth(100f * GlobalUIScale);
             if (ImGui.InputUInt("###PreviewInput", ref Preview, 1, 1))
                 Preview = Math.Clamp(Preview, 1, 99);
         }
@@ -58,10 +61,10 @@ public unsafe class AutoShowFrontlineKillCount : DailyModuleBase
     private static void OnAddon(AddonEvent type, AddonArgs args)
     {
         if (PvPFrontlineGauge == null) return;
-        if (!Throttler.Throttle("AutoShowFrontlineKillCount-OnUpdate", 100)) return;
+        if (!Throttler.Shared.Throttle("AutoShowFrontlineKillCount-OnUpdate", 100)) return;
 
         var killCount = 0U;
-        
+
         try
         {
             killCount = PvPFrontlineGauge->AtkValues[6].UInt;
@@ -70,7 +73,7 @@ public unsafe class AutoShowFrontlineKillCount : DailyModuleBase
         {
             killCount = LastKillCount;
         }
-        
+
         if (LastKillCount != killCount)
         {
             DisplayKillCount(killCount);
@@ -80,16 +83,16 @@ public unsafe class AutoShowFrontlineKillCount : DailyModuleBase
 
     private static void DisplayKillCount(uint killCount)
     {
-        if (TryGetAddonByName("_Streak", out var addon))
+        if (AddonHelper.TryGetByName("_Streak", out var addon))
         {
             addon->IsVisible = false;
             addon->Close(true);
         }
-        
+
         UIModule.Instance()->ShowStreak((int)killCount, killCount <= 2 ? 1 : 2);
     }
-    
-    private static void OnZoneChanged(ushort obj) => 
+
+    private static void OnZoneChanged(ushort obj) =>
         LastKillCount = 0;
 
     protected override void Uninit()

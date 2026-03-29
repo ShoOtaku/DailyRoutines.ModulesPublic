@@ -1,35 +1,26 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
 using GameObjectStruct = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class CustomizeGameObject : DailyModuleBase
+public unsafe class CustomizeGameObject : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("CustomizeGameObjectTitle"),
-        Description = GetLoc("CustomizeGameObjectDescription"),
-        Category    = ModuleCategories.System,
-        Author      = ["HSS"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
     private const int THROTTLE_INTERVAL_MS = 2_000;
 
     private static readonly CompSig CharacterUpdateSig = new("4C 8B DC 53 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 80 89");
-    private delegate        void* CharacterUpdateDelegate(Character* character);
     private static          Hook<CharacterUpdateDelegate>? CharacterUpdateHook;
 
     private static Config ModuleConfig = null!;
@@ -56,9 +47,19 @@ public unsafe class CustomizeGameObject : DailyModuleBase
     private static string        ValueEditInput = string.Empty;
     private static bool          ScaleVFXEditInput;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("CustomizeGameObjectTitle"),
+        Description = Lang.Get("CustomizeGameObjectDescription"),
+        Category    = ModuleCategory.System,
+        Author      = ["HSS"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
         RebuildLookupCache();
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
@@ -78,6 +79,54 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         CustomizeHistory.Clear();
         FailureCache.Clear();
         ClearLookupCache();
+    }
+
+    private delegate void* CharacterUpdateDelegate(Character* character);
+
+
+    private class CustomizePreset : IEquatable<CustomizePreset>
+    {
+        public string        Note     { get; set; } = string.Empty;
+        public CustomizeType Type     { get; set; }
+        public string        Value    { get; set; } = string.Empty;
+        public float         Scale    { get; set; }
+        public bool          ScaleVFX { get; set; }
+        public bool          Enabled  { get; set; }
+
+        public bool Equals(CustomizePreset? other)
+        {
+            if (other == null) return false;
+            return Type == other.Type && string.Equals(Value, other.Value, StringComparison.Ordinal);
+        }
+
+        public override bool Equals(object? obj) => obj is CustomizePreset other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(Type, Value);
+
+        public static bool operator ==(CustomizePreset left, CustomizePreset right) => Equals(left, right);
+
+        public static bool operator !=(CustomizePreset left, CustomizePreset right) => !Equals(left, right);
+    }
+
+    private sealed record CustomizeHistoryEntry
+    (
+        CustomizePreset Preset,
+        float           OrigScale,
+        float           CurrentScale
+    );
+
+    private enum CustomizeType
+    {
+        Name,
+        ModelCharaID,
+        ModelSkeletonID,
+        DataID,
+        ObjectID
+    }
+
+    private class Config : ModuleConfig
+    {
+        public List<CustomizePreset> CustomizePresets = [];
     }
 
     #region 事件
@@ -365,18 +414,18 @@ public unsafe class CustomizeGameObject : DailyModuleBase
 
         DrawAddPresetSection();
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("Note"));
+        ImGuiOm.Text(Lang.Get("Note"));
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("CustomizeGameObject-CustomizeType"));
+        ImGuiOm.Text(Lang.Get("CustomizeGameObject-CustomizeType"));
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("Value"));
+        ImGuiOm.Text(Lang.Get("Value"));
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("CustomizeGameObject-Scale"));
+        ImGuiOm.Text(Lang.Get("CustomizeGameObject-Scale"));
         ImGui.TableNextColumn();
         ImGui.Dummy(new(32f));
-        ImGuiOm.TooltipHover(GetLoc("CustomizeGameObject-ScaleVFX"));
+        ImGuiOm.TooltipHover(Lang.Get("CustomizeGameObject-ScaleVFX"));
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("Operation"));
+        ImGuiOm.Text(Lang.Get("Operation"));
 
         var array = ModuleConfig.CustomizePresets.ToArray();
 
@@ -402,9 +451,9 @@ public unsafe class CustomizeGameObject : DailyModuleBase
             CustomizePresetEditorUI(ref TypeInput, ref ValueInput, ref ScaleInput, ref ScaleVFXInput, ref NoteInput);
             ImGui.Spacing();
 
-            var buttonSize = new Vector2(ImGui.GetContentRegionAvail().X, 24f * GlobalFontScale);
+            var buttonSize = new Vector2(ImGui.GetContentRegionAvail().X, 24f * GlobalUIScale);
 
-            if (ImGui.Button(GetLoc("Add"), buttonSize))
+            if (ImGui.Button(Lang.Get("Add"), buttonSize))
             {
                 if (ScaleInput > 0 && !string.IsNullOrWhiteSpace(ValueInput))
                 {
@@ -505,7 +554,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         ImGui.SameLine();
 
         // Delete
-        if (ImGuiOm.ButtonIcon($"DeletePreset_{i}", FontAwesomeIcon.TrashAlt, GetLoc("HoldCtrlToDelete")) &&
+        if (ImGuiOm.ButtonIcon($"DeletePreset_{i}", FontAwesomeIcon.TrashAlt, Lang.Get("HoldCtrlToDelete")) &&
             ImGui.IsKeyDown(ImGuiKey.LeftCtrl))
         {
             RemovePresetHistory(preset);
@@ -515,13 +564,13 @@ public unsafe class CustomizeGameObject : DailyModuleBase
 
         ImGui.SameLine();
         // Export
-        if (ImGuiOm.ButtonIcon($"ExportPreset_{i}", FontAwesomeIcon.FileExport, GetLoc("ExportToClipboard")))
+        if (ImGuiOm.ButtonIcon($"ExportPreset_{i}", FontAwesomeIcon.FileExport, Lang.Get("ExportToClipboard")))
             ExportToClipboard(preset);
 
         ImGui.SameLine();
 
         // Import
-        if (ImGuiOm.ButtonIcon($"ImportPreset_{i}", FontAwesomeIcon.FileImport, GetLoc("ImportFromClipboard")))
+        if (ImGuiOm.ButtonIcon($"ImportPreset_{i}", FontAwesomeIcon.FileImport, Lang.Get("ImportFromClipboard")))
         {
             var presetImport = ImportFromClipboard<CustomizePreset>();
 
@@ -535,7 +584,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
 
     private void SaveAndRebuild()
     {
-        SaveConfig(ModuleConfig);
+        ModuleConfig.Save(this);
         RebuildLookupCache();
     }
 
@@ -547,12 +596,12 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         if (!table) return false;
 
         ImGui.TableSetupColumn("Label", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("真得五个字").X);
-        ImGui.TableSetupColumn("Input", ImGuiTableColumnFlags.WidthFixed, 300f * GlobalFontScale);
+        ImGui.TableSetupColumn("Input", ImGuiTableColumnFlags.WidthFixed, 300f * GlobalUIScale);
 
         // Type
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        ImGui.TextUnformatted($"{GetLoc("CustomizeGameObject-CustomizeType")}:");
+        ImGui.TextUnformatted($"{Lang.Get("CustomizeGameObject-CustomizeType")}:");
         ImGui.TableNextColumn();
 
         using (var combo = ImRaii.Combo("###CustomizeTypeSelectCombo", typeInput.ToString()))
@@ -573,7 +622,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         // Value
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        ImGui.TextUnformatted($"{GetLoc("Value")}:");
+        ImGui.TextUnformatted($"{Lang.Get("Value")}:");
         ImGui.TableNextColumn();
         ImGui.InputText("###CustomizeValueInput", ref valueInput, 128);
         if (ImGui.IsItemDeactivatedAfterEdit()) state = true;
@@ -582,17 +631,17 @@ public unsafe class CustomizeGameObject : DailyModuleBase
         // Scale
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        ImGui.TextUnformatted($"{GetLoc("CustomizeGameObject-Scale")}:");
+        ImGui.TextUnformatted($"{Lang.Get("CustomizeGameObject-Scale")}:");
         ImGui.TableNextColumn();
         ImGui.SliderFloat("###CustomizeScaleSilder", ref scaleInput, 0.1f, 10f, "%.1f");
         if (ImGui.IsItemDeactivatedAfterEdit()) state = true;
         ImGui.SameLine();
-        if (ImGui.Checkbox(GetLoc("CustomizeGameObject-ScaleVFX"), ref scaleVFXInput)) state = true;
+        if (ImGui.Checkbox(Lang.Get("CustomizeGameObject-ScaleVFX"), ref scaleVFXInput)) state = true;
 
         // Note
         ImGui.TableNextRow();
         ImGui.TableNextColumn();
-        ImGui.TextUnformatted($"{GetLoc("Note")}:");
+        ImGui.TextUnformatted($"{Lang.Get("Note")}:");
         ImGui.TableNextColumn();
         ImGui.InputText("###CustomizeNoteInput", ref noteInput, 128);
         if (ImGui.IsItemDeactivatedAfterEdit()) state = true;
@@ -605,11 +654,11 @@ public unsafe class CustomizeGameObject : DailyModuleBase
     {
         if (gameObject is not ICharacter chara)
         {
-            ImGui.TextUnformatted(GetLoc("CustomizeGameObject-NoTaretNotice"));
+            ImGui.TextUnformatted(Lang.Get("CustomizeGameObject-NoTaretNotice"));
             return;
         }
 
-        var       tableSize = new Vector2(350f * GlobalFontScale, 0f);
+        var       tableSize = new Vector2(350f * GlobalUIScale, 0f);
         using var table     = ImRaii.Table("TargetInfoPreviewTable", 2, ImGuiTableFlags.BordersInner, tableSize);
         if (!table) return;
 
@@ -627,7 +676,7 @@ public unsafe class CustomizeGameObject : DailyModuleBase
             ImGui.InputText($"###{label}Preview", ref value, 128, ImGuiInputTextFlags.ReadOnly);
         }
 
-        DrawRow(GetLoc("Name"),      chara.Name.ToString());
+        DrawRow(Lang.Get("Name"),    chara.Name.ToString());
         DrawRow("Data ID",           chara.DataID.ToString());
         DrawRow("Object ID",         chara.GameObjectID.ToString()); // Use hex for clarity? or keep decimal
         DrawRow("Model Chara ID",    chara.ModelCharaID.ToString());
@@ -644,50 +693,4 @@ public unsafe class CustomizeGameObject : DailyModuleBase
     }
 
     #endregion
-
-
-    private class CustomizePreset : IEquatable<CustomizePreset>
-    {
-        public string        Note     { get; set; } = string.Empty;
-        public CustomizeType Type     { get; set; }
-        public string        Value    { get; set; } = string.Empty;
-        public float         Scale    { get; set; }
-        public bool          ScaleVFX { get; set; }
-        public bool          Enabled  { get; set; }
-
-        public bool Equals(CustomizePreset? other)
-        {
-            if (other == null) return false;
-            return Type == other.Type && string.Equals(Value, other.Value, StringComparison.Ordinal);
-        }
-
-        public override bool Equals(object? obj) => obj is CustomizePreset other && Equals(other);
-
-        public override int GetHashCode() => HashCode.Combine(Type, Value);
-
-        public static bool operator ==(CustomizePreset left, CustomizePreset right) => Equals(left, right);
-
-        public static bool operator !=(CustomizePreset left, CustomizePreset right) => !Equals(left, right);
-    }
-
-    private sealed record CustomizeHistoryEntry
-    (
-        CustomizePreset Preset,
-        float           OrigScale,
-        float           CurrentScale
-    );
-
-    private enum CustomizeType
-    {
-        Name,
-        ModelCharaID,
-        ModelSkeletonID,
-        DataID,
-        ObjectID
-    }
-
-    private class Config : ModuleConfiguration
-    {
-        public List<CustomizePreset> CustomizePresets = [];
-    }
 }

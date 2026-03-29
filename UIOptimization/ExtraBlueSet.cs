@@ -1,38 +1,39 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
-using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using Action = Lumina.Excel.Sheets.Action;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class ExtraBlueSet : DailyModuleBase
+public unsafe class ExtraBlueSet : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("ExtraBlueSetTitle"),
-        Description = GetLoc("ExtraBlueSetDescription", Command),
-        Category    = ModuleCategories.UIOptimization,
-        Author      = ["Marsh"]
-    };
+    private const string Command = "exblueset";
 
     private static Config ModuleConfig = null!;
 
-    private const string Command = "exblueset";
-
     private static string NewPresetNameInput = string.Empty;
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("ExtraBlueSetTitle"),
+        Description = Lang.Get("ExtraBlueSetDescription", Command),
+        Category    = ModuleCategory.UIOptimization,
+        Author      = ["Marsh"]
+    };
 
     protected override void Init()
     {
         Overlay ??= new(this);
 
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "AOZNotebook", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "AOZNotebook", OnAddon);
@@ -40,12 +41,13 @@ public unsafe class ExtraBlueSet : DailyModuleBase
         if (AOZNotebook->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
 
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("ExtraBlueSet-CommandHelp") });
+        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("ExtraBlueSet-CommandHelp") });
     }
 
     protected override void OverlayUI()
     {
         var addon = AOZNotebook;
+
         if (addon == null)
         {
             Overlay.IsOpen = false;
@@ -56,31 +58,34 @@ public unsafe class ExtraBlueSet : DailyModuleBase
         if (resNode == null) return;
 
         using var font = FontManager.Instance().UIFont80.Push();
-        
-        var pos = new Vector2(addon->GetX() - ImGui.GetWindowSize().X + (20f * GlobalFontScale), 
-                              addon->GetY()                           + (30 * GlobalFontScale));
+
+        var pos = new Vector2
+        (
+            addon->GetX() - ImGui.GetWindowSize().X + 20f * GlobalUIScale,
+            addon->GetY()                           + 30  * GlobalUIScale
+        );
         ImGui.SetWindowPos(pos);
 
         var origPosY = ImGui.GetCursorPosY();
-        ImGui.SetCursorPosY(origPosY + (2f * GlobalFontScale));
+        ImGui.SetCursorPosY(origPosY + 2f * GlobalUIScale);
         using (FontManager.Instance().UIFont.Push())
             ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Info.Title);
-        
-        ImGui.SameLine(0, 8f * GlobalFontScale);
-        ImGui.SetCursorPosY(origPosY - GlobalFontScale);
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, GetLoc("Add")))
+
+        ImGui.SameLine(0, 8f * GlobalUIScale);
+        ImGui.SetCursorPosY(origPosY - GlobalUIScale);
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, Lang.Get("Add")))
             ImGui.OpenPopup("NewPresetPopup");
 
         using (var popup = ImRaii.Popup("NewPresetPopup"))
         {
             if (popup)
             {
-                ImGui.InputTextWithHint("###NewPresetNameInput", GetLoc("Name"), ref NewPresetNameInput, 256);
+                ImGui.InputTextWithHint("###NewPresetNameInput", Lang.Get("Name"), ref NewPresetNameInput, 256);
 
                 using (ImRaii.Disabled(string.IsNullOrWhiteSpace(NewPresetNameInput)))
                 {
-                    if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Check, GetLoc("Confirm")) &&
-                        !string.IsNullOrWhiteSpace(NewPresetNameInput) &&
+                    if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Check, Lang.Get("Confirm")) &&
+                        !string.IsNullOrWhiteSpace(NewPresetNameInput)                         &&
                         ModuleConfig.Presets.FirstOrDefault(x => x.Name == NewPresetNameInput) is null)
                     {
                         var manager = ActionManager.Instance();
@@ -89,13 +94,16 @@ public unsafe class ExtraBlueSet : DailyModuleBase
                         for (var i = 0; i < 24; i++)
                             actions[i] = manager->GetActiveBlueMageActionInSlot(i);
 
-                        ModuleConfig.Presets.Add(new()
-                        {
-                            Name    = NewPresetNameInput,
-                            Actions = actions
-                        });
+                        ModuleConfig.Presets.Add
+                        (
+                            new()
+                            {
+                                Name    = NewPresetNameInput,
+                                Actions = actions
+                            }
+                        );
                         ModuleConfig.Save(this);
-                        
+
                         ImGui.CloseCurrentPopup();
                         NewPresetNameInput = string.Empty;
                     }
@@ -104,11 +112,11 @@ public unsafe class ExtraBlueSet : DailyModuleBase
         }
 
         ImGui.Spacing();
-        
+
         var       nodeState  = resNode->GetNodeState();
         using var presetList = ImRaii.Child("List", nodeState.Size, true);
         if (!presetList) return;
-        
+
         for (var i = 0; i < ModuleConfig.Presets.Count; i++)
         {
             var preset = ModuleConfig.Presets[i];
@@ -124,7 +132,7 @@ public unsafe class ExtraBlueSet : DailyModuleBase
                 ImGui.BeginTooltip();
 
                 ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{preset.Name}");
-                
+
                 for (var index = 0; index < preset.Actions.Length; index++)
                 {
                     var action = preset.Actions[index];
@@ -144,7 +152,7 @@ public unsafe class ExtraBlueSet : DailyModuleBase
             {
                 if (context)
                 {
-                    if (ImGui.MenuItem($"{GetLoc("Delete")}"))
+                    if (ImGui.MenuItem($"{Lang.Get("Delete")}"))
                     {
                         ModuleConfig.Presets.RemoveAt(i);
                         ModuleConfig.Save(this);
@@ -185,6 +193,7 @@ public unsafe class ExtraBlueSet : DailyModuleBase
             for (var j = 0; j < 24; j++)
             {
                 if (i == j) continue;
+
                 if (final[i] == current[j])
                 {
                     manager->SwapBlueMageActionSlots(i, j);
@@ -195,19 +204,17 @@ public unsafe class ExtraBlueSet : DailyModuleBase
         }
 
         for (var i = 0; i < 24; i++)
-        {
             if (final[i] != 0)
                 manager->AssignBlueMageActionToSlot(i, final[i]);
-        }
-        
-        NotificationSuccess(GetLoc("ExtraBlueSet-Notification", entry.Name));
+
+        NotifyHelper.NotificationSuccess(Lang.Get("ExtraBlueSet-Notification", entry.Name));
     }
-    
+
     private static void OnCommand(string command, string args)
     {
         args = args.Trim();
         if (string.IsNullOrWhiteSpace(args) || ModuleConfig.Presets.FirstOrDefault(x => x.Name == args) is not { } preset) return;
-        
+
         ApplyCustomPreset(preset);
     }
 
@@ -223,7 +230,7 @@ public unsafe class ExtraBlueSet : DailyModuleBase
         public uint[] Actions { get; set; } = new uint[24];
     }
 
-    public class Config : ModuleConfiguration
+    public class Config : ModuleConfig
     {
         public List<BlueMagePresetEntry> Presets { get; set; } = [];
     }

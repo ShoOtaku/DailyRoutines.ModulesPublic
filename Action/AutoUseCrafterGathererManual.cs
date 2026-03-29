@@ -1,26 +1,19 @@
-using System.Collections.Generic;
-using System.Linq;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
-using OmenTools.Extensions;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoUseCrafterGathererManual : DailyModuleBase
+public unsafe class AutoUseCrafterGathererManual : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoUseCrafterGathererManualTitle"),
-        Description = GetLoc("AutoUseCrafterGathererManualDescription"),
-        Category    = ModuleCategories.General,
-        Author      = ["Shiyuvi", "AtmoOmen"]
-    };
-
     private static readonly HashSet<uint> Gatherers =
         LuminaGetter.Get<ClassJob>()
                     .Where(x => x.ClassJobCategory.RowId == 32)
@@ -38,28 +31,36 @@ public unsafe class AutoUseCrafterGathererManual : DailyModuleBase
 
     private static readonly HashSet<ConditionFlag> ValidConditions =
     [
-        ConditionFlag.Crafting, ConditionFlag.Gathering, ConditionFlag.Mounted,
+        ConditionFlag.Crafting, ConditionFlag.Gathering, ConditionFlag.Mounted
     ];
 
     private static Config ModuleConfig = null!;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoUseCrafterGathererManualTitle"),
+        Description = Lang.Get("AutoUseCrafterGathererManualDescription"),
+        Category    = ModuleCategory.General,
+        Author      = ["Shiyuvi", "AtmoOmen"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
-        TaskHelper ??= new() { TimeoutMS = 15_000 };
+        ModuleConfig =   Config.Load(this) ?? new();
+        TaskHelper   ??= new() { TimeoutMS = 15_000 };
 
         DService.Instance().Condition.ConditionChange    += OnConditionChanged;
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         DService.Instance().ClientState.ClassJobChanged  += OnClassJobChanged;
         DService.Instance().ClientState.LevelChanged     += OnLevelChanged;
-        
+
         EnqueueCheck();
     }
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref ModuleConfig.SendNotification))
+            ModuleConfig.Save(this);
     }
 
     protected override void Uninit()
@@ -75,53 +76,58 @@ public unsafe class AutoUseCrafterGathererManual : DailyModuleBase
         if (value || !ValidConditions.Contains(flag)) return;
         EnqueueCheck();
     }
-    
-    private void OnZoneChanged(ushort zone) => 
-        EnqueueCheck();
-    
-    private void OnLevelChanged(uint classJobID, uint level) => 
+
+    private void OnZoneChanged(ushort zone) =>
         EnqueueCheck();
 
-    private void OnClassJobChanged(uint classJobID) => 
+    private void OnLevelChanged(uint classJobID, uint level) =>
         EnqueueCheck();
-    
+
+    private void OnClassJobChanged(uint classJobID) =>
+        EnqueueCheck();
+
     private void EnqueueCheck()
     {
         TaskHelper.Abort();
-        TaskHelper.Enqueue(() =>
-        {
-            if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
-            if (localPlayer.Level >= PlayerState.Instance()->MaxLevel) return true;
-            if (BetweenAreas || OccupiedInEvent || IsCasting || !UIModule.IsScreenReady() ||
-                ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 2) != 0)
-                return false;
+        TaskHelper.Enqueue
+        (() =>
+            {
+                if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;
+                if (localPlayer.Level >= PlayerState.Instance()->MaxLevel) return true;
+                if (DService.Instance().Condition.IsBetweenAreas    ||
+                    DService.Instance().Condition.IsOccupiedInEvent ||
+                    DService.Instance().Condition.IsCasting         ||
+                    !UIModule.IsScreenReady()                       ||
+                    ActionManager.Instance()->GetActionStatus(ActionType.GeneralAction, 2) != 0)
+                    return false;
 
-            var isGatherer = Gatherers.Contains(localPlayer.ClassJob.RowId);
-            var isCrafter  = Crafters.Contains(localPlayer.ClassJob.RowId);
-            if (!isGatherer && !isCrafter) return true;
+                var isGatherer = Gatherers.Contains(localPlayer.ClassJob.RowId);
+                var isCrafter  = Crafters.Contains(localPlayer.ClassJob.RowId);
+                if (!isGatherer && !isCrafter) return true;
 
-            var statusManager = localPlayer.ToStruct()->StatusManager;
-            var statusIndex   = statusManager.GetStatusIndex(isGatherer ? 46U : 45U);
-            if (statusIndex != -1) return true;
+                var statusManager = localPlayer.ToStruct()->StatusManager;
+                var statusIndex   = statusManager.GetStatusIndex(isGatherer ? 46U : 45U);
+                if (statusIndex != -1) return true;
 
-            var itemID = 0U;
-            if (isGatherer && TryGetFirstValidItem(GathererManuals, out var gathererManual))
-                itemID = gathererManual;
-            if (isCrafter && TryGetFirstValidItem(CrafterManuals, out var crafterManual))
-                itemID = crafterManual;
-            if (itemID == 0 || !LuminaGetter.TryGetRow<Item>(itemID, out var itemRow)) return true;
-            
-            UseActionManager.Instance().UseActionLocation(ActionType.Item, itemID, 0xE0000000, default, 0xFFFF);
-            if (ModuleConfig.SendNotification)
-                NotificationInfo(GetLoc("AutoUseCrafterGathererManual-Notification", itemRow.Name.ToString()));
-            return true;
-        });
+                var itemID = 0U;
+                if (isGatherer && TryGetFirstValidItem(GathererManuals, out var gathererManual))
+                    itemID = gathererManual;
+                if (isCrafter && TryGetFirstValidItem(CrafterManuals, out var crafterManual))
+                    itemID = crafterManual;
+                if (itemID == 0 || !LuminaGetter.TryGetRow<Item>(itemID, out var itemRow)) return true;
+
+                UseActionManager.Instance().UseActionLocation(ActionType.Item, itemID, 0xE0000000, default, 0xFFFF);
+                if (ModuleConfig.SendNotification)
+                    NotifyHelper.NotificationInfo(Lang.Get("AutoUseCrafterGathererManual-Notification", itemRow.Name.ToString()));
+                return true;
+            }
+        );
     }
 
     private static bool TryGetFirstValidItem(IEnumerable<uint> items, out uint itemID)
     {
         itemID = 0;
-        
+
         var manager = InventoryManager.Instance();
         if (manager == null) return false;
 
@@ -129,15 +135,15 @@ public unsafe class AutoUseCrafterGathererManual : DailyModuleBase
         {
             var count = manager->GetInventoryItemCount(item) + manager->GetInventoryItemCount(item, true);
             if (count == 0) continue;
-            
+
             itemID = item;
             return true;
         }
-        
+
         return false;
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public bool SendNotification = true;
     }

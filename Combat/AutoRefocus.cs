@@ -1,28 +1,30 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Manager;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoRefocus : DailyModuleBase
+public class AutoRefocus : ModuleBase
 {
+    private static ulong FocusTarget = 0xE000_0000;
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoRefocusTitle"),
-        Description = GetLoc("AutoRefocusDescription"),
-        Category    = ModuleCategories.Combat,
+        Title       = Lang.Get("AutoRefocusTitle"),
+        Description = Lang.Get("AutoRefocusDescription"),
+        Category    = ModuleCategory.Combat
     };
-
-    private static ulong FocusTarget = 0xE000_0000;
 
     protected override void Init()
     {
         FocusTarget = 0xE000_0000;
-        
+
         TargetManager.Instance().RegPostSetFocusTarget(OnSetFocusTarget);
         DService.Instance().ClientState.TerritoryChanged += OnZoneChange;
-        PlayersManager.ReceivePlayersAround   += OnReceivePlayerAround;
+        PlayersManager.ReceivePlayersAround              += OnReceivePlayerAround;
     }
 
     private static unsafe void OnReceivePlayerAround(IReadOnlyList<IPlayerCharacter> characters)
@@ -31,7 +33,7 @@ public class AutoRefocus : DailyModuleBase
         TargetManager.ToStruct()->SetFocusTargetByObjectId(FocusTarget);
     }
 
-    private static void OnSetFocusTarget(GameObjectId gameObjectID) => 
+    private static void OnSetFocusTarget(GameObjectId gameObjectID) =>
         FocusTarget = gameObjectID;
 
     private static void OnZoneChange(ushort zone) =>
@@ -39,7 +41,7 @@ public class AutoRefocus : DailyModuleBase
 
     protected override void Uninit()
     {
-        PlayersManager.ReceivePlayersAround -= OnReceivePlayerAround;
+        PlayersManager.ReceivePlayersAround              -= OnReceivePlayerAround;
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChange;
         TargetManager.Instance().Unreg(OnSetFocusTarget);
     }

@@ -1,46 +1,28 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using Dalamud.Memory;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using InteropGenerator.Runtime;
+using OmenTools.Interop.Game.Models;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class CustomizeInterfaceText : DailyModuleBase
+public unsafe class CustomizeInterfaceText : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("CustomizeInterfaceTextTitle"),
-        Description = GetLoc("CustomizeInterfaceTextDescription"),
-        Category    = ModuleCategories.UIOptimization,
-    };
-
-    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
-    private static readonly CompSig SetPlayerNamePlateSig = new("48 89 5C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ?? 44 0F B6 EA");
-    private delegate nint SetPlayerNamePlateDelegate(
-        nint namePlateObjectPtr,
-        bool isPrefixTitle,
-        bool displayTitle,
-        nint titlePtr,
-        nint namePtr,
-        nint fcNamePtr,
-        nint prefix,
-        int  iconID);
-    private static Hook<SetPlayerNamePlateDelegate>? SetPlayerNamePlateHook;
+    private static readonly CompSig                           SetPlayerNamePlateSig = new("48 89 5C 24 ?? 55 56 57 41 54 41 55 41 56 41 57 48 83 EC ?? 44 0F B6 EA");
+    private static          Hook<SetPlayerNamePlateDelegate>? SetPlayerNamePlateHook;
 
     private static readonly CompSig TextNodeSetStringSig = new("E8 ?? ?? ?? ?? 48 83 C4 ?? 5B C3 CC CC CC CC CC CC CC CC CC CC 40 55 56 57 48 81 EC");
-    private delegate        void TextNodeSetStringDelegate(AtkTextNode* textNode, CStringPointer text);
     private static          Hook<TextNodeSetStringDelegate>? TextNodeSetStringHook;
-    
+
     private static Config ModuleConfig = null!;
 
     private static string KeyInput   = string.Empty;
@@ -51,10 +33,19 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
     private static string ValueEditInput = string.Empty;
     private static int    ReplaceModeEditInput;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("CustomizeInterfaceTextTitle"),
+        Description = Lang.Get("CustomizeInterfaceTextDescription"),
+        Category    = ModuleCategory.UIOptimization
+    };
+
+    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
+
 
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         TextNodeSetStringHook ??= TextNodeSetStringSig.GetHook<TextNodeSetStringDelegate>(TextNodeSetStringDetour);
         TextNodeSetStringHook.Enable();
@@ -68,21 +59,21 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
         using (ImRaii.Group())
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted($"{GetLoc("Key")}:");
+            ImGui.TextUnformatted($"{Lang.Get("Key")}:");
 
             ImGui.SameLine();
-            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            ImGui.SetNextItemWidth(300f * GlobalUIScale);
             ImGui.InputText("###KeyInput", ref KeyInput, 96);
-            
+
             ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted($"{GetLoc("Value")}:");
+            ImGui.TextUnformatted($"{Lang.Get("Value")}:");
 
             ImGui.SameLine();
-            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            ImGui.SetNextItemWidth(300f * GlobalUIScale);
             ImGui.InputText("###ValueInput", ref ValueInput, 96);
 
             ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted($"{GetLoc("CustomizeInterfaceText-ReplaceMode")}:");
+            ImGui.TextUnformatted($"{Lang.Get("CustomizeInterfaceText-ReplaceMode")}:");
 
             foreach (var replaceMode in Enum.GetValues<ReplaceMode>())
             {
@@ -92,7 +83,8 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
         }
 
         ImGui.SameLine();
-        if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Plus, GetLoc("Add")) && !string.IsNullOrWhiteSpace(KeyInput))
+
+        if (ImGuiOm.ButtonIconWithTextVertical(FontAwesomeIcon.Plus, Lang.Get("Add")) && !string.IsNullOrWhiteSpace(KeyInput))
         {
             var pattern = new ReplacePattern(KeyInput, ValueInput, (ReplaceMode)ReplaceModeInput, true);
             if (ReplaceModeEditInput == (int)ReplaceMode.正则)
@@ -103,7 +95,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
                 ModuleConfig.ReplacePatterns.Add(pattern);
                 KeyInput = ValueInput = string.Empty;
 
-                SaveConfig(ModuleConfig);
+                ModuleConfig.Save(this);
             }
         }
 
@@ -113,7 +105,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
         {
             if (table)
             {
-                ImGui.TableSetupColumn("启用",   ImGuiTableColumnFlags.WidthFixed,   20 * GlobalFontScale);
+                ImGui.TableSetupColumn("启用",   ImGuiTableColumnFlags.WidthFixed,   20 * GlobalUIScale);
                 ImGui.TableSetupColumn("键",    ImGuiTableColumnFlags.WidthStretch, 50);
                 ImGui.TableSetupColumn("值",    ImGuiTableColumnFlags.WidthStretch, 50);
                 ImGui.TableSetupColumn("匹配模式", ImGuiTableColumnFlags.WidthStretch, 15);
@@ -122,13 +114,14 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted(string.Empty);
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(GetLoc("Key"));
+                ImGui.TextUnformatted(Lang.Get("Key"));
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(GetLoc("Value"));
+                ImGui.TextUnformatted(Lang.Get("Value"));
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(GetLoc("CustomizeInterfaceText-ReplaceMode"));
+                ImGui.TextUnformatted(Lang.Get("CustomizeInterfaceText-ReplaceMode"));
 
                 var array = ModuleConfig.ReplacePatterns.ToArray();
+
                 for (var i = 0; i < ModuleConfig.ReplacePatterns.Count; i++)
                 {
                     var replacePattern = array[i];
@@ -136,10 +129,11 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
 
                     ImGui.TableNextColumn();
                     var enabled = replacePattern.Enabled;
+
                     if (ImGui.Checkbox($"###{i}_IsEnabled", ref enabled))
                     {
                         ModuleConfig.ReplacePatterns[i].Enabled = enabled;
-                        SaveConfig(ModuleConfig);
+                        ModuleConfig.Save(this);
                     }
 
                     ImGui.TableNextColumn();
@@ -153,30 +147,32 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
                                 KeyEditInput = replacePattern.Key;
 
                             ImGui.AlignTextToFramePadding();
-                            ImGui.TextUnformatted($"{GetLoc("Key")}:");
+                            ImGui.TextUnformatted($"{Lang.Get("Key")}:");
 
                             ImGui.SameLine();
-                            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+                            ImGui.SetNextItemWidth(300f * GlobalUIScale);
                             ImGui.InputText("###KeyEditInput", ref KeyEditInput, 96);
-                            
+
                             if (ImGui.IsItemDeactivatedAfterEdit() && !string.IsNullOrWhiteSpace(KeyEditInput))
                             {
                                 var pattern = new ReplacePattern(KeyEditInput, "", 0, replacePattern.Enabled);
+
                                 if (!ModuleConfig.ReplacePatterns.Contains(pattern))
                                 {
                                     ModuleConfig.ReplacePatterns[i].Key = KeyEditInput;
                                     if (replacePattern.Mode is ReplaceMode.正则)
                                         ModuleConfig.ReplacePatterns[i].Regex = new Regex(KeyEditInput);
 
-                                    SaveConfig(ModuleConfig);
+                                    ModuleConfig.Save(this);
                                 }
                             }
 
                             ImGui.SameLine();
-                            if (ImGui.Button(GetLoc("Delete")))
+
+                            if (ImGui.Button(Lang.Get("Delete")))
                             {
                                 if (ModuleConfig.ReplacePatterns.Remove(replacePattern))
-                                    SaveConfig(ModuleConfig);
+                                    ModuleConfig.Save(this);
                             }
                         }
                     }
@@ -192,16 +188,16 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
                         if (context)
                         {
                             ImGui.AlignTextToFramePadding();
-                            ImGui.TextUnformatted($"{GetLoc("Value")}:");
+                            ImGui.TextUnformatted($"{Lang.Get("Value")}:");
 
                             ImGui.SameLine();
-                            ImGui.SetNextItemWidth(300f * GlobalFontScale);
+                            ImGui.SetNextItemWidth(300f * GlobalUIScale);
                             ImGui.InputText("###ValueEditInput", ref ValueEditInput, 96);
-                            
+
                             if (ImGui.IsItemDeactivatedAfterEdit())
                             {
                                 ModuleConfig.ReplacePatterns[i].Value = ValueEditInput;
-                                SaveConfig(ModuleConfig);
+                                ModuleConfig.Save(this);
                             }
                         }
                     }
@@ -217,7 +213,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
                         if (context)
                         {
                             ImGui.AlignTextToFramePadding();
-                            ImGui.TextUnformatted($"{GetLoc("CustomizeInterfaceText-ReplaceMode")}:");
+                            ImGui.TextUnformatted($"{Lang.Get("CustomizeInterfaceText-ReplaceMode")}:");
 
                             foreach (var replaceMode in Enum.GetValues<ReplaceMode>())
                             {
@@ -230,7 +226,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
                                     if ((ReplaceMode)ReplaceModeEditInput is ReplaceMode.正则)
                                         ModuleConfig.ReplacePatterns[i].Regex = new Regex(replacePattern.Key);
 
-                                    SaveConfig(ModuleConfig);
+                                    ModuleConfig.Save(this);
                                 }
                             }
                         }
@@ -249,6 +245,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
         }
 
         var origText = SeString.Parse(text.Value);
+
         if (origText.Payloads.Count == 0)
         {
             TextNodeSetStringHook.Original(textNode, text);
@@ -258,6 +255,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
         if (ApplyTextReplacements(origText, out var modifiedText))
         {
             var pinnedArray = GCHandle.Alloc(modifiedText, GCHandleType.Pinned);
+
             try
             {
                 TextNodeSetStringHook.Original(textNode, new((byte*)pinnedArray.AddrOfPinnedObject()));
@@ -271,7 +269,8 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
             TextNodeSetStringHook.Original(textNode, text);
     }
 
-    private static nint SetPlayerNamePlayerDetour(
+    private static nint SetPlayerNamePlayerDetour
+    (
         nint namePlateObjectPtr,
         bool isPrefixTitle,
         bool displayTitle,
@@ -279,23 +278,32 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
         nint namePtr,
         nint fcNamePtr,
         nint prefix,
-        int  iconID)
+        int  iconID
+    )
     {
         using var nameMemory   = ReplaceTextAndAllocate(namePtr);
         using var titleMemory  = ReplaceTextAndAllocate(titlePtr);
         using var fcNameMemory = ReplaceTextAndAllocate(fcNamePtr);
 
-        return SetPlayerNamePlateHook!.Original(
-            namePlateObjectPtr, isPrefixTitle, displayTitle,
-            titleMemory.Pointer, nameMemory.Pointer, fcNameMemory.Pointer, prefix, iconID);
+        return SetPlayerNamePlateHook!.Original
+        (
+            namePlateObjectPtr,
+            isPrefixTitle,
+            displayTitle,
+            titleMemory.Pointer,
+            nameMemory.Pointer,
+            fcNameMemory.Pointer,
+            prefix,
+            iconID
+        );
     }
 
     private static PinnedMemory ReplaceTextAndAllocate(nint originalTextPtr)
     {
         var origText = MemoryHelper.ReadSeStringNullTerminated(originalTextPtr);
         return ApplyTextReplacements(origText, out var modifiedText)
-            ? new PinnedMemory(modifiedText)
-            : new PinnedMemory(Array.Empty<byte>());
+                   ? new PinnedMemory(modifiedText)
+                   : new PinnedMemory(Array.Empty<byte>());
     }
 
     private static bool ApplyTextReplacements(SeString origText, out byte[]? modifiedText)
@@ -304,6 +312,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
         var textPayloads = origText.Payloads.OfType<TextPayload>().ToArray();
 
         var modified = false;
+
         foreach (var pattern in ModuleConfig.ReplacePatterns)
         {
             if (!pattern.Enabled) continue;
@@ -314,19 +323,19 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
                 var replacedText = pattern.Mode switch
                 {
                     ReplaceMode.部分匹配 => originalText.Contains(pattern.Key, StringComparison.Ordinal)
-                        ? originalText.Replace(pattern.Key, pattern.Value)
-                        : null,
+                                            ? originalText.Replace(pattern.Key, pattern.Value)
+                                            : null,
                     ReplaceMode.完全匹配 => originalText.Equals(pattern.Key, StringComparison.Ordinal)
-                        ? pattern.Value
-                        : null,
+                                            ? pattern.Value
+                                            : null,
                     ReplaceMode.正则 => pattern.Regex?.Replace(originalText, pattern.Value),
-                    _ => null,
+                    _              => null
                 };
 
                 if (replacedText != null)
                 {
                     payload.Text = replacedText;
-                    modified = true;
+                    modified     = true;
                 }
             }
         }
@@ -340,16 +349,30 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
         return false;
     }
 
-    private class Config : ModuleConfiguration
+    private delegate nint SetPlayerNamePlateDelegate
+    (
+        nint namePlateObjectPtr,
+        bool isPrefixTitle,
+        bool displayTitle,
+        nint titlePtr,
+        nint namePtr,
+        nint fcNamePtr,
+        nint prefix,
+        int  iconID
+    );
+
+    private delegate void TextNodeSetStringDelegate(AtkTextNode* textNode, CStringPointer text);
+
+    private class Config : ModuleConfig
     {
         public List<ReplacePattern> ReplacePatterns = [];
     }
-    
+
     private enum ReplaceMode
     {
         部分匹配,
         完全匹配,
-        正则,
+        正则
     }
 
     private class ReplacePattern : IComparable<ReplacePattern>, IEquatable<ReplacePattern>
@@ -362,7 +385,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
             Value   = value;
             Mode    = mode;
             Enabled = enabled;
-            
+
             if (mode == ReplaceMode.正则)
                 Regex = new Regex(key, RegexOptions.Compiled);
         }
@@ -385,7 +408,7 @@ public unsafe class CustomizeInterfaceText : DailyModuleBase
         public void Deconstruct(out string key, out string value, out ReplaceMode mode, out bool enabled) =>
             (key, value, mode, enabled) = (Key, Value, Mode, Enabled);
     }
-    
+
     private struct PinnedMemory : IDisposable
     {
         public readonly nint     Pointer;

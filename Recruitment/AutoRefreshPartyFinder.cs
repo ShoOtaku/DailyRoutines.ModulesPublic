@@ -1,6 +1,9 @@
 using System.Timers;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -12,19 +15,12 @@ using Timer = System.Timers.Timer;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoRefreshPartyFinder : DailyModuleBase
+public unsafe class AutoRefreshPartyFinder : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoRefreshPartyFinderTitle"),
-        Description = GetLoc("AutoRefreshPartyFinderDescription"),
-        Category    = ModuleCategories.Recruitment,
-    };
-
     private static Config ModuleConfig = null!;
-    
+
     private static Timer? PFRefreshTimer;
-    
+
     private static int Cooldown;
 
     private static NumericInputNode?   RefreshIntervalNode;
@@ -32,14 +28,21 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
     private static TextNode?           LeftTimeNode;
     private static HorizontalListNode? LayoutNode;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoRefreshPartyFinderTitle"),
+        Description = Lang.Get("AutoRefreshPartyFinderDescription"),
+        Category    = ModuleCategory.Recruitment
+    };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
-        
+        ModuleConfig = Config.Load(this) ?? new();
+
         PFRefreshTimer           ??= new(1_000);
         PFRefreshTimer.AutoReset =   true;
         PFRefreshTimer.Elapsed   +=  OnRefreshTimer;
-        
+
         Cooldown = ModuleConfig.RefreshInterval;
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroup",       OnAddonPF);
@@ -48,10 +51,10 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroupDetail", OnAddonLFGD);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroupDetail", OnAddonLFGD);
 
-        if (LookingForGroup != null) 
+        if (LookingForGroup != null)
             OnAddonPF(AddonEvent.PostSetup, null);
     }
-    
+
     // 招募
     private static void OnAddonPF(AddonEvent type, AddonArgs? args)
     {
@@ -59,9 +62,9 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
         {
             case AddonEvent.PostSetup:
                 Cooldown = ModuleConfig.RefreshInterval;
-                
+
                 CreateRefreshIntervalNode();
-                
+
                 PFRefreshTimer.Restart();
                 break;
             case AddonEvent.PostRefresh when ModuleConfig.OnlyInactive:
@@ -116,13 +119,13 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
     {
         RefreshIntervalNode?.Dispose();
         RefreshIntervalNode = null;
-        
+
         OnlyInactiveNode?.Dispose();
         OnlyInactiveNode = null;
-        
+
         LayoutNode?.Dispose();
         LayoutNode = null;
-        
+
         LeftTimeNode?.Dispose();
         LeftTimeNode = null;
     }
@@ -137,7 +140,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
             IsVisible = true,
             IsChecked = ModuleConfig.OnlyInactive,
             IsEnabled = true,
-            String    = GetLoc("AutoRefreshPartyFinder-OnlyInactive"),
+            String    = Lang.Get("AutoRefreshPartyFinder-OnlyInactive"),
             OnClick = newState =>
             {
                 ModuleConfig.OnlyInactive = newState;
@@ -145,7 +148,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
             },
             Position = new(0, 1)
         };
-        
+
         RefreshIntervalNode ??= new()
         {
             Size      = new(150f, 30f),
@@ -177,7 +180,7 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
             AlignmentType    = AlignmentType.Right,
             Position         = new(10, 2),
             TextColor        = ColorHelper.GetColor(8),
-            TextOutlineColor = ColorHelper.GetColor(7),
+            TextOutlineColor = ColorHelper.GetColor(7)
         };
 
         LayoutNode = new HorizontalListNode
@@ -185,10 +188,10 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
             Width     = 270,
             IsVisible = true,
             Position  = new(500, 630),
-            Alignment = HorizontalListAnchor.Right,
+            Alignment = HorizontalListAnchor.Right
         };
         LayoutNode.AddNode([OnlyInactiveNode, RefreshIntervalNode, LeftTimeNode]);
-        
+
         LayoutNode.AttachNode(LookingForGroup->RootNode);
     }
 
@@ -210,14 +213,15 @@ public unsafe class AutoRefreshPartyFinder : DailyModuleBase
             PFRefreshTimer.Stop();
             PFRefreshTimer.Dispose();
         }
+
         PFRefreshTimer = null;
-        
+
         CleanNodes();
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
-        public int RefreshInterval = 10; // 秒
-        public bool OnlyInactive = true;
+        public bool OnlyInactive    = true;
+        public int  RefreshInterval = 10; // 秒
     }
 }

@@ -1,10 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
+using DailyRoutines.Verification;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Text.SeStringHandling;
@@ -13,42 +13,76 @@ using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
-using OmenTools.Extensions;
+using OmenTools.Interop.Game.AddonEvent;
+using OmenTools.Interop.Game.Helpers;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models.Packets.Upstream;
+using OmenTools.OmenService;
+using Control = FFXIVClientStructs.FFXIV.Client.Game.Control.Control;
 using Map = Lumina.Excel.Sheets.Map;
+using ModuleBase = DailyRoutines.Common.Module.Abstractions.ModuleBase;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class BetterTeleport : DailyModuleBase
+public unsafe class BetterTeleport : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title               = GetLoc("BetterTeleportTitle"),
-        Description         = GetLoc("BetterTeleportDescription"),
-        Category            = ModuleCategories.UIOptimization,
-        ModulesPrerequisite = ["SameAethernetTeleport"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
     private const string COMMAND = "/pdrtelepo";
 
     // Icon ID - Record
     private static readonly Dictionary<string, List<AetheryteRecord>> Records      = [];
     private static readonly List<AetheryteRecord>                     HouseRecords = [];
 
-    private static readonly SeString HomeChar      = new SeStringBuilder().AddIcon(BitmapFontIcon.OrangeDiamond).Build();
-    private static readonly SeString FreeChar      = new SeStringBuilder().AddIcon(BitmapFontIcon.GoldStar).Build();
-    private static readonly SeString FavoriteChar  = new SeStringBuilder().AddIcon(BitmapFontIcon.SilverStar).Build();
+    private static readonly SeString HomeChar     = new SeStringBuilder().AddIcon(BitmapFontIcon.OrangeDiamond).Build();
+    private static readonly SeString FreeChar     = new SeStringBuilder().AddIcon(BitmapFontIcon.GoldStar).Build();
+    private static readonly SeString FavoriteChar = new SeStringBuilder().AddIcon(BitmapFontIcon.SilverStar).Build();
 
     private static readonly HashSet<uint> HouseZones = [339, 340, 341, 641, 979];
 
     private static readonly Dictionary<uint, string> TicketUsageTypes = [];
+
+    private static Config ModuleConfig = null!;
+
+    private static bool IsRefreshing;
+
+    private static string                SearchWord   = string.Empty;
+    private static List<AetheryteRecord> SearchResult = [];
+    private static List<AetheryteRecord> Favorites    = [];
+    private static bool                  IsNeedToLoseFocusSearchBar;
+
+    private static readonly Dictionary<uint, float> HoverProgress = [];
+    private static          float                   HoverStartTime;
+
+    private static AetheryteRecord? HoveredAetheryte;
+    private static AetheryteRecord? LastHoveredAetheryte;
+    private static AetheryteRecord? PinnedAetheryte;
+
+    private static Vector3 ContextMenuTargetPos;
+    private static uint    ContextMenuTargetZone;
+
+    static BetterTeleport()
+    {
+        for (var i = 0U; i < 5; i++)
+        {
+            var addonOffset       = i + 8523U;
+            var optionDescription = LuminaWrapper.GetAddonText(addonOffset);
+            TicketUsageTypes[i] = optionDescription;
+        }
+    }
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title               = Lang.Get("BetterTeleportTitle"),
+        Description         = Lang.Get("BetterTeleportDescription"),
+        Category            = ModuleCategory.UIOptimization,
+        ModulesPrerequisite = ["SameAethernetTeleport"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
     private static uint TicketUsageType
     {
@@ -62,37 +96,8 @@ public unsafe class BetterTeleport : DailyModuleBase
         set => DService.Instance().GameConfig.UiConfig.Set("TelepoTicketGilSetting", value);
     }
 
-    private static Config ModuleConfig = null!;
-
-    private static bool IsRefreshing;
-
-    private static string                SearchWord   = string.Empty;
-    private static List<AetheryteRecord> SearchResult = [];
-    private static List<AetheryteRecord> Favorites    = [];
-    private static bool                  IsNeedToLoseFocusSearchBar;
-
     private static IEnumerable<AetheryteRecord> AllRecords =>
         Records.Values.SelectMany(x => x).Concat(HouseRecords);
-
-    static BetterTeleport()
-    {
-        for (var i = 0U; i < 5; i++)
-        {
-            var addonOffset       = i + 8523U;
-            var optionDescription = LuminaWrapper.GetAddonText(addonOffset);
-            TicketUsageTypes[i] = optionDescription;
-        }
-    }
-
-    private static readonly Dictionary<uint, float> HoverProgress = [];
-    private static          float                   HoverStartTime;
-    
-    private static AetheryteRecord? HoveredAetheryte;
-    private static AetheryteRecord? LastHoveredAetheryte;
-    private static AetheryteRecord? PinnedAetheryte;
-    
-    private static Vector3 ContextMenuTargetPos;
-    private static uint    ContextMenuTargetZone;
 
     protected override void Init()
     {
@@ -104,22 +109,22 @@ public unsafe class BetterTeleport : DailyModuleBase
 
         TaskHelper ??= new() { TimeoutMS = 60_000 };
 
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
 
-        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("BetterTeleport-CommandHelp") });
+        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("BetterTeleport-CommandHelp") });
 
         UseActionManager.Instance().RegPreUseAction(OnPostUseAction);
     }
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("Command")}:");
 
         ImGui.SameLine();
-        ImGui.TextWrapped($"{COMMAND} {GetLoc("BetterTeleport-CommandHelp")}");
+        ImGui.TextWrapped($"{COMMAND} {Lang.Get("BetterTeleport-CommandHelp")}");
     }
 
     protected override void OverlayUI()
@@ -146,21 +151,26 @@ public unsafe class BetterTeleport : DailyModuleBase
 
 
         var searchBarID = "###Search";
+
         if (IsNeedToLoseFocusSearchBar)
         {
             searchBarID                = "###Search_LoseFocus";
             IsNeedToLoseFocusSearchBar = false;
         }
+
         ImGui.SetNextItemWidth(isSearchEmpty ? -1f : -ImGui.GetFrameHeight() - ImGui.GetStyle().ItemSpacing.X);
-        if (ImGui.InputTextWithHint(searchBarID, GetLoc("PleaseSearch"), ref SearchWord, 128))
+
+        if (ImGui.InputTextWithHint(searchBarID, Lang.Get("PleaseSearch"), ref SearchWord, 128))
         {
             SearchResult = !string.IsNullOrWhiteSpace(SearchWord)
                                ? Records.Values
                                         .SelectMany(x => x)
-                                        .Where(x => x.ToString()
-                                                     .Contains(SearchWord, StringComparison.OrdinalIgnoreCase) ||
-                                                    (ModuleConfig.Remarks.TryGetValue(x.RowID, out var remark) &&
-                                                     remark.Contains(SearchWord, StringComparison.OrdinalIgnoreCase)))
+                                        .Where
+                                        (x => x.ToString()
+                                               .Contains(SearchWord, StringComparison.OrdinalIgnoreCase) ||
+                                              ModuleConfig.Remarks.TryGetValue(x.RowID, out var remark) &&
+                                              remark.Contains(SearchWord, StringComparison.OrdinalIgnoreCase)
+                                        )
                                         .ToList()
                                : [];
         }
@@ -168,6 +178,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         if (!isSearchEmpty)
         {
             ImGui.SameLine();
+
             if (ImGuiOm.ButtonIcon("Clear", FontAwesomeIcon.Times))
             {
                 SearchWord   = string.Empty;
@@ -176,10 +187,11 @@ public unsafe class BetterTeleport : DailyModuleBase
         }
 
         ImGui.Spacing();
-        
+
         if (SearchResult.Count > 0 || !isSearchEmpty)
         {
             using var child = ImRaii.Child("###SearchResultChild", new Vector2(0, -ImGui.GetFrameHeightWithSpacing()), false, ImGuiWindowFlags.NoBackground);
+
             if (child)
             {
                 if (SearchResult.Count != 0)
@@ -192,17 +204,20 @@ public unsafe class BetterTeleport : DailyModuleBase
         else
         {
             using var tabBar = ImRaii.TabBar("###AetherytesTabBar", ImGuiTabBarFlags.Reorderable | ImGuiTabBarFlags.NoTooltip);
+
             if (tabBar)
             {
                 var isSettingOn = false;
 
                 if (Favorites.Count > 0)
                 {
-                    using var tabItem = ImRaii.TabItem($"{GetLoc("Favorite")}##TabItem");
+                    using var tabItem = ImRaii.TabItem($"{Lang.Get("Favorite")}##TabItem");
+
                     if (tabItem)
                     {
                         var       childSize = new Vector2(0, -ImGui.GetFrameHeightWithSpacing());
                         using var child     = ImRaii.Child("###FavoriteChild", childSize, false, ImGuiWindowFlags.NoBackground);
+
                         if (child)
                         {
                             foreach (var aetheryte in Favorites.ToList())
@@ -212,6 +227,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                 }
 
                 var agentLobby = AgentLobby.Instance();
+
                 if (agentLobby != null)
                 {
                     foreach (var (name, aetherytes) in Records.ToList())
@@ -235,6 +251,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                                 continue;
 
                             var isNewGroup = false;
+
                             if (aetheryte.Group == 0)
                             {
                                 if (lastName != aetheryte.RegionName)
@@ -264,7 +281,7 @@ public unsafe class BetterTeleport : DailyModuleBase
 
                                 ImGui.GetWindowDrawList().AddRectFilled(cursor, cursor + new Vector2(width, height), headerBgColor, 4f);
 
-                                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetStyle().ItemSpacing.X * 2));
+                                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetStyle().ItemSpacing.X * 2);
                                 ImGui.AlignTextToFramePadding();
                                 ImGui.TextColored(ImGui.GetColorU32(ImGuiCol.Text).ToVector4(), headerName);
 
@@ -302,8 +319,8 @@ public unsafe class BetterTeleport : DailyModuleBase
                         if (ImGui.InputUInt("###GilInput", ref gilSetting))
                             TicketUsageGilSetting = gilSetting;
 
-                        if (ImGui.Checkbox(GetLoc("BetterTeleport-HideAethernetInParty"), ref ModuleConfig.HideAethernetInParty))
-                            SaveConfig(ModuleConfig);
+                        if (ImGui.Checkbox(Lang.Get("BetterTeleport-HideAethernetInParty"), ref ModuleConfig.HideAethernetInParty))
+                            ModuleConfig.Save(this);
                     }
                     else
                         ImGuiOm.TooltipHover(LuminaWrapper.GetAddonText(8516));
@@ -313,7 +330,7 @@ public unsafe class BetterTeleport : DailyModuleBase
                     DrawBottomToolbar();
             }
         }
-        
+
         DrawHoveredTooltip();
     }
 
@@ -335,7 +352,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         var width      = ImGui.GetContentRegionAvail().X;
         var lineHeight = ImGui.GetTextLineHeight();
         var padding    = ImGui.GetStyle().ItemSpacing.X;
-        var itemHeight = (lineHeight * 2.2f) + padding;
+        var itemHeight = lineHeight * 2.2f + padding;
 
         if (ImGui.InvisibleButton("##ItemBtn", new Vector2(width, itemHeight)))
             HandleTeleport(aetheryte);
@@ -351,22 +368,23 @@ public unsafe class BetterTeleport : DailyModuleBase
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                if (ImGui.MenuItem(GetLoc("Favorite"), string.Empty, ModuleConfig.Favorites.Contains(aetheryte.RowID)))
+                if (ImGui.MenuItem(Lang.Get("Favorite"), string.Empty, ModuleConfig.Favorites.Contains(aetheryte.RowID)))
                 {
                     if (!ModuleConfig.Favorites.Add(aetheryte.RowID))
                         ModuleConfig.Favorites.Remove(aetheryte.RowID);
 
                     RefreshFavoritesInfo();
-                    SaveConfig(ModuleConfig);
+                    ModuleConfig.Save(this);
                 }
 
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                ImGui.TextUnformatted(GetLoc("Note"));
+                ImGui.TextUnformatted(Lang.Get("Note"));
 
                 var input = hasRemark ? remark : string.Empty;
-                ImGui.SetNextItemWidth(Math.Max(150f * GlobalFontScale, ImGui.CalcTextSize(aetheryte.Name).X));
+                ImGui.SetNextItemWidth(Math.Max(150f * GlobalUIScale, ImGui.CalcTextSize(aetheryte.Name).X));
+
                 if (ImGui.InputText("###Note", ref input, 128))
                 {
                     if (string.IsNullOrWhiteSpace(input))
@@ -376,28 +394,29 @@ public unsafe class BetterTeleport : DailyModuleBase
                 }
 
                 if (ImGui.IsItemDeactivatedAfterEdit())
-                    SaveConfig(ModuleConfig);
+                    ModuleConfig.Save(this);
 
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                ImGui.TextUnformatted(GetLoc("Position"));
+                ImGui.TextUnformatted(Lang.Get("Position"));
 
                 var hasPosition = ModuleConfig.Positions.TryGetValue(aetheryte.RowID, out var position);
                 using (FontManager.Instance().UIFont60.Push())
                     ImGui.TextUnformatted($"{(hasPosition ? position : aetheryte.Position):F1}");
-                if (ImGui.MenuItem(GetLoc("BetterTeleport-RedirectedToCurrentPos")))
+
+                if (ImGui.MenuItem(Lang.Get("BetterTeleport-RedirectedToCurrentPos")))
                 {
                     ModuleConfig.Positions[aetheryte.RowID] = Control.GetLocalPlayer()->Position;
-                    SaveConfig(ModuleConfig);
+                    ModuleConfig.Save(this);
                 }
 
                 using (ImRaii.Disabled(!ModuleConfig.Positions.ContainsKey(aetheryte.RowID)))
                 {
-                    if (ImGui.MenuItem($"{GetLoc("Clear")}###DeleteRedirected"))
+                    if (ImGui.MenuItem($"{Lang.Get("Clear")}###DeleteRedirected"))
                     {
                         ModuleConfig.Positions.Remove(aetheryte.RowID);
-                        SaveConfig(ModuleConfig);
+                        ModuleConfig.Save(this);
                     }
                 }
             }
@@ -424,27 +443,32 @@ public unsafe class BetterTeleport : DailyModuleBase
         var activeColor = ImGui.GetColorU32(ImGuiCol.FrameBgActive);
 
         uint bgCol = 0;
+
         if (isActive)
             bgCol = activeColor;
         else if (currentProgress > 0.01f)
         {
-            var alpha = (uint)(currentProgress * ((baseColor >> 24) & 0xFF));
-            bgCol = (baseColor & 0x00FFFFFF) | (alpha << 24);
+            var alpha = (uint)(currentProgress * (baseColor >> 24 & 0xFF));
+            bgCol = baseColor & 0x00FFFFFF | alpha << 24;
         }
 
         if (bgCol != 0)
-            drawList.AddRectFilledMultiColor(
+        {
+            drawList.AddRectFilledMultiColor
+            (
                 startPos,
                 startPos + new Vector2(width, itemHeight),
                 bgCol,
-                (bgCol & 0x00FFFFFF) | (((uint)((bgCol >> 24) * 0.5f) & 0xFF) << 24),
-                (bgCol & 0x00FFFFFF) | (((uint)((bgCol >> 24) * 0.5f) & 0xFF) << 24),
+                bgCol & 0x00FFFFFF | ((uint)((bgCol >> 24) * 0.5f) & 0xFF) << 24,
+                bgCol & 0x00FFFFFF | ((uint)((bgCol >> 24) * 0.5f) & 0xFF) << 24,
                 bgCol
             );
+        }
 
         if (currentProgress > 0.01f)
         {
             var indicatorColor = ImGui.GetColorU32(ImGuiCol.CheckMark);
+
             switch (aetheryte.State)
             {
                 case AetheryteRecordState.Home:
@@ -455,16 +479,18 @@ public unsafe class BetterTeleport : DailyModuleBase
                     break;
             }
 
-            var centerY = startPos.Y + (itemHeight / 2);
-            drawList.AddRectFilled(
-                startPos with { Y = centerY - (indicatorHeight               / 2) },
-                new Vector2(startPos.X          + 3f, centerY + (indicatorHeight / 2)),
+            var centerY = startPos.Y + itemHeight / 2;
+            drawList.AddRectFilled
+            (
+                startPos with { Y = centerY - indicatorHeight / 2 },
+                new Vector2(startPos.X + 3f, centerY + indicatorHeight / 2),
                 indicatorColor,
                 1.5f
             );
         }
-        
+
         SeString iconStr = null;
+
         switch (aetheryte.State)
         {
             case AetheryteRecordState.Home: iconStr = HomeChar; break;
@@ -478,35 +504,38 @@ public unsafe class BetterTeleport : DailyModuleBase
 
         if (iconStr != null)
         {
-            var iconY = startPos.Y + ((itemHeight - lineHeight) / 2);
+            var iconY = startPos.Y + (itemHeight - lineHeight) / 2;
             ImGui.SetCursorScreenPos(new Vector2(contentStartX, iconY));
             ImGuiHelpers.SeStringWrapped(iconStr.Encode());
         }
 
         contentStartX += iconWidth + padding;
-        
+
         var titleY = startPos.Y + padding;
         drawList.AddText(new Vector2(contentStartX, titleY), ImGui.GetColorU32(ImGuiCol.Text), displayName);
 
         using (FontManager.Instance().UIFont80.Push())
         {
-            var subY = titleY + lineHeight + (2f * GlobalFontScale);
+            var subY = titleY + lineHeight + 2f * GlobalUIScale;
             drawList.AddText(new Vector2(contentStartX, subY), ImGui.GetColorU32(ImGuiCol.TextDisabled), aetheryte.GetZone().ExtractPlaceName());
         }
 
         var costText    = $"{cost}";
         var costStrFull = $"{costText}\uE049";
         var costSize    = ImGui.CalcTextSize(costStrFull);
-        var costPos     = new Vector2(startPos.X + width - costSize.X - (padding * 2) - animOffset, startPos.Y + ((itemHeight - costSize.Y) / 2));
+        var costPos     = new Vector2(startPos.X + width - costSize.X - padding * 2 - animOffset, startPos.Y + (itemHeight - costSize.Y) / 2);
 
         drawList.AddText(costPos, ImGui.GetColorU32(ImGuiCol.Text), costStrFull);
-        
+
 #if DEBUG
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             var localPos = Control.GetLocalPlayer()->Position;
-            ImGui.SetClipboardText($"// {aetheryte.Name}\n" +
-                                   $"[{aetheryte.RowID}] = new({localPos.X:F2}f, {localPos.Y + 0.1f:F2}f, {localPos.Z:F2}f),");
+            ImGui.SetClipboardText
+            (
+                $"// {aetheryte.Name}\n" +
+                $"[{aetheryte.RowID}] = new({localPos.X:F2}f, {localPos.Y + 0.1f:F2}f, {localPos.Z:F2}f),"
+            );
         }
 #endif
 
@@ -515,22 +544,26 @@ public unsafe class BetterTeleport : DailyModuleBase
             HoveredAetheryte           = aetheryte;
             IsNeedToLoseFocusSearchBar = true;
         }
-        
+
         ImGui.SetCursorScreenPos(startPos + new Vector2(0, itemHeight + 3));
     }
 
     private void DrawHoveredTooltip()
     {
-        if (HoveredAetheryte != null && IsConflictKeyPressed())
+        if (HoveredAetheryte != null && DRConfig.Instance().ConflictKeyBinding.IsPressed())
             PinnedAetheryte = HoveredAetheryte;
 
         if (PinnedAetheryte != null)
         {
             ImGui.SetNextWindowBgAlpha(0.8f);
-            if (ImGui.Begin("###PinnedAetheryteMap",
-                            ImGuiWindowFlags.NoDecoration       |
-                            ImGuiWindowFlags.AlwaysAutoResize   |
-                            ImGuiWindowFlags.NoSavedSettings))
+
+            if (ImGui.Begin
+                (
+                    "###PinnedAetheryteMap",
+                    ImGuiWindowFlags.NoDecoration     |
+                    ImGuiWindowFlags.AlwaysAutoResize |
+                    ImGuiWindowFlags.NoSavedSettings
+                ))
             {
                 DrawAetheryteMap(DService.Instance().Texture.GetFromGame(PinnedAetheryte.GetMap().GetTexturePath()), PinnedAetheryte, true);
 
@@ -567,8 +600,8 @@ public unsafe class BetterTeleport : DailyModuleBase
 
     private void DrawAetheryteMap(ISharedImmediateTexture tex, AetheryteRecord aetheryte, bool isPinned)
     {
-        var drawList  = ImGui.GetWindowDrawList();
-        var warp      = tex.GetWrapOrEmpty();
+        var drawList = ImGui.GetWindowDrawList();
+        var warp     = tex.GetWrapOrEmpty();
         if (warp.Handle == nint.Zero || warp.Width < 64 || warp.Height < 64) return;
 
         if (PinnedAetheryte != null && ImGui.IsWindowHovered() && ImGui.GetIO().MouseWheel != 0)
@@ -578,22 +611,22 @@ public unsafe class BetterTeleport : DailyModuleBase
         }
 
         var widthScale = Math.Min(1f, warp.Width / 2048f);
-        var imageSize  = ScaledVector2(384f * widthScale * ModuleConfig.MapZoom);
+        var imageSize  = ScaledVector2(384f      * widthScale * ModuleConfig.MapZoom);
         var scale      = imageSize.X / 2048f;
 
         if (scale <= 0.001f) return;
 
         if (!isPinned)
-            ScaledDummy(0f, 2f);
-        
-        var hint     = isPinned ? GetLoc("BetterTeleport-MapHint-Zoom") : GetLoc("BetterTeleport-MapHint-Pin");
+            ImGuiOm.ScaledDummy(0f, 2f);
+
+        var hint     = isPinned ? Lang.Get("BetterTeleport-MapHint-Zoom") : Lang.Get("BetterTeleport-MapHint-Pin");
         var hintSize = ImGui.CalcTextSize(hint);
         if (imageSize.X > hintSize.X)
-            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ((imageSize.X - hintSize.X) / 2));
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (imageSize.X - hintSize.X) / 2);
         ImGui.TextDisabled(hint);
-        
+
         var orig = ImGui.GetCursorScreenPos();
-        
+
         ImGui.Image(warp.Handle, imageSize);
 
         if (isPinned &&
@@ -602,10 +635,11 @@ public unsafe class BetterTeleport : DailyModuleBase
             var mousePos   = ImGui.GetMousePos();
             var relPos     = mousePos - orig;
             var texturePos = relPos / scale;
-            var worldPos   = TextureToWorld(texturePos, aetheryte.GetMap());
+            var worldPos   = PositionHelper.TextureToWorld(texturePos, aetheryte.GetMap());
 
             var nearest = AllRecords.Where(x => x.GetZone().RowId == aetheryte.GetZone().RowId)
                                     .MinBy(x => Vector2.DistanceSquared(new(x.Position.X, x.Position.Z), worldPos));
+
             if (nearest != null)
             {
                 ContextMenuTargetZone = nearest.ZoneID;
@@ -618,53 +652,58 @@ public unsafe class BetterTeleport : DailyModuleBase
         {
             if (popup)
             {
-                if (ImGui.MenuItem(GetLoc("BetterTeleport-TeleportToThisPosition")))
+                if (ImGui.MenuItem(Lang.Get("BetterTeleport-TeleportToThisPosition")))
                 {
                     if (GameState.TerritoryType != ContextMenuTargetZone || IsWithPermission())
                     {
                         TaskHelper.Enqueue(() => MovementManager.TPSmart_BetweenZone(ContextMenuTargetZone, ContextMenuTargetPos));
-                        TaskHelper.Enqueue(() =>
-                        {
-                            if (MovementManager.IsManagerBusy || DService.Instance().ObjectTable.LocalPlayer == null)
-                                return false;
+                        TaskHelper.Enqueue
+                        (() =>
+                            {
+                                if (MovementManager.IsManagerBusy || DService.Instance().ObjectTable.LocalPlayer == null)
+                                    return false;
 
-                            MovementManager.TPGround();
-                            if (BetweenAreas || DService.Instance().Condition[ConditionFlag.Jumping]) return false;
+                                MovementManager.TPGround();
+                                if (DService.Instance().Condition.IsBetweenAreas || DService.Instance().Condition[ConditionFlag.Jumping]) return false;
 
-                            return true;
-                        });
+                                return true;
+                            }
+                        );
                     }
                     else
                     {
                         TaskHelper.Enqueue(() => MovementManager.TeleportNearestAetheryte(ContextMenuTargetPos, ContextMenuTargetZone));
-                        TaskHelper.Enqueue(() => BetweenAreas && DService.Instance().ObjectTable.LocalPlayer != null);
-                        TaskHelper.Enqueue(() =>
-                        {
-                            if (!BetweenAreas) return true;
-                            MovementManager.TPSmart_InZone(ContextMenuTargetPos, false);
-                            return false;
-                        });
+                        TaskHelper.Enqueue(() => DService.Instance().Condition.IsBetweenAreas && DService.Instance().ObjectTable.LocalPlayer != null);
+                        TaskHelper.Enqueue
+                        (() =>
+                            {
+                                if (!DService.Instance().Condition.IsBetweenAreas) return true;
+                                MovementManager.TPSmart_InZone(ContextMenuTargetPos, false);
+                                return false;
+                            }
+                        );
                     }
-                    
+
                     ImGui.CloseCurrentPopup();
                 }
             }
         }
-        
+
         if (ImGui.IsPopupOpen("BetterTeleport_Map_ContextMenu"))
         {
             var texFlag = DService.Instance().Texture.GetFromGameIcon(new(60561)).GetWrapOrEmpty();
+
             if (texFlag.Handle != nint.Zero)
             {
-                var flagPos       = WorldToTexture(ContextMenuTargetPos, aetheryte.GetMap()) * scale;
+                var flagPos       = PositionHelper.WorldToTexture(ContextMenuTargetPos, aetheryte.GetMap()) * scale;
                 var flagCenterPos = orig + flagPos;
                 var flagSize      = ScaledVector2(24f * ModuleConfig.MapZoom);
                 var flagHalfSize  = flagSize / 2;
-                
+
                 drawList.AddImage(texFlag.Handle, flagCenterPos - flagHalfSize, flagCenterPos + flagHalfSize);
             }
         }
-        
+
         drawList.AddRect(orig, orig + imageSize, ImGui.GetColorU32(ImGuiCol.Border), 0f, ImDrawFlags.None, 2f);
 
         var mapID    = aetheryte.GetMap().RowId;
@@ -672,31 +711,33 @@ public unsafe class BetterTeleport : DailyModuleBase
 
         var texAetheryte = DService.Instance().Texture.GetFromGameIcon(new(60453)).GetWrapOrEmpty();
         var texAethernet = DService.Instance().Texture.GetFromGameIcon(new(60430)).GetWrapOrEmpty();
-        
+
         var sizeNormal = ScaledVector2(18f * ModuleConfig.MapZoom);
         var sizeTarget = ScaledVector2(24f * ModuleConfig.MapZoom);
 
         foreach (var record in siblings)
         {
             if (record.RowID == aetheryte.RowID) continue;
-            
+
             var recordPos = ModuleConfig.Positions.TryGetValue(record.RowID, out var redirected) ? redirected : record.Position;
-            var pos       = WorldToTexture(recordPos, record.GetMap()) * scale;
+            var pos       = PositionHelper.WorldToTexture(recordPos, record.GetMap()) * scale;
             var centerPos = orig + pos;
-            
+
             var texture  = record.IsAetheryte ? texAetheryte : texAethernet;
             var halfSize = sizeNormal / 2;
-            
+
             drawList.AddImage(texture.Handle, centerPos - halfSize, centerPos + halfSize, Vector2.Zero, Vector2.One, 0xCCFFFFFF);
 
             if (isPinned)
             {
                 var min = centerPos - halfSize;
                 var max = centerPos + halfSize;
+
                 if (ImGui.IsMouseHoveringRect(min, max))
                 {
                     ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
                     ImGui.SetTooltip(record.Name);
+
                     if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
                         HandleTeleport(record);
@@ -708,24 +749,25 @@ public unsafe class BetterTeleport : DailyModuleBase
 
         {
             var recordPos = ModuleConfig.Positions.TryGetValue(aetheryte.RowID, out var redirected) ? redirected : aetheryte.Position;
-            var pos       = WorldToTexture(recordPos, aetheryte.GetMap()) * scale;
+            var pos       = PositionHelper.WorldToTexture(recordPos, aetheryte.GetMap()) * scale;
             var centerPos = orig + pos;
 
             var time     = (float)ImGui.GetTime();
             var animTime = time - HoverStartTime;
 
-            var pulse = ((float)Math.Sin(time * 10f) * 0.2f) + 1.0f;
-            
-            var pingRadius = animTime * 100f % 60f;
-            var pingAlpha  = 1.0f - (pingRadius / 60f);
+            var pulse = (float)Math.Sin(time * 10f) * 0.2f + 1.0f;
+
+            var pingRadius = animTime          * 100f % 60f;
+            var pingAlpha  = 1.0f - pingRadius / 60f;
+
             if (pingRadius > 0 && pingAlpha > 0)
             {
                 var pingColor = ImGui.GetColorU32(ImGuiCol.CheckMark);
-                pingColor = (pingColor & 0x00FFFFFF) | ((uint)(pingAlpha * 255) << 24);
+                pingColor = pingColor & 0x00FFFFFF | (uint)(pingAlpha * 255) << 24;
                 drawList.AddCircle(centerPos, pingRadius, pingColor, 32, 2f);
             }
 
-            drawList.AddCircleFilled(centerPos, 8f * pulse * GlobalFontScale, ImGui.GetColorU32(ImGuiCol.CheckMark, 0.5f));
+            drawList.AddCircleFilled(centerPos, 8f * pulse * GlobalUIScale, ImGui.GetColorU32(ImGuiCol.CheckMark, 0.5f));
 
             var texture  = aetheryte.IsAetheryte ? texAetheryte : texAethernet;
             var halfSize = sizeTarget / 2;
@@ -735,10 +777,12 @@ public unsafe class BetterTeleport : DailyModuleBase
             {
                 var min = centerPos - halfSize;
                 var max = centerPos + halfSize;
+
                 if (ImGui.IsMouseHoveringRect(min, max))
                 {
                     ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
                     ImGui.SetTooltip(aetheryte.Name);
+
                     if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
                         HandleTeleport(aetheryte);
@@ -750,9 +794,9 @@ public unsafe class BetterTeleport : DailyModuleBase
             var text     = ModuleConfig.Remarks.TryGetValue(aetheryte.RowID, out var remark) ? remark : aetheryte.Name;
             var textSize = ImGui.CalcTextSize(text);
             var padding  = ScaledVector2(2f, 3f);
-            var textPos  = centerPos - new Vector2(textSize.X / 2, (20f * GlobalFontScale) + textSize.Y);
-            
-            var minPos = orig + padding;
+            var textPos  = centerPos - new Vector2(textSize.X / 2, 20f * GlobalUIScale + textSize.Y);
+
+            var minPos = orig             + padding;
             var maxPos = orig + imageSize - padding - textSize;
 
             if (minPos.X < maxPos.X)
@@ -777,7 +821,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         {
             DrawItem(1);
 
-            ImGui.SameLine(0, 20f * GlobalFontScale);
+            ImGui.SameLine(0, 20f * GlobalUIScale);
             DrawItem(7569);
         }
 
@@ -791,7 +835,7 @@ public unsafe class BetterTeleport : DailyModuleBase
             var iconSize = new Vector2(ImGui.GetTextLineHeight());
             ImGui.Image(texture.GetWrapOrEmpty().Handle, iconSize);
 
-            ImGui.SameLine(0, 5f * GlobalFontScale);
+            ImGui.SameLine(0, 5f * GlobalUIScale);
 
             var text = $"{row.Name}: {manager->GetInventoryItemCount(itemID)}";
             ImGui.TextUnformatted(text);
@@ -818,8 +862,8 @@ public unsafe class BetterTeleport : DailyModuleBase
 
         var isPosDefault = aetherytePos.Y == 0;
 
-        NotificationInfo(GetLoc("BetterTeleport-Notification", aetheryte.Name));
-        
+        NotifyHelper.NotificationInfo(Lang.Get("BetterTeleport-Notification", aetheryte.Name));
+
         SearchWord = string.Empty;
         SearchResult.Clear();
         PinnedAetheryte  = null;
@@ -835,17 +879,26 @@ public unsafe class BetterTeleport : DailyModuleBase
             // 天穹街
             case 254:
                 TaskHelper.Enqueue(MovementManager.TeleportFirmament, "天穹街");
-                TaskHelper.Enqueue(() => GameState.TerritoryType == 886 && Control.GetLocalPlayer() != null &&
-                                         !MovementManager.IsManagerBusy, "等待天穹街");
+                TaskHelper.Enqueue
+                (
+                    () => GameState.TerritoryType  == 886  &&
+                          Control.GetLocalPlayer() != null &&
+                          !MovementManager.IsManagerBusy,
+                    "等待天穹街"
+                );
                 TaskHelper.Enqueue(() => MovementManager.TPSmart_InZone(aetherytePos), "区域内TP");
-                TaskHelper.Enqueue(() =>
-                {
-                    if (MovementManager.IsManagerBusy || DService.Instance().ObjectTable.LocalPlayer == null)
-                        return false;
+                TaskHelper.Enqueue
+                (
+                    () =>
+                    {
+                        if (MovementManager.IsManagerBusy || DService.Instance().ObjectTable.LocalPlayer == null)
+                            return false;
 
-                    MovementManager.TPGround();
-                    return true;
-                }, "TP到地面");
+                        MovementManager.TPGround();
+                        return true;
+                    },
+                    "TP到地面"
+                );
                 return;
             // 野外大水晶直接传
             case 0:
@@ -855,16 +908,21 @@ public unsafe class BetterTeleport : DailyModuleBase
                 var offset = direction * 10;
 
                 TaskHelper.Enqueue(() => MovementManager.TPSmart_BetweenZone(aetheryte.ZoneID, aetherytePos + offset.ToVector3(0)));
+
                 if (isPosDefault)
                 {
-                    TaskHelper.Enqueue(() =>
-                    {
-                        if (MovementManager.IsManagerBusy || BetweenAreas || !UIModule.IsScreenReady() ||
-                            DService.Instance().Condition.Any(ConditionFlag.Mounted))
-                            return false;
-                        MovementManager.TPGround();
-                        return true;
-                    });
+                    TaskHelper.Enqueue
+                    (() =>
+                        {
+                            if (MovementManager.IsManagerBusy                ||
+                                DService.Instance().Condition.IsBetweenAreas ||
+                                !UIModule.IsScreenReady()                    ||
+                                DService.Instance().Condition.Any(ConditionFlag.Mounted))
+                                return false;
+                            MovementManager.TPGround();
+                            return true;
+                        }
+                    );
                 }
 
                 return;
@@ -875,6 +933,7 @@ public unsafe class BetterTeleport : DailyModuleBase
         {
             // 大水晶才要偏移一下
             var offset = new Vector3();
+
             if (aetheryte.IsAetheryte)
             {
                 var direction = !isPosDefault
@@ -884,16 +943,21 @@ public unsafe class BetterTeleport : DailyModuleBase
             }
 
             TaskHelper.Enqueue(() => MovementManager.TPSmart_InZone(aetherytePos + offset));
+
             if (isPosDefault)
             {
-                TaskHelper.Enqueue(() =>
-                {
-                    if (MovementManager.IsManagerBusy || BetweenAreas || !UIModule.IsScreenReady() ||
-                        DService.Instance().Condition.Any(ConditionFlag.Mounted))
-                        return false;
-                    MovementManager.TPGround();
-                    return true;
-                });
+                TaskHelper.Enqueue
+                (() =>
+                    {
+                        if (MovementManager.IsManagerBusy                ||
+                            DService.Instance().Condition.IsBetweenAreas ||
+                            !UIModule.IsScreenReady()                    ||
+                            DService.Instance().Condition.Any(ConditionFlag.Mounted))
+                            return false;
+                        MovementManager.TPGround();
+                        return true;
+                    }
+                );
             }
 
             return;
@@ -903,18 +967,22 @@ public unsafe class BetterTeleport : DailyModuleBase
         var aetheryteInThisZone = MovementManager.GetNearestAetheryte(Control.GetLocalPlayer()->Position, GameState.TerritoryType);
 
         // 获取不到水晶 / 不属于同一组水晶 / 附近没有能交互到的水晶 → 直接传
-        if ((!isSameZone && aetheryte.Group == 0)        ||
+        if (!isSameZone && aetheryte.Group == 0          ||
             aetheryteInThisZone       == null            ||
             aetheryteInThisZone.Group != aetheryte.Group ||
-            !EventFramework.Instance()->TryGetNearestEventID(x => x.EventId.ContentId is EventHandlerContent.Aetheryte,
-                                                             _ => true,
-                                                             DService.Instance().ObjectTable.LocalPlayer.Position,
-                                                             out var eventIDAetheryte))
+            !EventFramework.Instance()->TryGetNearestEventID
+            (
+                x => x.EventId.ContentId is EventHandlerContent.Aetheryte,
+                _ => true,
+                DService.Instance().ObjectTable.LocalPlayer.Position,
+                out var eventIDAetheryte
+            ))
         {
             // 大水晶直接传
             if (aetheryte.IsAetheryte)
             {
                 Telepo.Instance()->Teleport(aetheryte.RowID, aetheryte.SubIndex);
+
                 if (hasRedirect)
                 {
                     TaskHelper.Enqueue(() => GameState.TerritoryType == aetheryte.ZoneID && Control.GetLocalPlayer() != null);
@@ -925,41 +993,199 @@ public unsafe class BetterTeleport : DailyModuleBase
             }
 
             TaskHelper.Enqueue(() => MovementManager.TPSmart_BetweenZone(aetheryte.ZoneID, aetherytePos));
+
             if (isPosDefault)
             {
-                TaskHelper.Enqueue(() =>
-                {
-                    if (MovementManager.IsManagerBusy || BetweenAreas || !UIModule.IsScreenReady() ||
-                        DService.Instance().Condition.Any(ConditionFlag.Mounted))
-                        return false;
-                    MovementManager.TPGround();
-                    return true;
-                });
+                TaskHelper.Enqueue
+                (() =>
+                    {
+                        if (MovementManager.IsManagerBusy                ||
+                            DService.Instance().Condition.IsBetweenAreas ||
+                            !UIModule.IsScreenReady()                    ||
+                            DService.Instance().Condition.Any(ConditionFlag.Mounted))
+                            return false;
+                        MovementManager.TPGround();
+                        return true;
+                    }
+                );
             }
 
             return;
         }
 
-        TaskHelper.Enqueue(() => !OccupiedInEvent);
+        TaskHelper.Enqueue(() => !DService.Instance().Condition.IsOccupiedInEvent);
         if (!TelepotTown->IsAddonAndNodesReady())
             TaskHelper.Enqueue(() => new EventStartPackt(Control.GetLocalPlayer()->EntityId, eventIDAetheryte).Send());
-        TaskHelper.Enqueue(() =>
-        {
-            ClickSelectString(["都市传送网", "Aethernet", "都市転送網"]);
+        TaskHelper.Enqueue
+        (() =>
+            {
+                AddonSelectStringEvent.Select(["都市传送网", "Aethernet", "都市転送網"]);
 
-            var agent = AgentTelepotTown.Instance();
-            if (agent == null || !agent->IsAgentActive()) return false;
+                var agent = AgentTelepotTown.Instance();
+                if (agent == null || !agent->IsAgentActive()) return false;
 
-            AgentId.TelepotTown.SendEvent(1, 11, (uint)aetheryte.SubIndex);
-            AgentId.TelepotTown.SendEvent(1, 11, (uint)aetheryte.SubIndex);
-            return true;
-        });
+                AgentId.TelepotTown.SendEvent(1, 11, (uint)aetheryte.SubIndex);
+                AgentId.TelepotTown.SendEvent(1, 11, (uint)aetheryte.SubIndex);
+                return true;
+            }
+        );
 
         if (hasRedirect)
         {
             TaskHelper.Enqueue(() => GameState.TerritoryType == aetheryte.ZoneID && Control.GetLocalPlayer() != null);
             TaskHelper.Enqueue(() => MovementManager.TPSmart_InZone(aetherytePos));
         }
+    }
+
+    private void OnPostUseAction
+    (
+        ref bool                        isPrevented,
+        ref ActionType                  actionType,
+        ref uint                        actionID,
+        ref ulong                       targetID,
+        ref uint                        extraParam,
+        ref ActionManager.UseActionMode queueState,
+        ref uint                        comboRouteID
+    )
+    {
+        if (actionType != ActionType.GeneralAction || actionID != 7)
+            return;
+
+        isPrevented = true;
+
+        if (GameMain.Instance()->CurrentContentFinderConditionId != 0 ||
+            IsRefreshing                                              ||
+            DService.Instance().Condition.IsBetweenAreas              ||
+            Control.GetLocalPlayer() == null                          ||
+            !UIModule.IsScreenReady())
+            return;
+
+        UIGlobals.PlaySoundEffect(23);
+        Overlay.IsOpen ^= true;
+    }
+
+    private void OnZoneChanged(ushort zone)
+    {
+        Overlay.IsOpen = false;
+        TaskHelper.RemoveQueueTasks(1);
+
+        if (GameState.TerritoryType == 0 || GameState.ContentFinderCondition != 0 || !DService.Instance().ClientState.IsLoggedIn) return;
+
+        TaskHelper.Enqueue
+        (
+            () =>
+            {
+                try
+                {
+                    IsRefreshing = true;
+
+                    if (DService.Instance().ObjectTable.LocalPlayer is null || DService.Instance().Condition.IsBetweenAreas) return false;
+
+                    var instance = Telepo.Instance();
+                    if (instance == null) return false;
+
+                    var otherName = LuminaWrapper.GetAddonText(832);
+
+                    RefreshHouseInfo();
+
+                    Records.Clear();
+
+                    foreach (var aetheryte in MovementManager.Aetherytes)
+                    {
+                        if (!aetheryte.IsUnlocked()) continue;
+
+                        if (aetheryte.Group == 5)
+                        {
+                            Records.TryAdd(otherName, []);
+                            Records[otherName].Add(aetheryte);
+                        }
+                        else if (aetheryte.Version == 0)
+                        {
+                            var regionRow  = aetheryte.GetZone().PlaceNameRegion.Value;
+                            var regionName = regionRow.RowId is 22 or 23 or 24 ? aetheryte.GetZone().PlaceNameRegion.Value.Name.ToString() : otherName;
+
+                            Records.TryAdd(regionName, []);
+                            Records[regionName].Add(aetheryte);
+                        }
+                        else
+                        {
+                            var versionName = $"{aetheryte.Version + 2}.0";
+
+                            Records.TryAdd(versionName, []);
+                            Records[versionName].Add(aetheryte);
+                        }
+                    }
+
+                    RefreshHwdInfo();
+
+                    RefreshFavoritesInfo();
+                }
+                finally
+                {
+                    IsRefreshing = false;
+                }
+
+                AllRecords.ForEach(x => TaskHelper.Enqueue(x.Update, $"更新 {x.Name} 信息", weight: -3));
+
+                return true;
+            },
+            "初始化信息",
+            weight: 1
+        );
+    }
+
+    private void OnCommand(string command, string args)
+    {
+        args = args.Trim();
+        if (string.IsNullOrWhiteSpace(args)) return;
+
+        var result = Records.Values
+                            .SelectMany(x => x)
+                            .Concat(HouseRecords)
+                            .Where
+                            (x =>
+                                {
+                                    var name = string.Empty;
+
+                                    try
+                                    {
+                                        name = x.ToString();
+                                    }
+                                    catch
+                                    {
+                                        // ignored
+                                    }
+
+                                    return name.Contains(args, StringComparison.OrdinalIgnoreCase);
+                                }
+                            )
+                            .OrderByDescending(x => x.IsAetheryte)
+                            .ThenBy(x => x.Name.Length)
+                            .FirstOrDefault();
+
+        if (result == null) return;
+
+        HandleTeleport(result);
+    }
+
+    private static bool IsWithPermission() =>
+        !(GameState.IsCN || GameState.IsTC) || AuthState.IsPremium || !MovementManager.SpeedDetectionAreas.Contains(GameState.TerritoryType);
+
+    protected override void Uninit()
+    {
+        UseActionManager.Instance().Unreg(OnPostUseAction);
+        CommandManager.RemoveCommand(COMMAND);
+
+        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+    }
+
+    private class Config : ModuleConfig
+    {
+        public HashSet<uint>             Favorites            = [];
+        public bool                      HideAethernetInParty = true;
+        public float                     MapZoom              = 1f;
+        public Dictionary<uint, Vector3> Positions            = [];
+        public Dictionary<uint, string>  Remarks              = [];
     }
 
     #region Data
@@ -978,6 +1204,7 @@ public unsafe class BetterTeleport : DailyModuleBase
     private static void RefreshHouseInfo()
     {
         HouseRecords.Clear();
+
         foreach (var aetheryte in DService.Instance().AetheryteList)
         {
             if (!HouseZones.Contains(aetheryte.TerritoryID)) continue;
@@ -985,6 +1212,7 @@ public unsafe class BetterTeleport : DailyModuleBase
             if (!LuminaGetter.TryGetRow<TerritoryType>(aetheryte.TerritoryID, out var row)) continue;
 
             var shareHouseName = string.Empty;
+
             if (aetheryte.IsSharedHouse)
             {
                 var rawAddonText = LuminaGetter.GetRow<Addon>(6724)!.Value.Text.ToDalamudString();
@@ -1002,9 +1230,18 @@ public unsafe class BetterTeleport : DailyModuleBase
             else
                 name = aetheryteRow.PlaceName.Value.Name.ToString();
 
-            var record = new AetheryteRecord(aetheryte.AetheryteID, aetheryte.SubIndex, 255, 0, aetheryte.TerritoryID,
-                                             row.Map.RowId, true, new(aetheryte.Ward, aetheryte.SubIndex, 0),
-                                             $"{aetheryteRow.Territory.Value.ExtractPlaceName()} {name}");
+            var record = new AetheryteRecord
+            (
+                aetheryte.AetheryteID,
+                aetheryte.SubIndex,
+                255,
+                0,
+                aetheryte.TerritoryID,
+                row.Map.RowId,
+                true,
+                new(aetheryte.Ward, aetheryte.SubIndex, 0),
+                $"{aetheryteRow.Territory.Value.ExtractPlaceName()} {name}"
+            );
 
             HouseRecords.Add(record);
         }
@@ -1013,17 +1250,21 @@ public unsafe class BetterTeleport : DailyModuleBase
     // 天穹街
     private static void RefreshHwdInfo()
     {
-        var markers = GetZoneMapMarkers(886)
-                      .Where(x => x.DataType is 3 or 4)
-                      .Select(x => new
-                      {
-                          Name     = AetheryteRecord.TryParseName(x, out var markerName) ? markerName : string.Empty,
-                          Position = TextureToWorld(new(x.X, x.Y), LuminaGetter.GetRow<Map>(574)!.Value).ToVector3(0),
-                          Marker   = x
-                      })
-                      .DistinctBy(x => x.Name);
+        var markers = LuminaGetter.GetRowOrDefault<TerritoryType>(886)
+                                  .GetMapMarkers()
+                                  .Where(x => x.DataType is 3 or 4)
+                                  .Select
+                                  (x => new
+                                      {
+                                          Name     = AetheryteRecord.TryParseName(x, out var markerName) ? markerName : string.Empty,
+                                          Position = PositionHelper.TextureToWorld(new(x.X, x.Y), LuminaGetter.GetRow<Map>(574)!.Value).ToVector3(0),
+                                          Marker   = x
+                                      }
+                                  )
+                                  .DistinctBy(x => x.Name);
 
         byte indexCounter = 0;
+
         foreach (var marker in markers)
         {
             var record = new AetheryteRecord(70, indexCounter, 254, 1, 886, 574, false, marker.Position, marker.Name);
@@ -1036,138 +1277,4 @@ public unsafe class BetterTeleport : DailyModuleBase
     }
 
     #endregion
-
-    private void OnPostUseAction(
-        ref bool                        isPrevented,
-        ref ActionType                  actionType,
-        ref uint                        actionID,
-        ref ulong                       targetID,
-        ref uint                        extraParam,
-        ref ActionManager.UseActionMode queueState,
-        ref uint                        comboRouteID)
-    {
-        if (actionType != ActionType.GeneralAction || actionID != 7)
-            return;
-
-        isPrevented = true;
-
-        if (GameMain.Instance()->CurrentContentFinderConditionId != 0    || IsRefreshing || BetweenAreas ||
-            Control.GetLocalPlayer()                             == null || !UIModule.IsScreenReady())
-            return;
-
-        UIGlobals.PlaySoundEffect(23);
-        Overlay.IsOpen ^= true;
-    }
-
-    private void OnZoneChanged(ushort zone)
-    {
-        Overlay.IsOpen = false;
-        TaskHelper.RemoveQueueTasks(1);
-
-        if (GameState.TerritoryType == 0 || GameState.ContentFinderCondition != 0 || !DService.Instance().ClientState.IsLoggedIn) return;
-
-        TaskHelper.Enqueue(() =>
-        {
-            try
-            {
-                IsRefreshing = true;
-
-                if (DService.Instance().ObjectTable.LocalPlayer is null || BetweenAreas) return false;
-
-                var instance = Telepo.Instance();
-                if (instance == null) return false;
-
-                var otherName = LuminaWrapper.GetAddonText(832);
-
-                RefreshHouseInfo();
-
-                Records.Clear();
-                foreach (var aetheryte in MovementManager.Aetherytes)
-                {
-                    if (!aetheryte.IsUnlocked()) continue;
-                        
-                    if (aetheryte.Group == 5)
-                    {
-                        Records.TryAdd(otherName, []);
-                        Records[otherName].Add(aetheryte);
-                    }
-                    else if (aetheryte.Version == 0)
-                    {
-                        var regionRow  = aetheryte.GetZone().PlaceNameRegion.Value;
-                        var regionName = regionRow.RowId is 22 or 23 or 24 ? aetheryte.GetZone().PlaceNameRegion.Value.Name.ToString() : otherName;
-
-                        Records.TryAdd(regionName, []);
-                        Records[regionName].Add(aetheryte);
-                    }
-                    else
-                    {
-                        var versionName = $"{aetheryte.Version + 2}.0";
-
-                        Records.TryAdd(versionName, []);
-                        Records[versionName].Add(aetheryte);
-                    }
-                }
-
-                RefreshHwdInfo();
-
-                RefreshFavoritesInfo();
-            }
-            finally
-            {
-                IsRefreshing = false;
-            }
-
-            AllRecords.ForEach(x => TaskHelper.Enqueue(x.Update, $"更新 {x.Name} 信息", weight: -3));
-
-            return true;
-        }, "初始化信息", weight: 1);
-    }
-
-    private void OnCommand(string command, string args)
-    {
-        args = args.Trim();
-        if (string.IsNullOrWhiteSpace(args)) return;
-
-        var result = Records.Values
-                            .SelectMany(x => x)
-                            .Concat(HouseRecords)
-                            .Where(x =>
-                            {
-                                var name = string.Empty;
-                                try { name = x.ToString(); }
-                                catch
-                                {
-                                    // ignored
-                                }
-
-                                return name.Contains(args, StringComparison.OrdinalIgnoreCase);
-                            })
-                            .OrderByDescending(x => x.IsAetheryte)
-                            .ThenBy(x => x.Name.Length)
-                            .FirstOrDefault();
-
-        if (result == null) return;
-
-        HandleTeleport(result);
-    }
-    
-    private static bool IsWithPermission() => 
-        !(GameState.IsCN || GameState.IsTC) || AuthState.IsPremium || !MovementManager.SpeedDetectionAreas.Contains(GameState.TerritoryType);
-
-    protected override void Uninit()
-    {
-        UseActionManager.Instance().Unreg(OnPostUseAction);
-        CommandManager.RemoveCommand(COMMAND);
-
-        DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-    }
-
-    private class Config : ModuleConfiguration
-    {
-        public HashSet<uint>             Favorites            = [];
-        public Dictionary<uint, string>  Remarks              = [];
-        public Dictionary<uint, Vector3> Positions            = [];
-        public bool                      HideAethernetInParty = true;
-        public float                     MapZoom              = 1f;
-    }
 }

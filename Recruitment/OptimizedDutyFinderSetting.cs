@@ -1,35 +1,65 @@
-using System;
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Utility.Numerics;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using KamiToolKit.Timelines;
 using KamiToolKit.Nodes;
+using KamiToolKit.Timelines;
+using OmenTools.Interop.Game.Helpers;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
+public unsafe class OptimizedDutyFinderSetting : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("OptimizedDutyFinderSettingTitle"),
-        Description = GetLoc("OptimizedDutyFinderSettingDescription"),
-        Category    = ModuleCategories.Recruitment,
-        Author      = ["Mizami", "Cyf5119"]
-    };
-    
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
-    private delegate void SetContentsFinderSettingsInitDelegate(byte* data, UIModule* module);
     private static readonly SetContentsFinderSettingsInitDelegate SetContentsFinderSettingsInit =
         new CompSig("E8 ?? ?? ?? ?? 49 8B 06 45 33 FF 49 8B CE 45 89 7E 20 FF 50 28 B0 01").GetDelegate<SetContentsFinderSettingsInitDelegate>();
 
     private static HorizontalListNode? LayoutNode;
-    
+
     private static readonly Dictionary<DutyFinderSettingDisplay, (IconButtonNode? ButtonNode, IconImageNode? ImageNode)> Nodes = [];
+
+    private static readonly List<DutyFinderSettingDisplay> DutyFinderSettingIcons =
+    [
+        new(DutyFinderSetting.JoinPartyInProgress, 60644, 2519),
+        new(DutyFinderSetting.UnrestrictedParty, 60641, 10008),
+        new(DutyFinderSetting.LevelSync, 60649, 12696),
+        new(DutyFinderSetting.MinimumIl, 60642, 10010),
+        new(DutyFinderSetting.SilenceEcho, 60647, 12691),
+        new(DutyFinderSetting.ExplorerMode, 60648, 13038),
+        new(DutyFinderSetting.LimitedLevelingRoulette, 60640, 13030),
+        new(DutyFinderSetting.LootRule)
+        {
+            GetIcon = () => GetCurrentSettingValue(DutyFinderSetting.LootRule) switch
+            {
+                0 => 60645,
+                1 => 60645,
+                2 => 60646,
+                _ => 0
+            },
+            GetTooltip = () => GetCurrentSettingValue(DutyFinderSetting.LootRule) switch
+            {
+                0 => 10022,
+                1 => 10023,
+                2 => 10024,
+                _ => 0
+            }
+        }
+    ];
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("OptimizedDutyFinderSettingTitle"),
+        Description = Lang.Get("OptimizedDutyFinderSettingDescription"),
+        Category    = ModuleCategory.Recruitment,
+        Author      = ["Mizami", "Cyf5119"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init()
     {
@@ -37,7 +67,7 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, ["ContentsFinder", "RaidFinder"], OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, ["ContentsFinder", "RaidFinder"], OnAddon);
     }
-    
+
     protected override void Uninit()
     {
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
@@ -93,7 +123,7 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
                             IsVisible   = true,
                             Size        = new(32),
                             Position    = new(0, -5f),
-                            TextTooltip = LuminaWrapper.GetAddonText(settingDetail.GetTooltip()),
+                            TextTooltip = LuminaWrapper.GetAddonText(settingDetail.GetTooltip())
                         };
 
                         button.OnClick = () =>
@@ -117,14 +147,17 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
                             FitTexture = true
                         };
 
-                        iconNode.AddTimeline(new TimelineBuilder()
-                                             .AddFrameSetWithFrame(1,  10, 1,  position: origPosition)
-                                             .AddFrameSetWithFrame(11, 17, 11, position: origPosition)
-                                             .AddFrameSetWithFrame(18, 26, 18, position: origPosition + new Vector2(0.0f, 1.0f))
-                                             .AddFrameSetWithFrame(27, 36, 27, position: origPosition)
-                                             .AddFrameSetWithFrame(37, 46, 37, position: origPosition)
-                                             .AddFrameSetWithFrame(47, 53, 47, position: origPosition)
-                                             .Build());
+                        iconNode.AddTimeline
+                        (
+                            new TimelineBuilder()
+                                .AddFrameSetWithFrame(1,  10, 1,  origPosition)
+                                .AddFrameSetWithFrame(11, 17, 11, origPosition)
+                                .AddFrameSetWithFrame(18, 26, 18, origPosition + new Vector2(0.0f, 1.0f))
+                                .AddFrameSetWithFrame(27, 36, 27, origPosition)
+                                .AddFrameSetWithFrame(37, 46, 37, origPosition)
+                                .AddFrameSetWithFrame(47, 53, 47, origPosition)
+                                .Build()
+                        );
 
                         iconNode.AttachNode(button);
 
@@ -169,7 +202,7 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
                 foreach (var (settingDetail, (buttonNode, imageNode)) in Nodes)
                 {
                     var value = GetCurrentSettingValue(settingDetail.Setting);
-                    
+
                     if (imageNode != null)
                     {
                         imageNode.IconId = settingDetail.GetIcon();
@@ -247,6 +280,7 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
     {
         var array      = new byte[27];
         var nbSettings = Enum.GetValues<DutyFinderSetting>().Length;
+
         for (var i = 0; i < nbSettings; i++)
         {
             array[i]              = GetCurrentSettingValue((DutyFinderSetting)i);
@@ -287,6 +321,8 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
         return false;
     }
 
+    private delegate void SetContentsFinderSettingsInitDelegate(byte* data, UIModule* module);
+
     private enum DutyFinderSetting
     {
         Ja                      = 0,
@@ -303,7 +339,10 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
         LimitedLevelingRoulette = 11
     }
 
-    private record DutyFinderSettingDisplay(DutyFinderSetting Setting)
+    private record DutyFinderSettingDisplay
+    (
+        DutyFinderSetting Setting
+    )
     {
         public DutyFinderSettingDisplay(DutyFinderSetting setting, uint icon, uint tooltip) : this(setting)
         {
@@ -314,32 +353,4 @@ public unsafe class OptimizedDutyFinderSetting : DailyModuleBase
         public Func<uint>? GetIcon    { get; init; }
         public Func<uint>? GetTooltip { get; init; }
     }
-
-    private static readonly List<DutyFinderSettingDisplay> DutyFinderSettingIcons =
-    [
-        new(DutyFinderSetting.JoinPartyInProgress, 60644, 2519),
-        new(DutyFinderSetting.UnrestrictedParty, 60641, 10008),
-        new(DutyFinderSetting.LevelSync, 60649, 12696),
-        new(DutyFinderSetting.MinimumIl, 60642, 10010),
-        new(DutyFinderSetting.SilenceEcho, 60647, 12691),
-        new(DutyFinderSetting.ExplorerMode, 60648, 13038),
-        new(DutyFinderSetting.LimitedLevelingRoulette, 60640, 13030),
-        new(DutyFinderSetting.LootRule)
-        {
-            GetIcon = () => GetCurrentSettingValue(DutyFinderSetting.LootRule) switch
-            {
-                0 => 60645,
-                1 => 60645,
-                2 => 60646,
-                _ => 0
-            },
-            GetTooltip = () => GetCurrentSettingValue(DutyFinderSetting.LootRule) switch
-            {
-                0 => 10022,
-                1 => 10023,
-                2 => 10024,
-                _ => 0
-            }
-        }
-    ];
 }

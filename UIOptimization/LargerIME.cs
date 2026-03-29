@@ -1,31 +1,34 @@
-using System;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using OmenTools.Interop.Game.Models;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class LargerIME : DailyModuleBase
+public unsafe class LargerIME : ModuleBase
 {
+    private static readonly CompSig TextInputReceiveEventSig =
+        new("4C 8B DC 55 53 57 41 54 41 57 49 8D AB ?? ?? ?? ?? 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 85 ?? ?? ?? ?? 48 8B 9D ?? ?? ?? ??");
+
+    private static Hook<TextInputReceiveEventDelegate>? TextInputReceiveEventHook;
+
+    private static Config ModuleConfig = null!;
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("LargerIMETitle"),
-        Description = GetLoc("LargerIMEDescription"),
-        Category    = ModuleCategories.UIOptimization
+        Title       = Lang.Get("LargerIMETitle"),
+        Description = Lang.Get("LargerIMEDescription"),
+        Category    = ModuleCategory.UIOptimization
     };
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private static readonly CompSig TextInputReceiveEventSig =
-        new("4C 8B DC 55 53 57 41 54 41 57 49 8D AB ?? ?? ?? ?? 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 85 ?? ?? ?? ?? 48 8B 9D ?? ?? ?? ??");
-    private delegate void TextInputReceiveEventDelegate(AtkComponentTextInput* component, AtkEventType eventType, int i, AtkEvent* atkEvent, AtkEventData* eventData);
-    private static   Hook<TextInputReceiveEventDelegate>? TextInputReceiveEventHook;
-
-    private static Config ModuleConfig = null!;
-
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         TextInputReceiveEventHook ??= TextInputReceiveEventSig.GetHook<TextInputReceiveEventDelegate>(TextInputReceiveEventDetour);
         TextInputReceiveEventHook.Enable();
@@ -33,19 +36,21 @@ public unsafe class LargerIME : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.SetNextItemWidth(100f * GlobalFontScale);
-        if (ImGui.InputFloat($"{GetLoc("Scale")}###FontScaleInput", ref ModuleConfig.Scale, 0.1f, 1, "%.1f"))
+        ImGui.SetNextItemWidth(100f * GlobalUIScale);
+        if (ImGui.InputFloat($"{Lang.Get("Scale")}###FontScaleInput", ref ModuleConfig.Scale, 0.1f, 1, "%.1f"))
             ModuleConfig.Scale = MathF.Max(0.1f, ModuleConfig.Scale);
         if (ImGui.IsItemDeactivatedAfterEdit())
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
     }
 
-    private static void TextInputReceiveEventDetour(
+    private static void TextInputReceiveEventDetour
+    (
         AtkComponentTextInput* component,
         AtkEventType           eventType,
         int                    i,
         AtkEvent*              atkEvent,
-        AtkEventData*          eventData)
+        AtkEventData*          eventData
+    )
     {
         TextInputReceiveEventHook.Original(component, eventType, i, atkEvent, eventData);
 
@@ -58,11 +63,14 @@ public unsafe class LargerIME : DailyModuleBase
 
         var imeBackground = component->AtkComponentInputBase.AtkComponentBase.UldManager.SearchNodeById(4);
         if (imeBackground == null) return;
-        
+
         imeBackground->SetScale(ModuleConfig.Scale, ModuleConfig.Scale);
     }
 
-    private class Config : ModuleConfiguration
+    private delegate void TextInputReceiveEventDelegate
+        (AtkComponentTextInput* component, AtkEventType eventType, int i, AtkEvent* atkEvent, AtkEventData* eventData);
+
+    private class Config : ModuleConfig
     {
         public float Scale = 2f;
     }

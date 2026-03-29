@@ -1,32 +1,34 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Lumina;
 
 namespace DailyRoutines.ModulesPublic;
 
 // TODO: 合并成单一投影台模块
-public class AutoRemoveDuplicateModelGlamours : DailyModuleBase
+public class AutoRemoveDuplicateModelGlamours : ModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoRemoveDuplicateModelGlamoursTitle"),
-        Description = GetLoc("AutoRemoveDuplicateModelGlamoursDescription"),
-        Category    = ModuleCategories.UIOperation,
+        Title       = Lang.Get("AutoRemoveDuplicateModelGlamoursTitle"),
+        Description = Lang.Get("AutoRemoveDuplicateModelGlamoursDescription"),
+        Category    = ModuleCategory.UIOperation
     };
-    
+
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    protected override void Init() => 
+    protected override void Init() =>
         TaskHelper ??= new();
-    
+
     protected override void ConfigUI()
     {
-        if (ImGui.Button(GetLoc("Start")))
+        if (ImGui.Button(Lang.Get("Start")))
             Enqueue();
-        
+
         ImGui.SameLine();
-        if (ImGui.Button(GetLoc("Stop")))
+        if (ImGui.Button(Lang.Get("Stop")))
             TaskHelper.Abort();
     }
 
@@ -38,6 +40,7 @@ public class AutoRemoveDuplicateModelGlamours : DailyModuleBase
         List<uint>      itemIndexToRemove = [];
         HashSet<uint>   itemIDHash        = [];
         HashSet<string> itemModelHash     = [];
+
         for (var i = 0U; i < 800; i++)
         {
             var item = instance->PrismBoxItemIds[(int)i];

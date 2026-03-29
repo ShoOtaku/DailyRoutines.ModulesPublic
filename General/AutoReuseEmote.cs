@@ -1,34 +1,31 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Manager;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Lumina;
 
 namespace DailyRoutines.Modules;
 
-public class AutoReuseEmote : DailyModuleBase
+public class AutoReuseEmote : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoReuseEmoteTitle"),
-        Description = GetLoc("AutoReuseEmoteDescription", Command, GetLoc("AutoReuseEmote-CommandHelp")),
-        Category    = ModuleCategories.General,
-        Author      = ["Xww"]
-    };
-
     private const string Command = "remote";
 
     private static CancellationTokenSource? CancelSource;
 
-    protected override void Init()
+    public override ModuleInfo Info { get; } = new()
     {
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = GetLoc("AutoReuseEmote-CommandHelp") });
-    }
+        Title       = Lang.Get("AutoReuseEmoteTitle"),
+        Description = Lang.Get("AutoReuseEmoteDescription", Command, Lang.Get("AutoReuseEmote-CommandHelp")),
+        Category    = ModuleCategory.General,
+        Author      = ["Xww"]
+    };
+
+    protected override void Init() =>
+        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("AutoReuseEmote-CommandHelp") });
 
     protected override void Uninit()
     {
@@ -42,10 +39,10 @@ public class AutoReuseEmote : DailyModuleBase
 
         args = args.Trim();
         if (string.IsNullOrWhiteSpace(args)) return;
-        
+
         var spilited = args.Split(' ');
         if (spilited.Length is not (1 or 2)) return;
-        
+
         var emoteName = spilited[0];
         var repeatInterval = spilited.Length == 2 && int.TryParse(spilited[1], out var repeatIntervalTime)
                                  ? repeatIntervalTime
@@ -63,17 +60,21 @@ public class AutoReuseEmote : DailyModuleBase
         if (string.IsNullOrWhiteSpace(name)) return false;
 
         var first = LuminaGetter.Get<Emote>()
-                               .Where(x => !string.IsNullOrWhiteSpace(x.Name.ToString()) &&
-                                           x.TextCommand.ValueNullable != null)
-                               .Where(x => x.Name.ToString().ToLowerInvariant() == name ||
-                                           x.TextCommand.Value.Command.ToString().ToLowerInvariant().Trim('/') ==
-                                           name)
-                               .FirstOrDefault();
+                                .Where
+                                (x => !string.IsNullOrWhiteSpace(x.Name.ToString()) &&
+                                      x.TextCommand.ValueNullable != null
+                                )
+                                .Where
+                                (x => x.Name.ToString().ToLowerInvariant() == name ||
+                                      x.TextCommand.Value.Command.ToString().ToLowerInvariant().Trim('/') ==
+                                      name
+                                )
+                                .FirstOrDefault();
         if (first.RowId == 0) return false;
         // 情感动作需要解锁
         if (first.UnlockLink != 0 && !UIState.Instance()->IsUnlockLinkUnlockedOrQuestCompleted(first.UnlockLink))
             return false;
-        
+
         id = (ushort)first.RowId;
         return true;
     }
@@ -81,7 +82,7 @@ public class AutoReuseEmote : DailyModuleBase
     private static void CancelTokenAndNullify()
     {
         if (CancelSource == null) return;
-        
+
         CancelSource.Cancel();
         CancelSource.Dispose();
         CancelSource = null;
@@ -99,19 +100,21 @@ public class AutoReuseEmote : DailyModuleBase
                     return;
                 }
             }
-            
+
             if (DService.Instance().ObjectTable.LocalPlayer == null ||
-                BetweenAreas || OccupiedInEvent || DService.Instance().Condition[ConditionFlag.InCombat])
+                DService.Instance().Condition.IsBetweenAreas        ||
+                DService.Instance().Condition.IsOccupiedInEvent     ||
+                DService.Instance().Condition[ConditionFlag.InCombat])
             {
                 CancelTokenAndNullify();
                 return;
             }
-            
+
             unsafe
             {
                 AgentEmote.Instance()->ExecuteEmote(id, default, false, false);
             }
-            
+
             await Task.Delay(interval, cts.Token);
         }
     }

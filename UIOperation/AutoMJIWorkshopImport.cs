@@ -1,11 +1,11 @@
-using System;
 using System.Collections.Frozen;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Interface.Colors;
@@ -13,20 +13,14 @@ using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.MJI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using OmenTools.Dalamud;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
+public unsafe partial class AutoMJIWorkshopImport : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = "自动无人岛工房生产计划",
-        Description = "允许从剪贴板导入外部无人岛生产计划, 并一键自动安排对应生产计划",
-        Category    = ModuleCategories.UIOperation
-    };
-
-    public override ModulePermission Permission { get; } = new() { CNOnly = true, TCOnly = true };
-    
     private static readonly FrozenDictionary<string, MJICraftworksObject> ItemNameMap =
         LuminaGetter.Get<MJICraftworksObject>()
                     .Where(x => x.Item.RowId != 0 && x.Item.IsValid)
@@ -39,19 +33,28 @@ public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
                     ).ToFrozenDictionary();
 
     private static Config ModuleConfig = null!;
-    
+
     private static Assignments Recommendations = new();
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = "自动无人岛工房生产计划",
+        Description = "允许从剪贴板导入外部无人岛生产计划, 并一键自动安排对应生产计划",
+        Category    = ModuleCategory.UIOperation
+    };
+
+    public override ModulePermission Permission { get; } = new() { CNOnly = true, TCOnly = true };
 
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         Overlay                 ??= new(this);
         Overlay.Flags           &=  ~ImGuiWindowFlags.NoTitleBar;
         Overlay.Flags           &=  ~ImGuiWindowFlags.NoResize;
         Overlay.Flags           &=  ~ImGuiWindowFlags.AlwaysAutoResize;
         Overlay.WindowName      =   "自动无人岛工房生产计划";
-        Overlay.SizeConstraints =   new() { MinimumSize = new(400f * GlobalFontScale, 300f * GlobalFontScale) };
+        Overlay.SizeConstraints =   new() { MinimumSize = new(400f * GlobalUIScale, 300f * GlobalUIScale) };
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "MJICraftSchedule", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "MJICraftSchedule", OnAddon);
@@ -102,7 +105,7 @@ public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
 
         using var indent = ImRaii.PushIndent();
 
-        if (ImGui.Button(GetLoc("ImportFromClipboard")))
+        if (ImGui.Button(Lang.Get("ImportFromClipboard")))
             Recommendations = Assignments.Parse(ImGui.GetClipboardText().Trim());
 
         ImGui.SameLine();
@@ -113,9 +116,9 @@ public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
         ImGui.TextDisabled("|");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(150f * GlobalFontScale);
+        ImGui.SetNextItemWidth(150f * GlobalUIScale);
         if (ImGui.SliderInt("工房数量", ref ModuleConfig.WorkshopAmount, 0, 4))
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
         ImGui.SameLine();
         if (ImGui.Checkbox("忽略 4 号工房", ref ModuleConfig.IgnoreFourthWorkshop))
@@ -124,7 +127,7 @@ public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
 
     private static void DrawBulkApplySection()
     {
-        ScaledDummy(12);
+        ImGuiOm.ScaledDummy(12);
 
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "批量应用");
 
@@ -140,7 +143,7 @@ public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
 
     private static void DrawIndividualApplySection()
     {
-        ScaledDummy(12);
+        ImGuiOm.ScaledDummy(12);
 
         ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), "单独应用");
 
@@ -154,7 +157,7 @@ public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
             ImGui.TextUnformatted($"第 {cycle} 天:");
 
             ImGui.SameLine();
-            if (ImGui.SmallButton($"{GetLoc("Apply")}##{cycle}"))
+            if (ImGui.SmallButton($"{Lang.Get("Apply")}##{cycle}"))
                 ApplyRecommendationToCurrentCycle(rec);
 
             DrawWorkshopTable(cycle, rec);
@@ -260,11 +263,11 @@ public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
 
             ResetCurrentCycleToRefreshUI();
 
-            NotificationSuccess($"已成功将数据应用至工房 {(nextWeek ? "下周" : "本周")} 的生产计划中");
+            NotifyHelper.NotificationSuccess($"已成功将数据应用至工房 {(nextWeek ? "下周" : "本周")} 的生产计划中");
         }
         catch (Exception ex)
         {
-            NotificationError($"{GetLoc("Error")}: {ex.Message}");
+            NotifyHelper.NotificationError($"{Lang.Get("Error")}: {ex.Message}");
         }
     }
 
@@ -346,7 +349,7 @@ public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
     protected override void Uninit() =>
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public bool IgnoreFourthWorkshop;
         public int  WorkshopAmount = 4;
@@ -425,8 +428,8 @@ public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
                 }
                 catch (Exception ex)
                 {
-                    NotificationError(ex.Message, "解析时发生错误");
-                    Error("解析时发生错误:", ex);
+                    NotifyHelper.NotificationError(ex.Message, "解析时发生错误");
+                    DLog.Error("解析时发生错误:", ex);
                 }
             }
 
@@ -547,7 +550,7 @@ public unsafe partial class AutoMJIWorkshopImport : DailyModuleBase
                     slot += craftObject.Value.CraftingTime;
                 }
                 else
-                    NotificationWarning($"无法找到物品数据: {item}");
+                    NotifyHelper.NotificationWarning($"无法找到物品数据: {item}");
             }
 
             return workshop;

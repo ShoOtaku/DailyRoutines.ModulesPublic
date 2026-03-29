@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Gui.ContextMenu;
@@ -14,29 +14,23 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
-using AgentFreeCompanyChest = OmenTools.Infos.AgentFreeCompanyChest;
+using OmenTools.Info.Game.Data;
+using OmenTools.Info.Game.Enums;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
+using OmenTools.Threading;
+using AgentFreeCompanyChest = OmenTools.Interop.Game.Models.Native.AgentFreeCompanyChest;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
+public unsafe class OptimizedFreeCompanyChest : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("OptimizedFreeCompanyChestTitle"),
-        Description = GetLoc("OptimizedFreeCompanyChestDescription"),
-        Category    = ModuleCategories.UIOptimization
-    };
-    
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-    
     private static readonly CompSig SendInventoryRefreshSig = new("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 8B DA 48 8B F1 33 D2 0F B7 FA");
-    private delegate        bool                                SendInventoryRefreshDelegate(InventoryManager* instance, int inventoryType);
     private static          Hook<SendInventoryRefreshDelegate>? SendInventoryRefreshHook;
-    
-    private delegate        nint             MoveItemDelegate(void* agent, InventoryType srcInv, uint srcSlot, InventoryType dstInv, uint dstSlot);
     private static readonly MoveItemDelegate MoveItem = new CompSig("40 53 55 56 57 41 57 48 83 EC ?? 45 33 FF").GetDelegate<MoveItemDelegate>();
-    
-    private static readonly uint[] ItemIDs = 
+
+    private static readonly uint[] ItemIDs =
         LuminaGetter.Get<Item>().Where(x => x.ItemSortCategory.Value.Param == 150).Select(x => x.RowId).ToArray();
 
     private static readonly Dictionary<InventoryType, string> DefaultPages = new()
@@ -47,9 +41,9 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
         [InventoryType.FreeCompanyPage4]    = $"{LuminaWrapper.GetFCChestName(0)} \ue093",
         [InventoryType.FreeCompanyPage5]    = $"{LuminaWrapper.GetFCChestName(0)} \ue094",
         [InventoryType.FreeCompanyCrystals] = $"{LuminaWrapper.GetAddonText(2990)}",
-        [InventoryType.Invalid]             = $"{LuminaWrapper.GetAddonText(7)}",
+        [InventoryType.Invalid]             = $"{LuminaWrapper.GetAddonText(7)}"
     };
-    
+
     private static Config ModuleConfig = null!;
 
     private static CheckboxNode? FastMoveNode;
@@ -63,11 +57,20 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
 
     private static bool IsNeedToClose;
     private static long LastTotalPrice;
-    
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("OptimizedFreeCompanyChestTitle"),
+        Description = Lang.Get("OptimizedFreeCompanyChestDescription"),
+        Category    = ModuleCategory.UIOptimization
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
-        
+        ModuleConfig = Config.Load(this) ?? new();
+
         SendInventoryRefreshHook ??= SendInventoryRefreshSig.GetHook<SendInventoryRefreshDelegate>(SendInventoryRefreshDetour);
         SendInventoryRefreshHook.Enable();
 
@@ -76,7 +79,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "FreeCompanyChest", OnAddonChest);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "InputNumeric",     OnAddonInput);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreDraw,     "ContextMenu",      OnAddonContextMenu);
-        
+
         DService.Instance().ContextMenu.OnMenuOpened += OnContextMenuOpened;
     }
 
@@ -87,7 +90,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
         {
             case AddonEvent.PostSetup:
                 if (FreeCompanyChest == null) return;
-                
+
                 if (ModuleConfig.DefaultPage != InventoryType.Invalid)
                 {
                     if (ModuleConfig.DefaultPage == InventoryType.FreeCompanyCrystals)
@@ -95,17 +98,18 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                     else
                     {
                         if ((int)ModuleConfig.DefaultPage < 20000) return;
-                        
+
                         var index = (int)ModuleConfig.DefaultPage % 20000;
                         if (index > 5) return;
 
                         DService.Instance().Framework.Run(() => ((AtkComponentRadioButton*)FreeCompanyChest->GetComponentByNodeId((uint)(10 + index)))->Click());
                     }
                 }
+
                 break;
             case AddonEvent.PostDraw:
                 if (FreeCompanyChest == null) return;
-                
+
                 if (FastMoveNode == null)
                 {
                     FastMoveNode = new()
@@ -115,7 +119,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         IsVisible = true,
                         IsChecked = ModuleConfig.FastMoveItem,
                         IsEnabled = true,
-                        String    = GetLoc("OptimizedFreeCompanyChest-FastMove"),
+                        String    = Lang.Get("OptimizedFreeCompanyChest-FastMove"),
                         OnClick = newState =>
                         {
                             ModuleConfig.FastMoveItem = newState;
@@ -124,15 +128,16 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                             IsNeedToClose = false;
                         },
                         TextTooltip = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle)
-                                                           .Append($" {GetLoc("OptimizedFreeCompanyChest-FastMoveHelp")}")
+                                                           .Append($" {Lang.Get("OptimizedFreeCompanyChest-FastMoveHelp")}")
                                                            .Build()
-                                                           .Encode(),
+                                                           .Encode()
                     };
                     FastMoveNode.AttachNode(FreeCompanyChest->GetNodeById(9));
                 }
+
                 FastMoveNode.IsChecked = ModuleConfig.FastMoveItem;
                 FastMoveNode.IsVisible = FreeCompanyChest->AtkValues[1].UInt == 0;
-                
+
                 if (DefaultPageNode == null)
                 {
                     DefaultPageNode = new()
@@ -142,7 +147,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         IsVisible = true,
                         IsChecked = false,
                         IsEnabled = true,
-                        String    = GetLoc("OptimizedFreeCompanyChest-DefaultPage"),
+                        String    = Lang.Get("OptimizedFreeCompanyChest-DefaultPage"),
                         OnClick = newState =>
                         {
                             switch (newState)
@@ -158,33 +163,37 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                             }
 
                             DefaultPageNode.TextTooltip = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle)
-                                                                               .Append($" {GetLoc("OptimizedFreeCompanyChest-DefaultPageHelp")}")
+                                                                               .Append($" {Lang.Get("OptimizedFreeCompanyChest-DefaultPageHelp")}")
                                                                                .AddRange([NewLinePayload.Payload, NewLinePayload.Payload])
-                                                                               .Append(
-                                                                                   $"{GetLoc("Current")}: {DefaultPages.GetValueOrDefault(ModuleConfig.DefaultPage, LuminaWrapper.GetAddonText(7))}")
+                                                                               .Append
+                                                                               (
+                                                                                   $"{Lang.Get("Current")}: {DefaultPages.GetValueOrDefault(ModuleConfig.DefaultPage, LuminaWrapper.GetAddonText(7))}"
+                                                                               )
                                                                                .Build()
                                                                                .Encode();
                             DefaultPageNode.HideTooltip();
                             DefaultPageNode.ShowTooltip();
                         },
                         TextTooltip = new SeStringBuilder().AddIcon(BitmapFontIcon.ExclamationRectangle)
-                                                           .Append($" {GetLoc("OptimizedFreeCompanyChest-DefaultPageHelp")}")
+                                                           .Append($" {Lang.Get("OptimizedFreeCompanyChest-DefaultPageHelp")}")
                                                            .AddRange([NewLinePayload.Payload, NewLinePayload.Payload])
-                                                           .Append(
-                                                               $"{GetLoc("Current")}: {DefaultPages.GetValueOrDefault(ModuleConfig.DefaultPage, LuminaWrapper.GetAddonText(7))}")
+                                                           .Append
+                                                           (
+                                                               $"{Lang.Get("Current")}: {DefaultPages.GetValueOrDefault(ModuleConfig.DefaultPage, LuminaWrapper.GetAddonText(7))}"
+                                                           )
                                                            .Build()
-                                                           .Encode(),
+                                                           .Encode()
                     };
                     DefaultPageNode.AttachNode(FreeCompanyChest->GetNodeById(9));
                 }
-                
+
                 var gilRadioButton = FreeCompanyChest->GetNodeById(16);
                 if (gilRadioButton != null)
                     gilRadioButton->SetPositionFloat(0, 185);
-                
-                if (Throttler.Throttle("OptimizedFreeCompanyChest-OnUpdateDefaultPage", 100))
+
+                if (Throttler.Shared.Throttle("OptimizedFreeCompanyChest-OnUpdateDefaultPage", 100))
                     DefaultPageNode.IsChecked = TryGetCurrentFCPage(out var currentPage) && ModuleConfig.DefaultPage == currentPage;
-                
+
                 if (ComponentNode == null)
                 {
                     ComponentNode = new()
@@ -208,12 +217,12 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         IsVisible        = true,
                         Position         = new(-55, 50),
                         Size             = new(395, 24),
-                        String           = $"({GetLoc("OptimizedFreeCompanyChest-ExchangableItemsTotalValue")})",
+                        String           = $"({Lang.Get("OptimizedFreeCompanyChest-ExchangableItemsTotalValue")})",
                         FontSize         = 8,
                         TextColor        = ColorHelper.GetColor(50),
                         TextFlags        = TextFlags.Edge,
                         TextOutlineColor = ColorHelper.GetColor(1),
-                        AlignmentType    = AlignmentType.Right,
+                        AlignmentType    = AlignmentType.Right
                     };
 
                     GilItemsValueCountNode = new()
@@ -226,20 +235,20 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                         TextOutlineColor = ColorHelper.GetColor(32),
                         FontSize         = 14,
                         TextColor        = ColorHelper.GetColor(50),
-                        AlignmentType    = AlignmentType.Right,
+                        AlignmentType    = AlignmentType.Right
                     };
-                    
+
                     GilIconNode.AttachNode(ComponentNode);
                     GilItemsValueNode.AttachNode(ComponentNode);
                     GilItemsValueCountNode.AttachNode(ComponentNode);
                     ComponentNode.AttachNode(FreeCompanyChest->GetNodeById(9));
                 }
 
-                if (Throttler.Throttle("OptimizedFreeCompanyChest-OnUpdateGilItemsValue", 100))
+                if (Throttler.Shared.Throttle("OptimizedFreeCompanyChest-OnUpdateGilItemsValue", 100))
                 {
                     LastTotalPrice = TryGetTotalPrice(out var totalPrice) ? totalPrice : 0;
 
-                    ComponentNode.IsVisible         = LastTotalPrice > 0;
+                    ComponentNode.IsVisible       = LastTotalPrice > 0;
                     GilItemsValueCountNode.String = $"{LastTotalPrice.ToChineseString()}\ue049";
                 }
 
@@ -250,25 +259,25 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                 ClearNodes();
                 break;
         }
-        
+
     }
-    
+
     // 快捷存取
     private static void OnContextMenuOpened(IMenuOpenedArgs args)
     {
         if (FreeCompanyChest == null || !ModuleConfig.FastMoveItem) return;
-        
+
         var agent = AgentFreeCompanyChest.Instance();
         if (agent == null) return;
-        
+
         // 取出
-        if (args.AddonName == "FreeCompanyChest" && 
+        if (args.AddonName              == "FreeCompanyChest" &&
             agent->ContextInventoryType != InventoryType.Invalid)
         {
             var contextItem = agent->GetContextInventoryItem();
             if (contextItem == null || contextItem->ItemId == 0) return;
-            
-            foreach (var playerInventory in PlayerInventories)
+
+            foreach (var playerInventory in Inventories.Player)
             {
                 if (TryFindFirstSuitableSlot(playerInventory, contextItem, out var slot))
                 {
@@ -294,7 +303,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
             MoveItem(agent, sourceInventory, sourceSlot, page, (uint)slot);
         }
     }
-    
+
     // 处理存取后的右键菜单关闭
     private static void OnAddonContextMenu(AddonEvent type, AddonArgs args)
     {
@@ -304,7 +313,7 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
         ContextMenuAddon->Close(true);
         IsNeedToClose = false;
     }
-    
+
     // 自动确认数量
     private static void OnAddonInput(AddonEvent type, AddonArgs args)
     {
@@ -325,23 +334,46 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
     {
         FastMoveNode?.Dispose();
         FastMoveNode = null;
-        
+
         DefaultPageNode?.Dispose();
         DefaultPageNode = null;
-        
+
         ComponentNode?.Dispose();
         ComponentNode = null;
-        
+
         GilIconNode?.Dispose();
         GilIconNode = null;
-        
+
         GilItemsValueCountNode?.Dispose();
         GilItemsValueCountNode = null;
-        
+
         GilItemsValueNode?.Dispose();
         GilItemsValueNode = null;
     }
-    
+
+    protected override void Uninit()
+    {
+        DService.Instance().ContextMenu.OnMenuOpened -= OnContextMenuOpened;
+
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonContextMenu);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonChest);
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonInput);
+
+        ClearNodes();
+
+        IsNeedToClose = false;
+    }
+
+    private delegate bool SendInventoryRefreshDelegate(InventoryManager* instance, int inventoryType);
+
+    private delegate nint MoveItemDelegate(void* agent, InventoryType srcInv, uint srcSlot, InventoryType dstInv, uint dstSlot);
+
+    private class Config : ModuleConfig
+    {
+        public InventoryType DefaultPage  = InventoryType.Invalid;
+        public bool          FastMoveItem = true;
+    }
+
     #region 工具
 
     private static bool TryGetSelectedItemSource(out InventoryType sourceInventory, out ushort sourceSlot)
@@ -361,11 +393,11 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
         sourceSlot      = (ushort)agent->TargetInventorySlotId;
         return true;
     }
-    
+
     private static bool TryGetCurrentFCPage(out InventoryType page)
     {
         page = InventoryType.Invalid;
-    
+
         if (FreeCompanyChest == null || FreeCompanyChest->GetNodeById(106)->GetVisibility())
             return false;
 
@@ -378,19 +410,19 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
         page = (InventoryType)(20000 + FreeCompanyChest->AtkValues[2].UInt);
         return true;
     }
-    
+
     private static bool TryFindFirstSuitableSlot(InventoryType type, InventoryItem* srcItem, out short foundSlot)
     {
         foundSlot = -1;
-        
+
         if (srcItem == null || srcItem->ItemId == 0) return false;
-        
+
         var manager = InventoryManager.Instance();
         if (manager == null) return false;
-    
+
         var container = manager->GetInventoryContainer(type);
         if (container == null || !container->IsLoaded) return false;
-    
+
         if (!LuminaGetter.TryGetRow<Item>(srcItem->GetBaseItemId(), out var sheetItem))
             return false;
 
@@ -411,63 +443,45 @@ public unsafe class OptimizedFreeCompanyChest : DailyModuleBase
                 }
             }
         }
-        
+
         for (var i = 0; i < container->Size; i++)
         {
             var item = container->GetInventorySlot(i);
+
             if (item->ItemId == 0)
             {
                 foundSlot = (short)i;
                 return true;
             }
         }
-    
+
         return false;
     }
-    
+
     private static bool TryGetTotalPrice(out long totalPrice)
     {
         totalPrice = 0;
 
         if (!FreeCompanyChest->IsAddonAndNodesReady()) return false;
-        
+
         var manager = InventoryManager.Instance();
         if (manager == null) return false;
 
         if (!TryGetCurrentFCPage(out var fcPage) || fcPage == InventoryType.FreeCompanyCrystals) return false;
-        
+
         foreach (var item in ItemIDs)
         {
             if (!LuminaGetter.TryGetRow(item, out Item itemData)) continue;
-            
+
             var itemCount = manager->GetItemCountInContainer(item, fcPage);
             if (itemCount == 0) continue;
-            
+
             var price = itemData.PriceLow;
             totalPrice += itemCount * price;
         }
-        
+
         return totalPrice > 0;
     }
 
     #endregion
-
-    protected override void Uninit()
-    {
-        DService.Instance().ContextMenu.OnMenuOpened -= OnContextMenuOpened;
-        
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonContextMenu);
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonChest);
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddonInput);
-
-        ClearNodes();
-        
-        IsNeedToClose = false;
-    }
-
-    private class Config : ModuleConfiguration
-    {
-        public bool          FastMoveItem = true;
-        public InventoryType DefaultPage  = InventoryType.Invalid;
-    }
 }

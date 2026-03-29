@@ -1,33 +1,22 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Hooking;
 using Dalamud.Interface.Components;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using OmenTools.ImGuiOm.Widgets.Combos;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
 using Action = Lumina.Excel.Sheets.Action;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
+public unsafe class AutoBroadcastActionHitInfo : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoBroadcastActionHitInfoTitle"),
-        Description = GetLoc("AutoBroadcastActionHitInfoDescription"),
-        Category    = ModuleCategories.Action,
-        Author      = ["Xww"]
-    };
-
-    private static readonly CompSig ProcessPacketActionEffectSig = new("E8 ?? ?? ?? ?? 48 8B 8D F0 03 00 00");
-    private delegate void ProcessPacketActionEffectDelegate
-    (
-        uint                        sourceID,
-        nint                        sourceCharacter,
-        nint                        pos,
-        ActionEffectHandler.Header* effectHeader,
-        ActionEffectHandler.Effect* effectArray,
-        ulong*                      effectTrail
-    );
-    private static Hook<ProcessPacketActionEffectDelegate> ProcessPacketActionEffectHook;
+    private static readonly CompSig                                 ProcessPacketActionEffectSig = new("E8 ?? ?? ?? ?? 48 8B 8D F0 03 00 00");
+    private static          Hook<ProcessPacketActionEffectDelegate> ProcessPacketActionEffectHook;
 
     private static Config ModuleConfig = null!;
 
@@ -35,9 +24,17 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
     private static readonly ActionSelectCombo BlacklistCombo = new("Blacklist");
     private static readonly ActionSelectCombo SelectedCombo  = new("Selected");
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoBroadcastActionHitInfoTitle"),
+        Description = Lang.Get("AutoBroadcastActionHitInfoDescription"),
+        Category    = ModuleCategory.Action,
+        Author      = ["Xww"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         WhitelistCombo.SelectedIDs = ModuleConfig.WhitelistActions;
         BlacklistCombo.SelectedIDs = ModuleConfig.BlacklistActions;
@@ -49,58 +46,58 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
     protected override void ConfigUI()
     {
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoBroadcastActionHitInfo-DHHint")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("AutoBroadcastActionHitInfo-DHHint")}:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
+        ImGui.SetNextItemWidth(300f * GlobalUIScale);
         ImGui.InputText("###DirectHitMessage", ref ModuleConfig.DirectHitPattern);
         if (ImGui.IsItemDeactivatedAfterEdit())
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoBroadcastActionHitInfo-CHHint")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("AutoBroadcastActionHitInfo-CHHint")}:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
+        ImGui.SetNextItemWidth(300f * GlobalUIScale);
         ImGui.InputText("###CriticalHitMessage", ref ModuleConfig.CriticalHitPattern);
         if (ImGui.IsItemDeactivatedAfterEdit())
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoBroadcastActionHitInfo-DCHHint")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("AutoBroadcastActionHitInfo-DCHHint")}:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
+        ImGui.SetNextItemWidth(300f * GlobalUIScale);
         ImGui.InputText("###DirectCriticalHitMessage", ref ModuleConfig.DirectCriticalHitPattern);
         if (ImGui.IsItemDeactivatedAfterEdit())
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
-        ScaledDummy(5f);
+        ImGuiOm.ScaledDummy(5f);
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoBroadcastActionHitInfo-UseTTS")}");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("AutoBroadcastActionHitInfo-UseTTS")}");
 
         ImGui.SameLine();
         if (ImGui.Checkbox("###UseTTS", ref ModuleConfig.UseTTS))
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
-        ScaledDummy(5f);
+        ImGuiOm.ScaledDummy(5f);
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("WorkMode")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("WorkMode")}:");
 
         ImGui.SameLine();
         if (ImGuiComponents.ToggleButton("WorkModeButton", ref ModuleConfig.WorkMode))
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
         ImGui.SameLine();
-        ImGui.TextUnformatted(ModuleConfig.WorkMode ? GetLoc("Whitelist") : GetLoc("Blacklist"));
+        ImGui.TextUnformatted(ModuleConfig.WorkMode ? Lang.Get("Whitelist") : Lang.Get("Blacklist"));
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Action")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("Action")}:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(200f * GlobalFontScale);
+        ImGui.SetNextItemWidth(200f * GlobalUIScale);
 
         if (ModuleConfig.WorkMode
                 ? WhitelistCombo.DrawCheckbox()
@@ -109,16 +106,16 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
             ModuleConfig.BlacklistActions = BlacklistCombo.SelectedIDs;
             ModuleConfig.WhitelistActions = BlacklistCombo.SelectedIDs;
 
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
         }
 
-        ScaledDummy(5f);
+        ImGuiOm.ScaledDummy(5f);
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoBroadcastActionHitInfo-CustomActionAlias")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("AutoBroadcastActionHitInfo-CustomActionAlias")}:");
 
         ImGui.SameLine();
-        ImGui.SetNextItemWidth(250f * GlobalFontScale);
+        ImGui.SetNextItemWidth(250f * GlobalUIScale);
         using (ImRaii.PushId("AddCustomActionSelect"))
             SelectedCombo.DrawRadio();
 
@@ -146,7 +143,7 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
 
         if (ImGui.CollapsingHeader
             (
-                $"{GetLoc("AutoBroadcastActionHitInfo-CustomActionAliasCount", ModuleConfig.CustomActionName.Count)}###CustomActionsCombo"
+                $"{Lang.Get("AutoBroadcastActionHitInfo-CustomActionAliasCount", ModuleConfig.CustomActionName.Count)}###CustomActionsCombo"
             ))
         {
             var counter = 1;
@@ -172,7 +169,7 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
 
                 ImGui.SameLine();
 
-                if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, GetLoc("Delete")))
+                if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, Lang.Get("Delete")))
                 {
                     ModuleConfig.CustomActionName.Remove(actionNamePair.Key);
                     ModuleConfig.Save(this);
@@ -183,11 +180,11 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
                 {
                     var message = actionNamePair.Value;
 
-                    ImGui.SetNextItemWidth(250f * GlobalFontScale);
+                    ImGui.SetNextItemWidth(250f * GlobalUIScale);
                     if (ImGui.InputText("###ActionCustomNameInput", ref message, 64))
                         ModuleConfig.CustomActionName[actionNamePair.Key] = message;
                     if (ImGui.IsItemDeactivatedAfterEdit())
-                        SaveConfig(ModuleConfig);
+                        ModuleConfig.Save(this);
                 }
 
                 counter++;
@@ -251,14 +248,14 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
             switch (effectArray->Param0)
             {
                 case 32 or 64:
-                    ContentHintBlue(message, 10);
+                    NotifyHelper.ContentHintBlue(message, TimeSpan.FromSeconds(1));
                     if (ModuleConfig.UseTTS)
-                        Speak(message);
+                        NotifyHelper.Speak(message);
                     break;
                 case 96:
-                    ContentHintRed(message, 10);
+                    NotifyHelper.ContentHintRed(message, TimeSpan.FromSeconds(1));
                     if (ModuleConfig.UseTTS)
-                        Speak(message);
+                        NotifyHelper.Speak(message);
                     break;
             }
         }
@@ -269,20 +266,31 @@ public unsafe class AutoBroadcastActionHitInfo : DailyModuleBase
 
     }
 
-    public class Config : ModuleConfiguration
+    private delegate void ProcessPacketActionEffectDelegate
+    (
+        uint                        sourceID,
+        nint                        sourceCharacter,
+        nint                        pos,
+        ActionEffectHandler.Header* effectHeader,
+        ActionEffectHandler.Effect* effectArray,
+        ulong*                      effectTrail
+    );
+
+    public class Config : ModuleConfig
     {
-        // False - 黑名单, True - 白名单
-        public bool WorkMode;
+        public HashSet<uint> BlacklistActions   = [];
+        public string        CriticalHitPattern = "技能 {0} 触发了暴击";
 
-        public HashSet<uint> BlacklistActions = [];
-        public HashSet<uint> WhitelistActions = [];
+        public Dictionary<uint, string> CustomActionName         = [];
+        public string                   DirectCriticalHitPattern = "技能 {0} 触发了直暴";
 
-        public Dictionary<uint, string> CustomActionName = [];
-
-        public string DirectHitPattern         = "技能 {0} 触发了直击";
-        public string CriticalHitPattern       = "技能 {0} 触发了暴击";
-        public string DirectCriticalHitPattern = "技能 {0} 触发了直暴";
+        public string DirectHitPattern = "技能 {0} 触发了直击";
 
         public bool UseTTS;
+
+        public HashSet<uint> WhitelistActions = [];
+
+        // False - 黑名单, True - 白名单
+        public bool WorkMode;
     }
 }

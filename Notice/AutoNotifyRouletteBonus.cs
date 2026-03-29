@@ -1,32 +1,25 @@
-using System;
 using System.Collections.Frozen;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using Dalamud.Interface.Textures.TextureWraps;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
 using ContentRoulette = Lumina.Excel.Sheets.ContentRoulette;
 using InstanceContent = FFXIVClientStructs.FFXIV.Client.Game.UI.InstanceContent;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoNotifyRouletteBonus : DailyModuleBase
+public unsafe class AutoNotifyRouletteBonus : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoNotifyRouletteBonusTitle"),
-        Description = GetLoc("AutoNotifyRouletteBonusDescription"),
-        Category    = ModuleCategories.Notice,
-        Author      = ["BoxingBunny"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private const int ROULETTE_BONUS_ARRAY_SIZE = 11;
 
     private static Config ModuleConfig = null!;
@@ -38,13 +31,40 @@ public unsafe class AutoNotifyRouletteBonus : DailyModuleBase
 
     private static readonly CompSig SetContentRouletteRoleBonusSig = new("48 89 4C 24 ?? 55 41 56 48 83 EC ?? ?? ?? ?? 4C 8B F1");
 
-    private delegate void SetContentRouletteRoleBonusDelegate(AgentContentsFinder* instance, void* data, uint bonusIndex);
-
     private static Hook<SetContentRouletteRoleBonusDelegate>? SetContentRouletteRoleBonusHook;
+
+    private static readonly FrozenDictionary<byte, uint> RouletteIndexToRowID = new Dictionary<byte, uint>
+    {
+        [1] = 1, [2] = 2, [3] = 3, [4] = 4, [5]   = 5,
+        [6] = 6, [7] = 8, [8] = 9, [9] = 15, [10] = 17
+    }.ToFrozenDictionary();
+
+    private static readonly FrozenDictionary<ContentsRouletteRole, BitmapFontIcon> RoleIcons = new Dictionary<ContentsRouletteRole, BitmapFontIcon>
+    {
+        [ContentsRouletteRole.Tank]   = BitmapFontIcon.Tank,
+        [ContentsRouletteRole.Healer] = BitmapFontIcon.Healer,
+        [ContentsRouletteRole.Dps]    = BitmapFontIcon.DPS
+    }.ToFrozenDictionary();
+
+    private static readonly ContentRoulette[] CachedRoulettes =
+        LuminaGetter.Get<ContentRoulette>()
+                    .Where(x => x is { RowId: > 0, ContentRouletteRoleBonus.RowId: > 0 })
+                    .OrderBy(x => x.ContentRouletteRoleBonus.RowId)
+                    .ToArray();
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoNotifyRouletteBonusTitle"),
+        Description = Lang.Get("AutoNotifyRouletteBonusDescription"),
+        Category    = ModuleCategory.Notice,
+        Author      = ["BoxingBunny"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init()
     {
-        ModuleConfig =   LoadConfig<Config>() ?? new();
+        ModuleConfig =   Config.Load(this) ?? new();
         TaskHelper   ??= new();
 
         if (LastKnownRoles.Length != ROULETTE_BONUS_ARRAY_SIZE)
@@ -70,13 +90,13 @@ public unsafe class AutoNotifyRouletteBonus : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
+        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref ModuleConfig.SendNotification))
             ModuleConfig.Save(this);
 
-        if (ImGui.Checkbox(GetLoc("SendChat"), ref ModuleConfig.SendChat))
+        if (ImGui.Checkbox(Lang.Get("SendChat"), ref ModuleConfig.SendChat))
             ModuleConfig.Save(this);
 
-        if (ImGui.Checkbox(GetLoc("SendTTS"), ref ModuleConfig.SendTTS))
+        if (ImGui.Checkbox(Lang.Get("SendTTS"), ref ModuleConfig.SendTTS))
             ModuleConfig.Save(this);
 
         ImGui.NewLine();
@@ -123,8 +143,8 @@ public unsafe class AutoNotifyRouletteBonus : DailyModuleBase
             ImGui.TextUnformatted("-");
 
         ImGui.TableNextColumn();
-        ImGui.TextUnformatted(GetLoc("OnlyIncomplete"));
-        ImGuiOm.HelpMarker(GetLoc("AutoNotifyRouletteBonus-OnlyIncompleteHelp"));
+        ImGui.TextUnformatted(Lang.Get("OnlyIncomplete"));
+        ImGuiOm.HelpMarker(Lang.Get("AutoNotifyRouletteBonus-OnlyIncompleteHelp"));
 
         ImGui.TableNextColumn();
         DrawRoleBonusHeaderIcon(headerTexture, headerInvTexSize);
@@ -199,7 +219,7 @@ public unsafe class AutoNotifyRouletteBonus : DailyModuleBase
     private void OnZoneChanged(ushort _)
     {
         TaskHelper.Abort();
-        TaskHelper.Enqueue(() => UIModule.IsScreenReady() && !BetweenAreas);
+        TaskHelper.Enqueue(() => UIModule.IsScreenReady() && !DService.Instance().Condition.IsBetweenAreas);
         TaskHelper.Enqueue
         (() =>
             {
@@ -289,7 +309,7 @@ public unsafe class AutoNotifyRouletteBonus : DailyModuleBase
         if (ModuleConfig.SendChat)
         {
             var chatBuilder = new SeStringBuilder();
-            chatBuilder.AddText(GetLoc("AutoNotifyRouletteBonusTitle"));
+            chatBuilder.AddText(Lang.Get("AutoNotifyRouletteBonusTitle"));
 
             foreach (var (role, grouped) in groupedBonuses)
             {
@@ -299,7 +319,7 @@ public unsafe class AutoNotifyRouletteBonus : DailyModuleBase
                     chatBuilder.AddText(" ").AddIcon(roleIcon);
 
                 chatBuilder.Add(NewLinePayload.Payload)
-                           .AddText($"{GetLoc("Operation")}: ");
+                           .AddText($"{Lang.Get("Operation")}: ");
 
                 foreach (var (rowID, rouletteName) in grouped)
                 {
@@ -312,7 +332,7 @@ public unsafe class AutoNotifyRouletteBonus : DailyModuleBase
                 }
             }
 
-            Chat(chatBuilder.Build());
+            NotifyHelper.Chat(chatBuilder.Build());
         }
 
         var notificationLines = new List<string>();
@@ -324,10 +344,10 @@ public unsafe class AutoNotifyRouletteBonus : DailyModuleBase
         var notificationString = string.Join('\n', notificationLines);
 
         if (ModuleConfig.SendNotification)
-            NotificationInfo(notificationString, GetLoc("AutoNotifyRouletteBonusTitle"));
+            NotifyHelper.NotificationInfo(notificationString, Lang.Get("AutoNotifyRouletteBonusTitle"));
 
         if (ModuleConfig.SendTTS)
-            Speak(notificationString);
+            NotifyHelper.Speak(notificationString);
     }
 
     private static bool IsRouletteComplete(uint rowID)
@@ -400,39 +420,21 @@ public unsafe class AutoNotifyRouletteBonus : DailyModuleBase
         invTexSize = new(1f / texture.Width, 1f / texture.Height);
     }
 
-    private class Config : ModuleConfiguration
-    {
-        public bool SendChat;
-        public bool SendNotification;
-        public bool SendTTS;
+    private delegate void SetContentRouletteRoleBonusDelegate(AgentContentsFinder* instance, void* data, uint bonusIndex);
 
+    private class Config : ModuleConfig
+    {
         public Dictionary<uint, RouletteConfig> Roulettes = [];
+        public bool                             SendChat;
+        public bool                             SendNotification;
+        public bool                             SendTTS;
     }
 
     private class RouletteConfig
     {
-        public bool Tank;
-        public bool Healer;
         public bool DPS;
+        public bool Healer;
         public bool OnlyIncomplete;
+        public bool Tank;
     }
-
-    private static readonly FrozenDictionary<byte, uint> RouletteIndexToRowID = new Dictionary<byte, uint>
-    {
-        [1] = 1, [2] = 2, [3] = 3, [4] = 4, [5]   = 5,
-        [6] = 6, [7] = 8, [8] = 9, [9] = 15, [10] = 17
-    }.ToFrozenDictionary();
-
-    private static readonly FrozenDictionary<ContentsRouletteRole, BitmapFontIcon> RoleIcons = new Dictionary<ContentsRouletteRole, BitmapFontIcon>
-    {
-        [ContentsRouletteRole.Tank]   = BitmapFontIcon.Tank,
-        [ContentsRouletteRole.Healer] = BitmapFontIcon.Healer,
-        [ContentsRouletteRole.Dps]    = BitmapFontIcon.DPS
-    }.ToFrozenDictionary();
-
-    private static readonly ContentRoulette[] CachedRoulettes =
-        LuminaGetter.Get<ContentRoulette>()
-                    .Where(x => x is { RowId: > 0, ContentRouletteRoleBonus.RowId: > 0 })
-                    .OrderBy(x => x.ContentRouletteRoleBonus.RowId)
-                    .ToArray();
 }

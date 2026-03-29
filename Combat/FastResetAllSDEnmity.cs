@@ -1,49 +1,61 @@
-using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Manager;
 using Dalamud.Game.Command;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using System;
-using System.Threading;
+using OmenTools.Info.Game.Enums;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.Modules;
 
-public class FastResetAllSDEnmity : DailyModuleBase
+public class FastResetAllSDEnmity : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title = GetLoc("FastResetAllSDEnmityTitle"),
-        Description = GetLoc("FastResetAllSDEnmityDescription"),
-        Category = ModuleCategories.Combat,
-    };
+    private const string Command = "resetallsd";
 
     private static CancellationTokenSource? CancelSource;
-    
-    private const string Command = "resetallsd";
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("FastResetAllSDEnmityTitle"),
+        Description = Lang.Get("FastResetAllSDEnmityDescription"),
+        Category    = ModuleCategory.Combat
+    };
 
     protected override void Init()
     {
         CancelSource ??= new();
 
         ExecuteCommandManager.Instance().RegPre(OnResetStrikingDummies);
-        CommandManager.AddSubCommand(Command, new CommandInfo(OnCommand)
-        {
-            HelpMessage = GetLoc("FastResetAllSDEnmity-CommandHelp"),
-        });
+        CommandManager.AddSubCommand
+        (
+            Command,
+            new CommandInfo(OnCommand)
+            {
+                HelpMessage = Lang.Get("FastResetAllSDEnmity-CommandHelp")
+            }
+        );
     }
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("Command")}:");
 
         ImGui.SameLine();
-        ImGui.TextUnformatted($"/pdr {Command} → {GetLoc("FastResetAllSDEnmity-CommandHelp")}");
+        ImGui.TextUnformatted($"/pdr {Command} → {Lang.Get("FastResetAllSDEnmity-CommandHelp")}");
     }
 
     private static void OnCommand(string command, string arguments) => ResetAllStrikingDummies();
 
-    public static void OnResetStrikingDummies(
-        ref bool isPrevented, ref ExecuteCommandFlag command, ref uint param1, ref uint param2, ref uint param3, ref uint param4)
+    public static void OnResetStrikingDummies
+    (
+        ref bool               isPrevented,
+        ref ExecuteCommandFlag command,
+        ref uint               param1,
+        ref uint               param2,
+        ref uint               param3,
+        ref uint               param4
+    )
     {
         if (command != ExecuteCommandFlag.ResetStrikingDummy) return;
         isPrevented = true;

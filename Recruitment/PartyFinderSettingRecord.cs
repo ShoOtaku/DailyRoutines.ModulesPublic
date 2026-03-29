@@ -1,37 +1,39 @@
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Windows;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using OmenTools.Interop.Game.Models;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class PartyFinderSettingRecord : DailyModuleBase
+public unsafe class PartyFinderSettingRecord : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("PartyFinderSettingRecordTitle"),
-        Description = GetLoc("PartyFinderSettingRecordDescription"),
-        Category    = ModuleCategories.Recruitment,
-        Author      = ["status102"]
-    };
-    
-    private static readonly CompSig AddonFireCallBackSig = new("E8 ?? ?? ?? ?? 0F B6 E8 8B 44 24 20");
-    private delegate        void* AddonFireCallBackDelegate(AtkUnitBase* atkunitbase, int valuecount, AtkValue* atkvalues, byte updateVisibility);
+    private static readonly CompSig                          AddonFireCallBackSig = new("E8 ?? ?? ?? ?? 0F B6 E8 8B 44 24 20");
     private static          Hook<AddonFireCallBackDelegate>? AgentReceiveEventHook;
 
-    private static Config? ModuleConfig;
+    private static Config ModuleConfig = null!;
 
     private static bool EditInited;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("PartyFinderSettingRecordTitle"),
+        Description = Lang.Get("PartyFinderSettingRecordDescription"),
+        Category    = ModuleCategory.Recruitment,
+        Author      = ["status102"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig  =   LoadConfig<Config>() ?? new();
-        Overlay       ??= new Overlay(this);
+        ModuleConfig = Config.Load(this) ?? new();
+
+        Overlay       ??= new(this);
         Overlay.Flags |=  ImGuiWindowFlags.NoMove;
         TaskHelper    ??= new();
 
@@ -55,7 +57,7 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
         var pos = new Vector2(addon->GetX() - ImGui.GetWindowSize().X, addon->GetY() + 6);
         ImGui.SetWindowPos(pos);
 
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, GetLoc("Add")))
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, Lang.Get("Add")))
         {
             var setting = ModuleConfig.Last.Copy();
             setting.Name =
@@ -65,28 +67,29 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
         }
 
         ImGui.SameLine();
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, GetLoc("Clear")))
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, Lang.Get("Clear")))
             ModuleConfig.Slot.Clear();
 
         for (var i = 0; i < ModuleConfig.Slot.Count; i++)
         {
             var config = ModuleConfig.Slot[i];
+
             using (ImRaii.Group())
             {
                 var title = config.Name;
                 if (string.IsNullOrEmpty(title))
-                    title = GetLoc("None");
+                    title = Lang.Get("None");
 
                 ImGui.AlignTextToFramePadding();
                 ImGui.TextUnformatted($"{i + 1}: {title}");
-                ImGuiOm.TooltipHover(GetLoc("PartyFinderSettingRecord-Message", title, config.Description));
+                ImGuiOm.TooltipHover(Lang.Get("PartyFinderSettingRecord-Message", title, config.Description));
 
                 ImGui.SameLine();
-                if (ImGuiOm.ButtonIcon($"Apply{i}", FontAwesomeIcon.Check, GetLoc("Apply")))
+                if (ImGuiOm.ButtonIcon($"Apply{i}", FontAwesomeIcon.Check, Lang.Get("Apply")))
                     ApplyPreset(config);
 
                 ImGui.SameLine();
-                if (ImGuiOm.ButtonIcon($"Delete{i}", FontAwesomeIcon.Trash, GetLoc("Delete")))
+                if (ImGuiOm.ButtonIcon($"Delete{i}", FontAwesomeIcon.Trash, Lang.Get("Delete")))
                     ModuleConfig.Slot.RemoveAt(i);
             }
         }
@@ -117,9 +120,9 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
             return;
 
         LookingForGroupCondition->Callback(11, setting.ItemLevel.AvgIL, setting.ItemLevel.IsEnableAvgIL);
-        LookingForGroupCondition->Callback(12, setting.Category,        0);
-        LookingForGroupCondition->Callback(13, setting.Duty,            0);
-        LookingForGroupCondition->Callback(15, setting.Description,     0);
+        LookingForGroupCondition->Callback(12, setting.Category, 0);
+        LookingForGroupCondition->Callback(13, setting.Duty, 0);
+        LookingForGroupCondition->Callback(15, setting.Description, 0);
 
         TaskHelper.DelayNext(100);
         TaskHelper.Enqueue(() => LookingForGroupCondition->Close(true));
@@ -127,12 +130,14 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
     }
 
     #region Hook
-    
-    private void* AddonFireCallBackDetour(
+
+    private void* AddonFireCallBackDetour
+    (
         AtkUnitBase* atkUnitBase,
         int          valueCount,
         AtkValue*    atkValues,
-        byte         updateVisibility)
+        byte         updateVisibility
+    )
     {
         if (!EditInited || atkUnitBase->NameString != "LookingForGroupCondition" || valueCount < 2)
             return AgentReceiveEventHook.Original(atkUnitBase, valueCount, atkValues, updateVisibility);
@@ -140,6 +145,7 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
         if (atkValues != null)
         {
             var eventCase = atkValues[0].Int;
+
             switch (eventCase)
             {
                 case 11 when valueCount == 3:
@@ -166,25 +172,27 @@ public unsafe class PartyFinderSettingRecord : DailyModuleBase
 
     #endregion
 
+    private delegate void* AddonFireCallBackDelegate(AtkUnitBase* atkunitbase, int valuecount, AtkValue* atkvalues, byte updateVisibility);
+
     #region Config
 
     private class PartyFinderSetting
     {
+        public uint                             Category;
+        public string                           Description = string.Empty;
+        public uint                             Duty;
+        public (uint AvgIL, bool IsEnableAvgIL) ItemLevel = new(0, false);
+
         /// <summary>
         ///     副本名，仅作为提示用
         /// </summary>
         public string Name;
 
-        public uint                             Category;
-        public uint                             Duty;
-        public string                           Description = string.Empty;
-        public (uint AvgIL, bool IsEnableAvgIL) ItemLevel   = new(0, false);
-
-        public PartyFinderSetting Copy() => 
+        public PartyFinderSetting Copy() =>
             new() { Name = Name, Category = Category, Duty = Duty, Description = Description, ItemLevel = ItemLevel };
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public PartyFinderSetting Last = new();
 

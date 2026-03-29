@@ -1,32 +1,28 @@
-using System;
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Manager;
 using Dalamud.Game.ClientState.Conditions;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.AddonEvent;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models.Packets.Upstream;
+using OmenTools.OmenService;
+using OmenTools.Threading;
+using OmenTools.Threading.TaskHelper;
 using Action = System.Action;
+using Control = FFXIVClientStructs.FFXIV.Client.Game.Control.Control;
+using ModuleBase = DailyRoutines.Common.Module.Abstractions.ModuleBase;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class FieldEntryCommand : DailyModuleBase
+public unsafe class FieldEntryCommand : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title               = GetLoc("FieldEntryCommandTitle"),
-        Description         = GetLoc("FieldEntryCommandDescription", COMMAND),
-        Category            = ModuleCategories.Assist,
-        ModulesPrerequisite = ["AutoTalkSkip"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+    private const string COMMAND = "/pdrfe";
 
     private static TaskHelper? TPHelper;
-
-    private const string COMMAND = "/pdrfe";
 
     private static readonly Dictionary<string, (Action EnqueueAction, uint Content)> CommandArgs = new()
     {
@@ -66,22 +62,32 @@ public unsafe class FieldEntryCommand : DailyModuleBase
 
     private static uint RedirectTargetZoneInMoon;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title               = Lang.Get("FieldEntryCommandTitle"),
+        Description         = Lang.Get("FieldEntryCommandDescription", COMMAND),
+        Category            = ModuleCategory.Assist,
+        ModulesPrerequisite = ["AutoTalkSkip"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override void Init()
     {
         TPHelper ??= new() { TimeoutMS = 30_000 };
 
         GamePacketManager.Instance().RegPreSendPacket(OnPreSendPacket);
 
-        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("FieldEntryCommand-CommandHelp") });
+        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FieldEntryCommand-CommandHelp") });
     }
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("Command")}");
 
         using var indent = ImRaii.PushIndent();
 
-        ImGui.TextUnformatted($"{COMMAND} → {GetLoc("FieldEntryCommand-CommandHelp")}");
+        ImGui.TextUnformatted($"{COMMAND} → {Lang.Get("FieldEntryCommand-CommandHelp")}");
 
         ImGui.Spacing();
 
@@ -94,7 +100,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
         );
         if (!table) return;
 
-        ImGui.TableSetupColumn(GetLoc("Argument"),                ImGuiTableColumnFlags.WidthStretch, 10);
+        ImGui.TableSetupColumn(Lang.Get("Argument"),              ImGuiTableColumnFlags.WidthStretch, 10);
         ImGui.TableSetupColumn(LuminaWrapper.GetAddonText(14098), ImGuiTableColumnFlags.WidthStretch, 20);
 
         ImGui.TableHeadersRow();
@@ -114,7 +120,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
             if (ImGui.IsItemClicked())
             {
                 ImGui.SetClipboardText($"{command.Key}");
-                NotificationSuccess($"{GetLoc("CopiedToClipboard")}: {command.Key}");
+                NotifyHelper.NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {command.Key}");
             }
 
             ImGui.TableNextColumn();
@@ -124,7 +130,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
 
     private static void OnCommand(string command, string args)
     {
-        if (BoundByDuty) return;
+        if (DService.Instance().Condition.IsBoundByDuty) return;
         TPHelper.Abort();
 
         args = args.Trim().ToLowerInvariant();
@@ -138,13 +144,13 @@ public unsafe class FieldEntryCommand : DailyModuleBase
             if (args == commandPair.Key || contentName.Contains(args, StringComparison.OrdinalIgnoreCase))
             {
                 commandPair.Value.EnqueueAction();
-                NotificationInfo(GetLoc("FieldEntryCommand-Notification", contentName));
+                NotifyHelper.NotificationInfo(Lang.Get("FieldEntryCommand-Notification", contentName));
                 return;
             }
         }
     }
 
-    public static void OnPreSendPacket(ref bool isPrevented, int  opcode, ref nint packet, ref bool isPrioritize)
+    public static void OnPreSendPacket(ref bool isPrevented, int opcode, ref nint packet, ref bool isPrioritize)
     {
         if (RedirectTargetZoneInMoon == 0 || GameState.TerritoryType != 959) return;
 
@@ -216,9 +222,9 @@ public unsafe class FieldEntryCommand : DailyModuleBase
                 );
 
                 // 第一次
-                TPHelper.Enqueue(() => ClickSelectString(0));
+                TPHelper.Enqueue(() => AddonSelectStringEvent.Select(0));
                 // 第二次
-                TPHelper.Enqueue(() => ClickSelectYesnoYes());
+                TPHelper.Enqueue(() => AddonSelectYesnoEvent.ClickYes());
 
                 // 等待进入无人岛
                 TPHelper.Enqueue(() => GameState.TerritoryType == 1055 && DService.Instance().ObjectTable.LocalPlayer != null);
@@ -242,18 +248,18 @@ public unsafe class FieldEntryCommand : DailyModuleBase
                 TPHelper.Enqueue
                 (() =>
                     {
-                        if (!Throttler.Throttle("FieldEntryCommand-Diadem")) return false;
+                        if (!Throttler.Shared.Throttle("FieldEntryCommand-Diadem")) return false;
                         if (!UIModule.IsScreenReady()) return false;
 
                         new EventStartPackt(LocalPlayerState.EntityID, 721532).Send();
-                        return OccupiedInEvent;
+                        return DService.Instance().Condition.IsOccupiedInEvent;
                     }
                 );
 
                 // 第一次
-                TPHelper.Enqueue(() => ClickSelectString(LuminaWrapper.GetContentName(753)));
+                TPHelper.Enqueue(() => AddonSelectStringEvent.Select(LuminaWrapper.GetContentName(753)));
                 // 第二次
-                TPHelper.Enqueue(() => ClickSelectYesnoYes());
+                TPHelper.Enqueue(() => AddonSelectYesnoEvent.ClickYes());
             }
         );
     }
@@ -322,9 +328,9 @@ public unsafe class FieldEntryCommand : DailyModuleBase
                 );
 
                 // 第一次
-                TPHelper.Enqueue(() => ClickSelectString(dutyName));
+                TPHelper.Enqueue(() => AddonSelectStringEvent.Select(dutyName));
                 // 第二次
-                TPHelper.Enqueue(() => ClickSelectYesnoYes());
+                TPHelper.Enqueue(() => AddonSelectYesnoEvent.ClickYes());
             }
         );
     }
@@ -385,9 +391,9 @@ public unsafe class FieldEntryCommand : DailyModuleBase
                 );
 
                 // 第一次
-                TPHelper.Enqueue(() => ClickSelectString(dutyName));
+                TPHelper.Enqueue(() => AddonSelectStringEvent.Select(dutyName));
                 // 第二次
-                TPHelper.Enqueue(() => ClickSelectString(dutyName));
+                TPHelper.Enqueue(() => AddonSelectStringEvent.Select(dutyName));
             }
         );
     }
@@ -436,7 +442,7 @@ public unsafe class FieldEntryCommand : DailyModuleBase
 
                 TPHelper.Enqueue(() => RedirectTargetZoneInMoon = targetZone);
                 TPHelper.Enqueue(() => new EventStartPackt(LocalPlayerState.EntityID, 327855).Send());
-                TPHelper.Enqueue(() => ClickSelectString(3));
+                TPHelper.Enqueue(() => AddonSelectStringEvent.Select(3));
             }
         );
     }
@@ -465,8 +471,8 @@ public unsafe class FieldEntryCommand : DailyModuleBase
 
             TPHelper.Enqueue(() => UIModule.IsScreenReady());
             TPHelper.Enqueue(() => new EventStartPackt(LocalPlayerState.EntityID, 721825).Send());
-            TPHelper.Enqueue(() => ClickSelectString(0));
-            TPHelper.Enqueue(() => ClickSelectString(0));
+            TPHelper.Enqueue(() => AddonSelectStringEvent.Select(0));
+            TPHelper.Enqueue(() => AddonSelectStringEvent.Select(0));
             return;
         }
 
@@ -494,8 +500,8 @@ public unsafe class FieldEntryCommand : DailyModuleBase
 
         TPHelper.Enqueue(() => UIModule.IsScreenReady());
         TPHelper.Enqueue(() => new EventStartPackt(LocalPlayerState.EntityID, 721825).Send());
-        TPHelper.Enqueue(() => ClickSelectString(0));
-        TPHelper.Enqueue(() => ClickSelectString(0));
+        TPHelper.Enqueue(() => AddonSelectStringEvent.Select(0));
+        TPHelper.Enqueue(() => AddonSelectStringEvent.Select(0));
     }
 
     protected override void Uninit()

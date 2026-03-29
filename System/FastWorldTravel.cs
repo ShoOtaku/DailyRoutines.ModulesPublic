@@ -1,12 +1,10 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using System.Threading.Channels;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
@@ -22,24 +20,22 @@ using KamiToolKit.Classes;
 using KamiToolKit.ContextMenu;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
-using AgentWorldTravel = OmenTools.Infos.AgentWorldTravel;
+using OmenTools.Dalamud;
+using OmenTools.Dalamud.Abstractions;
+using OmenTools.Dalamud.Attributes;
+using OmenTools.Info.Game.Data;
+using OmenTools.Interop.Game.AgentEvent;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using OmenTools.Threading;
+using OmenTools.Threading.TaskHelper;
+using AgentWorldTravel = OmenTools.Interop.Game.Models.Native.AgentWorldTravel;
+using ContextMenu = KamiToolKit.ContextMenu.ContextMenu;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class FastWorldTravel : DailyModuleBase
+public class FastWorldTravel : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title = GetLoc("FastWorldTravelTitle"),
-        Description = GetLoc("FastWorldTravelDescription", COMMAND) +
-                      (!GameState.IsCN ? string.Empty : "\n支持快捷超域旅行并实时显示各服务器超域旅行拥挤度 [国服特供]"),
-        Category            = ModuleCategories.System,
-        ModulesRecommend    = ["InstantReturn", "InstantTeleport"],
-        ModulesPrerequisite = ["InstantLogout"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     internal const string COMMAND = "worldtravel";
 
     private static readonly HashSet<uint> WorldTravelValidZones = [132, 129, 130];
@@ -62,15 +58,27 @@ public class FastWorldTravel : DailyModuleBase
 
     private static WorldMonitor? WorldStatusMonitor;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title = Lang.Get("FastWorldTravelTitle"),
+        Description = Lang.Get("FastWorldTravelDescription", COMMAND) +
+                      (!GameState.IsCN ? string.Empty : "\n支持快捷超域旅行并实时显示各服务器超域旅行拥挤度 [国服特供]"),
+        Category            = ModuleCategory.System,
+        ModulesRecommend    = ["InstantReturn", "InstantTeleport"],
+        ModulesPrerequisite = ["InstantLogout"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override unsafe void Init()
     {
-        ModuleConfig =   LoadConfig<Config>() ?? new();
+        ModuleConfig =   Config.Load(this) ?? new();
         TaskHelper   ??= new() { TimeoutMS = int.MaxValue, ShowDebug = true };
 
         if (GameState.IsCN)
             WorldStatusMonitor = new(CheckCNDataCenterStatus);
 
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("FastWorldTravel-CommandHelp") });
+        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastWorldTravel-CommandHelp") });
 
         if (ModuleConfig.AddDtrEntry)
             HandleDtrEntry(true);
@@ -102,24 +110,24 @@ public class FastWorldTravel : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("Command")}:");
         using (ImRaii.PushIndent())
-            ImGui.TextUnformatted($"/pdr {COMMAND} \u2192 {GetLoc("FastWorldTravel-CommandHelp")}");
+            ImGui.TextUnformatted($"/pdr {COMMAND} \u2192 {Lang.Get("FastWorldTravel-CommandHelp")}");
 
         ImGui.NewLine();
 
-        if (ImGui.Checkbox(GetLoc("FastWorldTravel-AutoLeaveParty"), ref ModuleConfig.AutoLeaveParty))
-            SaveConfig(ModuleConfig);
-        ImGuiOm.TooltipHover(GetLoc("FastWorldTravel-AutoLeavePartyHelp"));
+        if (ImGui.Checkbox(Lang.Get("FastWorldTravel-AutoLeaveParty"), ref ModuleConfig.AutoLeaveParty))
+            ModuleConfig.Save(this);
+        ImGuiOm.TooltipHover(Lang.Get("FastWorldTravel-AutoLeavePartyHelp"));
 
-        if (ImGui.Checkbox(GetLoc("FastWorldTravel-AddDtrEntry"), ref ModuleConfig.AddDtrEntry))
+        if (ImGui.Checkbox(Lang.Get("FastWorldTravel-AddDtrEntry"), ref ModuleConfig.AddDtrEntry))
         {
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
             HandleDtrEntry(ModuleConfig.AddDtrEntry);
         }
 
-        if (ImGui.Checkbox(GetLoc("FastWorldTravel-ReplaceOrigAddon"), ref ModuleConfig.ReplaceOrigAddon))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("FastWorldTravel-ReplaceOrigAddon"), ref ModuleConfig.ReplaceOrigAddon))
+            ModuleConfig.Save(this);
     }
 
     private static void HandleDtrEntry(bool isAdd)
@@ -136,7 +144,7 @@ public class FastWorldTravel : DailyModuleBase
                 Entry         =  DService.Instance().DTRBar.Get("DailyRoutines-FastWorldTravel");
                 Entry.OnClick += _ => Addon.Toggle();
                 Entry.Shown   =  true;
-                Entry.Tooltip =  GetLoc("FastWorldTravel-DtrEntryTooltip");
+                Entry.Tooltip =  Lang.Get("FastWorldTravel-DtrEntryTooltip");
                 Entry.Text    =  LuminaWrapper.GetAddonText(12510);
                 return;
             case false when Entry != null:
@@ -146,449 +154,10 @@ public class FastWorldTravel : DailyModuleBase
         }
     }
 
-    #region 事件
-
-    private void OnConditionChanged(ConditionFlag flag, bool value)
+    private class Config : ModuleConfig
     {
-        if (Entry == null || (TaskHelper?.IsBusy ?? true)) return;
-
-        if (InvalidConditions.Contains(flag))
-        {
-            if (value)
-                Entry.Shown = false;
-            else
-            {
-                Entry.Shown = !DService.Instance().Condition.Any(InvalidConditions);
-
-                if (Entry.Shown)
-                {
-                    Addon?.Dispose();
-                    Addon = new(TaskHelper)
-                    {
-                        InternalName = "DRFastWorldTravel",
-                        Title        = GameState.IsCN ? $"Daily Routines {Info.Title}" : LuminaWrapper.GetAddonText(12510),
-                        Size         = new(GameState.IsCN ? 710f : 180f, 480f)
-                    };
-                    
-                    Entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.CrossWorld)
-                                                      .Append($"{GameState.CurrentWorldData.Name.ToString()}")
-                                                      .Build();
-                }
-            }
-        }
-
-    }
-
-    private static unsafe void OnAddon(AddonEvent type, AddonArgs args)
-    {
-        if (WorldTravelSelect == null) return;
-        if (!ModuleConfig.ReplaceOrigAddon) return;
-
-        WorldTravelSelect->Close(true);
-        Addon.Open();
-    }
-
-    // 更新 DTR
-    private void OnUpdate(IFramework _)
-    {
-        if (Entry == null || (TaskHelper?.IsBusy ?? true)) return;
-
-        Entry.Shown = !DService.Instance().Condition.Any(InvalidConditions);
-
-        if (DService.Instance().Condition.Any(ConditionFlag.WaitingToVisitOtherWorld, ConditionFlag.ReadyingVisitOtherWorld))
-            return;
-
-        Entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.CrossWorld)
-                                          .Append($"{GameState.CurrentWorldData.Name.ToString()}")
-                                          .Build();
-    }
-
-    // 指令
-    private void OnCommand(string command, string args)
-    {
-        if (!Throttler.Throttle("FastWorldTravel-OnCommand", 1_000)) return;
-
-        if (!DService.Instance().ClientState.IsLoggedIn          ||
-            DService.Instance().ObjectTable.LocalPlayer == null  ||
-            DService.Instance().Condition.Any(InvalidConditions) ||
-            DService.Instance().Condition.Any(ConditionFlag.WaitingToVisitOtherWorld))
-        {
-            NotificationError(GetLoc("FastWorldTravel-Notice-InvalidEnv"));
-            return;
-        }
-
-        if (args.Length == 0)
-        {
-            Addon.Toggle();
-            return;
-        }
-
-        args = args.Trim().ToLowerInvariant();
-
-        if (string.IsNullOrWhiteSpace(args))
-        {
-            NotificationError(GetLoc("FastWorldTravel-Notice-InvalidInput"));
-            return;
-        }
-
-        var worldID = 0U;
-
-        if (uint.TryParse(args, out var parsedNumber))
-        {
-            if (LuminaGetter.TryGetRow(parsedNumber, out World _) &&
-                PresetSheet.Worlds.ContainsKey(parsedNumber))
-                worldID = parsedNumber;
-        }
-        else
-            worldID = PresetSheet.Worlds.FirstOrDefault(x => x.Value.Name.ToString().Contains(args, StringComparison.OrdinalIgnoreCase)).Key;
-
-        if (worldID != 0)
-        {
-            // 国际服仅允许同大区
-            if (!GameState.IsCN)
-            {
-                if (!PresetSheet.Worlds.TryGetValue(worldID, out var worldData) ||
-                    worldData.DataCenter.RowId != GameState.CurrentDataCenter)
-                    worldID = 0;
-            }
-            else
-            {
-                // 不是国服服务器
-                if (!PresetSheet.CNWorlds.ContainsKey(worldID))
-                    worldID = 0;
-            }
-        }
-
-        if (worldID == 0 || !LuminaGetter.TryGetRow(worldID, out World targetWorld))
-        {
-            NotificationError(GetLoc("FastWorldTravel-Notice-WorldNoFound", args));
-            return;
-        }
-
-        if (GameState.CurrentWorld == worldID)
-        {
-            NotificationError(GetLoc("FastWorldTravel-Notice-SameWorld"));
-            return;
-        }
-
-        if (!GameState.IsCN)
-        {
-            EnqueueWorldTravel(worldID);
-            return;
-        }
-
-        // 跨大区
-        if (targetWorld.DataCenter.RowId != GameState.CurrentDataCenter)
-        {
-            EnqueueDCTravel(worldID);
-            return;
-        }
-
-        EnqueueWorldTravel(worldID);
-    }
-
-    #endregion
-
-    #region Enqueue
-
-    private unsafe void EnqueueWorldTravel(uint worldID)
-    {
-        if (!LuminaGetter.TryGetRow(worldID, out World targetWorld)) return;
-
-        TaskHelper.Abort();
-
-        TaskHelper.Enqueue
-        (
-            () =>
-            {
-                if (Entry == null) return;
-                Entry.Text = $"\ue06f {targetWorld.Name.ToString()}";
-            },
-            "更新 DTR 目标服务器信息"
-        );
-
-        if (ModuleConfig.AutoLeaveParty)
-            TaskHelper.Enqueue(LeaveNonCrossWorldParty, "离开非跨服小队");
-
-        if (!WorldTravelValidZones.Contains(GameState.TerritoryType))
-        {
-            var nearestAetheryte = DService.Instance().AetheryteList
-                                           .Where(x => WorldTravelValidZones.Contains(x.TerritoryID))
-                                           .MinBy(x => x.GilCost);
-            if (nearestAetheryte == null) return;
-
-            TaskHelper.Enqueue(() => Telepo.Instance()->Teleport(nearestAetheryte.AetheryteID, 0),                        "传送回可跨服区域");
-            TaskHelper.Enqueue(() => GameState.TerritoryType == nearestAetheryte.TerritoryID && UIModule.IsScreenReady(), "等待跨服完成");
-        }
-
-        TaskHelper.Enqueue
-        (
-            () =>
-            {
-                AgentWorldTravel.Instance()->TravelTo(worldID);
-                NotificationInfo
-                (
-                    GetLoc
-                    (
-                        "FastWorldTravel-Notice-TravelTo",
-                        $"{char.ToUpper(targetWorld.Name.ToString()[0])}{targetWorld.Name.ToString()[1..]}"
-                    )
-                );
-            },
-            "发起大区内跨服请求"
-        );
-    }
-
-    private void EnqueueDCTravel(uint targetWorldID)
-    {
-        if (GameState.CurrentWorld == 0 ||
-            GameState.HomeWorld    == 0 ||
-            targetWorldID          == 0 ||
-            !LuminaGetter.TryGetRow(targetWorldID, out World targetWorld)) return;
-
-        Travel travel;
-
-        // 现在就在原始大区, 要去其他大区
-        if (GameState.HomeDataCenter == GameState.CurrentDataCenter)
-        {
-            // 但是不在原始服务器
-            if (GameState.CurrentWorld != GameState.HomeWorld)
-                EnqueueWorldTravel(GameState.HomeWorld);
-
-            TaskHelper.Enqueue(() => GameState.HomeWorld == GameState.CurrentWorld && UIModule.IsScreenReady(), "等待返回原始服务器的跨服完成");
-
-            travel = new Travel
-            {
-                CurrentWorldID = GameState.HomeWorld,
-                TargetWorldID  = targetWorldID,
-                ContentID      = LocalPlayerState.ContentID,
-                IsBack         = false,
-                Name           = LocalPlayerState.Name,
-                Description    = targetWorld.DataCenter.Value.Name.ToString()
-            };
-
-            EnqueueLogout();
-            TaskHelper.EnqueueAsync(() => EnqueueDCTravelRequest([travel]), "发送跨服请求");
-            return;
-        }
-
-        // 现在不在原始大区, 要回原始服务器
-        if (targetWorldID == GameState.HomeWorld)
-        {
-            travel = new Travel
-            {
-                CurrentWorldID = GameState.CurrentWorld,
-                TargetWorldID  = targetWorldID,
-                ContentID      = LocalPlayerState.ContentID,
-                IsBack         = true,
-                Name           = LocalPlayerState.Name,
-                Description    = targetWorld.DataCenter.Value.Name.ToString()
-            };
-
-            EnqueueLogout();
-            TaskHelper.EnqueueAsync(() => EnqueueDCTravelRequest([travel]), "发送跨服请求");
-            return;
-        }
-
-        // 现在不在原始大区, 要回原始大区的其他服务器
-        if (targetWorld.DataCenter.RowId == GameState.HomeDataCenter)
-        {
-            travel = new Travel
-            {
-                CurrentWorldID = GameState.CurrentWorld,
-                TargetWorldID  = targetWorldID,
-                ContentID      = LocalPlayerState.ContentID,
-                IsBack         = true,
-                Name           = LocalPlayerState.Name,
-                Description    = targetWorld.DataCenter.Value.Name.ToString(),
-                HomeWorldID    = GameState.HomeWorld
-            };
-
-            EnqueueLogout();
-            TaskHelper.EnqueueAsync(() => EnqueueDCTravelRequest([travel]), "发送跨服请求");
-            TaskHelper.Enqueue
-            (
-                () =>
-                {
-                    if (GameState.CurrentWorld != GameState.HomeWorld || !GameState.IsLoggedIn) return false;
-
-                    EnqueueWorldTravel(targetWorldID);
-                    return true;
-                },
-                "回到原始服务器, 跨服到其他服务器",
-                weight: -1
-            );
-            return;
-        }
-
-        // 现在不在原始大区, 要去非原始大区
-        var travel0 = new Travel
-        {
-            CurrentWorldID = GameState.CurrentWorld,
-            TargetWorldID  = GameState.HomeWorld,
-            ContentID      = LocalPlayerState.ContentID,
-            IsBack         = true,
-            Name           = LocalPlayerState.Name,
-            Description    = targetWorld.DataCenter.Value.Name.ToString()
-        };
-
-        var travel1 = new Travel
-        {
-            CurrentWorldID = GameState.HomeWorld,
-            TargetWorldID  = targetWorldID,
-            ContentID      = LocalPlayerState.ContentID,
-            IsBack         = false,
-            Name           = LocalPlayerState.Name,
-            Description    = targetWorld.DataCenter.Value.Name.ToString()
-        };
-
-        EnqueueLogout();
-        TaskHelper.EnqueueAsync(() => EnqueueDCTravelRequest([travel0, travel1]), "发送跨服请求");
-    }
-
-    private unsafe void EnqueueLogout()
-    {
-        TaskHelper.EnqueueAsync(() => ModuleManager.UnloadAsync(ModuleManager.GetModuleByName("AutoLogin")), "禁用自动登录");
-
-        TaskHelper.DelayNext(500, "等待 500 毫秒");
-        TaskHelper.Enqueue(() => ChatManager.Instance().SendCommand("/logout"), "登出游戏");
-
-        TaskHelper.Enqueue(() => Dialogue->IsAddonAndNodesReady(), "等待界面出现");
-
-        TaskHelper.DelayNext(500, "等待 500 毫秒");
-
-        TaskHelper.Enqueue
-        (
-            () =>
-            {
-                if (TitleMenu->IsAddonAndNodesReady()) return true;
-                if (!Dialogue->IsAddonAndNodesReady()) return false;
-
-                var buttonNode = Dialogue->GetComponentButtonById(4);
-                if (buttonNode == null) return false;
-
-                buttonNode->Click();
-                return true;
-            },
-            "点击确认键"
-        );
-
-        TaskHelper.Enqueue(() => TitleMenu->IsAddonAndNodesReady(), "等待标题界面");
-    }
-
-    private async Task EnqueueDCTravelRequest(Travel[] data)
-    {
-        try
-        {
-            NotificationInfo("DCTravelrX 正在处理超域旅行请求, 请稍等");
-
-            for (var i = 0; i < data.Length; i++)
-            {
-                var travelData = data[i];
-
-                TaskHelper.EnqueueAsync
-                (async () =>
-                    {
-                        var exception = await SendDCTravel.InvokeFunc
-                                        (
-                                            (int)travelData.CurrentWorldID,
-                                            (int)travelData.TargetWorldID,
-                                            travelData.ContentID,
-                                            travelData.IsBack,
-                                            travelData.Name
-                                        );
-
-                        if (exception != null)
-                        {
-                            NotificationWarning("超域旅行失败: 请查看日志获取详细信息");
-                            Error("超域旅行失败", exception);
-
-                            TaskHelper.Abort();
-                        }
-                    }
-                );
-
-                if (i == data.Length - 1)
-                {
-                    TaskHelper.Enqueue(AgentLobbyEvent.OpenCharacterSelect, "进入角色选择界面");
-
-                    unsafe
-                    {
-                        TaskHelper.Enqueue(() => CharaSelect != null || CharaSelectListMenu != null, "等待角色选择界面可用");
-                        TaskHelper.DelayNext(1000);
-                    }
-
-                    TaskHelper.Enqueue(() => AgentLobbyEvent.SelectWorldByID(travelData.TargetWorldID), "选择目标服务器");
-
-                    TaskHelper.DelayNext(1000);
-                    TaskHelper.Enqueue(() => AgentLobbyEvent.SelectCharacter(x => x.ContentId == travelData.ContentID), "选择目标角色");
-
-                    if (DRConfig.Instance().ModuleEnabled.GetValueOrDefault("AutoLogin", false))
-                        TaskHelper.EnqueueAsync(() => ModuleManager.LoadAsync(ModuleManager.GetModuleByName("AutoLogin")), "启用自动登录");
-                    return;
-                }
-
-                await Task.Delay(100);
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug($"超域旅行失败: {ex.Message}", ex);
-        }
-    }
-
-    #endregion
-
-    #region 工具
-
-    private static bool LeaveNonCrossWorldParty()
-    {
-        if (DService.Instance().PartyList.Length < 2 || DService.Instance().Condition[ConditionFlag.ParticipatingInCrossWorldPartyOrAlliance])
-            return true;
-        if (!Throttler.Throttle("FastWorldTravel-LeaveNonCrossWorldParty"))
-            return false;
-
-        ChatManager.Instance().SendMessage("/leave");
-        return DService.Instance().PartyList.Length < 2;
-    }
-
-    private static (bool, uint) CheckCNDataCenterStatus(uint dcID)
-    {
-        var worlds = PresetSheet.Worlds.Where(x => x.Value.DataCenter.RowId == dcID).Select(x => x.Key).ToList();
-
-        foreach (var world in worlds)
-        {
-            var time = GetDCTravelWaitTime.InvokeFunc(world);
-            if (time != 0) continue;
-
-            return (true, world);
-        }
-
-        return (false, 0);
-    }
-
-    #endregion
-
-    #region IPC
-
-    [IPCSubscriber("DCTravelerX.Travel")]
-    private static IPCSubscriber<int, int, ulong, bool, string, Task<Exception?>> SendDCTravel;
-
-    [IPCSubscriber("DCTravelerX.IsValid", DefaultValue = "false")]
-    private static IPCSubscriber<bool> IsDCTravelerValid;
-
-    [IPCSubscriber("DCTravelerX.QueryAllWaitTime")]
-    private static IPCSubscriber<Task> RequestDCTravelInfo;
-
-    [IPCSubscriber("DCTravelerX.GetWaitTime", DefaultValue = "-1")]
-    private static IPCSubscriber<uint, int> GetDCTravelWaitTime;
-
-    #endregion
-
-    private class Config : ModuleConfiguration
-    {
-        public bool AutoLeaveParty   = true;
         public bool AddDtrEntry      = true;
+        public bool AutoLeaveParty   = true;
         public bool ReplaceOrigAddon = true;
     }
 
@@ -603,17 +172,14 @@ public class FastWorldTravel : DailyModuleBase
         public string? Description;
     }
 
-    private class AddonDRFastWorldTravel(TaskHelper taskHelper) : NativeAddon
+    private class AddonDRFastWorldTravel
+    (
+        TaskHelper taskHelper
+    ) : NativeAddon
     {
         private static NodeBase TeleportWidget;
 
         private static readonly Version MinDCTravelerXVersion = new("0.2.3.0");
-
-        private static bool IsPluginEnabled =>
-            DService.Instance().PI.IsPluginEnabled("DCTravelerX", MinDCTravelerXVersion);
-
-        private static bool IsPluginValid =>
-            IsPluginEnabled && IsDCTravelerValid;
 
         private static ContextMenu? ContextMenuService;
 
@@ -622,6 +188,12 @@ public class FastWorldTravel : DailyModuleBase
         private static bool LastForegroundState;
 
         private static Dictionary<uint, TextButtonNode> WorldToButtons = [];
+
+        private static bool IsPluginEnabled =>
+            DService.Instance().PI.IsPluginEnabled("DCTravelerX", MinDCTravelerXVersion);
+
+        private static bool IsPluginValid =>
+            IsPluginEnabled && IsDCTravelerValid;
 
         protected override unsafe void OnSetup(AtkUnitBase* addon)
         {
@@ -677,7 +249,7 @@ public class FastWorldTravel : DailyModuleBase
 
         protected override unsafe void OnUpdate(AtkUnitBase* addon)
         {
-            if (BoundByDuty)
+            if (DService.Instance().Condition.IsBoundByDuty)
             {
                 Close();
                 return;
@@ -685,7 +257,7 @@ public class FastWorldTravel : DailyModuleBase
 
             if (!GameState.IsCN) return;
 
-            if (Throttler.Throttle("FastWorldTravel-OnAddonUpdate") && LastOpenPluginState != IsPluginValid)
+            if (Throttler.Shared.Throttle("FastWorldTravel-OnAddonUpdate") && LastOpenPluginState != IsPluginValid)
             {
                 Close();
 
@@ -702,15 +274,15 @@ public class FastWorldTravel : DailyModuleBase
             {
                 LastForegroundState = GameState.IsForeground;
 
-                Throttler.Remove("FastWorldTravel-OnAddonUpdate-RequestQueueTime");
-                Throttler.Remove("FastWorldTravel-OnAddonUpdate-UpdateQueueTime");
+                Throttler.Shared.Remove("FastWorldTravel-OnAddonUpdate-RequestQueueTime");
+                Throttler.Shared.Remove("FastWorldTravel-OnAddonUpdate-UpdateQueueTime");
             }
 
             // 都在后台了就不要 DDOS 拂晓服务器了
-            if (Throttler.Throttle("FastWorldTravel-OnAddonUpdate-RequestQueueTime", GameState.IsForeground ? 15_000U : 60_000))
+            if (Throttler.Shared.Throttle("FastWorldTravel-OnAddonUpdate-RequestQueueTime", GameState.IsForeground ? 15_000U : 60_000))
                 RequestWaitTimeInfoUpdate();
 
-            if (Throttler.Throttle("FastWorldTravel-OnAddonUpdate-UpdateQueueTime", 1_000))
+            if (Throttler.Shared.Throttle("FastWorldTravel-OnAddonUpdate-UpdateQueueTime", 1_000))
                 UpdateWaitTimeInfo();
         }
 
@@ -779,9 +351,9 @@ public class FastWorldTravel : DailyModuleBase
             var mainLayoutContainer = new HorizontalListNode { IsVisible = true };
 
             // 当前大区
-            var currentDCWorlds = PresetSheet.Worlds
-                                             .Where(x => x.Value.DataCenter.RowId == GameState.CurrentDataCenter)
-                                             .ToList();
+            var currentDCWorlds = Sheets.Worlds
+                                        .Where(x => x.Value.DataCenter.RowId == GameState.CurrentDataCenter)
+                                        .ToList();
             if (currentDCWorlds is not { Count: > 0 }) return mainLayoutContainer;
 
             var currentDCColumn = CreateDataCenterColumn(currentDCWorlds.First().Value.DataCenter.RowId, currentDCWorlds);
@@ -791,10 +363,10 @@ public class FastWorldTravel : DailyModuleBase
                 return mainLayoutContainer;
 
             // 其他大区 (仅国服)
-            var otherDataCenters = PresetSheet.CNWorlds
-                                              .Where(kvp => kvp.Value.DataCenter.RowId != GameState.CurrentDataCenter)
-                                              .GroupBy(x => x.Value.DataCenter.RowId)
-                                              .ToDictionary(x => x.Key, x => x.ToList());
+            var otherDataCenters = Sheets.CNWorlds
+                                         .Where(kvp => kvp.Value.DataCenter.RowId != GameState.CurrentDataCenter)
+                                         .GroupBy(x => x.Value.DataCenter.RowId)
+                                         .ToDictionary(x => x.Key, x => x.ToList());
 
             foreach (var dataCenter in otherDataCenters)
             {
@@ -981,22 +553,45 @@ public class FastWorldTravel : DailyModuleBase
 
     private class WorldMonitor : IDisposable
     {
-        private readonly Channel<uint> requestChannel = Channel.CreateUnbounded<uint>();
-
         private readonly ConcurrentDictionary<uint, CancellationTokenSource> activeMonitors = [];
 
         private readonly Func<uint, (bool, uint)> checkLogicFunc;
+        private readonly Channel<uint>            requestChannel = Channel.CreateUnbounded<uint>();
 
         private readonly CancellationTokenSource serviceCts = new();
 
         private bool disposed;
 
-        public bool JustGo { get; set; }
-
         public WorldMonitor(Func<uint, (bool, uint)> checkLogic)
         {
             checkLogicFunc = checkLogic;
             _              = ProcessChannelRequestsAsync(serviceCts.Token);
+        }
+
+        public bool JustGo { get; set; }
+
+        public void Dispose()
+        {
+            if (disposed) return;
+            disposed = true;
+
+            requestChannel.Writer.TryComplete();
+            serviceCts.Cancel();
+
+            foreach (var kvp in activeMonitors)
+            {
+                try
+                {
+                    kvp.Value.Cancel();
+                }
+                catch
+                {
+                    // ignored
+                }
+            }
+
+            activeMonitors.Clear();
+            serviceCts.Dispose();
         }
 
         public void AddMonitor(uint dcID)
@@ -1009,8 +604,9 @@ public class FastWorldTravel : DailyModuleBase
 
             if (requestChannel.Writer.TryWrite(dcID))
             {
-                Debug($"[FastWorldTravel] 开始监控 {LuminaWrapper.GetDataCenterName(dcID)} ({dcID}) 大区状态");
-                Chat($"[{GetLoc("FastWorldTravelTitle")}]\n开始实时监控 [{LuminaWrapper.GetDataCenterName(dcID)}] 大区可通行状态\n检测到可通行时: [{(JustGo ? "直接前往" : "发送通知")}]");
+                DLog.Debug($"[FastWorldTravel] 开始监控 {LuminaWrapper.GetDataCenterName(dcID)} ({dcID}) 大区状态");
+                NotifyHelper.Chat
+                    ($"[{Lang.Get("FastWorldTravelTitle")}]\n开始实时监控 [{LuminaWrapper.GetDataCenterName(dcID)}] 大区可通行状态\n检测到可通行时: [{(JustGo ? "直接前往" : "发送通知")}]");
             }
         }
 
@@ -1020,8 +616,8 @@ public class FastWorldTravel : DailyModuleBase
 
             if (activeMonitors.TryRemove(dcID, out var cts))
             {
-                Debug($"[FastWorldTravel] 停止监控 {LuminaWrapper.GetDataCenterName(dcID)} ({dcID}) 大区状态");
-                Chat($"[{GetLoc("FastWorldTravelTitle")}]\n已停止对 [{LuminaWrapper.GetDataCenterName(dcID)}] 大区可通行状态的实时监控");
+                DLog.Debug($"[FastWorldTravel] 停止监控 {LuminaWrapper.GetDataCenterName(dcID)} ({dcID}) 大区状态");
+                NotifyHelper.Chat($"[{Lang.Get("FastWorldTravelTitle")}]\n已停止对 [{LuminaWrapper.GetDataCenterName(dcID)}] 大区可通行状态的实时监控");
 
                 try
                 {
@@ -1069,7 +665,7 @@ public class FastWorldTravel : DailyModuleBase
             }
             catch (Exception ex)
             {
-                Error("[FastWorldTravel] 主循环发生预期外错误", ex);
+                DLog.Error("[FastWorldTravel] 主循环发生预期外错误", ex);
             }
         }
 
@@ -1084,10 +680,10 @@ public class FastWorldTravel : DailyModuleBase
                     if (checkLogicFunc(dcID) is { Item1: true } result)
                     {
                         var message = $"大区 [{LuminaWrapper.GetDataCenterName(dcID)}] 已为可通行状态, 停止监控";
-                        Chat(message);
-                        NotificationInfo(message);
-                        Speak(message);
-                        
+                        NotifyHelper.Chat(message);
+                        NotifyHelper.NotificationInfo(message);
+                        NotifyHelper.Speak(message);
+
                         if (JustGo)
                             ChatManager.Instance().SendCommand($"/pdr worldtravel {result.Item2}");
 
@@ -1099,7 +695,7 @@ public class FastWorldTravel : DailyModuleBase
             }
             catch (OperationCanceledException)
             {
-                Debug($"[FastWorldTravel] 对大区 {dcID} 的状态监控已被取消");
+                DLog.Debug($"[FastWorldTravel] 对大区 {dcID} 的状态监控已被取消");
             }
             finally
             {
@@ -1107,29 +703,444 @@ public class FastWorldTravel : DailyModuleBase
                 cts.Dispose();
             }
         }
+    }
 
-        public void Dispose()
+    #region 事件
+
+    private void OnConditionChanged(ConditionFlag flag, bool value)
+    {
+        if (Entry == null || (TaskHelper?.IsBusy ?? true)) return;
+
+        if (InvalidConditions.Contains(flag))
         {
-            if (disposed) return;
-            disposed = true;
-
-            requestChannel.Writer.TryComplete();
-            serviceCts.Cancel();
-
-            foreach (var kvp in activeMonitors)
+            if (value)
+                Entry.Shown = false;
+            else
             {
-                try
+                Entry.Shown = !DService.Instance().Condition.Any(InvalidConditions);
+
+                if (Entry.Shown)
                 {
-                    kvp.Value.Cancel();
-                }
-                catch
-                {
-                    // ignored
+                    Addon?.Dispose();
+                    Addon = new(TaskHelper)
+                    {
+                        InternalName = "DRFastWorldTravel",
+                        Title        = GameState.IsCN ? $"Daily Routines {Info.Title}" : LuminaWrapper.GetAddonText(12510),
+                        Size         = new(GameState.IsCN ? 710f : 180f, 480f)
+                    };
+
+                    Entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.CrossWorld)
+                                                      .Append($"{GameState.CurrentWorldData.Name.ToString()}")
+                                                      .Build();
                 }
             }
+        }
 
-            activeMonitors.Clear();
-            serviceCts.Dispose();
+    }
+
+    private static unsafe void OnAddon(AddonEvent type, AddonArgs args)
+    {
+        if (WorldTravelSelect == null) return;
+        if (!ModuleConfig.ReplaceOrigAddon) return;
+
+        WorldTravelSelect->Close(true);
+        Addon.Open();
+    }
+
+    // 更新 DTR
+    private void OnUpdate(IFramework _)
+    {
+        if (Entry == null || (TaskHelper?.IsBusy ?? true)) return;
+
+        Entry.Shown = !DService.Instance().Condition.Any(InvalidConditions);
+
+        if (DService.Instance().Condition.Any(ConditionFlag.WaitingToVisitOtherWorld, ConditionFlag.ReadyingVisitOtherWorld))
+            return;
+
+        Entry.Text = new SeStringBuilder().AddIcon(BitmapFontIcon.CrossWorld)
+                                          .Append($"{GameState.CurrentWorldData.Name.ToString()}")
+                                          .Build();
+    }
+
+    // 指令
+    private void OnCommand(string command, string args)
+    {
+        if (!Throttler.Shared.Throttle("FastWorldTravel-OnCommand", 1_000)) return;
+
+        if (!DService.Instance().ClientState.IsLoggedIn          ||
+            DService.Instance().ObjectTable.LocalPlayer == null  ||
+            DService.Instance().Condition.Any(InvalidConditions) ||
+            DService.Instance().Condition.Any(ConditionFlag.WaitingToVisitOtherWorld))
+        {
+            NotifyHelper.NotificationError(Lang.Get("FastWorldTravel-Notice-InvalidEnv"));
+            return;
+        }
+
+        if (args.Length == 0)
+        {
+            Addon.Toggle();
+            return;
+        }
+
+        args = args.Trim().ToLowerInvariant();
+
+        if (string.IsNullOrWhiteSpace(args))
+        {
+            NotifyHelper.NotificationError(Lang.Get("FastWorldTravel-Notice-InvalidInput"));
+            return;
+        }
+
+        var worldID = 0U;
+
+        if (uint.TryParse(args, out var parsedNumber))
+        {
+            if (LuminaGetter.TryGetRow(parsedNumber, out World _) &&
+                Sheets.Worlds.ContainsKey(parsedNumber))
+                worldID = parsedNumber;
+        }
+        else
+            worldID = Sheets.Worlds.FirstOrDefault(x => x.Value.Name.ToString().Contains(args, StringComparison.OrdinalIgnoreCase)).Key;
+
+        if (worldID != 0)
+        {
+            // 国际服仅允许同大区
+            if (!GameState.IsCN)
+            {
+                if (!Sheets.Worlds.TryGetValue(worldID, out var worldData) ||
+                    worldData.DataCenter.RowId != GameState.CurrentDataCenter)
+                    worldID = 0;
+            }
+            else
+            {
+                // 不是国服服务器
+                if (!Sheets.CNWorlds.ContainsKey(worldID))
+                    worldID = 0;
+            }
+        }
+
+        if (worldID == 0 || !LuminaGetter.TryGetRow(worldID, out World targetWorld))
+        {
+            NotifyHelper.NotificationError(Lang.Get("FastWorldTravel-Notice-WorldNoFound", args));
+            return;
+        }
+
+        if (GameState.CurrentWorld == worldID)
+        {
+            NotifyHelper.NotificationError(Lang.Get("FastWorldTravel-Notice-SameWorld"));
+            return;
+        }
+
+        if (!GameState.IsCN)
+        {
+            EnqueueWorldTravel(worldID);
+            return;
+        }
+
+        // 跨大区
+        if (targetWorld.DataCenter.RowId != GameState.CurrentDataCenter)
+        {
+            EnqueueDCTravel(worldID);
+            return;
+        }
+
+        EnqueueWorldTravel(worldID);
+    }
+
+    #endregion
+
+    #region Enqueue
+
+    private unsafe void EnqueueWorldTravel(uint worldID)
+    {
+        if (!LuminaGetter.TryGetRow(worldID, out World targetWorld)) return;
+
+        TaskHelper.Abort();
+
+        TaskHelper.Enqueue
+        (
+            () =>
+            {
+                if (Entry == null) return;
+                Entry.Text = $"\ue06f {targetWorld.Name.ToString()}";
+            },
+            "更新 DTR 目标服务器信息"
+        );
+
+        if (ModuleConfig.AutoLeaveParty)
+            TaskHelper.Enqueue(LeaveNonCrossWorldParty, "离开非跨服小队");
+
+        if (!WorldTravelValidZones.Contains(GameState.TerritoryType))
+        {
+            var nearestAetheryte = DService.Instance().AetheryteList
+                                           .Where(x => WorldTravelValidZones.Contains(x.TerritoryID))
+                                           .MinBy(x => x.GilCost);
+            if (nearestAetheryte == null) return;
+
+            TaskHelper.Enqueue(() => Telepo.Instance()->Teleport(nearestAetheryte.AetheryteID, 0),                        "传送回可跨服区域");
+            TaskHelper.Enqueue(() => GameState.TerritoryType == nearestAetheryte.TerritoryID && UIModule.IsScreenReady(), "等待跨服完成");
+        }
+
+        TaskHelper.Enqueue
+        (
+            () =>
+            {
+                AgentWorldTravel.Instance()->TravelTo(worldID);
+                NotifyHelper.NotificationInfo
+                (
+                    Lang.Get
+                    (
+                        "FastWorldTravel-Notice-TravelTo",
+                        $"{char.ToUpper(targetWorld.Name.ToString()[0])}{targetWorld.Name.ToString()[1..]}"
+                    )
+                );
+            },
+            "发起大区内跨服请求"
+        );
+    }
+
+    private void EnqueueDCTravel(uint targetWorldID)
+    {
+        if (GameState.CurrentWorld == 0 ||
+            GameState.HomeWorld    == 0 ||
+            targetWorldID          == 0 ||
+            !LuminaGetter.TryGetRow(targetWorldID, out World targetWorld)) return;
+
+        Travel travel;
+
+        // 现在就在原始大区, 要去其他大区
+        if (GameState.HomeDataCenter == GameState.CurrentDataCenter)
+        {
+            // 但是不在原始服务器
+            if (GameState.CurrentWorld != GameState.HomeWorld)
+                EnqueueWorldTravel(GameState.HomeWorld);
+
+            TaskHelper.Enqueue(() => GameState.HomeWorld == GameState.CurrentWorld && UIModule.IsScreenReady(), "等待返回原始服务器的跨服完成");
+
+            travel = new Travel
+            {
+                CurrentWorldID = GameState.HomeWorld,
+                TargetWorldID  = targetWorldID,
+                ContentID      = LocalPlayerState.ContentID,
+                IsBack         = false,
+                Name           = LocalPlayerState.Name,
+                Description    = targetWorld.DataCenter.Value.Name.ToString()
+            };
+
+            EnqueueLogout();
+            TaskHelper.EnqueueAsync(() => EnqueueDCTravelRequest([travel]), "发送跨服请求");
+            return;
+        }
+
+        // 现在不在原始大区, 要回原始服务器
+        if (targetWorldID == GameState.HomeWorld)
+        {
+            travel = new Travel
+            {
+                CurrentWorldID = GameState.CurrentWorld,
+                TargetWorldID  = targetWorldID,
+                ContentID      = LocalPlayerState.ContentID,
+                IsBack         = true,
+                Name           = LocalPlayerState.Name,
+                Description    = targetWorld.DataCenter.Value.Name.ToString()
+            };
+
+            EnqueueLogout();
+            TaskHelper.EnqueueAsync(() => EnqueueDCTravelRequest([travel]), "发送跨服请求");
+            return;
+        }
+
+        // 现在不在原始大区, 要回原始大区的其他服务器
+        if (targetWorld.DataCenter.RowId == GameState.HomeDataCenter)
+        {
+            travel = new Travel
+            {
+                CurrentWorldID = GameState.CurrentWorld,
+                TargetWorldID  = targetWorldID,
+                ContentID      = LocalPlayerState.ContentID,
+                IsBack         = true,
+                Name           = LocalPlayerState.Name,
+                Description    = targetWorld.DataCenter.Value.Name.ToString(),
+                HomeWorldID    = GameState.HomeWorld
+            };
+
+            EnqueueLogout();
+            TaskHelper.EnqueueAsync(() => EnqueueDCTravelRequest([travel]), "发送跨服请求");
+            TaskHelper.Enqueue
+            (
+                () =>
+                {
+                    if (GameState.CurrentWorld != GameState.HomeWorld || !GameState.IsLoggedIn) return false;
+
+                    EnqueueWorldTravel(targetWorldID);
+                    return true;
+                },
+                "回到原始服务器, 跨服到其他服务器",
+                weight: -1
+            );
+            return;
+        }
+
+        // 现在不在原始大区, 要去非原始大区
+        var travel0 = new Travel
+        {
+            CurrentWorldID = GameState.CurrentWorld,
+            TargetWorldID  = GameState.HomeWorld,
+            ContentID      = LocalPlayerState.ContentID,
+            IsBack         = true,
+            Name           = LocalPlayerState.Name,
+            Description    = targetWorld.DataCenter.Value.Name.ToString()
+        };
+
+        var travel1 = new Travel
+        {
+            CurrentWorldID = GameState.HomeWorld,
+            TargetWorldID  = targetWorldID,
+            ContentID      = LocalPlayerState.ContentID,
+            IsBack         = false,
+            Name           = LocalPlayerState.Name,
+            Description    = targetWorld.DataCenter.Value.Name.ToString()
+        };
+
+        EnqueueLogout();
+        TaskHelper.EnqueueAsync(() => EnqueueDCTravelRequest([travel0, travel1]), "发送跨服请求");
+    }
+
+    private unsafe void EnqueueLogout()
+    {
+        TaskHelper.EnqueueAsync(() => ModuleManager.UnloadAsync(ModuleManager.GetModuleByName("AutoLogin")), "禁用自动登录");
+
+        TaskHelper.DelayNext(500, "等待 500 毫秒");
+        TaskHelper.Enqueue(() => ChatManager.Instance().SendCommand("/logout"), "登出游戏");
+
+        TaskHelper.Enqueue(() => Dialogue->IsAddonAndNodesReady(), "等待界面出现");
+
+        TaskHelper.DelayNext(500, "等待 500 毫秒");
+
+        TaskHelper.Enqueue
+        (
+            () =>
+            {
+                if (TitleMenu->IsAddonAndNodesReady()) return true;
+                if (!Dialogue->IsAddonAndNodesReady()) return false;
+
+                var buttonNode = Dialogue->GetComponentButtonById(4);
+                if (buttonNode == null) return false;
+
+                buttonNode->Click();
+                return true;
+            },
+            "点击确认键"
+        );
+
+        TaskHelper.Enqueue(() => TitleMenu->IsAddonAndNodesReady(), "等待标题界面");
+    }
+
+    private async Task EnqueueDCTravelRequest(Travel[] data)
+    {
+        try
+        {
+            NotifyHelper.NotificationInfo("DCTravelrX 正在处理超域旅行请求, 请稍等");
+
+            for (var i = 0; i < data.Length; i++)
+            {
+                var travelData = data[i];
+
+                TaskHelper.EnqueueAsync
+                (async () =>
+                    {
+                        var exception = await SendDCTravel.InvokeFunc
+                                        (
+                                            (int)travelData.CurrentWorldID,
+                                            (int)travelData.TargetWorldID,
+                                            travelData.ContentID,
+                                            travelData.IsBack,
+                                            travelData.Name
+                                        );
+
+                        if (exception != null)
+                        {
+                            NotifyHelper.NotificationWarning("超域旅行失败: 请查看日志获取详细信息");
+                            DLog.Error("超域旅行失败", exception);
+
+                            TaskHelper.Abort();
+                        }
+                    }
+                );
+
+                if (i == data.Length - 1)
+                {
+                    TaskHelper.Enqueue(AgentLobbyEvent.OpenCharacterSelect, "进入角色选择界面");
+
+                    unsafe
+                    {
+                        TaskHelper.Enqueue(() => CharaSelect != null || CharaSelectListMenu != null, "等待角色选择界面可用");
+                        TaskHelper.DelayNext(1000);
+                    }
+
+                    TaskHelper.Enqueue(() => AgentLobbyEvent.SelectWorldByID(travelData.TargetWorldID), "选择目标服务器");
+
+                    TaskHelper.DelayNext(1000);
+                    TaskHelper.Enqueue(() => AgentLobbyEvent.SelectCharacter(x => x.ContentId == travelData.ContentID), "选择目标角色");
+
+                    if (DRConfig.Instance().ModuleEnabled.GetValueOrDefault("AutoLogin", false))
+                        TaskHelper.EnqueueAsync(() => ModuleManager.LoadAsync(ModuleManager.GetModuleByName("AutoLogin")), "启用自动登录");
+                    return;
+                }
+
+                await Task.Delay(100);
+            }
+        }
+        catch (Exception ex)
+        {
+            DLog.Debug($"超域旅行失败: {ex.Message}", ex);
         }
     }
+
+    #endregion
+
+    #region 工具
+
+    private static bool LeaveNonCrossWorldParty()
+    {
+        if (DService.Instance().PartyList.Length < 2 || DService.Instance().Condition[ConditionFlag.ParticipatingInCrossWorldPartyOrAlliance])
+            return true;
+        if (!Throttler.Shared.Throttle("FastWorldTravel-LeaveNonCrossWorldParty"))
+            return false;
+
+        ChatManager.Instance().SendMessage("/leave");
+        return DService.Instance().PartyList.Length < 2;
+    }
+
+    private static (bool, uint) CheckCNDataCenterStatus(uint dcID)
+    {
+        var worlds = Sheets.Worlds.Where(x => x.Value.DataCenter.RowId == dcID).Select(x => x.Key).ToList();
+
+        foreach (var world in worlds)
+        {
+            var time = GetDCTravelWaitTime.InvokeFunc(world);
+            if (time != 0) continue;
+
+            return (true, world);
+        }
+
+        return (false, 0);
+    }
+
+    #endregion
+
+    #region IPC
+
+    [IPCSubscriber("DCTravelerX.Travel")]
+    private static IPCSubscriber<int, int, ulong, bool, string, Task<Exception?>> SendDCTravel;
+
+    [IPCSubscriber("DCTravelerX.IsValid", DefaultValue = "false")]
+    private static IPCSubscriber<bool> IsDCTravelerValid;
+
+    [IPCSubscriber("DCTravelerX.QueryAllWaitTime")]
+    private static IPCSubscriber<Task> RequestDCTravelInfo;
+
+    [IPCSubscriber("DCTravelerX.GetWaitTime", DefaultValue = "-1")]
+    private static IPCSubscriber<uint, int> GetDCTravelWaitTime;
+
+    #endregion
 }

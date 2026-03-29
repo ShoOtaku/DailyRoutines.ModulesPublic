@@ -1,13 +1,10 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Helpers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Agent;
@@ -19,27 +16,18 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using AgentId = FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentId;
+using NotifyHelper = OmenTools.OmenService.NotifyHelper;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class CrossDCPartyFinder : DailyModuleBase
+public class CrossDCPartyFinder : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = "跨大区队员招募",
-        Description = "为队员招募界面新增大区切换按钮, 以选择并查看由众包网站提供的其他大区的招募信息",
-        Category    = ModuleCategories.Recruitment
-    };
-
-    public override ModulePermission Permission { get; } = new() { CNOnly = true, CNDefaultEnabled = true };
-
     private const string BASE_URL        = "https://xivpf.littlenightmare.top/api/listings?";
     private const string BASE_DETAIL_URL = "https://xivpf.littlenightmare.top/api/listing/";
-
-    private static string LocatedDataCenter =>
-        GameState.CurrentDataCenterData.Name.ToString();
 
     private static Config ModuleConfig = null!;
 
@@ -63,9 +51,21 @@ public class CrossDCPartyFinder : DailyModuleBase
     private static Dictionary<string, CheckboxNode> CheckboxNodes = [];
     private static HorizontalListNode?              LayoutNode;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = "跨大区队员招募",
+        Description = "为队员招募界面新增大区切换按钮, 以选择并查看由众包网站提供的其他大区的招募信息",
+        Category    = ModuleCategory.Recruitment
+    };
+
+    public override ModulePermission Permission { get; } = new() { CNOnly = true, CNDefaultEnabled = true };
+
+    private static string LocatedDataCenter =>
+        GameState.CurrentDataCenterData.Name.ToString();
+
     protected override unsafe void Init()
     {
-        ModuleConfig  =   LoadConfig<Config>() ?? new();
+        ModuleConfig  =   Config.Load(this) ?? new();
         Overlay       ??= new(this);
         Overlay.Flags |=  ImGuiWindowFlags.NoBackground;
 
@@ -127,7 +127,7 @@ public class CrossDCPartyFinder : DailyModuleBase
                 {
                     isNeedToResetY = true;
 
-                    SaveConfig(ModuleConfig);
+                    ModuleConfig.Save(this);
                     SendRequestDynamic();
                 }
 
@@ -135,7 +135,7 @@ public class CrossDCPartyFinder : DailyModuleBase
 
                 using (ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(2, 0)))
                 {
-                    ImGui.SameLine(0, 4f * GlobalFontScale);
+                    ImGui.SameLine(0, 4f * GlobalUIScale);
 
                     if (ImGui.Button("<<"))
                     {
@@ -178,7 +178,7 @@ public class CrossDCPartyFinder : DailyModuleBase
 
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                ImGui.InputTextWithHint("###SearchString", GetLoc("PleaseSearch"), ref CurrentSeach, 128);
+                ImGui.InputTextWithHint("###SearchString", Lang.Get("PleaseSearch"), ref CurrentSeach, 128);
 
                 if (ImGui.IsItemDeactivatedAfterEdit())
                 {
@@ -198,7 +198,7 @@ public class CrossDCPartyFinder : DailyModuleBase
                     if (!IsNeedToDisable)
                         DrawPartyFinderList(sizeAfter);
 
-                    ScaledDummy(8f);
+                    ImGuiOm.ScaledDummy(8f);
                 }
             }
 
@@ -337,51 +337,38 @@ public class CrossDCPartyFinder : DailyModuleBase
             {
                 using (FontManager.Instance().UIFont120.Push())
                 {
-                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4f * GlobalFontScale);
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4f * GlobalUIScale);
                     ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{listing.Duty}");
                 }
 
-                ImGui.SameLine(0, 8f * GlobalFontScale);
+                ImGui.SameLine(0, 8f * GlobalUIScale);
                 var startCursorPos = ImGui.GetCursorPos();
+
                 using (ImRaii.PushColor(ImGuiCol.Text, KnownColor.DarkGray.ToVector4()))
                 using (FontManager.Instance().UIFont90.Push())
                 using (ImRaii.Group())
                 {
-                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 3f * GlobalFontScale);
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 3f * GlobalUIScale);
                     ImGuiOm.RenderPlayerInfo(listing.PlayerName, listing.HomeWorldName);
                 }
 
                 ImGui.SameLine();
                 ImGui.SetCursorPos(startCursorPos);
                 ImGui.InvisibleButton($"PlayerName##{listing.ID}", ImGui.CalcTextSize($"{listing.PlayerName}@{listing.HomeWorldName}"));
-                
+
                 ImGuiOm.TooltipHover($"{listing.PlayerName}@{listing.HomeWorldName}");
-
-                if (ImGui.IsItemHovered())
-                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-
-                if (ImGui.IsItemClicked())
-                {
-                    ImGui.SetClipboardText($"{listing.PlayerName}@{listing.HomeWorldName}");
-                    NotificationSuccess(GetLoc("CopiedToClipboard"));
-                }
+                ImGuiOm.ClickToCopyAndNotify($"{listing.PlayerName}@{listing.HomeWorldName}");
 
                 var isDescEmpty = string.IsNullOrEmpty(listing.Description);
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2f * GlobalFontScale);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2f * GlobalUIScale);
                 using (FontManager.Instance().UIFont80.Push())
                     ImGui.TextWrapped(isDescEmpty ? $"({LuminaWrapper.GetAddonText(11100)})" : $"{listing.Description}");
                 ImGui.Spacing();
 
                 if (!isDescEmpty)
                     ImGuiOm.TooltipHover(listing.Description);
-                if (ImGui.IsItemHovered() && !isDescEmpty)
-                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-
-                if (ImGui.IsItemClicked() && !isDescEmpty)
-                {
-                    ImGui.SetClipboardText(listing.Description);
-                    NotificationSuccess(GetLoc("CopiedToClipboard"));
-                }
+                if (!isDescEmpty)
+                    ImGuiOm.ClickToCopyAndNotify(listing.Description);
 
                 lineEndPosY = MathF.Max(ImGui.GetCursorPosY(), lineEndPosY);
             }
@@ -411,7 +398,7 @@ public class CrossDCPartyFinder : DailyModuleBase
 
                     if (listing.MinItemLevel > 0)
                     {
-                        ImGui.SameLine(0, 6f * GlobalFontScale);
+                        ImGui.SameLine(0, 6f * GlobalUIScale);
                         using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudYellow, listing.MinItemLevel != 0))
                             ImGui.TextUnformatted($"[{listing.MinItemLevel}]");
                     }
@@ -506,7 +493,7 @@ public class CrossDCPartyFinder : DailyModuleBase
             {
                 IsNeedToDisable = false;
 
-                NotificationInfo($"获取了 {ListingsDisplay.Count} 条招募信息");
+                NotifyHelper.NotificationInfo($"获取了 {ListingsDisplay.Count} 条招募信息");
 
                 await DService.Instance().Framework.RunOnFrameworkThread
                 (() =>
@@ -530,13 +517,15 @@ public class CrossDCPartyFinder : DailyModuleBase
             listings.AddRange(result.Listings);
         }
 
-        List<PartyFinderList.PartyFinderListing> FilterAndSort(IEnumerable<PartyFinderList.PartyFinderListing> source) =>
-            source.Where
-                  (x => string.IsNullOrWhiteSpace(CurrentSeach) ||
-                        x.GetSearchString().Contains(CurrentSeach, StringComparison.OrdinalIgnoreCase)
-                  )
-                  .OrderByDescending(x => ModuleConfig.OrderByDescending ? x.TimeLeft : 1 / x.TimeLeft)
-                  .ToList();
+        List<PartyFinderList.PartyFinderListing> FilterAndSort(IEnumerable<PartyFinderList.PartyFinderListing> source)
+        {
+            return source.Where
+                         (x => string.IsNullOrWhiteSpace(CurrentSeach) ||
+                               x.GetSearchString().Contains(CurrentSeach, StringComparison.OrdinalIgnoreCase)
+                         )
+                         .OrderByDescending(x => ModuleConfig.OrderByDescending ? x.TimeLeft : 1 / x.TimeLeft)
+                         .ToList();
+        }
     }
 
     private static unsafe void SendRequestDynamic()
@@ -575,7 +564,7 @@ public class CrossDCPartyFinder : DailyModuleBase
         CheckboxNodes.Clear();
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public bool OrderByDescending = true;
         public int  PageSize          = 50;
@@ -589,6 +578,13 @@ public class CrossDCPartyFinder : DailyModuleBase
         public string     World      { get; set; } = string.Empty;
         public string     DataCenter { get; set; } = string.Empty;
         public List<uint> Jobs       { get; set; } = [];
+
+        public bool Equals(PartyFinderRequest? other)
+        {
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Category == other.Category && World == other.World && DataCenter == other.DataCenter;
+        }
 
         public async Task<PartyFinderList> Request() =>
             JsonConvert.DeserializeObject<PartyFinderList>(await HTTPClientHelper.Get().GetStringAsync(Format())) ?? new();
@@ -719,13 +715,6 @@ public class CrossDCPartyFinder : DailyModuleBase
                 Jobs       = new List<uint>(Jobs)
             };
 
-        public bool Equals(PartyFinderRequest? other)
-        {
-            if (other is null) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return Category == other.Category && World == other.World && DataCenter == other.DataCenter;
-        }
-
         public override bool Equals(object? obj) =>
             obj != null && Equals(obj as PartyFinderRequest);
 
@@ -741,36 +730,72 @@ public class CrossDCPartyFinder : DailyModuleBase
 
     private class PartyFinderList
     {
-        [JsonProperty("data")]       public List<PartyFinderListing> Listings { get; set; } = [];
-        [JsonProperty("pagination")] public PartyFinderOverview      Overview { get; set; } = new();
+        [JsonProperty("data")]
+        public List<PartyFinderListing> Listings { get; set; } = [];
+
+        [JsonProperty("pagination")]
+        public PartyFinderOverview Overview { get; set; } = new();
 
         public class PartyFinderListing : IEquatable<PartyFinderListing>
         {
-            [JsonProperty("id")]               public int          ID                 { get; set; }
-            [JsonProperty("name")]             public string       PlayerName         { get; set; }
-            [JsonProperty("description")]      public string       Description        { get; set; }
-            [JsonProperty("created_world")]    public string       CreatedAtWorldName { get; set; }
-            [JsonProperty("created_world_id")] public string       CreatedAtWorld     { get; set; }
-            [JsonProperty("home_world")]       public string       HomeWorldName      { get; set; }
-            [JsonProperty("home_world_id")]    public string       HomeWorld          { get; set; }
-            [JsonProperty("datacenter")]       public string       DataCenter         { get; set; }
-            [JsonProperty("category")]         public string       CategoryName       { get; set; }
-            [JsonProperty("category_id")]      public DutyCategory Category           { get; set; }
-            [JsonProperty("duty")]             public string       Duty               { get; set; }
-            [JsonProperty("min_item_level")]   public uint         MinItemLevel       { get; set; }
-            [JsonProperty("time_left")]        public float        TimeLeft           { get; set; }
-            [JsonProperty("updated_at")]       public DateTime     UpdatedAt          { get; set; }
-            [JsonProperty("is_cross_world")]   public bool         IsCrossWorld       { get; set; }
-            [JsonProperty("slots_filled")]     public int          SlotFilled         { get; set; }
-            [JsonProperty("slots_available")]  public int          SlotAvailable      { get; set; }
-
-            public PartyFinderListingDetail? Detail { get; set; }
-
             private static readonly SemaphoreSlim DetailSemaphoreSlim = new(Environment.ProcessorCount);
+
+            private uint categoryIcon;
 
             private Task<string>? detailReuqestTask;
 
-            public static void ReleaseSlim() => DetailSemaphoreSlim.Release();
+            [JsonProperty("id")]
+            public int ID { get; set; }
+
+            [JsonProperty("name")]
+            public string PlayerName { get; set; }
+
+            [JsonProperty("description")]
+            public string Description { get; set; }
+
+            [JsonProperty("created_world")]
+            public string CreatedAtWorldName { get; set; }
+
+            [JsonProperty("created_world_id")]
+            public string CreatedAtWorld { get; set; }
+
+            [JsonProperty("home_world")]
+            public string HomeWorldName { get; set; }
+
+            [JsonProperty("home_world_id")]
+            public string HomeWorld { get; set; }
+
+            [JsonProperty("datacenter")]
+            public string DataCenter { get; set; }
+
+            [JsonProperty("category")]
+            public string CategoryName { get; set; }
+
+            [JsonProperty("category_id")]
+            public DutyCategory Category { get; set; }
+
+            [JsonProperty("duty")]
+            public string Duty { get; set; }
+
+            [JsonProperty("min_item_level")]
+            public uint MinItemLevel { get; set; }
+
+            [JsonProperty("time_left")]
+            public float TimeLeft { get; set; }
+
+            [JsonProperty("updated_at")]
+            public DateTime UpdatedAt { get; set; }
+
+            [JsonProperty("is_cross_world")]
+            public bool IsCrossWorld { get; set; }
+
+            [JsonProperty("slots_filled")]
+            public int SlotFilled { get; set; }
+
+            [JsonProperty("slots_available")]
+            public int SlotAvailable { get; set; }
+
+            public PartyFinderListingDetail? Detail { get; set; }
 
             public uint CategoryIcon
             {
@@ -781,7 +806,14 @@ public class CrossDCPartyFinder : DailyModuleBase
                 }
             }
 
-            private uint categoryIcon;
+            public bool Equals(PartyFinderListing? other)
+            {
+                if (other is null) return false;
+                if (ReferenceEquals(this, other)) return true;
+                return ID == other.ID;
+            }
+
+            public static void ReleaseSlim() => DetailSemaphoreSlim.Release();
 
             public async Task RequestAsync()
             {
@@ -791,56 +823,90 @@ public class CrossDCPartyFinder : DailyModuleBase
                 Detail            = JsonConvert.DeserializeObject<PartyFinderListingDetail>(await detailReuqestTask.ConfigureAwait(false)) ?? new();
             }
 
-            public bool Equals(PartyFinderListing? other)
-            {
-                if (other is null) return false;
-                if (ReferenceEquals(this, other)) return true;
-                return ID == other.ID;
-            }
-
             public string GetSearchString() =>
                 $"{PlayerName}_{Description}_{PartyFinderRequest.ParseCategoryIDToLoc(PartyFinderRequest.ParseOnlineCategoryToID(CategoryName))}_{Duty}";
         }
 
         public class PartyFinderOverview
         {
-            [JsonProperty("total")]       public uint Total      { get; set; }
-            [JsonProperty("page")]        public uint Page       { get; set; }
-            [JsonProperty("per_page")]    public uint PerPage    { get; set; }
-            [JsonProperty("total_pages")] public uint TotalPages { get; set; }
+            [JsonProperty("total")]
+            public uint Total { get; set; }
+
+            [JsonProperty("page")]
+            public uint Page { get; set; }
+
+            [JsonProperty("per_page")]
+            public uint PerPage { get; set; }
+
+            [JsonProperty("total_pages")]
+            public uint TotalPages { get; set; }
         }
     }
 
     private class PartyFinderListingDetail
     {
-        [JsonProperty("id")]                public long       ID               { get; set; }
-        [JsonProperty("name")]              public string     Name             { get; set; }
-        [JsonProperty("description")]       public string     Description      { get; set; }
-        [JsonProperty("created_world")]     public string     CreatedAtWorld   { get; set; }
-        [JsonProperty("home_world")]        public string     HomeWorld        { get; set; }
-        [JsonProperty("category")]          public string     Category         { get; set; }
-        [JsonProperty("duty")]              public string     Duty             { get; set; }
-        [JsonProperty("min_item_level")]    public int        MinItemLevel     { get; set; }
-        [JsonProperty("slots_filled")]      public int        SlotsFilled      { get; set; }
-        [JsonProperty("slots_available")]   public int        SlotsAvailable   { get; set; }
-        [JsonProperty("time_left")]         public double     TimeLeft         { get; set; }
-        [JsonProperty("updated_at")]        public DateTime   UpdatedAt        { get; set; }
-        [JsonProperty("is_cross_world")]    public bool       IsCrossWorld     { get; set; }
-        [JsonProperty("beginners_welcome")] public bool       BeginnersWelcome { get; set; }
-        [JsonProperty("duty_type")]         public string     DutyType         { get; set; }
-        [JsonProperty("objective")]         public string     Objective        { get; set; }
-        [JsonProperty("conditions")]        public string     Conditions       { get; set; }
-        [JsonProperty("loot_rules")]        public string     LootRules        { get; set; }
-        [JsonProperty("slots")]             public List<Slot> Slots            { get; set; }
-        [JsonProperty("datacenter")]        public string     DataCenter       { get; set; }
+        [JsonProperty("id")]
+        public long ID { get; set; }
+
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
+        [JsonProperty("description")]
+        public string Description { get; set; }
+
+        [JsonProperty("created_world")]
+        public string CreatedAtWorld { get; set; }
+
+        [JsonProperty("home_world")]
+        public string HomeWorld { get; set; }
+
+        [JsonProperty("category")]
+        public string Category { get; set; }
+
+        [JsonProperty("duty")]
+        public string Duty { get; set; }
+
+        [JsonProperty("min_item_level")]
+        public int MinItemLevel { get; set; }
+
+        [JsonProperty("slots_filled")]
+        public int SlotsFilled { get; set; }
+
+        [JsonProperty("slots_available")]
+        public int SlotsAvailable { get; set; }
+
+        [JsonProperty("time_left")]
+        public double TimeLeft { get; set; }
+
+        [JsonProperty("updated_at")]
+        public DateTime UpdatedAt { get; set; }
+
+        [JsonProperty("is_cross_world")]
+        public bool IsCrossWorld { get; set; }
+
+        [JsonProperty("beginners_welcome")]
+        public bool BeginnersWelcome { get; set; }
+
+        [JsonProperty("duty_type")]
+        public string DutyType { get; set; }
+
+        [JsonProperty("objective")]
+        public string Objective { get; set; }
+
+        [JsonProperty("conditions")]
+        public string Conditions { get; set; }
+
+        [JsonProperty("loot_rules")]
+        public string LootRules { get; set; }
+
+        [JsonProperty("slots")]
+        public List<Slot> Slots { get; set; }
+
+        [JsonProperty("datacenter")]
+        public string DataCenter { get; set; }
 
         public class Slot
         {
-            [JsonProperty("filled")]  public bool    Filled   { get; set; }
-            [JsonProperty("role")]    public string? RoleName { get; set; }
-            [JsonProperty("role_id")] public string? Role     { get; set; }
-            [JsonProperty("job")]     public string  JobName  { get; set; }
-
             public static readonly HashSet<string> BattleJobs;
             public static readonly HashSet<string> TankJobs;
             public static readonly HashSet<string> DPSJobs;
@@ -868,6 +934,18 @@ public class CrossDCPartyFinder : DailyModuleBase
                                          .Select(x => x.Abbreviation.ToString())
                                          .ToHashSet();
             }
+
+            [JsonProperty("filled")]
+            public bool Filled { get; set; }
+
+            [JsonProperty("role")]
+            public string? RoleName { get; set; }
+
+            [JsonProperty("role_id")]
+            public string? Role { get; set; }
+
+            [JsonProperty("job")]
+            public string JobName { get; set; }
 
             public List<uint> JobIcons
             {

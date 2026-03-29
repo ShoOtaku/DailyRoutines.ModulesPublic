@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
-using DailyRoutines.Managers;
+﻿using System.Numerics;
+using DailyRoutines.Common.Info.Abstractions;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Manager;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Text.SeStringHandling;
@@ -14,64 +12,69 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
 using KamiToolKit.Nodes;
+using OmenTools.Dalamud.Attributes;
+using OmenTools.Info.Game;
+using OmenTools.Interop.Game.Helpers;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
+public unsafe class AutoShowItemNPCShopInfo : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title               = GetLoc("AutoShowItemNPCShopInfoTitle"),
-        Description         = GetLoc("AutoShowItemNPCShopInfoDescription"),
-        Category            = ModuleCategories.UIOptimization,
-        ModulesPrerequisite = ["BetterMarketBoard", "BetterTeleport"],
-        PreviewImageURL     = ["https://gh.atmoomen.top/raw.githubusercontent.com/AtmoOmen/StaticAssets/main/DailyRoutines/image/AutoShowItemNPCShopInfo-UI.png"]
-    };
-    
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private static ShopInfoContextMenu ContextMenu = new();
 
     private static readonly Dictionary<uint, TooltipModification> ItemModifications = [];
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title               = Lang.Get("AutoShowItemNPCShopInfoTitle"),
+        Description         = Lang.Get("AutoShowItemNPCShopInfoDescription"),
+        Category            = ModuleCategory.UIOptimization,
+        ModulesPrerequisite = ["BetterMarketBoard", "BetterTeleport"],
+        PreviewImageURL     = ["https://gh.atmoomen.top/raw.githubusercontent.com/AtmoOmen/StaticAssets/main/DailyRoutines/image/AutoShowItemNPCShopInfo-UI.png"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init()
     {
         DService.Instance().ContextMenu.OnMenuOpened += OnMenuOpen;
         GameTooltipManager.Instance().RegGenerateItemTooltipModifier(OnItemTooltipGenerate);
     }
-    
+
     protected override void Uninit()
     {
         DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpen;
-        
+
         GameTooltipManager.Instance().Unreg(generateItemModifiers: OnItemTooltipGenerate);
 
         foreach (var tooltipModification in ItemModifications.Values)
             GameTooltipManager.Instance().RemoveItemDetail(tooltipModification);
         ItemModifications.Clear();
-        
+
         AddonShopsPreview.Addon?.Dispose();
         AddonShopsPreview.Addon = null;
     }
-    
+
     private static void OnMenuOpen(IMenuOpenedArgs args)
     {
         if (!ContextMenu.IsDisplay(args)) return;
         args.AddMenuItem(ContextMenu.Get());
     }
-    
+
     private static void OnItemTooltipGenerate(AtkUnitBase* addonItemDetail, NumberArrayData* numberArrayData, StringArrayData* stringArrayData)
     {
         var itemID = AgentItemDetail.Instance()->ItemId;
-        
+
         if (ItemModifications.TryGetValue(itemID, out _)) return;
-        if (ItemShopInfo.GetItemInfo(itemID) is not { } itemInfo) return;
-        
+        if (ItemSourceInfo.GetItemInfo(itemID) is not { } itemInfo) return;
+
         var text = new SeStringBuilder()
                    .Add(NewLinePayload.Payload)
                    .Add(NewLinePayload.Payload)
                    .AddUiForeground(32)
-                   .AddText($"[{GetLoc("AutoShowItemNPCShopInfo-ItemDetail", itemInfo.NPCInfos.Count)}]")
+                   .AddText($"[{Lang.Get("AutoShowItemNPCShopInfo-ItemDetail", itemInfo.NPCInfos.Count)}]")
                    .AddUiForegroundOff()
                    .Build();
 
@@ -88,13 +91,13 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
     private static bool OpenByItemID(uint itemID)
     {
         if (AddonShopsPreview.Addon is { IsOpen: true } addon &&
-            addon.ShopInfo.ItemID == itemID)
+            addon.SourceInfo.ItemID == itemID)
             AddonShopsPreview.CloseAndClear();
-        else if (ItemShopInfo.GetItemInfo(itemID) is { } itemInfo)
+        else if (ItemSourceInfo.GetItemInfo(itemID) is { } itemInfo)
             AddonShopsPreview.OpenWithData(itemInfo);
         else
         {
-            ChatError(GetLoc("AutoShowItemNPCShopInfo-Notification-ShopNotFound", itemID));
+            NotifyHelper.ChatError(Lang.Get("AutoShowItemNPCShopInfo-Notification-ShopNotFound", itemID));
             return false;
         }
 
@@ -103,7 +106,7 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
 
     private class ShopInfoContextMenu : MenuItemBase
     {
-        public override string Name { get; protected set; } = GetLoc("AutoShowItemNPCShopInfo-ContextMenu");
+        public override string Name { get; protected set; } = Lang.Get("AutoShowItemNPCShopInfo-ContextMenu");
 
         public override string Identifier { get; protected set; } = nameof(AutoShowItemNPCShopInfo);
 
@@ -112,13 +115,20 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
         protected override void OnClicked(IMenuItemClickedArgs args) =>
             OpenByItemID(ContextMenuItemManager.Instance().CurrentItemID);
 
-        public override bool IsDisplay(IMenuOpenedArgs args) => 
-            ItemShopInfo.GetItemInfo(ContextMenuItemManager.Instance().CurrentItemID) is not null;
+        public override bool IsDisplay(IMenuOpenedArgs args) =>
+            ItemSourceInfo.GetItemInfo(ContextMenuItemManager.Instance().CurrentItemID) is not null;
     }
-    
+
     private class AddonShopsPreview : NativeAddon
     {
+        private static Task? OpenAddonTask;
+
+        private AddonShopsPreview(ItemSourceInfo sourceInfo) =>
+            SourceInfo = sourceInfo;
+
         public static AddonShopsPreview? Addon { get; set; }
+
+        public ItemSourceInfo SourceInfo { get; set; }
 
         public static void CloseAndClear()
         {
@@ -128,9 +138,9 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
             Addon = null;
         }
 
-        public static void OpenWithData(ItemShopInfo shopInfo)
+        public static void OpenWithData(ItemSourceInfo sourceInfo)
         {
-            if (shopInfo is not { NPCInfos.Count: > 0 }) return;
+            if (sourceInfo is not { NPCInfos.Count: > 0 }) return;
             if (OpenAddonTask != null) return;
 
             var isAddonExisted = Addon?.IsOpen ?? false;
@@ -141,7 +151,7 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
             (
                 () =>
                 {
-                    Addon ??= new(shopInfo)
+                    Addon ??= new(sourceInfo)
                     {
                         InternalName = "DRItemNPCShopsPreview",
                         Title        = LuminaWrapper.GetAddonText(350),
@@ -152,14 +162,6 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
                 TimeSpan.FromMilliseconds(isAddonExisted ? 500 : 0)
             ).ContinueWith(_ => OpenAddonTask = null);
         }
-
-        public ItemShopInfo ShopInfo { get; set; }
-
-
-        private static Task? OpenAddonTask;
-
-        private AddonShopsPreview(ItemShopInfo shopInfo) =>
-            ShopInfo = shopInfo;
 
         protected override void OnSetup(AtkUnitBase* addon)
         {
@@ -175,29 +177,29 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
             var itemIconNode = new IconImageNode
             {
                 IsVisible  = true,
-                IconId     = LuminaWrapper.GetItemIconID(ShopInfo.ItemID),
+                IconId     = LuminaWrapper.GetItemIconID(SourceInfo.ItemID),
                 Size       = new(36),
                 FitTexture = true
             };
             itemInfoRow.AddNode(itemIconNode);
 
             itemInfoRow.AddDummy(3f);
-            
+
             var itemNameNode = new TextNode
             {
                 IsVisible     = true,
                 TextFlags     = TextFlags.AutoAdjustNodeSize,
-                String        = LuminaWrapper.GetItemName(ShopInfo.ItemID),
+                String        = LuminaWrapper.GetItemName(SourceInfo.ItemID),
                 FontSize      = 24,
                 Position      = new(0, 3),
                 AlignmentType = AlignmentType.TopLeft
             };
             itemInfoRow.AddNode(itemNameNode);
 
-            if (ShopInfo.GetItem().ItemSearchCategory.RowId > 0)
+            if (SourceInfo.GetItem().ItemSearchCategory.RowId > 0)
             {
                 itemInfoRow.AddDummy(15f);
-                
+
                 var marketButtonNode = new IconButtonNode
                 {
                     IconId      = 60570,
@@ -205,16 +207,16 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
                     Size        = new(32),
                     Position    = new Vector2(0, 2),
                     IsVisible   = true,
-                    OnClick     = () => ChatManager.Instance().SendMessage($"/pdr market {ShopInfo.GetItem().Name}")
+                    OnClick     = () => ChatManager.Instance().SendMessage($"/pdr market {SourceInfo.GetItem().Name}")
                 };
                 itemInfoRow.AddNode(marketButtonNode);
             }
 
-            var source = ShopInfo.NPCInfos
-                                 .Where(x => x.Location != null)
-                                 .DistinctBy(x => $"{x.Name}_{x.Location.GetTerritory().ExtractPlaceName()}")
-                                 .OrderBy(x => x.Location.TerritoryID == 282)
-                                 .ToList();
+            var source = SourceInfo.NPCInfos
+                                   .Where(x => x.Location != null)
+                                   .DistinctBy(x => $"{x.Name}_{x.Location.GetTerritory().ExtractPlaceName()}")
+                                   .OrderBy(x => x.Location.TerritoryID == 282)
+                                   .ToList();
 
             var scrollingAreaNode = new ScrollingAreaNode<VerticalListNode>
             {
@@ -271,7 +273,8 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
                     IsVisible   = true,
                     OnClick = () =>
                     {
-                        var pos = MapToWorld(new(npcInfo.Location.MapPosition.X, npcInfo.Location.MapPosition.Y), npcInfo.Location.GetMap()).ToVector3(0);
+                        var pos = PositionHelper.MapToWorld(new(npcInfo.Location.MapPosition.X, npcInfo.Location.MapPosition.Y), npcInfo.Location.GetMap()).ToVector3
+                            (0);
 
                         var instance = AgentMap.Instance();
                         instance->SetFlagMapMarker(npcInfo.Location.TerritoryID, npcInfo.Location.MapID, pos);
@@ -291,7 +294,8 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
                     TextTooltip = LuminaWrapper.GetAddonText(1806),
                     OnClick = () =>
                     {
-                        var pos = MapToWorld(new(npcInfo.Location.MapPosition.X, npcInfo.Location.MapPosition.Y), npcInfo.Location.GetMap()).ToVector3(0);
+                        var pos = PositionHelper.MapToWorld(new(npcInfo.Location.MapPosition.X, npcInfo.Location.MapPosition.Y), npcInfo.Location.GetMap()).ToVector3
+                            (0);
 
                         var instance = AgentMap.Instance();
                         instance->SetFlagMapMarker(npcInfo.Location.TerritoryID, npcInfo.Location.MapID, pos);
@@ -304,7 +308,7 @@ public unsafe class AutoShowItemNPCShopInfo : DailyModuleBase
                 row.AddNode(npcLocationNode);
 
                 row.AddDummy(10f);
-                
+
                 var costInfoComponent = new HorizontalListNode
                 {
                     IsVisible   = true,

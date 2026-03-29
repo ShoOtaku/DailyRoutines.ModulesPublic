@@ -1,35 +1,39 @@
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using Action = Lumina.Excel.Sheets.Action;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoRedirectDashActions : DailyModuleBase
+public class AutoRedirectDashActions : ModuleBase
 {
+    private static Config ModuleConfig = null!;
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoRedirectDashActionsTitle"),
-        Description = GetLoc("AutoRedirectDashActionsDescription"),
-        Category    = ModuleCategories.Action,
+        Title       = Lang.Get("AutoRedirectDashActionsTitle"),
+        Description = Lang.Get("AutoRedirectDashActionsDescription"),
+        Category    = ModuleCategory.Action
     };
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true, CNPremium = true, TCPremium = true };
 
-    private static Config ModuleConfig = null!;
-
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         UseActionManager.Instance().RegPreUseActionLocation(OnPreUseAction);
     }
 
     protected override void ConfigUI()
     {
-        var tableSize = (ImGui.GetContentRegionAvail() / 2) with { Y = 0 };
-        using var table = ImRaii.Table("ActionEnabled", 2, ImGuiTableFlags.BordersInnerH, tableSize);
+        var       tableSize = (ImGui.GetContentRegionAvail() / 2) with { Y = 0 };
+        using var table     = ImRaii.Table("ActionEnabled", 2, ImGuiTableFlags.BordersInnerH, tableSize);
         if (!table) return;
 
         ImGui.TableSetupColumn("选框", ImGuiTableColumnFlags.WidthFixed, ImGui.GetTextLineHeightWithSpacing());
@@ -39,7 +43,7 @@ public class AutoRedirectDashActions : DailyModuleBase
         ImGui.TableNextColumn();
 
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("Action"));
+        ImGuiOm.Text(Lang.Get("Action"));
 
         foreach (var actionPair in ModuleConfig.ActionsEnabled)
         {
@@ -53,6 +57,7 @@ public class AutoRedirectDashActions : DailyModuleBase
 
             ImGui.TableNextColumn();
             var isEnabled = actionPair.Value;
+
             if (ImGui.Checkbox($"###{actionPair.Key}", ref isEnabled))
             {
                 ModuleConfig.ActionsEnabled[actionPair.Key] = isEnabled;
@@ -60,23 +65,25 @@ public class AutoRedirectDashActions : DailyModuleBase
             }
 
             ImGui.TableNextColumn();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (4f * GlobalFontScale));
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4f * GlobalUIScale);
             ImGui.Image(actionIcon.Handle, new(ImGui.GetTextLineHeight()));
-            
+
             ImGui.SameLine();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (2f * GlobalFontScale));
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2f * GlobalUIScale);
             ImGui.TextUnformatted($"{data.Name.ToString()}");
         }
     }
 
-    public static unsafe void OnPreUseAction(
+    public static unsafe void OnPreUseAction
+    (
         ref bool       isPrevented,
         ref ActionType actionType,
         ref uint       actionID,
         ref ulong      targetID,
         ref Vector3    location,
         ref uint       extraParam,
-        ref byte       a7)
+        ref byte       a7
+    )
     {
         if (actionType != ActionType.Action) return;
 
@@ -105,17 +112,17 @@ public class AutoRedirectDashActions : DailyModuleBase
         if (distance > maxDistance * maxDistance)
         {
             var direction = Vector2.Normalize(targetXZ - originXZ);
-            targetXZ = originXZ + (direction * maxDistance);
+            targetXZ = originXZ + direction * maxDistance;
             return new Vector3(targetXZ.X, target.Y, targetXZ.Y);
         }
 
         return target;
     }
 
-    protected override void Uninit() => 
+    protected override void Uninit() =>
         UseActionManager.Instance().Unreg(OnPreUseAction);
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public Dictionary<uint, bool> ActionsEnabled = new()
         {
@@ -126,7 +133,7 @@ public class AutoRedirectDashActions : DailyModuleBase
             // 回退 (PVP)
             [29551] = true,
             // 逆行 (PVP)
-            [41507] = true,
+            [41507] = true
         };
     }
 }

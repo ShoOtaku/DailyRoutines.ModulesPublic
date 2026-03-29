@@ -1,38 +1,41 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
 using BattleNpcSubKind = Dalamud.Game.ClientState.Objects.Enums.BattleNpcSubKind;
 using ObjectKind = FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectKind;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoHideGameObjects : DailyModuleBase
+public unsafe class AutoHideGameObjects : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoHideGameObjectsTitle"),
-        Description = GetLoc("AutoHideGameObjectsDescription"),
-        Category    = ModuleCategories.System
-    };
-
     private static readonly CompSig                          UpdateObjectArraysSig = new("40 57 48 83 EC ?? 48 89 5C 24 ?? 33 DB");
-    private delegate        void*                            UpdateObjectArraysDelegate(GameObjectManager* objectManager);
     private static          Hook<UpdateObjectArraysDelegate> UpdateObjectArraysHook;
-    
+
     private static Config ModuleConfig = null!;
 
     private static readonly HashSet<nint> ProcessedObjects = [];
 
     private static int ZoneUpdateCount;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoHideGameObjectsTitle"),
+        Description = Lang.Get("AutoHideGameObjectsDescription"),
+        Category    = ModuleCategory.System
+    };
+
     protected override void Init()
     {
         TaskHelper   ??= new() { TimeoutMS = 30_000 };
-        ModuleConfig =   LoadConfig<Config>() ?? new();
+        ModuleConfig =   Config.Load(this) ?? new();
 
         UpdateObjectArraysHook ??= UpdateObjectArraysSig.GetHook<UpdateObjectArraysDelegate>(UpdateObjectArraysDetour);
         UpdateObjectArraysHook.Enable();
@@ -40,39 +43,39 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
         UpdateAllObjects(GameObjectManager.Instance());
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
-        FrameworkManager.Instance().Reg(OnUpdate, throttleMS: 1_000);
+        FrameworkManager.Instance().Reg(OnUpdate, 1_000);
     }
-    
+
     protected override void Uninit()
     {
         FrameworkManager.Instance().Unreg(OnUpdate);
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-        
+
         ResetAllObjects();
     }
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Default"));
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("Default"));
 
         using (ImRaii.PushId("Default"))
         using (ImRaii.PushIndent())
         {
-            if (ImGui.Checkbox(GetLoc("AutoHideGameObjects-HidePlayer"), ref ModuleConfig.DefaultConfig.HidePlayer))
-                SaveConfig(ModuleConfig);
-            ImGuiOm.TooltipHover(GetLoc("AutoHideGameObjects-HidePlayerHelp"));
-            
-            if (ImGui.Checkbox(GetLoc("AutoHideGameObjects-HideUnimportantENPC"), ref ModuleConfig.DefaultConfig.HideUnimportantENPC))
-                SaveConfig(ModuleConfig);
-            ImGuiOm.TooltipHover(GetLoc("AutoHideGameObjects-HideUnimportantENPCHelp"));
-            
-            if (ImGui.Checkbox(GetLoc("AutoHideGameObjects-HidePet"), ref ModuleConfig.DefaultConfig.HidePet))
-                SaveConfig(ModuleConfig);
-            ImGuiOm.TooltipHover(GetLoc("AutoHideGameObjects-HidePetHelp"));
-            
-            if (ImGui.Checkbox(GetLoc("AutoHideGameObjects-HideChocobo"), ref ModuleConfig.DefaultConfig.HideChocobo))
-                SaveConfig(ModuleConfig);
-            ImGuiOm.TooltipHover(GetLoc("AutoHideGameObjects-HideChocoboHelp"));
+            if (ImGui.Checkbox(Lang.Get("AutoHideGameObjects-HidePlayer"), ref ModuleConfig.DefaultConfig.HidePlayer))
+                ModuleConfig.Save(this);
+            ImGuiOm.TooltipHover(Lang.Get("AutoHideGameObjects-HidePlayerHelp"));
+
+            if (ImGui.Checkbox(Lang.Get("AutoHideGameObjects-HideUnimportantENPC"), ref ModuleConfig.DefaultConfig.HideUnimportantENPC))
+                ModuleConfig.Save(this);
+            ImGuiOm.TooltipHover(Lang.Get("AutoHideGameObjects-HideUnimportantENPCHelp"));
+
+            if (ImGui.Checkbox(Lang.Get("AutoHideGameObjects-HidePet"), ref ModuleConfig.DefaultConfig.HidePet))
+                ModuleConfig.Save(this);
+            ImGuiOm.TooltipHover(Lang.Get("AutoHideGameObjects-HidePetHelp"));
+
+            if (ImGui.Checkbox(Lang.Get("AutoHideGameObjects-HideChocobo"), ref ModuleConfig.DefaultConfig.HideChocobo))
+                ModuleConfig.Save(this);
+            ImGuiOm.TooltipHover(Lang.Get("AutoHideGameObjects-HideChocoboHelp"));
         }
     }
 
@@ -82,12 +85,12 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
         UpdateAllObjects(objectManager);
         return orig;
     }
-    
+
     private static void UpdateAllObjects(GameObjectManager* manager)
     {
         if (manager == null) return;
         if (!GameState.IsLoggedIn) return;
-        
+
         if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent)
         {
             if (GameState.ContentFinderCondition != 0 ||
@@ -108,18 +111,18 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
         if (GameState.TerritoryIntendedUse                == TerritoryIntendedUse.OccultCrescent &&
             (LocalPlayerState.Object?.Position.Y ?? -100) < 0)
             return;
-        
+
         for (var index = 0; index < manager->Objects.IndexSorted.Length; index++)
         {
             if (index > 629)
                 break;
-            
+
             if (index is > 200 and < 489)
             {
                 index = 488;
                 continue;
             }
-            
+
             var entry = manager->Objects.IndexSorted[index];
 
             if (GameState.TerritoryIntendedUse == TerritoryIntendedUse.OccultCrescent)
@@ -137,17 +140,17 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
             ProcessedObjects.Add((nint)entry.Value);
         }
     }
-    
+
     private static bool ShouldFilter(FilterConfig config, GameObject* gameObject, uint index)
     {
         if (gameObject == null) return false;
-        
+
         if (gameObject->EntityId == LocalPlayerState.EntityID) return false;
-        
+
         if (((RenderFlag)gameObject->RenderFlags).IsSet(RenderFlag.Invisible)) return false;
-        
+
         if (gameObject->NamePlateIconId != 0) return false;
-        
+
         // 玩家
         if (config.HidePlayer             &&
             index                  <= 200 &&
@@ -173,7 +176,7 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
             gameObject->ObjectKind != ObjectKind.Mount &&
             gameObject->OwnerId    != LocalPlayerState.EntityID)
             return true;
-        
+
         // 陆行鸟
         if (config.HideChocobo                                                &&
             index                                 <= 200                      &&
@@ -189,7 +192,7 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
             !gameObject->TargetableStatus.IsSet(ObjectTargetableFlags.IsTargetable) &&
             gameObject->EventHandler == null)
             return true;
-        
+
         return false;
     }
 
@@ -200,14 +203,14 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
         if (gameObject->EntityId == LocalPlayerState.EntityID) return false;
 
         if (gameObject->NamePlateIconId != 0) return false;
-        
+
         // 玩家
         if (index                  <= 200 &&
             index % 2              == 0   &&
             gameObject->ObjectKind == ObjectKind.Pc)
         {
             var player = (BattleChara*)gameObject;
-            
+
             playerCount++;
 
             if (player->IsDead() || (nint)gameObject == targetAddress)
@@ -249,24 +252,24 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
     private static void ResetAllObjects()
     {
         if (!DService.Instance().ClientState.IsLoggedIn || ProcessedObjects.Count == 0) return;
-        
+
         var manager = GameObjectManager.Instance();
         if (manager == null) return;
-        
+
         foreach (ref var entry in GameObjectManager.Instance()->Objects.IndexSorted)
         {
             if (entry.Value       == null                                            ||
                 (nint)entry.Value == (LocalPlayerState.Object?.Address ?? nint.Zero) ||
                 !ProcessedObjects.Contains((nint)entry.Value))
                 continue;
-            
+
             entry.Value->RenderFlags &= ~(VisibilityFlags)256;
         }
-        
+
         ProcessedObjects.Clear();
         ZoneUpdateCount = 0;
     }
-    
+
     private static void OnZoneChanged(ushort zone)
     {
         ZoneUpdateCount = 0;
@@ -276,32 +279,34 @@ public unsafe class AutoHideGameObjects : DailyModuleBase
     private static void OnUpdate(IFramework _)
     {
         // 主要是小区域更新不及时
-        if (ZoneUpdateCount > 3 || BetweenAreas) return;
+        if (ZoneUpdateCount > 3 || DService.Instance().Condition.IsBetweenAreas) return;
 
         ZoneUpdateCount++;
         UpdateAllObjects(GameObjectManager.Instance());
     }
 
-    private class Config : ModuleConfiguration
+    private delegate void* UpdateObjectArraysDelegate(GameObjectManager* objectManager);
+
+    private class Config : ModuleConfig
     {
         public FilterConfig DefaultConfig = new();
     }
 
     private class FilterConfig
     {
-        // 玩家
-        public bool HidePlayer = true;
-        
-        // 宠物
-        public bool HidePet = true;
-        
         // 陆行鸟
         public bool HideChocobo = true;
-        
+
+        // 宠物
+        public bool HidePet = true;
+
+        // 玩家
+        public bool HidePlayer = true;
+
         // 不重要 NPC
         public bool HideUnimportantENPC = true;
     }
-    
+
     private enum RenderFlag
     {
         Invisible = 256

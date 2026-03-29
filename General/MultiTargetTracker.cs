@@ -1,26 +1,19 @@
-using System;
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Info.Abstractions;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class MultiTargetTracker : DailyModuleBase
+public class MultiTargetTracker : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title           = GetLoc("MultiTargetTrackerTitle"),
-        Description     = GetLoc("MultiTargetTrackerDescription"),
-        Category        = ModuleCategories.General,
-        Author          = ["KirisameVanilla"],
-        ModulesConflict = ["AutoHighlightFlagMarker"]
-    };
-
     private static Config ModuleConfig = null!;
 
     private static readonly TempTrackMenuItem      TempTrackItem      = new();
@@ -28,9 +21,18 @@ public class MultiTargetTracker : DailyModuleBase
 
     private static readonly HashSet<TrackPlayer> TempTrackedPlayers = [];
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title           = Lang.Get("MultiTargetTrackerTitle"),
+        Description     = Lang.Get("MultiTargetTrackerDescription"),
+        Category        = ModuleCategory.General,
+        Author          = ["KirisameVanilla"],
+        ModulesConflict = ["AutoHighlightFlagMarker"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         PlayersManager.ReceivePlayersAround              += OnReceivePlayers;
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
@@ -50,7 +52,7 @@ public class MultiTargetTracker : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextUnformatted(GetLoc("MultiTargetTracker-TempTrackHelp"));
+        ImGui.TextUnformatted(Lang.Get("MultiTargetTracker-TempTrackHelp"));
 
         ImGui.Spacing();
 
@@ -59,10 +61,10 @@ public class MultiTargetTracker : DailyModuleBase
         using var table = ImRaii.Table("PermanentTrackedPlayers", 4);
         if (!table) return;
 
-        ImGui.TableSetupColumn(GetLoc("Name"),                                ImGuiTableColumnFlags.WidthStretch, 15);
-        ImGui.TableSetupColumn(GetLoc("MultiTargetTracker-LastSeenTime"),     ImGuiTableColumnFlags.WidthStretch, 10);
-        ImGui.TableSetupColumn(GetLoc("MultiTargetTracker-LastSeenLocation"), ImGuiTableColumnFlags.WidthStretch, 10);
-        ImGui.TableSetupColumn(GetLoc("Note"),                                ImGuiTableColumnFlags.WidthStretch, 15);
+        ImGui.TableSetupColumn(Lang.Get("Name"),                                ImGuiTableColumnFlags.WidthStretch, 15);
+        ImGui.TableSetupColumn(Lang.Get("MultiTargetTracker-LastSeenTime"),     ImGuiTableColumnFlags.WidthStretch, 10);
+        ImGui.TableSetupColumn(Lang.Get("MultiTargetTracker-LastSeenLocation"), ImGuiTableColumnFlags.WidthStretch, 10);
+        ImGui.TableSetupColumn(Lang.Get("Note"),                                ImGuiTableColumnFlags.WidthStretch, 15);
 
         ImGui.TableHeadersRow();
 
@@ -80,7 +82,7 @@ public class MultiTargetTracker : DailyModuleBase
             {
                 if (context)
                 {
-                    if (ImGui.MenuItem(GetLoc("Delete")))
+                    if (ImGui.MenuItem(Lang.Get("Delete")))
                     {
                         ModuleConfig.PermanentTrackedPlayers.Remove(player);
                         ModuleConfig.Save(this);
@@ -101,7 +103,7 @@ public class MultiTargetTracker : DailyModuleBase
             if (ImGui.InputText("###Note", ref note, 256))
                 ModuleConfig.PermanentTrackedPlayers[i].Note = note;
             if (ImGui.IsItemDeactivatedAfterEdit())
-                SaveConfig(ModuleConfig);
+                ModuleConfig.Save(this);
         }
     }
 
@@ -189,22 +191,13 @@ public class MultiTargetTracker : DailyModuleBase
         return target.TargetContentId != 0 && target.TargetContentId != LocalPlayerState.ContentID;
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public List<TrackPlayer> PermanentTrackedPlayers = [];
     }
 
     public class TrackPlayer : IEquatable<TrackPlayer>
     {
-        public ulong  ContentID { get; set; }
-        public string Name      { get; set; } = string.Empty;
-        public string WorldName { get; set; } = string.Empty;
-
-        public DateTime Added            { get; set; } = DateTime.MinValue;
-        public DateTime LastSeen         { get; set; } = DateTime.MinValue;
-        public string   LastSeenLocation { get; set; } = string.Empty;
-        public string   Note             { get; set; } = string.Empty;
-
         public unsafe TrackPlayer(IPlayerCharacter ipc)
         {
             var chara = ipc.ToStruct();
@@ -225,6 +218,15 @@ public class MultiTargetTracker : DailyModuleBase
             LastSeen = DateTime.MinValue;
         }
 
+        public ulong  ContentID { get; set; }
+        public string Name      { get; set; } = string.Empty;
+        public string WorldName { get; set; } = string.Empty;
+
+        public DateTime Added            { get; set; } = DateTime.MinValue;
+        public DateTime LastSeen         { get; set; } = DateTime.MinValue;
+        public string   LastSeenLocation { get; set; } = string.Empty;
+        public string   Note             { get; set; } = string.Empty;
+
         public bool Equals(TrackPlayer? other) => ContentID == other.ContentID;
 
         public override bool Equals(object? obj)
@@ -240,7 +242,7 @@ public class MultiTargetTracker : DailyModuleBase
 
     private class TempTrackMenuItem : MenuItemBase
     {
-        public override string Name       { get; protected set; } = $"{GetLoc("MultiTargetTracker-TempTrack")}: {GetLoc("Add")}/{GetLoc("Delete")}";
+        public override string Name       { get; protected set; } = $"{Lang.Get("MultiTargetTracker-TempTrack")}: {Lang.Get("Add")}/{Lang.Get("Delete")}";
         public override string Identifier { get; protected set; } = nameof(MultiTargetTracker);
 
         protected override void OnClicked(IMenuItemClickedArgs args)
@@ -257,16 +259,16 @@ public class MultiTargetTracker : DailyModuleBase
             if (!TempTrackedPlayers.Add(data))
             {
                 TempTrackedPlayers.Remove(data);
-                NotificationSuccess(GetLoc("Deleted"));
+                NotifyHelper.NotificationSuccess(Lang.Get("Deleted"));
             }
             else
-                NotificationSuccess(GetLoc("Added"));
+                NotifyHelper.NotificationSuccess(Lang.Get("Added"));
         }
     }
 
     private class PermanentTrackMenuItem : MenuItemBase
     {
-        public override string Name       { get; protected set; } = $"{GetLoc("MultiTargetTracker-PermanentTrack")}: {GetLoc("Add")}/{GetLoc("Delete")}";
+        public override string Name       { get; protected set; } = $"{Lang.Get("MultiTargetTracker-PermanentTrack")}: {Lang.Get("Add")}/{Lang.Get("Delete")}";
         public override string Identifier { get; protected set; } = nameof(MultiTargetTracker);
 
         protected override void OnClicked(IMenuItemClickedArgs args)
@@ -280,12 +282,12 @@ public class MultiTargetTracker : DailyModuleBase
             if (ModuleConfig.PermanentTrackedPlayers.Contains(new(player)))
             {
                 ModuleConfig.PermanentTrackedPlayers.Remove(new(player));
-                NotificationSuccess(GetLoc("Deleted"));
+                NotifyHelper.NotificationSuccess(Lang.Get("Deleted"));
             }
             else
             {
                 ModuleConfig.PermanentTrackedPlayers.Add(new(player));
-                NotificationSuccess(GetLoc("Added"));
+                NotifyHelper.NotificationSuccess(Lang.Get("Added"));
             }
 
             ModuleConfig.Save(ModuleManager.GetModule<MultiTargetTracker>());

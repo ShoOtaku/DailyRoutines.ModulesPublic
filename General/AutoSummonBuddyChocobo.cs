@@ -1,33 +1,37 @@
-using System;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using TerritoryIntendedUse = FFXIVClientStructs.FFXIV.Client.Enums.TerritoryIntendedUse;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoSummonBuddyChocobo : DailyModuleBase
+public unsafe class AutoSummonBuddyChocobo : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoSummonBuddyChocoboTitle"),
-        Description = GetLoc("AutoSummonBuddyChocoboDescription"),
-        Category    = ModuleCategories.General,
-        Author      = ["Veever"]
-    };
-
     private const uint GYSAHL_GREENS_ITEM_ID = 4868;
 
     private static Config ModuleConfig = null!;
 
     private static bool HasNotifiedInCurrentZone;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoSummonBuddyChocoboTitle"),
+        Description = Lang.Get("AutoSummonBuddyChocoboDescription"),
+        Category    = ModuleCategory.General,
+        Author      = ["Veever"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig =   LoadConfig<Config>() ?? new();
+        ModuleConfig =   Config.Load(this) ?? new();
         TaskHelper   ??= new();
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
@@ -42,8 +46,8 @@ public unsafe class AutoSummonBuddyChocobo : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("AutoSummonBuddyChocobo-AutoSwitchStance"), ref ModuleConfig.AutoSwitchStance))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("AutoSummonBuddyChocobo-AutoSwitchStance"), ref ModuleConfig.AutoSwitchStance))
+            ModuleConfig.Save(this);
 
         if (ModuleConfig.AutoSwitchStance)
         {
@@ -62,7 +66,7 @@ public unsafe class AutoSummonBuddyChocobo : DailyModuleBase
                     if (ImGui.RadioButton(buddyAction.Name.ToString(), ModuleConfig.Stance == checkPoint))
                     {
                         ModuleConfig.Stance = checkPoint;
-                        SaveConfig(ModuleConfig);
+                        ModuleConfig.Save(this);
                     }
                 }
             }
@@ -70,19 +74,19 @@ public unsafe class AutoSummonBuddyChocobo : DailyModuleBase
 
         ImGui.NewLine();
 
-        if (ImGui.Checkbox(GetLoc("AutoSummonBuddyChocobo-NotBattleJobUsingGys"), ref ModuleConfig.NotBattleJobUsingGysahl))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("AutoSummonBuddyChocobo-NotBattleJobUsingGys"), ref ModuleConfig.NotBattleJobUsingGysahl))
+            ModuleConfig.Save(this);
 
         ImGui.NewLine();
 
-        if (ImGui.Checkbox(GetLoc("SendChat"), ref ModuleConfig.SendChat))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendChat"), ref ModuleConfig.SendChat))
+            ModuleConfig.Save(this);
 
-        if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref ModuleConfig.SendNotification))
+            ModuleConfig.Save(this);
 
-        if (ImGui.Checkbox(GetLoc("SendTTS"), ref ModuleConfig.SendTTS))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendTTS"), ref ModuleConfig.SendTTS))
+            ModuleConfig.Save(this);
     }
 
     private void OnZoneChanged(ushort zone)
@@ -99,29 +103,29 @@ public unsafe class AutoSummonBuddyChocobo : DailyModuleBase
     private void OnConditionChanged(ConditionFlag flag, bool value)
     {
         if (flag != ConditionFlag.Mounted) return;
-        
+
         if (!IsZoneValid())
         {
             Cleanup();
             return;
         }
-        
+
         if (value) return;
 
         OnPlayerMoving(false);
     }
-    
+
     // 给那种原地挂机但一定要陆行鸟在场的人准备的
     private void OnLogMessage(uint logMessageID, LogMessageQueueItem item)
     {
         if (logMessageID != 1328) return;
-        
+
         if (!IsZoneValid())
         {
             Cleanup();
             return;
         }
-        
+
         OnPlayerMoving(false);
     }
 
@@ -140,8 +144,8 @@ public unsafe class AutoSummonBuddyChocobo : DailyModuleBase
         }
 
         if (LocalPlayerState.Object is not { IsDead: false } ||
-            OccupiedInEvent                                  ||
-            IsOnMount)
+            DService.Instance().Condition.IsOccupiedInEvent  ||
+            DService.Instance().Condition.IsOnMount)
             return;
 
         if (!ModuleConfig.NotBattleJobUsingGysahl && LocalPlayerState.ClassJobData.DohDolJobIndex != -1)
@@ -161,19 +165,20 @@ public unsafe class AutoSummonBuddyChocobo : DailyModuleBase
             if (HasNotifiedInCurrentZone) return;
             HasNotifiedInCurrentZone = true;
 
-            var notificationMessage = GetLoc("AutoSummonBuddyChocobo-NotificationMessage");
+            var notificationMessage = Lang.Get("AutoSummonBuddyChocobo-NotificationMessage");
             if (ModuleConfig.SendChat)
-                Chat(notificationMessage);
+                NotifyHelper.Chat(notificationMessage);
             if (ModuleConfig.SendNotification)
-                NotificationInfo(notificationMessage);
+                NotifyHelper.NotificationInfo(notificationMessage);
             if (ModuleConfig.SendTTS)
-                Speak(notificationMessage);
+                NotifyHelper.Speak(notificationMessage);
 
             return;
         }
 
         TaskHelper.DelayNext(500);
-        TaskHelper.Enqueue(() => { UseActionManager.Instance().UseActionLocation(ActionType.Item, GYSAHL_GREENS_ITEM_ID, extraParam: 0xFFFF); }
+        TaskHelper.Enqueue
+        (() => { UseActionManager.Instance().UseActionLocation(ActionType.Item, GYSAHL_GREENS_ITEM_ID, extraParam: 0xFFFF); }
         );
     }
 
@@ -202,15 +207,14 @@ public unsafe class AutoSummonBuddyChocobo : DailyModuleBase
         HealerStance   = 0x07
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
-        public bool SendChat;
-        public bool SendNotification = true;
-        public bool SendTTS;
+        public bool AutoSwitchStance;
 
-        public bool NotBattleJobUsingGysahl;
-
-        public bool          AutoSwitchStance;
+        public bool          NotBattleJobUsingGysahl;
+        public bool          SendChat;
+        public bool          SendNotification = true;
+        public bool          SendTTS;
         public ChocoboStance Stance = ChocoboStance.FreeStance;
     }
 }

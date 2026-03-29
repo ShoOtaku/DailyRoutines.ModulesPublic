@@ -1,5 +1,7 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -7,20 +9,12 @@ using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
 using KamiToolKit.Classes;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoRepeatChatMessage : DailyModuleBase
+public unsafe class AutoRepeatChatMessage : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoRepeatChatMessageTitle"),
-        Description = GetLoc("AutoRepeatChatMessageDescription", "\ue04e \ue090"),
-        Category    = ModuleCategories.General
-    };
-
-    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
     private static readonly Dictionary<XivChatType, int> ChatTypesToChannel = new()
     {
         [XivChatType.TellIncoming]    = 0,
@@ -49,49 +43,59 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
         [XivChatType.Ls5]             = 23,
         [XivChatType.Ls6]             = 24,
         [XivChatType.Ls7]             = 25,
-        [XivChatType.Ls8]             = 26,
+        [XivChatType.Ls8]             = 26
     };
 
     private static readonly Dictionary<uint, (int Channel, byte[] Message, string Sender)> SavedPayload = [];
 
     private static Config ModuleConfig = null!;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoRepeatChatMessageTitle"),
+        Description = Lang.Get("AutoRepeatChatMessageDescription", "\ue04e \ue090"),
+        Category    = ModuleCategory.General
+    };
+
+    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
-        
+        ModuleConfig = Config.Load(this) ?? new();
+
         DService.Instance().Chat.ChatMessage += OnChat;
     }
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("AutoRepeatChatMessage-AutoSwitchChannel"), ref ModuleConfig.AutoSwitchChannel))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("AutoRepeatChatMessage-AutoSwitchChannel"), ref ModuleConfig.AutoSwitchChannel))
+            ModuleConfig.Save(this);
 
         if (ModuleConfig.AutoSwitchChannel)
         {
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("AutoRepeatChatMessage-ColorPreview"));
+            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("AutoRepeatChatMessage-ColorPreview"));
+
             using (ImRaii.PushIndent())
             {
                 ImGui.TextColored(ColorHelper.GetColor(34), "\ue04e \ue090");
-                
+
                 ImGui.SameLine();
-                ImGui.TextUnformatted($": {GetLoc("AutoRepeatChatMessage-ColorAble")}");
-                
+                ImGui.TextUnformatted($": {Lang.Get("AutoRepeatChatMessage-ColorAble")}");
+
                 ImGui.TextColored(ColorHelper.GetColor(32), "\ue04e \ue090");
-                
+
                 ImGui.SameLine();
-                ImGui.TextUnformatted($": {GetLoc("AutoRepeatChatMessage-ColorUnable")}");
+                ImGui.TextUnformatted($": {Lang.Get("AutoRepeatChatMessage-ColorUnable")}");
             }
-            
+
             ImGui.Spacing();
-            
-            if (ImGui.Checkbox(GetLoc("AutoRepeatChatMessage-AutoSwitchOrigChannel"), ref ModuleConfig.AutoSwitchOrigChannel))
-                SaveConfig(ModuleConfig);
+
+            if (ImGui.Checkbox(Lang.Get("AutoRepeatChatMessage-AutoSwitchOrigChannel"), ref ModuleConfig.AutoSwitchOrigChannel))
+                ModuleConfig.Save(this);
         }
-        
-        if (ImGui.Checkbox(GetLoc("AutoRepeatChatMessage-UseTrigger"), ref ModuleConfig.UseTrigger))
-            SaveConfig(ModuleConfig);
+
+        if (ImGui.Checkbox(Lang.Get("AutoRepeatChatMessage-UseTrigger"), ref ModuleConfig.UseTrigger))
+            ModuleConfig.Save(this);
     }
 
     private static void OnChat(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
@@ -99,7 +103,8 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
         if (isHandled) return;
         if (!ChatTypesToChannel.TryGetValue(type, out var channel)) return;
 
-        var senderStr   = string.Empty;
+        var senderStr = string.Empty;
+
         foreach (var senderPayload in sender.Payloads)
         {
             if (senderPayload is PlayerPayload playerPayload)
@@ -108,7 +113,7 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
 
         var linkPayload = LinkPayloadManager.Instance().Reg(OnClickRepeat, out var id);
         SavedPayload.TryAdd(id, (channel, message.Encode(), senderStr));
-        
+
         message.Append(new UIForegroundPayload(24))
                .Append(new TextPayload(" ["))
                .Append(new UIForegroundPayload(0))
@@ -125,7 +130,7 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
 
     private static void OnClickRepeat(uint id, SeString message)
     {
-        var triggerCheck = !ModuleConfig.UseTrigger || IsConflictKeyPressed();
+        var triggerCheck = !ModuleConfig.UseTrigger || DRConfig.Instance().ConflictKeyBinding.IsPressed();
         if (!triggerCheck) return;
 
         if (!SavedPayload.TryGetValue(id, out var info)) return;
@@ -135,11 +140,11 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
 
         var agent = AgentChatLog.Instance();
         if (agent == null) return;
-        
-        var origChannel = (int)agent->CurrentChannel;
+
+        var origChannel    = (int)agent->CurrentChannel;
         var origShellIndex = ChatChannelToLinkshellIndex((uint)origChannel);
         var linkshellIndex = ChatChannelToLinkshellIndex((uint)info.Channel);
-        
+
         if (info.Channel != -1 && ModuleConfig.AutoSwitchChannel)
         {
             switch (info.Channel)
@@ -152,15 +157,15 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
                     break;
             }
         }
-        
+
         ChatManager.Instance().SendCommand(info.Message);
-        
-        if (info.Channel != -1                                                     && 
+
+        if (info.Channel != -1 &&
             ModuleConfig is { AutoSwitchChannel: true, AutoSwitchOrigChannel: true })
             instance->ChangeChatChannel(origChannel, origShellIndex, Utf8String.FromString(string.Empty), false);
     }
 
-    private static uint ChatChannelToLinkshellIndex(uint channel) => 
+    private static uint ChatChannelToLinkshellIndex(uint channel) =>
         channel switch
         {
             >= 9 and <= 16  => channel - 9,
@@ -174,7 +179,7 @@ public unsafe class AutoRepeatChatMessage : DailyModuleBase
         SavedPayload.Clear();
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public bool AutoSwitchChannel     = true;
         public bool AutoSwitchOrigChannel = true;

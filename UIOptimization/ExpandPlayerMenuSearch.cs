@@ -1,52 +1,54 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Helpers;
-using DailyRoutines.Infos;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Info.Abstractions;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
 using Newtonsoft.Json;
-using OmenTools.DTOs;
+using OmenTools.Info.DTOs.Lalachievements;
+using OmenTools.Info.DTOs.RisingStone;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using Action = System.Action;
+using MenuItem = Dalamud.Game.Gui.ContextMenu.MenuItem;
+using NotifyHelper = OmenTools.OmenService.NotifyHelper;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class ExpandPlayerMenuSearch : DailyModuleBase
+public class ExpandPlayerMenuSearch : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("ExpandPlayerMenuSearchTitle"),
-        Description = GetLoc("ExpandPlayerMenuSearchDescription"),
-        Category    = ModuleCategories.UIOptimization,
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private static Config ModuleConfig = null!;
-    
+
     private static readonly UpperContainerItem UpperContainerMenu = new();
 
     private static CancellationTokenSource? CancelSource;
 
     private static CharacterSearchInfo? TargetChara;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("ExpandPlayerMenuSearchTitle"),
+        Description = Lang.Get("ExpandPlayerMenuSearchDescription"),
+        Category    = ModuleCategory.UIOptimization
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
-        
+        ModuleConfig = Config.Load(this) ?? new();
+
         CancelSource ??= new();
 
         DService.Instance().ContextMenu.OnMenuOpened += OnMenuOpen;
     }
 
-    protected override void ConfigUI() => 
+    protected override void ConfigUI() =>
         UpperContainerItem.Draw();
 
     private static void OnMenuOpen(IMenuOpenedArgs args)
@@ -61,13 +63,13 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
     {
         if (args.Target is MenuTargetInventory) return false;
         var menuTarget = (MenuTargetDefault)args.Target;
-        var agent = DService.Instance().GameGUI.FindAgentInterface("ChatLog");
+        var agent      = DService.Instance().GameGUI.FindAgentInterface("ChatLog");
         if (agent != nint.Zero && *(uint*)(agent + 0x948 + 8) == 3) return false;
 
         var judgeCriteria0 = menuTarget.TargetCharacter != null;
         var judgeCriteria1 = !string.IsNullOrWhiteSpace(menuTarget.TargetName) &&
-                             menuTarget.TargetHomeWorld.ValueNullable != null &&
-                             menuTarget.TargetHomeWorld.Value.RowId != 0;
+                             menuTarget.TargetHomeWorld.ValueNullable != null  &&
+                             menuTarget.TargetHomeWorld.Value.RowId   != 0;
 
         var judgeCriteria2 = menuTarget.TargetObject != null && IGameObject.Create(menuTarget.TargetObject.Address) is ICharacter && judgeCriteria1;
 
@@ -86,8 +88,8 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
 
                     TargetChara = new()
                     {
-                        Name  = playerName,
-                        World = serverName,
+                        Name    = playerName,
+                        World   = serverName,
                         WorldID = LuminaGetter.Get<World>().FirstOrDefault(x => x.Name.ToString().Contains(serverName, StringComparison.OrdinalIgnoreCase)).RowId
                     };
                     return true;
@@ -99,8 +101,8 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
 
                 TargetChara = new()
                 {
-                    Name = menuTarget.TargetName, 
-                    World = menuTarget.TargetHomeWorld.ValueNullable?.Name.ToString() ?? string.Empty,
+                    Name    = menuTarget.TargetName,
+                    World   = menuTarget.TargetHomeWorld.ValueNullable?.Name.ToString() ?? string.Empty,
                     WorldID = menuTarget.TargetHomeWorld.RowId
                 };
                 return true;
@@ -124,7 +126,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         {
             if (judgeCriteria0)
             {
-                TargetChara = new CharacterSearchInfo()
+                TargetChara = new CharacterSearchInfo
                 {
                     Name    = menuTarget.TargetCharacter.Name,
                     World   = menuTarget.TargetCharacter.HomeWorld.ValueNullable?.Name.ToString(),
@@ -133,7 +135,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
             }
             else if (menuTarget.TargetObject != null && IGameObject.Create(menuTarget.TargetObject.Address) is ICharacter chara && judgeCriteria1)
             {
-                TargetChara = new CharacterSearchInfo()
+                TargetChara = new CharacterSearchInfo
                 {
                     Name    = chara.Name.ToString(),
                     World   = LuminaGetter.GetRow<World>(((Character*)chara.Address)->HomeWorld)?.Name.ToString() ?? string.Empty,
@@ -144,8 +146,8 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
             {
                 TargetChara = new()
                 {
-                    Name = menuTarget.TargetName, 
-                    World = menuTarget.TargetHomeWorld.ValueNullable?.Name.ToString() ?? string.Empty,
+                    Name    = menuTarget.TargetName,
+                    World   = menuTarget.TargetHomeWorld.ValueNullable?.Name.ToString() ?? string.Empty,
                     WorldID = menuTarget.TargetHomeWorld.RowId
                 };
             }
@@ -157,7 +159,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
     protected override void Uninit()
     {
         DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpen;
-        
+
         CancelSource?.Cancel();
         CancelSource?.Dispose();
         CancelSource = null;
@@ -170,59 +172,93 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
         public uint   WorldID { get; init; }
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
-        public bool RisingStoneEnabled     = GameState.IsCN;
-        public bool TiebaEnabled           = GameState.IsCN;
         public bool FFLogsEnabled          = true;
-        public bool LodestoneEnabled       = GameState.IsGL;
         public bool LalachievementsEnabled = GameState.IsGL;
-        public bool TomestoneEnabled       = GameState.IsGL;
+        public bool LodestoneEnabled       = GameState.IsGL;
+        public bool RisingStoneEnabled     = GameState.IsCN;
         public bool SuMemoEnabled          = true;
+        public bool TiebaEnabled           = GameState.IsCN;
+        public bool TomestoneEnabled       = GameState.IsGL;
     }
 
     private class UpperContainerItem : MenuItemBase
     {
-        public override string Name       { get; protected set; } = GetLoc("ExpandPlayerMenuSearch-SearchTitle");
-        public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
+        private static readonly List<(Func<bool> Config, Action SetConfig, string LocKey, MenuItemBase Item)> MenuItems =
+        [
+            new
+            (
+                () => ModuleConfig.RisingStoneEnabled,
+                () => ModuleConfig.RisingStoneEnabled ^= true,
+                "ExpandPlayerMenuSearch-SearchRisingStone",
+                new RisingStoneItem()
+            ),
+            new
+            (
+                () => ModuleConfig.TiebaEnabled,
+                () => ModuleConfig.TiebaEnabled ^= true,
+                "ExpandPlayerMenuSearch-SearchTieba",
+                new TiebaItem()
+            ),
+            new
+            (
+                () => ModuleConfig.FFLogsEnabled,
+                () => ModuleConfig.FFLogsEnabled ^= true,
+                "ExpandPlayerMenuSearch-SearchFFLogs",
+                new FFLogsItem()
+            ),
+            new
+            (
+                () => ModuleConfig.LodestoneEnabled,
+                () => ModuleConfig.LodestoneEnabled ^= true,
+                "ExpandPlayerMenuSearch-SearchLodestone",
+                new LodestoneItem()
+            ),
+            new
+            (
+                () => ModuleConfig.LalachievementsEnabled,
+                () => ModuleConfig.LalachievementsEnabled ^= true,
+                "ExpandPlayerMenuSearch-SearchLalachievements",
+                new LalachievementsItem()
+            ),
+            new
+            (
+                () => ModuleConfig.TomestoneEnabled,
+                () => ModuleConfig.TomestoneEnabled ^= true,
+                "ExpandPlayerMenuSearch-SearchTomestone",
+                new TomestoneItem()
+            ),
+            new
+            (
+                () => ModuleConfig.SuMemoEnabled,
+                () => ModuleConfig.SuMemoEnabled ^= true,
+                "ExpandPlayerMenuSearch-SearchSuMemo",
+                new SuMemoItem()
+            )
+        ];
+
+        private static readonly ClickAllItem ClickAllMenu = new();
+        public override         string       Name       { get; protected set; } = Lang.Get("ExpandPlayerMenuSearch-SearchTitle");
+        public override         string       Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
 
 
         protected override bool WithDRPrefix { get; set; } = true;
         protected override bool IsSubmenu    { get; set; } = true;
 
-        private static readonly List<(Func<bool> Config, Action SetConfig, string LocKey, MenuItemBase Item)> MenuItems =
-        [
-            new(() => ModuleConfig.RisingStoneEnabled, () => ModuleConfig.RisingStoneEnabled ^= true, 
-                "ExpandPlayerMenuSearch-SearchRisingStone", new RisingStoneItem()),
-            new(() => ModuleConfig.TiebaEnabled, () => ModuleConfig.TiebaEnabled ^= true, 
-                "ExpandPlayerMenuSearch-SearchTieba", new TiebaItem()),
-            new(() => ModuleConfig.FFLogsEnabled, () => ModuleConfig.FFLogsEnabled ^= true, 
-                "ExpandPlayerMenuSearch-SearchFFLogs", new FFLogsItem()),
-            new(() => ModuleConfig.LodestoneEnabled, () => ModuleConfig.LodestoneEnabled ^= true, 
-                "ExpandPlayerMenuSearch-SearchLodestone", new LodestoneItem()),
-            new(() => ModuleConfig.LalachievementsEnabled, () => ModuleConfig.LalachievementsEnabled ^= true, 
-                "ExpandPlayerMenuSearch-SearchLalachievements", new LalachievementsItem()),
-            new(() => ModuleConfig.TomestoneEnabled, () => ModuleConfig.TomestoneEnabled ^= true,
-                "ExpandPlayerMenuSearch-SearchTomestone", new TomestoneItem()),
-            new(() => ModuleConfig.SuMemoEnabled, () => ModuleConfig.SuMemoEnabled ^= true,
-                "ExpandPlayerMenuSearch-SearchSuMemo", new SuMemoItem())
-        ];
-        
-        private static readonly ClickAllItem ClickAllMenu = new();
-        
-        protected override void OnClicked(IMenuItemClickedArgs args) 
+        protected override void OnClicked(IMenuItemClickedArgs args)
             => args.OpenSubmenu(Name, ProcessMenuItems());
 
         private static List<MenuItem> ProcessMenuItems()
         {
             var list = new List<MenuItem> { ClickAllMenu.Get() };
-            
+
             foreach (var item in MenuItems)
             {
                 if (!item.Config()) continue;
                 list.Add(item.Item.Get());
             }
-            
+
             return list;
         }
 
@@ -231,7 +267,7 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
             foreach (var item in MenuItems)
             {
                 if (!item.Config()) continue;
-                item.Item.ManuallyClick(args);
+                item.Item.Click(args);
             }
         }
 
@@ -240,7 +276,8 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
             foreach (var menuItem in MenuItems)
             {
                 var value = menuItem.Config();
-                if (ImGui.Checkbox(GetLoc(menuItem.LocKey), ref value))
+
+                if (ImGui.Checkbox(Lang.Get(menuItem.LocKey), ref value))
                 {
                     menuItem.SetConfig();
                     ModuleConfig.Save(ModuleManager.GetModule<ExpandPlayerMenuSearch>());
@@ -251,75 +288,76 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
 
     private class ClickAllItem : MenuItemBase
     {
-        public override string Name       { get; protected set; } = GetLoc("ExpandPlayerMenuSearch-SearchInAllPlatforms");
+        public override string Name       { get; protected set; } = Lang.Get("ExpandPlayerMenuSearch-SearchInAllPlatforms");
         public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
 
 
-        protected override void OnClicked(IMenuItemClickedArgs args) => 
+        protected override void OnClicked(IMenuItemClickedArgs args) =>
             UpperContainerItem.ClickAll(args);
     }
 
     private class RisingStoneItem : MenuItemBase
     {
-        public override string Name       { get ; protected set ; } = GetLoc("ExpandPlayerMenuSearch-SearchRisingStone");
-        public override string Identifier { get;  protected set; }  = nameof(ExpandPlayerMenuSearch);
-
-
         private const string SearchAPI =
             "https://apiff14risingstones.web.sdo.com/api/common/search?type=6&keywords={0}&page={1}&limit=50";
-        private const string PlayerInfo = "https://ff14risingstones.web.sdo.com/pc/index.html#/me/info?uuid={0}";
-        
+
+        private const   string PlayerInfo = "https://ff14risingstones.web.sdo.com/pc/index.html#/me/info?uuid={0}";
+        public override string Name       { get; protected set; } = Lang.Get("ExpandPlayerMenuSearch-SearchRisingStone");
+        public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
+
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
-            DService.Instance().Framework.RunOnTick(async () =>
-            {
-                if (TargetChara == null) return;
-
-                var page = 1;
-                var isFound = false;
-                const int delayBetweenRequests = 1000;
-
-                while (!isFound)
+            DService.Instance().Framework.RunOnTick
+            (
+                async () =>
                 {
-                    var url      = string.Format(SearchAPI, TargetChara.Name, page);
-                    var response = await HTTPClientHelper.Get().GetStringAsync(url);
-                    var result   = JsonConvert.DeserializeObject<RSPlayerSearchResult>(response);
+                    if (TargetChara == null) return;
 
-                    if (result.Data.Count == 0)
-                    {
-                        NotificationError(GetLoc("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
-                        break;
-                    }
+                    var       page                 = 1;
+                    var       isFound              = false;
+                    const int delayBetweenRequests = 1000;
 
-                    foreach (var player in result.Data)
+                    while (!isFound)
                     {
-                        if (player.CharacterName == TargetChara.Name && player.GroupName == TargetChara.World)
+                        var url      = string.Format(SearchAPI, TargetChara.Name, page);
+                        var response = await HTTPClientHelper.Get().GetStringAsync(url);
+                        var result   = JsonConvert.DeserializeObject<RSPlayerSearchResult>(response);
+
+                        if (result.Data.Count == 0)
                         {
-                            var uuid = player.UUID;
-                            Util.OpenLink(string.Format(PlayerInfo, uuid));
-                            isFound = true;
+                            NotifyHelper.NotificationError(Lang.Get("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
                             break;
                         }
-                    }
 
-                    if (!isFound)
-                    {
-                        await Task.Delay(delayBetweenRequests);
-                        page++;
+                        foreach (var player in result.Data)
+                        {
+                            if (player.CharacterName == TargetChara.Name && player.GroupName == TargetChara.World)
+                            {
+                                var uuid = player.UUID;
+                                Util.OpenLink(string.Format(PlayerInfo, uuid));
+                                isFound = true;
+                                break;
+                            }
+                        }
+
+                        if (!isFound)
+                        {
+                            await Task.Delay(delayBetweenRequests);
+                            page++;
+                        }
+                        else break;
                     }
-                    else break;
-                }
-            }, cancellationToken: CancelSource.Token);
+                },
+                cancellationToken: CancelSource.Token
+            );
         }
     }
 
     private class TiebaItem : MenuItemBase
     {
-        public override string Name       { get; protected set; } = GetLoc("ExpandPlayerMenuSearch-SearchTieba");
+        private const   string URL = "https://tieba.baidu.com/f/search/res?ie=utf-8&kw=ff14&qw={0}";
+        public override string Name       { get; protected set; } = Lang.Get("ExpandPlayerMenuSearch-SearchTieba");
         public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
-
-
-        private const string URL = "https://tieba.baidu.com/f/search/res?ie=utf-8&kw=ff14&qw={0}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
@@ -330,11 +368,9 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
 
     private class FFLogsItem : MenuItemBase
     {
-        public override string Name       { get; protected set; } = GetLoc("ExpandPlayerMenuSearch-SearchFFLogs");
+        private const   string URL = "https://cn.fflogs.com/character/{0}/{1}/{2}";
+        public override string Name       { get; protected set; } = Lang.Get("ExpandPlayerMenuSearch-SearchFFLogs");
         public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
-
-
-        private const string URL = "https://cn.fflogs.com/character/{0}/{1}/{2}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
@@ -354,17 +390,15 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
                 6 => "KR",
                 _ => "CN"
             };
-
     }
 
     private class LodestoneItem : MenuItemBase
     {
-        public override string Name       { get; protected set; } = GetLoc("ExpandPlayerMenuSearch-SearchLodestone");
-        public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
-
-
         private const string URL =
             "https://na.finalfantasyxiv.com/lodestone/character/?q={0}&worldname=_dc_{1}&classjob=&race_tribe=&blog_lang=ja&blog_lang=en&blog_lang=de&blog_lang=fr&order=";
+
+        public override string Name       { get; protected set; } = Lang.Get("ExpandPlayerMenuSearch-SearchLodestone");
+        public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
 
         protected override void OnClicked(IMenuItemClickedArgs args)
         {
@@ -374,94 +408,100 @@ public class ExpandPlayerMenuSearch : DailyModuleBase
             Util.OpenLink(string.Format(URL, TargetChara.Name.Replace(' ', '+'), dcName));
         }
     }
-    
+
     private class LalachievementsItem : MenuItemBase
     {
-        public override string Name       { get ; protected set ; } = GetLoc("ExpandPlayerMenuSearch-SearchLalachievements");
-        public override string Identifier { get;  protected set; }  = nameof(ExpandPlayerMenuSearch);
-
-
-        private const string SEARCH_API  = "https://www.lalachievements.com/api/charsearch/{0}/";
-        private const string PLAYER_INFO = "https://www.lalachievements.com/char/{0}/";
+        private const   string SEARCH_API  = "https://www.lalachievements.com/api/charsearch/{0}/";
+        private const   string PLAYER_INFO = "https://www.lalachievements.com/char/{0}/";
+        public override string Name       { get; protected set; } = Lang.Get("ExpandPlayerMenuSearch-SearchLalachievements");
+        public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
 
         protected override void OnClicked(IMenuItemClickedArgs args) =>
-            DService.Instance().Framework.RunOnTick(async () =>
-            {
-                if (TargetChara == null) return;
-
-                var url      = string.Format(SEARCH_API, TargetChara.Name);
-                var response = await HTTPClientHelper.Get().GetStringAsync(url);
-                var result   = JsonConvert.DeserializeObject<LLAPlayerSearchResult>(response);
-
-                if (result.Data.Count == 0)
+            DService.Instance().Framework.RunOnTick
+            (
+                async () =>
                 {
-                    NotificationError(GetLoc("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
-                    return;
-                }
+                    if (TargetChara == null) return;
 
-                foreach (var player in result.Data)
-                {
-                    if (player.CharacterName == TargetChara.Name && player.WorldID == TargetChara.WorldID)
+                    var url      = string.Format(SEARCH_API, TargetChara.Name);
+                    var response = await HTTPClientHelper.Get().GetStringAsync(url);
+                    var result   = JsonConvert.DeserializeObject<LLAPlayerSearchResult>(response);
+
+                    if (result.Data.Count == 0)
                     {
-                        Util.OpenLink(string.Format(PLAYER_INFO, player.CharacterID));
-                        break;
+                        NotifyHelper.NotificationError(Lang.Get("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
+                        return;
                     }
-                }
-            }, TimeSpan.Zero, 0, CancelSource.Token);
+
+                    foreach (var player in result.Data)
+                    {
+                        if (player.CharacterName == TargetChara.Name && player.WorldID == TargetChara.WorldID)
+                        {
+                            Util.OpenLink(string.Format(PLAYER_INFO, player.CharacterID));
+                            break;
+                        }
+                    }
+                },
+                TimeSpan.Zero,
+                0,
+                CancelSource.Token
+            );
     }
-    
+
     private class TomestoneItem : MenuItemBase
     {
-        public override string Name       { get ; protected set ; } = GetLoc("ExpandPlayerMenuSearch-SearchTomestone");
-        public override string Identifier { get;  protected set; }  = nameof(ExpandPlayerMenuSearch);
-
-
-        private const string SEARCH_API  = "https://tomestone.gg/search/autocomplete?term={0}"; // 搜索词, 空格 %20
+        private const   string SEARCH_API = "https://tomestone.gg/search/autocomplete?term={0}"; // 搜索词, 空格 %20
+        public override string Name       { get; protected set; } = Lang.Get("ExpandPlayerMenuSearch-SearchTomestone");
+        public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
 
         protected override void OnClicked(IMenuItemClickedArgs args) =>
-            DService.Instance().Framework.RunOnTick(async () =>
-            {
-                if (TargetChara == null) return;
-
-                var url      = string.Format(SEARCH_API, TargetChara.Name.Replace(" ", "%20"));
-                var response = await HTTPClientHelper.Get().GetStringAsync(url);
-                
-                dynamic? result   = JsonConvert.DeserializeObject(response);
-                if (result == null) return;
-
-                if (result.characters.Count == 0)
+            DService.Instance().Framework.RunOnTick
+            (
+                async () =>
                 {
-                    NotificationError(GetLoc("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
-                    return;
-                }
+                    if (TargetChara == null) return;
 
-                foreach (var player in result.characters)
-                {
-                    string? refLink = player.href;
-                    if (string.IsNullOrEmpty(refLink)) continue;
-                    
-                    var     info   = player.item;
-                    string? name   = info.name;
-                    string? server = info.serverName;
+                    var url      = string.Format(SEARCH_API, TargetChara.Name.Replace(" ", "%20"));
+                    var response = await HTTPClientHelper.Get().GetStringAsync(url);
 
-                    if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(server))
-                        continue;
-                    if (name != TargetChara.Name || !server.Contains(TargetChara.World, StringComparison.OrdinalIgnoreCase))
-                        continue;
-                    
-                    Util.OpenLink($"https://tomestone.gg{refLink}");
-                    break;
-                }
-            }, TimeSpan.Zero, 0, CancelSource.Token);
+                    dynamic? result = JsonConvert.DeserializeObject(response);
+                    if (result == null) return;
+
+                    if (result.characters.Count == 0)
+                    {
+                        NotifyHelper.NotificationError(Lang.Get("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
+                        return;
+                    }
+
+                    foreach (var player in result.characters)
+                    {
+                        string? refLink = player.href;
+                        if (string.IsNullOrEmpty(refLink)) continue;
+
+                        var     info   = player.item;
+                        string? name   = info.name;
+                        string? server = info.serverName;
+
+                        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(server))
+                            continue;
+                        if (name != TargetChara.Name || !server.Contains(TargetChara.World, StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        Util.OpenLink($"https://tomestone.gg{refLink}");
+                        break;
+                    }
+                },
+                TimeSpan.Zero,
+                0,
+                CancelSource.Token
+            );
     }
 
     private class SuMemoItem : MenuItemBase
     {
-        public override string Name       { get; protected set; } = GetLoc("ExpandPlayerMenuSearch-SearchSuMemo");
+        private const   string URL = "https://sumemo.dev/member/{0}@{1}";
+        public override string Name       { get; protected set; } = Lang.Get("ExpandPlayerMenuSearch-SearchSuMemo");
         public override string Identifier { get; protected set; } = nameof(ExpandPlayerMenuSearch);
-
-
-        private const string URL = "https://sumemo.dev/member/{0}@{1}";
 
         protected override void OnClicked(IMenuItemClickedArgs args)
         {

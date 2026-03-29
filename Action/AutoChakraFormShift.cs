@@ -1,27 +1,29 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.JobGauge.Types;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using Lumina.Excel.Sheets;
-using OmenTools.Extensions;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using Control = FFXIVClientStructs.FFXIV.Client.Game.Control.Control;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoChakraFormShift : DailyModuleBase
+public class AutoChakraFormShift : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoChakraFormShiftTitle"),
-        Description = GetLoc("AutoChakraFormShiftDescription"),
-        Category    = ModuleCategories.Action,
-    };
-    
-    private static readonly HashSet<uint> InvalidContentTypes = [16, 17, 18, 19, 31, 32, 34, 35];
-    
     private const uint STEELED_MEDITATION = 36940;
     private const uint FORM_SHIFT         = 4262;
+
+    private static readonly HashSet<uint> InvalidContentTypes = [16, 17, 18, 19, 31, 32, 34, 35];
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoChakraFormShiftTitle"),
+        Description = Lang.Get("AutoChakraFormShiftDescription"),
+        Category    = ModuleCategory.Action
+    };
 
     protected override void Init()
     {
@@ -34,7 +36,8 @@ public class AutoChakraFormShift : DailyModuleBase
 
     private bool CheckCurrentJob()
     {
-        if (BetweenAreas || OccupiedInEvent) return false;
+        if (DService.Instance().Condition.IsBetweenAreas || DService.Instance().Condition.IsOccupiedInEvent) return false;
+
         if (LocalPlayerState.ClassJob != 20 || !IsValidPVEDuty())
         {
             TaskHelper.Abort();
@@ -44,24 +47,24 @@ public class AutoChakraFormShift : DailyModuleBase
         TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
         return true;
     }
-    
+
     private unsafe bool UseRelatedActions()
     {
         var gauge = DService.Instance().JobGauges.Get<MNKGauge>();
 
         var localPlayer = Control.GetLocalPlayer();
         if (localPlayer == null) return false;
-        
+
         var statusManager = localPlayer->StatusManager;
 
         var action = 0U;
         // 铁山斗气
-        if (ActionManager.IsActionUnlocked(STEELED_MEDITATION) && 
+        if (ActionManager.IsActionUnlocked(STEELED_MEDITATION) &&
             gauge.Chakra != 5)
             action = STEELED_MEDITATION;
         // 演武
         else if (ActionManager.IsActionUnlocked(FORM_SHIFT) &&
-                 !LocalPlayerState.HasStatus(110, out _)               &&
+                 !LocalPlayerState.HasStatus(110, out _)    &&
                  (!LocalPlayerState.HasStatus(2513, out var statusIndex) || statusManager.GetRemainingTime(statusIndex) <= 27))
             action = 4262;
 
@@ -86,9 +89,9 @@ public class AutoChakraFormShift : DailyModuleBase
     private void OnConditionChanged(ConditionFlag flag, bool value)
     {
         if (flag != ConditionFlag.InCombat) return;
-        
+
         TaskHelper.Abort();
-        if (!value) 
+        if (!value)
             TaskHelper.Enqueue(CheckCurrentJob);
     }
 
@@ -111,7 +114,7 @@ public class AutoChakraFormShift : DailyModuleBase
     protected override void Uninit()
     {
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-        DService.Instance().DutyState.DutyRecommenced -= OnDutyRecommenced;
-        DService.Instance().Condition.ConditionChange -= OnConditionChanged;
+        DService.Instance().DutyState.DutyRecommenced    -= OnDutyRecommenced;
+        DService.Instance().Condition.ConditionChange    -= OnConditionChanged;
     }
 }

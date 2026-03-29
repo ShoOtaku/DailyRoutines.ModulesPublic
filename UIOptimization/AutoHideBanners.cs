@@ -1,37 +1,55 @@
 using System.Collections.Frozen;
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoHideBanners : DailyModuleBase
+public unsafe class AutoHideBanners : ModuleBase
 {
+    private static readonly FrozenSet<uint> WKSMissionChainBannerIDs = [128527, 128528, 128529, 128530, 128531, 128532];
+
+    private static readonly CompSig                        SetImageTextureSig = new("48 89 5C 24 ?? 57 48 83 EC 30 48 8B D9 89 91");
+    private static          Hook<SetImageTextureDelegate>? SetImageTextureHook;
+
+    private static Config ModuleConfig = null!;
+
+    private static readonly List<uint> BannersData =
+    [
+        120031, 120032, 120055, 120081, 120082, 120083, 120084, 120085, 120086,
+        120093, 120094, 120095, 120096, 120141, 120142, 121081, 121082, 121561,
+        121562, 121563, 128370, 128371, 128372, 128373, 128525, 128526,
+        128527, 128528, 128529, 128530, 128531, 128532
+    ];
+
+    private static readonly HashSet<uint> DefaultEnabledBanners = [120031, 120032, 120055, 120095, 120096, 120141, 120142];
+
+    private static readonly Vector4 ButtonNormalColor   = ImGui.GetColorU32(ImGuiCol.Button).ToVector4().WithAlpha(0f);
+    private static readonly Vector4 ButtonActiveColor   = ImGui.GetColorU32(ImGuiCol.ButtonActive).ToVector4().WithAlpha(0.8f);
+    private static readonly Vector4 ButtonHoveredColor  = ImGui.GetColorU32(ImGuiCol.ButtonHovered).ToVector4().WithAlpha(0.4f);
+    private static readonly Vector4 ButtonSelectedColor = ImGui.GetColorU32(ImGuiCol.Button).ToVector4().WithAlpha(0.6f);
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoHideBannersTitle"),
-        Description = GetLoc("AutoHideBannersDescription"),
-        Category    = ModuleCategories.System,
+        Title       = Lang.Get("AutoHideBannersTitle"),
+        Description = Lang.Get("AutoHideBannersDescription"),
+        Category    = ModuleCategory.System,
         Author      = ["XSZYYS"]
     };
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private static readonly FrozenSet<uint> WKSMissionChainBannerIDs = [128527, 128528, 128529, 128530, 128531, 128532];
-    
-    private static readonly CompSig                        SetImageTextureSig = new("48 89 5C 24 ?? 57 48 83 EC 30 48 8B D9 89 91");
-    private delegate        void*                          SetImageTextureDelegate(AtkUnitBase* addon, uint bannerID, uint a3, int soundEffectID);
-    private static          Hook<SetImageTextureDelegate>? SetImageTextureHook;
-
-    private static Config ModuleConfig = null!;
-
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         var isAnyAdded = false;
 
@@ -54,7 +72,7 @@ public unsafe class AutoHideBanners : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        var tableSize = new Vector2(ImGui.GetContentRegionAvail().X - 2 * ImGui.GetStyle().ItemSpacing.X, 400f * GlobalFontScale);
+        var tableSize = new Vector2(ImGui.GetContentRegionAvail().X - 2 * ImGui.GetStyle().ItemSpacing.X, 400f * GlobalUIScale);
 
         using var table = ImRaii.Table("BannerList", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY, tableSize);
         if (!table) return;
@@ -93,7 +111,7 @@ public unsafe class AutoHideBanners : DailyModuleBase
     {
         if (!ImageHelper.Instance().TryGetGameLangIcon(bannerID, out var texture)) return;
 
-        var size      = new Vector2(tableSize.X / 2, 128f * GlobalFontScale);
+        var size      = new Vector2(tableSize.X / 2, 128f * GlobalUIScale);
         var cursorPos = ImGui.GetCursorPos();
 
         ImGui.Image(texture.Handle, size);
@@ -108,7 +126,7 @@ public unsafe class AutoHideBanners : DailyModuleBase
             if (ImGui.Button($"##{bannerID}_{cursorPos}", size))
             {
                 ModuleConfig.HiddenBanners[bannerID] ^= true;
-                SaveConfig(ModuleConfig);
+                ModuleConfig.Save(this);
             }
         }
     }
@@ -146,24 +164,11 @@ public unsafe class AutoHideBanners : DailyModuleBase
     private static bool IsWKSMissionChainBannerSelected(uint iconID) =>
         WKSMissionChainBannerIDs.Contains(iconID) && ModuleConfig.HiddenBanners.GetValueOrDefault(iconID);
 
-    private class Config : ModuleConfiguration
+    private delegate void* SetImageTextureDelegate(AtkUnitBase* addon, uint bannerID, uint a3, int soundEffectID);
+
+    private class Config : ModuleConfig
     {
         // true - 隐藏; false - 维持
         public Dictionary<uint, bool> HiddenBanners = [];
     }
-
-    private static readonly List<uint> BannersData =
-    [
-        120031, 120032, 120055, 120081, 120082, 120083, 120084, 120085, 120086,
-        120093, 120094, 120095, 120096, 120141, 120142, 121081, 121082, 121561,
-        121562, 121563, 128370, 128371, 128372, 128373, 128525, 128526,
-        128527, 128528, 128529, 128530, 128531, 128532
-    ];
-
-    private static readonly HashSet<uint> DefaultEnabledBanners = [120031, 120032, 120055, 120095, 120096, 120141, 120142];
-
-    private static readonly Vector4 ButtonNormalColor   = ImGui.GetColorU32(ImGuiCol.Button).ToVector4().WithAlpha(0f);
-    private static readonly Vector4 ButtonActiveColor   = ImGui.GetColorU32(ImGuiCol.ButtonActive).ToVector4().WithAlpha(0.8f);
-    private static readonly Vector4 ButtonHoveredColor  = ImGui.GetColorU32(ImGuiCol.ButtonHovered).ToVector4().WithAlpha(0.4f);
-    private static readonly Vector4 ButtonSelectedColor = ImGui.GetColorU32(ImGuiCol.Button).ToVector4().WithAlpha(0.6f);
 }

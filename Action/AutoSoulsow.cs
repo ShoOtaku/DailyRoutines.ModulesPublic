@@ -1,23 +1,23 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using OmenTools.Extensions;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoSoulsow : DailyModuleBase
+public class AutoSoulsow : ModuleBase
 {
+    private static readonly HashSet<uint> InvalidContentTypes = [16, 17, 18, 19, 31, 32, 34, 35];
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoSoulsowTitle"),
-        Description = GetLoc("AutoSoulsowDescription"),
-        Category    = ModuleCategories.Action,
+        Title       = Lang.Get("AutoSoulsowTitle"),
+        Description = Lang.Get("AutoSoulsowDescription"),
+        Category    = ModuleCategory.Action
     };
-    
-    private static readonly HashSet<uint> InvalidContentTypes = [16, 17, 18, 19, 31, 32, 34, 35];
 
     protected override void Init()
     {
@@ -39,35 +39,36 @@ public class AutoSoulsow : DailyModuleBase
     private void OnZoneChanged(ushort zone)
     {
         TaskHelper.Abort();
-        
+
         if (GameState.ContentFinderCondition == 0) return;
 
         TaskHelper.Enqueue(CheckCurrentJob);
     }
-    
+
     // 战斗状态
     private void OnConditionChanged(ConditionFlag flag, bool value)
     {
         if (flag is not ConditionFlag.InCombat) return;
-        
+
         TaskHelper.Abort();
-        if (!value) 
+        if (!value)
             TaskHelper.Enqueue(CheckCurrentJob);
     }
 
     private bool CheckCurrentJob()
     {
-        if (BetweenAreas || !UIModule.IsScreenReady() || OccupiedInEvent) return false;
+        if (DService.Instance().Condition.IsBetweenAreas || !UIModule.IsScreenReady() || DService.Instance().Condition.IsOccupiedInEvent) return false;
+
         if (DService.Instance().Condition[ConditionFlag.InCombat] || LocalPlayerState.ClassJob != 39 || !IsValidPVEDuty())
         {
             TaskHelper.Abort();
             return true;
         }
-        
+
         TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
         return true;
     }
-    
+
     private bool UseRelatedActions()
     {
         if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return false;

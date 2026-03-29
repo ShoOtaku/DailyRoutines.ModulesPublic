@@ -1,46 +1,47 @@
-using DailyRoutines.Abstracts;
-using DailyRoutines.Windows;
+using System.Text.RegularExpressions;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Gui.PartyFinder.Types;
 using Dalamud.Interface.Components;
 using Lumina.Excel.Sheets;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class PartyFinderFilter : DailyModuleBase
+public class PartyFinderFilter : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("PartyFinderFilterTitle"),
-        Description = GetLoc("PartyFinderFilterDescription"),
-        Category    = ModuleCategories.Recruitment,
-        Author      = ["status102"]
-    };
-    
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private static Config ModuleConfig = null!;
 
     private static int  BatchIndex;
     private static bool IsSecret;
     private static bool IsRaid;
     private static bool ManualMode;
-    
+
     private static readonly HashSet<(ushort, string)> DescriptionSet = [];
-    
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("PartyFinderFilterTitle"),
+        Description = Lang.Get("PartyFinderFilterDescription"),
+        Category    = ModuleCategory.Recruitment,
+        Author      = ["status102"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override unsafe void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new Config();
-        Overlay ??= new Overlay(this);
+        ModuleConfig =   Config.Load(this) ?? new();
+        Overlay      ??= new(this);
 
         DService.Instance().PartyFinder.ReceiveListing += OnReceiveListing;
 
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "LookingForGroup", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "LookingForGroup", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "LookingForGroup", OnAddon);
         if (LookingForGroup->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
@@ -48,8 +49,8 @@ public class PartyFinderFilter : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("PartyFinderFilter-FilterDuplicate"), ref ModuleConfig.FilterSameDescription))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("PartyFinderFilter-FilterDuplicate"), ref ModuleConfig.FilterSameDescription))
+            ModuleConfig.Save(this);
 
         ImGui.Spacing();
 
@@ -57,7 +58,7 @@ public class PartyFinderFilter : DailyModuleBase
 
         ImGui.Spacing();
 
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("PartyFinderFilter-DescriptionRegexFilter"));
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("PartyFinderFilter-DescriptionRegexFilter"));
 
         ImGui.Spacing();
 
@@ -68,84 +69,87 @@ public class PartyFinderFilter : DailyModuleBase
     {
         using var group = ImRaii.Group();
 
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("PartyFinderFilter-HighEndFilter"));
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("PartyFinderFilter-HighEndFilter"));
 
         using var indent = ImRaii.PushIndent();
 
-        if (ImGui.Checkbox(GetLoc("PartyFinderFilter-HighEndFilterSameJob"), ref ModuleConfig.HighEndFilterSameJob))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("PartyFinderFilter-HighEndFilterSameJob"), ref ModuleConfig.HighEndFilterSameJob))
+            ModuleConfig.Save(this);
 
-        if (ImGui.Checkbox($"{GetLoc("PartyFinderFilter-HighEndFilterRoleCount")}", ref ModuleConfig.HighEndFilterRoleCount))
-            SaveConfig(ModuleConfig);
-        ImGuiOm.HelpMarker(GetLoc("PartyFinderFilter-HighEndFilterRoleCountHelp"), 20f * GlobalFontScale);
+        if (ImGui.Checkbox($"{Lang.Get("PartyFinderFilter-HighEndFilterRoleCount")}", ref ModuleConfig.HighEndFilterRoleCount))
+            ModuleConfig.Save(this);
+        ImGuiOm.HelpMarker(Lang.Get("PartyFinderFilter-HighEndFilterRoleCountHelp"), 20f * GlobalUIScale);
 
         ImGui.SameLine();
         ImGuiComponents.ToggleButton("###IsHighEndRoleCountFilterManualMode", ref ManualMode);
 
         ImGui.SameLine();
-        ImGui.TextUnformatted(GetLoc(ManualMode ? "ManualMode" : "AutoMode"));
+        ImGui.TextUnformatted(Lang.Get(ManualMode ? "ManualMode" : "AutoMode"));
 
         if (!ModuleConfig.HighEndFilterRoleCount)
             return;
 
         var changed = false;
-        
+
         using var pushIndent = ImRaii.PushIndent();
-        using var itemWidth  = ImRaii.ItemWidth(50f * GlobalFontScale);
+        using var itemWidth  = ImRaii.ItemWidth(50f * GlobalUIScale);
 
         using (ImRaii.Group())
         {
             ImGui.InputInt($"{LuminaWrapper.GetAddonText(1082)}", ref ModuleConfig.FilterJobTypeCountData.Tank);
             if (ImGui.IsItemDeactivatedAfterEdit())
                 changed = true;
-        
+
             ImGui.InputInt($"{LuminaWrapper.GetAddonText(11300)}", ref ModuleConfig.FilterJobTypeCountData.PureHealer);
             if (ImGui.IsItemDeactivatedAfterEdit())
                 changed = true;
-        
+
             ImGui.InputInt($"{LuminaWrapper.GetAddonText(11301)}", ref ModuleConfig.FilterJobTypeCountData.ShieldHealer);
             if (ImGui.IsItemDeactivatedAfterEdit())
                 changed = true;
         }
 
         ImGui.SameLine();
+
         using (ImRaii.Group())
         {
             ImGui.InputInt($"{LuminaWrapper.GetAddonText(1084)}", ref ModuleConfig.FilterJobTypeCountData.Melee);
             if (ImGui.IsItemDeactivatedAfterEdit())
                 changed = true;
-        
+
             ImGui.InputInt($"{LuminaWrapper.GetAddonText(1085)}", ref ModuleConfig.FilterJobTypeCountData.PhysicalRanged);
             if (ImGui.IsItemDeactivatedAfterEdit())
                 changed = true;
-        
+
             ImGui.InputInt($"{LuminaWrapper.GetAddonText(1086)}", ref ModuleConfig.FilterJobTypeCountData.MagicalRanged);
             if (ImGui.IsItemDeactivatedAfterEdit())
                 changed = true;
         }
-        
+
         if (changed)
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
     }
 
     private void DrawRegexFilterSettings()
     {
         using var indent = ImRaii.PushIndent();
 
-        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Plus, GetLoc("PartyFinderFilter-AddPreset")))
+        if (ImGuiComponents.IconButtonWithText(FontAwesomeIcon.Plus, Lang.Get("PartyFinderFilter-AddPreset")))
             ModuleConfig.BlackList.Add(new(true, string.Empty));
 
         ImGui.SameLine();
         DrawWorkModeSettings();
 
         var index = 0;
+
         foreach (var item in ModuleConfig.BlackList.ToList())
         {
             var enableState = item.Key;
+
             if (ImGui.Checkbox($"##available{index}", ref enableState))
             {
                 ModuleConfig.BlackList[index] = new(enableState, item.Value);
-                SaveConfig(ModuleConfig);
+                ModuleConfig.Save(this);
             }
 
             ImGui.SameLine();
@@ -159,17 +163,17 @@ public class PartyFinderFilter : DailyModuleBase
         using var group = ImRaii.Group();
 
         ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("WorkMode")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("WorkMode")}:");
 
         ImGui.SameLine();
         if (ImGuiComponents.ToggleButton("ModeToggle", ref ModuleConfig.IsWhiteList))
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
         ImGui.SameLine();
-        ImGui.TextUnformatted(ModuleConfig.IsWhiteList ? GetLoc("Whitelist") : GetLoc("Blacklist"));
+        ImGui.TextUnformatted(ModuleConfig.IsWhiteList ? Lang.Get("Whitelist") : Lang.Get("Blacklist"));
 
         ImGui.SameLine();
-        ImGuiOm.HelpMarker(GetLoc("PartyFinderFilter-WorkModeHelp"), 20f * GlobalFontScale);
+        ImGuiOm.HelpMarker(Lang.Get("PartyFinderFilter-WorkModeHelp"), 20f * GlobalUIScale);
     }
 
     private bool DrawRegexFilterItemText(int index, KeyValuePair<bool, string> item)
@@ -190,14 +194,14 @@ public class PartyFinderFilter : DailyModuleBase
     {
         try
         {
-            _ = new Regex(value);
+            _                             = new Regex(value);
             ModuleConfig.BlackList[index] = new(key, value);
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
         }
         catch (ArgumentException)
         {
-            NotificationWarning(GetLoc("PartyFinderFilter-RegexError"));
-            ModuleConfig = LoadConfig<Config>() ?? new Config();
+            NotifyHelper.NotificationWarning(Lang.Get("PartyFinderFilter-RegexError"));
+            ModuleConfig = Config.Load(this) ?? new();
         }
     }
 
@@ -205,8 +209,8 @@ public class PartyFinderFilter : DailyModuleBase
     {
         if (BatchIndex != args.BatchNumber)
         {
-            IsSecret = listing.SearchArea.HasFlag(SearchAreaFlags.Private);
-            IsRaid = listing.Category == DutyCategory.HighEndDuty;
+            IsSecret   = listing.SearchArea.HasFlag(SearchAreaFlags.Private);
+            IsRaid     = listing.Category == DutyCategory.HighEndDuty;
             BatchIndex = args.BatchNumber;
             DescriptionSet.Clear();
         }
@@ -240,8 +244,10 @@ public class PartyFinderFilter : DailyModuleBase
 
         var isMatch = ModuleConfig.BlackList
                                   .Where(i => i.Key)
-                                  .Any(item => Regex.IsMatch(listing.Name.ToString(), item.Value) ||
-                                               Regex.IsMatch(description, item.Value));
+                                  .Any
+                                  (item => Regex.IsMatch(listing.Name.ToString(), item.Value) ||
+                                           Regex.IsMatch(description,             item.Value)
+                                  );
 
         return ModuleConfig.IsWhiteList ? isMatch : !isMatch;
     }
@@ -271,6 +277,7 @@ public class PartyFinderFilter : DailyModuleBase
         if (!IsRaid) return true;
 
         var job = LocalPlayerState.ClassJobData;
+
         if (ManualMode)
         {
             var filter0 = JobTypeCounter(1, ModuleConfig.FilterJobTypeCountData.Tank,           job);
@@ -292,7 +299,7 @@ public class PartyFinderFilter : DailyModuleBase
             4 => JobTypeCounter(4, ModuleConfig.FilterJobTypeCountData.PhysicalRanged, job),
             5 => JobTypeCounter(5, ModuleConfig.FilterJobTypeCountData.MagicalRanged,  job),
             6 => JobTypeCounter(6, ModuleConfig.FilterJobTypeCountData.ShieldHealer,   job),
-            _ => true,
+            _ => true
         };
 
         bool JobTypeCounter(int jobType, int maxCount, ClassJob currentJob)
@@ -300,11 +307,12 @@ public class PartyFinderFilter : DailyModuleBase
             if (maxCount == -1)
                 return true;
 
-            var count = 0;
+            var count   = 0;
             var hasSlot = false;
 
             var slots       = listing.Slots.ToList();
             var jobsPresent = listing.JobsPresent.ToList();
+
             foreach (var i in Enumerable.Range(0, 8))
             {
                 if (slots.Count <= i || jobsPresent.Count <= i || count >= maxCount)
@@ -354,18 +362,18 @@ public class PartyFinderFilter : DailyModuleBase
         DService.Instance().PartyFinder.ReceiveListing -= OnReceiveListing;
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public List<KeyValuePair<bool, string>> BlackList = [];
 
-        public bool IsWhiteList;
+        // T2, 血奶1, 盾奶1, 近2, 远1, 法2
+        public (int Tank, int PureHealer, int ShieldHealer, int Melee, int PhysicalRanged, int MagicalRanged) FilterJobTypeCountData = (2, 1, 1, 2, 1, 2);
 
         public bool FilterSameDescription = true;
-        public bool HighEndFilterSameJob = true;
 
         public bool HighEndFilterRoleCount = true;
-        
-        // T2, 血奶1, 盾奶1, 近2, 远1, 法2
-        public (int Tank, int PureHealer, int ShieldHealer, int Melee, int PhysicalRanged, int MagicalRanged) FilterJobTypeCountData = (2, 1, 1, 2, 1, 2); 
+        public bool HighEndFilterSameJob   = true;
+
+        public bool IsWhiteList;
     }
 }

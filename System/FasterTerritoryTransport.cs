@@ -1,34 +1,30 @@
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using OmenTools.Info.Game.Enums;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
+using OmenTools.Threading;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class FasterTerritoryTransport : DailyModuleBase
+public class FasterTerritoryTransport : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title               = GetLoc("FasterTerritoryTransportTitle"),
-        Description         = GetLoc("FasterTerritoryTransportDescription"),
-        Category            = ModuleCategories.System,
-        ModulesPrerequisite = ["NoUIFade"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
     private static readonly Throttler<string> TransportThrottler = new();
 
     // 城内以太之晶传送
     private static readonly CompSig TeleportToAetheryteSig = new("E8 ?? ?? ?? ?? 32 C0 48 8B 74 24 ?? 48 83 C4 ?? 5F C3 48 8D 4E ?? E8 ?? ?? ?? ?? 48 8B 4F");
-    private unsafe delegate void TeleportToAetheryteDelegate(AgentTelepotTown* agent, byte index);
     private static          Hook<TeleportToAetheryteDelegate>? TeleportToAetheryteHook;
 
-    private static readonly CompSig IsConditionAbleToSetSig = new("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 48 89 7C 24 ?? 41 54 41 56 41 57 48 83 EC ?? 33 DB 41 8B E9 48 39 1D");
-    private delegate bool IsConditionAbleToSetDelegate(nint conditionAddress, ConditionFlag flag, int a3, int a4);
+    private static readonly CompSig IsConditionAbleToSetSig = new
+        ("48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 48 89 7C 24 ?? 41 54 41 56 41 57 48 83 EC ?? 33 DB 41 8B E9 48 39 1D");
+
     private static Hook<IsConditionAbleToSetDelegate>? IsConditionAbleToSetHook;
 
     private static Config ModuleConfig = null!;
@@ -42,11 +38,22 @@ public class FasterTerritoryTransport : DailyModuleBase
         ExecuteCommandFlag.InstantReturn,
         ExecuteCommandFlag.ReturnIfNotLalafell
     ];
-    private static readonly HashSet<uint>               BlockedFlags = [96, 97, 98];
+
+    private static readonly HashSet<uint> BlockedFlags = [96, 97, 98];
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title               = Lang.Get("FasterTerritoryTransportTitle"),
+        Description         = Lang.Get("FasterTerritoryTransportDescription"),
+        Category            = ModuleCategory.System,
+        ModulesPrerequisite = ["NoUIFade"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
     protected override unsafe void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         ExecuteCommandManager.Instance().RegPost(OnPostUseCommand);
         UseActionManager.Instance().RegPostUseActionLocation(OnPostUseActionLocation);
@@ -62,10 +69,10 @@ public class FasterTerritoryTransport : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("FasterTerritoryTransport-OnlyLocal"), ref ModuleConfig.OnlyLocal))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("FasterTerritoryTransport-OnlyLocal"), ref ModuleConfig.OnlyLocal))
+            ModuleConfig.Save(this);
 
-        ImGuiOm.HelpMarker(GetLoc("FasterTerritoryTransport-OnlyLocalHelp"), 20f * GlobalFontScale);
+        ImGuiOm.HelpMarker(Lang.Get("FasterTerritoryTransport-OnlyLocalHelp"), 20f * GlobalUIScale);
     }
 
     private static bool IsConditionAbleToSetDetour(nint conditionaddress, ConditionFlag flag, int a3, int a4)
@@ -95,18 +102,26 @@ public class FasterTerritoryTransport : DailyModuleBase
         if (!ModuleConfig.OnlyLocal && !DService.Instance().ClientState.IsPvPExcludingDen && TransportThrottler.Check("Block"))
             ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.TerritoryTransport);
 
-        if (!value) 
+        if (!value)
             TransportThrottler.Clear();
     }
 
-    private static void OnPostUseActionLocation(
-        bool result, ActionType actionType, uint actionID, ulong targetID, Vector3 location, uint a4, byte a7)
+    private static void OnPostUseActionLocation
+    (
+        bool       result,
+        ActionType actionType,
+        uint       actionID,
+        ulong      targetID,
+        Vector3    location,
+        uint       a4,
+        byte       a7
+    )
     {
         if (!result) return;
 
         // 返回
         var isNeedToThrottle = actionType == ActionType.GeneralAction && actionID == 8;
-        
+
         if (isNeedToThrottle)
             TransportThrottler.Throttle("Block", 10_000);
     }
@@ -125,11 +140,15 @@ public class FasterTerritoryTransport : DailyModuleBase
 
         ExecuteCommandManager.Instance().Unreg(OnPostUseCommand);
         UseActionManager.Instance().Unreg(OnPostUseActionLocation);
-        
+
         TransportThrottler.Clear();
     }
 
-    private class Config : ModuleConfiguration
+    private unsafe delegate void TeleportToAetheryteDelegate(AgentTelepotTown* agent, byte index);
+
+    private delegate bool IsConditionAbleToSetDelegate(nint conditionAddress, ConditionFlag flag, int a3, int a4);
+
+    private class Config : ModuleConfig
     {
         public bool OnlyLocal = true;
     }

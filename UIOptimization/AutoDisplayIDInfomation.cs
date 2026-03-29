@@ -1,6 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.Enums;
@@ -12,20 +13,15 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using OmenTools.Threading;
 using RowStatus = Lumina.Excel.Sheets.Status;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoDisplayIDInfomation : DailyModuleBase
+public unsafe class AutoDisplayIDInfomation : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoDisplayIDInfomationTitle"),
-        Description = GetLoc("AutoDisplayIDInfomationDescription"),
-        Category    = ModuleCategories.UIOptimization,
-        Author      = ["Middo"]
-    };
-
     private static Config ModuleConfig = null!;
 
     private static IDtrBarEntry? ZoneInfoEntry;
@@ -35,9 +31,17 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
     private static TooltipModification? StatusModification;
     private static TooltipModification? WeatherModification;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoDisplayIDInfomationTitle"),
+        Description = Lang.Get("AutoDisplayIDInfomationDescription"),
+        Category    = ModuleCategory.UIOptimization,
+        Author      = ["Middo"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig  =   LoadConfig<Config>() ?? new();
+        ModuleConfig  =   Config.Load(this) ?? new();
         ZoneInfoEntry ??= DService.Instance().DTRBar.Get("AutoDisplayIDInfomation-ZoneInfo");
 
         GameTooltipManager.Instance().RegGenerateItemTooltipModifier(ModifyItemTooltip);
@@ -59,7 +63,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
     {
         DService.Instance().ClientState.MapIdChanged     -= OnMapChanged;
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-        
+
         ZoneInfoEntry?.Remove();
         ZoneInfoEntry = null;
 
@@ -80,62 +84,62 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
     protected override void ConfigUI()
     {
         if (ImGui.Checkbox($"{LuminaWrapper.GetAddonText(520)} ID", ref ModuleConfig.ShowItemID))
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
         ImGui.NewLine();
 
         if (ImGui.Checkbox($"{LuminaWrapper.GetAddonText(1340)} ID", ref ModuleConfig.ShowActionID))
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
         if (ModuleConfig.ShowActionID)
         {
             using (ImRaii.PushIndent())
             {
-                if (ImGui.Checkbox(GetLoc("Resolved"), ref ModuleConfig.ShowActionIDResolved))
-                    SaveConfig(ModuleConfig);
+                if (ImGui.Checkbox(Lang.Get("Resolved"), ref ModuleConfig.ShowActionIDResolved))
+                    ModuleConfig.Save(this);
 
-                if (ImGui.Checkbox(GetLoc("Original"), ref ModuleConfig.ShowActionIDOriginal))
-                    SaveConfig(ModuleConfig);
+                if (ImGui.Checkbox(Lang.Get("Original"), ref ModuleConfig.ShowActionIDOriginal))
+                    ModuleConfig.Save(this);
             }
         }
 
         ImGui.NewLine();
 
         if (ImGui.Checkbox($"{LuminaWrapper.GetAddonText(1030)} ID", ref ModuleConfig.ShowTargetID))
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
         if (ModuleConfig.ShowTargetID)
         {
             using (ImRaii.PushIndent())
             {
                 if (ImGui.Checkbox("BattleNPC", ref ModuleConfig.ShowTargetIDBattleNPC))
-                    SaveConfig(ModuleConfig);
+                    ModuleConfig.Save(this);
 
                 if (ImGui.Checkbox("EventNPC", ref ModuleConfig.ShowTargetIDEventNPC))
-                    SaveConfig(ModuleConfig);
+                    ModuleConfig.Save(this);
 
                 if (ImGui.Checkbox("Companion", ref ModuleConfig.ShowTargetIDCompanion))
-                    SaveConfig(ModuleConfig);
+                    ModuleConfig.Save(this);
 
                 if (ImGui.Checkbox(LuminaWrapper.GetAddonText(832), ref ModuleConfig.ShowTargetIDOthers))
-                    SaveConfig(ModuleConfig);
+                    ModuleConfig.Save(this);
             }
         }
 
         ImGui.NewLine();
 
-        if (ImGui.Checkbox($"{GetLoc("Status")} ID", ref ModuleConfig.ShowStatusID))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox($"{Lang.Get("Status")} ID", ref ModuleConfig.ShowStatusID))
+            ModuleConfig.Save(this);
 
         ImGui.NewLine();
 
         if (ImGui.Checkbox($"{LuminaWrapper.GetAddonText(8555)} ID", ref ModuleConfig.ShowWeatherID))
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
         ImGui.NewLine();
 
         if (ImGui.Checkbox($"{LuminaWrapper.GetAddonText(870)}", ref ModuleConfig.ShowZoneInfo))
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
     }
 
     private static void OnMapChanged(uint obj) =>
@@ -146,7 +150,7 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
     private static void OnAddon(AddonEvent type, AddonArgs args)
     {
-        if (!Throttler.Throttle("AutoDisplayIDInfomation-OnAddon", 50)) return;
+        if (!Throttler.Shared.Throttle("AutoDisplayIDInfomation-OnAddon", 50)) return;
 
         switch (args.AddonName)
         {
@@ -313,8 +317,10 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
 
         return;
 
-        void AddStatuses(StatusManager sm) =>
+        void AddStatuses(StatusManager sm)
+        {
             AddStatusToMap(sm, ref map);
+        }
     }
 
     private static void ModifyWeatherTooltip
@@ -375,22 +381,21 @@ public unsafe class AutoDisplayIDInfomation : DailyModuleBase
             ZoneInfoEntry.Shown = false;
     }
 
-    public class Config : ModuleConfiguration
+    public class Config : ModuleConfig
     {
-        public bool ShowItemID = true;
-
         public bool ShowActionID         = true;
-        public bool ShowActionIDResolved = true;
         public bool ShowActionIDOriginal = true;
+        public bool ShowActionIDResolved = true;
+        public bool ShowItemID           = true;
 
-        public bool ShowStatusID  = true;
-        public bool ShowWeatherID = true;
-        public bool ShowZoneInfo  = true;
+        public bool ShowStatusID = true;
 
         public bool ShowTargetID          = true;
         public bool ShowTargetIDBattleNPC = true;
         public bool ShowTargetIDCompanion = true;
         public bool ShowTargetIDEventNPC  = true;
         public bool ShowTargetIDOthers    = true;
+        public bool ShowWeatherID         = true;
+        public bool ShowZoneInfo          = true;
     }
 }

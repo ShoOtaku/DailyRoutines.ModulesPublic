@@ -1,5 +1,7 @@
-using DailyRoutines.Abstracts;
-using DailyRoutines.Windows;
+using DailyRoutines.Common.Interface.Windows;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
@@ -7,29 +9,34 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Nodes;
+using OmenTools.Dalamud.Attributes;
+using OmenTools.Info.Game.Data;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoAetherialReduction : DailyModuleBase
+public unsafe class AutoAetherialReduction : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoAetherialReductionTitle"),
-        Description = GetLoc("AutoAetherialReductionDescription"),
-        Category    = ModuleCategories.UIOperation,
-        Author      = ["YLCHEN"]
-    };
-
     private static TextNode?       LableNode;
     private static TextButtonNode? StartButtonNode;
     private static TextButtonNode? StopButtonNode;
-    
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoAetherialReductionTitle"),
+        Description = Lang.Get("AutoAetherialReductionDescription"),
+        Category    = ModuleCategory.UIOperation,
+        Author      = ["YLCHEN"]
+    };
+
+    [IPCProvider("DailyRoutines.Modules.AutoAetherialReduction.IsBusy")]
+    public bool IsCurrentlyBusy => TaskHelper?.IsBusy ?? false;
+
     protected override void Init()
     {
         TaskHelper ??= new();
         Overlay    ??= new Overlay(this);
 
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,   "PurifyItemSelector", OnAddonList);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "PurifyItemSelector", OnAddonList);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "PurifyItemSelector", OnAddonList);
 
     }
@@ -43,16 +50,17 @@ public unsafe class AutoAetherialReduction : DailyModuleBase
     private bool StartReduction()
     {
         if (TaskHelper == null) return false;
-        
+
         TaskHelper.Enqueue(StartAetherialReduction);
         return true;
     }
-    
+
     private bool StartAetherialReduction()
     {
         if (IsCurrentEnvironmentInvalid()) return true;
-        
+
         var agent = AgentPurify.Instance();
+
         if (agent == null || agent->ReducibleItems.Count == 0)
         {
             TaskHelper.Abort();
@@ -61,10 +69,11 @@ public unsafe class AutoAetherialReduction : DailyModuleBase
 
         var manager = InventoryManager.Instance();
         if (manager == null) return false;
-        
-        if (OccupiedInEvent) return false;
+
+        if (DService.Instance().Condition.IsOccupiedInEvent) return false;
 
         var firstItem = agent->ReducibleItems.First;
+
         if (firstItem == null)
         {
             TaskHelper.Abort();
@@ -72,12 +81,13 @@ public unsafe class AutoAetherialReduction : DailyModuleBase
         }
 
         var inventoryItem = manager->GetInventorySlot(firstItem->Inventory, firstItem->Slot);
+
         if (inventoryItem == null)
         {
             TaskHelper.Abort();
             return true;
         }
-        
+
         agent->ReduceItem(inventoryItem);
 
         TaskHelper.DelayNext(1000);
@@ -114,14 +124,14 @@ public unsafe class AutoAetherialReduction : DailyModuleBase
                         Position  = new(295, 10),
                         Size      = new(100, 28),
                         IsVisible = true,
-                        String    = GetLoc("Start"),
+                        String    = Lang.Get("Start"),
                         OnClick   = () => StartReduction()
                     };
                     StartButtonNode.AttachNode(PurifyItemSelector->RootNode);
                 }
 
                 StartButtonNode.IsEnabled = !TaskHelper.IsBusy;
-                
+
                 if (StopButtonNode == null)
                 {
                     StopButtonNode = new()
@@ -129,24 +139,24 @@ public unsafe class AutoAetherialReduction : DailyModuleBase
                         Position  = new(400, 10),
                         Size      = new(100, 28),
                         IsVisible = true,
-                        String    = GetLoc("Stop"),
+                        String    = Lang.Get("Stop"),
                         OnClick   = () => TaskHelper.Abort()
                     };
                     StopButtonNode.AttachNode(PurifyItemSelector->RootNode);
                 }
-                
+
                 break;
-            
+
             case AddonEvent.PreFinalize:
                 ClearNodes();
                 TaskHelper.Abort();
                 break;
         }
     }
-    
+
     private bool IsCurrentEnvironmentInvalid()
     {
-        if (PlayerInventories.IsFull() ||
+        if (Inventories.Player.IsFull() ||
             DService.Instance().Condition.Any(ConditionFlag.Mounted, ConditionFlag.InCombat))
         {
             TaskHelper.Abort();
@@ -155,22 +165,19 @@ public unsafe class AutoAetherialReduction : DailyModuleBase
 
         return false;
     }
-    
-    
+
+
     private static void ClearNodes()
     {
         LableNode?.Dispose();
         LableNode = null;
-        
+
         StartButtonNode?.Dispose();
         StartButtonNode = null;
-        
+
         StopButtonNode?.Dispose();
         StopButtonNode = null;
     }
-    
-    [IPCProvider("DailyRoutines.Modules.AutoAetherialReduction.IsBusy")]
-    public bool IsCurrentlyBusy => TaskHelper?.IsBusy ?? false;
 
     [IPCProvider("DailyRoutines.Modules.AutoAetherialReduction.StartReduction")]
     public bool StartReductionIPC() => StartReduction();

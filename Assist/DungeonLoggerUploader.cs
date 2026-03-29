@@ -1,43 +1,44 @@
-using System;
-using System.Collections.Generic;
 using System.Net;
-using System.Net.Http;
 using System.Text;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Helpers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Newtonsoft.Json;
+using OmenTools.Dalamud;
+using OmenTools.OmenService;
 using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
+using NotifyHelper = OmenTools.OmenService.NotifyHelper;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class DungeonLoggerUploader : DailyModuleBase
+public class DungeonLoggerUploader : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = "随机任务：指导者任务记录上传助手",
-        Description = "配置完成后, 当进入“随机任务：指导者”任务副本并完成时, 自动记录并上传相关记录数据至 DungeonLogger 网站",
-        Category    = ModuleCategories.Assist,
-        Author      = ["Middo"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { CNOnly = true };
-
     private const byte MENTOR_ROULETTE_ID = 9;
 
     private static Config ModuleConfig;
-    
+
     private static HttpClient?      HTTPClientInstance;
     private static CookieContainer? Cookies;
-    
+
     private static bool   IsLoggedIn;
     private static string DungeonName = string.Empty;
     private static string JobName     = string.Empty;
     private static bool   InDungeon;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = "随机任务：指导者任务记录上传助手",
+        Description = "配置完成后, 当进入“随机任务：指导者”任务副本并完成时, 自动记录并上传相关记录数据至 DungeonLogger 网站",
+        Category    = ModuleCategory.Assist,
+        Author      = ["Middo"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { CNOnly = true };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         EnsureHTTPClient();
 
@@ -50,33 +51,35 @@ public class DungeonLoggerUploader : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
+        ImGui.SetNextItemWidth(300f * GlobalUIScale);
         ImGui.InputText("服务器地址", ref ModuleConfig.ServerURL, 256);
         if (ImGui.IsItemDeactivatedAfterEdit())
-            SaveConfig(ModuleConfig);
-        
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
+            ModuleConfig.Save(this);
+
+        ImGui.SetNextItemWidth(300f * GlobalUIScale);
         ImGui.InputText("用户名", ref ModuleConfig.Username, 128);
+
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
             IsLoggedIn = false;
         }
 
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
+        ImGui.SetNextItemWidth(300f * GlobalUIScale);
         ImGui.InputText("密码", ref ModuleConfig.Password, 128);
+
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
             IsLoggedIn = false;
         }
-        
+
         ImGui.Spacing();
 
         if (ImGui.Button("测试登录"))
             Task.Run(() => LoginAsync(true));
-            
-        ImGui.SameLine(0, 4f * GlobalFontScale);
+
+        ImGui.SameLine(0, 4f * GlobalUIScale);
         if (IsLoggedIn)
             ImGui.TextColored(KnownColor.LawnGreen.ToVector4(), "已登录");
         else
@@ -87,7 +90,7 @@ public class DungeonLoggerUploader : DailyModuleBase
         using (ImRaii.Group())
         {
             if (ImGui.Checkbox("发送聊天信息", ref ModuleConfig.SendChat))
-                SaveConfig(ModuleConfig);
+                ModuleConfig.Save(this);
         }
     }
 
@@ -100,6 +103,7 @@ public class DungeonLoggerUploader : DailyModuleBase
         unsafe
         {
             var contentsFinder = ContentsFinder.Instance();
+
             if (contentsFinder != null)
             {
                 var queueInfo = contentsFinder->GetQueueInfo();
@@ -108,13 +112,13 @@ public class DungeonLoggerUploader : DailyModuleBase
                     return;
             }
         }
-        
+
         InDungeon   = true;
         DungeonName = GameState.ContentFinderConditionData.Name.ToString();
         JobName     = LocalPlayerState.ClassJobData.Name.ToString();
 
         if (ModuleConfig.SendChat)
-            Chat("已进入 “随机任务：指导者” 任务, 完成后将自动上传记录至网站");
+            NotifyHelper.Chat("已进入 “随机任务：指导者” 任务, 完成后将自动上传记录至网站");
     }
 
     private static void OnDutyCompleted(object? sender, ushort e)
@@ -153,20 +157,20 @@ public class DungeonLoggerUploader : DailyModuleBase
             {
                 IsLoggedIn = true;
                 if (showNotification)
-                    NotificationSuccess("登录成功");
+                    NotifyHelper.NotificationSuccess("登录成功");
             }
             else
             {
                 IsLoggedIn = false;
                 if (showNotification)
-                    NotificationError($"登录失败: {result?.Msg}");
+                    NotifyHelper.NotificationError($"登录失败: {result?.Msg}");
             }
         }
         catch (Exception ex)
         {
             IsLoggedIn = false;
-            NotificationError($"登录 DungeonLogger 异常: {ex.Message}");
-            Error("登录 DungeonLogger 失败", ex);
+            NotifyHelper.NotificationError($"登录 DungeonLogger 异常: {ex.Message}");
+            DLog.Error("登录 DungeonLogger 失败", ex);
         }
     }
 
@@ -212,6 +216,7 @@ public class DungeonLoggerUploader : DailyModuleBase
 
             var content  = new StringContent(JsonConvert.SerializeObject(uploadData), Encoding.UTF8, "application/json");
             var response = await HTTPClientInstance.PostAsync($"{ModuleConfig.ServerURL}/api/record", content);
+
             if (response.IsSuccessStatusCode)
             {
                 var responseContent = await response.Content.ReadAsStringAsync();
@@ -220,7 +225,7 @@ public class DungeonLoggerUploader : DailyModuleBase
                 if (result?.Code == 0)
                 {
                     if (ModuleConfig.SendChat)
-                        Chat("“随机任务：指导者” 记录上传成功");
+                        NotifyHelper.Chat("“随机任务：指导者” 记录上传成功");
                 }
                 else
                     throw new Exception($"网站无对应职业数据 ({result?.Msg ?? "未知错误"})");
@@ -231,10 +236,10 @@ public class DungeonLoggerUploader : DailyModuleBase
         catch (Exception ex)
         {
             if (ModuleConfig.SendChat)
-                NotificationError($"“随机任务：指导者” 记录上传失败: {ex.Message}");
+                NotifyHelper.NotificationError($"“随机任务：指导者” 记录上传失败: {ex.Message}");
         }
     }
-    
+
     private static void EnsureHTTPClient()
     {
         if (HTTPClientInstance is not null)
@@ -260,6 +265,15 @@ public class DungeonLoggerUploader : DailyModuleBase
         Cookies            = null;
 
         IsLoggedIn = false;
+    }
+
+    private class Config : ModuleConfig
+    {
+        public string Password = string.Empty;
+
+        public bool   SendChat  = true;
+        public string ServerURL = "https://dlog.luyulight.cn";
+        public string Username  = string.Empty;
     }
 
     #region Response
@@ -313,13 +327,4 @@ public class DungeonLoggerUploader : DailyModuleBase
     }
 
     #endregion
-
-    private class Config : ModuleConfiguration
-    {
-        public string ServerURL = "https://dlog.luyulight.cn";
-        public string Username  = string.Empty;
-        public string Password  = string.Empty;
-
-        public bool SendChat = true;
-    }
 }

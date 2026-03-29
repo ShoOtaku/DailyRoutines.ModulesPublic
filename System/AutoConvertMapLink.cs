@@ -1,32 +1,32 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using Lumina.Excel.Sheets;
+using OmenTools.Info.Game.Data;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
 
 namespace DailyRoutines.ModulesPublic;
 
 // From Asvel
-public partial class AutoConvertMapLink : DailyModuleBase
+public partial class AutoConvertMapLink : ModuleBase
 {
+    private static readonly CompSig                     MessageParseSig = new("E8 ?? ?? ?? ?? 48 8B D0 48 8D 4D D0 E8 ?? ?? ?? ?? 49 8B 07");
+    private static          Hook<MessageParseDelegate>? MessageParseHook;
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoConvertMapLinkTitle"),
-        Description = GetLoc("AutoConvertMapLinkDescription"),
-        Category    = ModuleCategories.System,
+        Title       = Lang.Get("AutoConvertMapLinkTitle"),
+        Description = Lang.Get("AutoConvertMapLinkDescription"),
+        Category    = ModuleCategory.System,
         Author      = ["KirisameVanilla"]
     };
-
-    private static readonly CompSig                     MessageParseSig = new("E8 ?? ?? ?? ?? 48 8B D0 48 8D 4D D0 E8 ?? ?? ?? ?? 49 8B 07");
-    private delegate        nint                        MessageParseDelegate(nint a, nint b);
-    private static          Hook<MessageParseDelegate>? MessageParseHook;
 
     protected override void Init()
     {
@@ -65,7 +65,7 @@ public partial class AutoConvertMapLink : DailyModuleBase
 
                 var mapName = match.Groups["map"].Value;
 
-                var zone = PresetSheet.Zones.Values.FirstOrDefault(x => x.PlaceName.Value.Name.ToString() == mapName);
+                var zone = Sheets.Zones.Values.FirstOrDefault(x => x.PlaceName.Value.Name.ToString() == mapName);
                 if (zone.RowId == 0) continue;
 
                 var (territoryId, mapId) = (zone.RowId, zone.Map.RowId);
@@ -112,11 +112,21 @@ public partial class AutoConvertMapLink : DailyModuleBase
         return (int)Math.Ceiling(scaledPos                                    - offset) * 1000;
     }
 
-    private class PreMapLinkPayload(uint zoneID, uint mapID, int rawX, int rawY) : Payload
-    {
-        public override PayloadType Type => PayloadType.AutoTranslateText;
+    [GeneratedRegex(@"\uE0BB(?<map>.+?)(?<instance>[\ue0b1-\ue0b9])? \( (?<x>\d{1,2}\.\d)  , (?<y>\d{1,2}\.\d) \)", RegexOptions.Compiled)]
+    private static partial Regex MapLinkRegex();
 
-        private const int RAW_Z = -30000;
+    private delegate nint MessageParseDelegate(nint a, nint b);
+
+    private class PreMapLinkPayload
+    (
+        uint zoneID,
+        uint mapID,
+        int  rawX,
+        int  rawY
+    ) : Payload
+    {
+        private const   int         RAW_Z = -30000;
+        public override PayloadType Type => PayloadType.AutoTranslateText;
 
         protected override byte[] EncodeImpl()
         {
@@ -147,7 +157,4 @@ public partial class AutoConvertMapLink : DailyModuleBase
 
         protected override void DecodeImpl(BinaryReader reader, long endOfStream) => throw new NotImplementedException();
     }
-
-    [GeneratedRegex(@"\uE0BB(?<map>.+?)(?<instance>[\ue0b1-\ue0b9])? \( (?<x>\d{1,2}\.\d)  , (?<y>\d{1,2}\.\d) \)", RegexOptions.Compiled)]
-    private static partial Regex MapLinkRegex();
 }

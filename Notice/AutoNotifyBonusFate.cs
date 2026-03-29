@@ -1,23 +1,20 @@
-using System.Collections.Generic;
-using System.Linq;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.ClientState.Fates;
 using Dalamud.Game.Text.SeStringHandling;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using OmenTools.Info.Game.Enums;
+using OmenTools.Interop.Game.Helpers;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoNotifyBonusFate : DailyModuleBase
+public class AutoNotifyBonusFate : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoNotifyBonusFateTitle"),
-        Description = GetLoc("AutoNotifyBonusFateDescription"),
-        Category    = ModuleCategories.Notice,
-        Author      = ["Due"]
-    };
-
     private static readonly HashSet<uint> ValidTerritories =
         LuminaGetter.Get<TerritoryType>()
                     .Where(x => x.TerritoryIntendedUse.RowId == 1)
@@ -29,9 +26,17 @@ public class AutoNotifyBonusFate : DailyModuleBase
 
     private static readonly HashSet<ushort> NotifiedFates = [];
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoNotifyBonusFateTitle"),
+        Description = Lang.Get("AutoNotifyBonusFateDescription"),
+        Category    = ModuleCategory.Notice,
+        Author      = ["Due"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig =   LoadConfig<Config>() ?? new();
+        ModuleConfig =   Config.Load(this) ?? new();
         TaskHelper   ??= new();
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
@@ -48,19 +53,19 @@ public class AutoNotifyBonusFate : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("SendChat"), ref ModuleConfig.SendChat))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendChat"), ref ModuleConfig.SendChat))
+            ModuleConfig.Save(this);
 
-        if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref ModuleConfig.SendNotification))
+            ModuleConfig.Save(this);
 
-        if (ImGui.Checkbox(GetLoc("SendTTS"), ref ModuleConfig.SendTTS))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendTTS"), ref ModuleConfig.SendTTS))
+            ModuleConfig.Save(this);
 
         ImGui.NewLine();
 
-        if (ImGui.Checkbox(GetLoc("OpenMap"), ref ModuleConfig.AutoOpenMap))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("OpenMap"), ref ModuleConfig.AutoOpenMap))
+            ModuleConfig.Save(this);
     }
 
     private void OnZoneChanged(ushort zone)
@@ -113,23 +118,23 @@ public class AutoNotifyBonusFate : DailyModuleBase
 
     private static unsafe void NotifyFate(IFate fate)
     {
-        var mapPos = WorldToMap(fate.Position.ToVector2(), GameState.MapData);
+        var mapPos = PositionHelper.WorldToMap(fate.Position.ToVector2(), GameState.MapData);
 
-        var chatMessage = GetSLoc
+        var chatMessage = Lang.GetSe
         (
             "AutoNotifyBonusFate-Chat",
             fate.Name.ToString(),
             fate.Progress,
             SeString.CreateMapLink(GameState.TerritoryType, GameState.Map, mapPos.X, mapPos.Y)
         );
-        var notificationMessage = GetLoc("AutoNotifyBonusFate-Notification", fate.Name.ToString(), fate.Progress);
+        var notificationMessage = Lang.Get("AutoNotifyBonusFate-Notification", fate.Name.ToString(), fate.Progress);
 
         if (ModuleConfig.SendChat)
-            Chat(chatMessage);
+            NotifyHelper.Chat(chatMessage);
         if (ModuleConfig.SendNotification)
-            NotificationInfo(notificationMessage);
+            NotifyHelper.NotificationInfo(notificationMessage);
         if (ModuleConfig.SendTTS)
-            Speak(notificationMessage);
+            NotifyHelper.Speak(notificationMessage);
 
         if (ModuleConfig.AutoOpenMap)
         {
@@ -147,11 +152,11 @@ public class AutoNotifyBonusFate : DailyModuleBase
         }
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
+        public bool AutoOpenMap = true;
         public bool SendChat;
         public bool SendNotification = true;
         public bool SendTTS          = true;
-        public bool AutoOpenMap      = true;
     }
 }

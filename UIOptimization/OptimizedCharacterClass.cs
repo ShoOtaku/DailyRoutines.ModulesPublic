@@ -1,6 +1,6 @@
-using System.Collections.Generic;
-using System.Linq;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.Addon.Events;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
@@ -9,159 +9,16 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
-using AtkEventWrapper = OmenTools.Managers.AtkEventWrapper;
+using OmenTools.Dalamud;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using AtkEventWrapper = OmenTools.OmenService.AtkEventWrapper;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class OptimizedCharacterClass : DailyModuleBase
+public unsafe class OptimizedCharacterClass : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("OptimizedCharacterClassTitle"),
-        Description = GetLoc("OptimizedCharacterClassDescription"),
-        Category    = ModuleCategories.UIOptimization,
-        Author      = ["Middo"]
-    };
-    
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-    
     private static readonly List<AtkEventWrapper> Events = [];
-    
-    protected override void Init()
-    {
-        TaskHelper ??= new();
-        
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "CharacterClass", OnAddon);
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CharacterClass", OnAddon);
-        if (CharacterClass->IsAddonAndNodesReady())
-            OnAddon(AddonEvent.PostSetup, null);
-        
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "PvPCharacter", OnAddonPVP);
-        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "PvPCharacter", OnAddonPVP);
-        if (PvPCharacter->IsAddonAndNodesReady())
-            OnAddonPVP(AddonEvent.PostSetup, null);
-    }
-
-    protected override void Uninit()
-    {
-        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon, OnAddonPVP);
-        
-        ClearEvents();
-    }
-
-    private static void AddCollisionEvent(AtkUnitBase* addon, AtkComponentNode* componentNode, uint classJobID)
-    {
-        if (!LuminaGetter.TryGetRow(classJobID, out ClassJob classJob)) return;
-        
-        var colNode = componentNode->Component->UldManager.SearchSimpleNodeByType<AtkCollisionNode>(NodeType.Collision);
-        if (colNode == null) return;
-        
-        var iconNodes = componentNode->Component->UldManager.SearchSimpleNodesByType(NodeType.Image);
-        if (iconNodes is { Count: 0 }) return;
-        
-        colNode->AtkEventManager.ClearEvents();
-        
-        var iconNode = (AtkImageNode*)iconNodes.Last();
-        
-        var clickEvent = new AtkEventWrapper((_, _, _, _) =>
-        {
-            Debug($"[{nameof(OptimizedCharacterClass)}] 切换至职业 {classJob.Name} ({classJobID})");
-            LocalPlayerState.SwitchGearset(classJobID);
-            UIGlobals.PlaySoundEffect(1);
-        });
-        clickEvent.Add(addon, (AtkResNode*)colNode, AtkEventType.MouseClick);
-        
-        var cursorOverEvent = new AtkEventWrapper((_, ownerAddon, _, _) =>
-        {
-            DService.Instance().AddonEvent.SetCursor(AddonCursorType.Clickable);
-            UIGlobals.PlaySoundEffect(0);
-            AtkStage.Instance()->TooltipManager.ShowTooltip(ownerAddon->Id,
-                                                            (AtkResNode*)iconNode,
-                                                            new ReadOnlySeString(new SeStringBuilder()
-                                                                                 .AddIcon(classJob.ToBitmapFontIcon())
-                                                                                 .AddText($" {classJob.Name}")
-                                                                                 .Build()
-                                                                                 .Encode()));
-        });
-        cursorOverEvent.Add(addon, (AtkResNode*)colNode, AtkEventType.MouseOver);
-        
-        var cursorOutEvent = new AtkEventWrapper((_, ownerAddon, _, _) =>
-        {
-            DService.Instance().AddonEvent.ResetCursor();
-            AtkStage.Instance()->TooltipManager.HideTooltip(ownerAddon->Id);
-        });
-        cursorOutEvent.Add(addon, (AtkResNode*)colNode, AtkEventType.MouseOut);
-        
-        Events.Add(clickEvent, cursorOverEvent, cursorOutEvent);
-    }
-
-    private void OnAddon(AddonEvent type, AddonArgs args)
-    {
-        switch (type)
-        {
-            case AddonEvent.PostSetup:
-                if (CharacterClass == null) return;
-                if (Events is not { Count: 0 }) return;
-                
-                TaskHelper.Enqueue(() =>
-                {
-                    if (!CharacterClass->IsAddonAndNodesReady()) return false;
-                    
-                    foreach (var (nodeID, classJobID) in ClassJobComponentMap)
-                    {
-                        var componentNode = CharacterClass->GetComponentNodeById(nodeID);
-                        if (componentNode == null) continue;
-
-                        AddCollisionEvent(CharacterClass, componentNode, classJobID);
-                    }
-
-                    return true;
-                });
-
-                break;
-            case AddonEvent.PreFinalize:
-                ClearEvents();
-                break;
-        }
-    }
-    
-    private void OnAddonPVP(AddonEvent type, AddonArgs args)
-    {
-        switch (type)
-        {
-            case AddonEvent.PostSetup:
-                if (PvPCharacter == null) return;
-                if (Events is not { Count: 0 }) return;
-
-                TaskHelper.Enqueue(() =>
-                {
-                    if (!PvPCharacter->IsAddonAndNodesReady()) return false;
-                    
-                    foreach (var (nodeID, classJobID) in PVPClassJobComponentMap)
-                    {
-                        var componentNode = PvPCharacter->GetComponentNodeById(nodeID);
-                        if (componentNode == null) continue;
-
-                        AddCollisionEvent(PvPCharacter, componentNode, classJobID);
-                    }
-
-                    return true;
-                });
-                
-                break;
-            case AddonEvent.PreFinalize:
-                ClearEvents();
-                break;
-        }
-    }
-
-    private static void ClearEvents()
-    {
-        foreach (var atkEvent in Events.ToList())
-            atkEvent.Dispose();
-        
-        Events.Clear();
-    }
 
     private static readonly Dictionary<uint, uint> ClassJobComponentMap = new()
     {
@@ -205,14 +62,14 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
         [86] = 17, // 园艺工
         [88] = 18  // 捕鱼人
     };
-    
+
     private static readonly Dictionary<uint, uint> PVPClassJobComponentMap = new()
     {
         [14] = 19, // 骑士
         [16] = 21, // 战士
         [18] = 32, // 暗黑骑士
         [20] = 37, // 绝枪战士
-        
+
         [26] = 20, // 武僧
         [28] = 22, // 龙骑士
         [30] = 30, // 忍者
@@ -232,6 +89,168 @@ public unsafe class OptimizedCharacterClass : DailyModuleBase
         [64] = 25, // 黑魔法师
         [66] = 27, // 召唤师
         [68] = 35, // 赤魔法师
-        [70] = 42, // 绘灵法师
+        [70] = 42  // 绘灵法师
     };
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("OptimizedCharacterClassTitle"),
+        Description = Lang.Get("OptimizedCharacterClassDescription"),
+        Category    = ModuleCategory.UIOptimization,
+        Author      = ["Middo"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
+    protected override void Init()
+    {
+        TaskHelper ??= new();
+
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "CharacterClass", OnAddon);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CharacterClass", OnAddon);
+        if (CharacterClass->IsAddonAndNodesReady())
+            OnAddon(AddonEvent.PostSetup, null);
+
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "PvPCharacter", OnAddonPVP);
+        DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "PvPCharacter", OnAddonPVP);
+        if (PvPCharacter->IsAddonAndNodesReady())
+            OnAddonPVP(AddonEvent.PostSetup, null);
+    }
+
+    protected override void Uninit()
+    {
+        DService.Instance().AddonLifecycle.UnregisterListener(OnAddon, OnAddonPVP);
+
+        ClearEvents();
+    }
+
+    private static void AddCollisionEvent(AtkUnitBase* addon, AtkComponentNode* componentNode, uint classJobID)
+    {
+        if (!LuminaGetter.TryGetRow(classJobID, out ClassJob classJob)) return;
+
+        var colNode = componentNode->Component->UldManager.SearchSimpleNodeByType<AtkCollisionNode>(NodeType.Collision);
+        if (colNode == null) return;
+
+        var iconNodes = componentNode->Component->UldManager.SearchSimpleNodesByType(NodeType.Image);
+        if (iconNodes is { Count: 0 }) return;
+
+        colNode->AtkEventManager.ClearEvents();
+
+        var iconNode = (AtkImageNode*)iconNodes.Last();
+
+        var clickEvent = new AtkEventWrapper
+        ((_, _, _, _) =>
+            {
+                DLog.Debug($"[{nameof(OptimizedCharacterClass)}] 切换至职业 {classJob.Name} ({classJobID})");
+                LocalPlayerState.SwitchGearset(classJobID);
+                UIGlobals.PlaySoundEffect(1);
+            }
+        );
+        clickEvent.Add(addon, (AtkResNode*)colNode, AtkEventType.MouseClick);
+
+        var cursorOverEvent = new AtkEventWrapper
+        ((_, ownerAddon, _, _) =>
+            {
+                DService.Instance().AddonEvent.SetCursor(AddonCursorType.Clickable);
+                UIGlobals.PlaySoundEffect(0);
+                AtkStage.Instance()->TooltipManager.ShowTooltip
+                (
+                    ownerAddon->Id,
+                    (AtkResNode*)iconNode,
+                    new ReadOnlySeString
+                    (
+                        new SeStringBuilder()
+                            .AddIcon(classJob.ToBitmapFontIcon())
+                            .AddText($" {classJob.Name}")
+                            .Build()
+                            .Encode()
+                    )
+                );
+            }
+        );
+        cursorOverEvent.Add(addon, (AtkResNode*)colNode, AtkEventType.MouseOver);
+
+        var cursorOutEvent = new AtkEventWrapper
+        ((_, ownerAddon, _, _) =>
+            {
+                DService.Instance().AddonEvent.ResetCursor();
+                AtkStage.Instance()->TooltipManager.HideTooltip(ownerAddon->Id);
+            }
+        );
+        cursorOutEvent.Add(addon, (AtkResNode*)colNode, AtkEventType.MouseOut);
+
+        Events.Add(clickEvent, cursorOverEvent, cursorOutEvent);
+    }
+
+    private void OnAddon(AddonEvent type, AddonArgs args)
+    {
+        switch (type)
+        {
+            case AddonEvent.PostSetup:
+                if (CharacterClass == null) return;
+                if (Events is not { Count: 0 }) return;
+
+                TaskHelper.Enqueue
+                (() =>
+                    {
+                        if (!CharacterClass->IsAddonAndNodesReady()) return false;
+
+                        foreach (var (nodeID, classJobID) in ClassJobComponentMap)
+                        {
+                            var componentNode = CharacterClass->GetComponentNodeById(nodeID);
+                            if (componentNode == null) continue;
+
+                            AddCollisionEvent(CharacterClass, componentNode, classJobID);
+                        }
+
+                        return true;
+                    }
+                );
+
+                break;
+            case AddonEvent.PreFinalize:
+                ClearEvents();
+                break;
+        }
+    }
+
+    private void OnAddonPVP(AddonEvent type, AddonArgs args)
+    {
+        switch (type)
+        {
+            case AddonEvent.PostSetup:
+                if (PvPCharacter == null) return;
+                if (Events is not { Count: 0 }) return;
+
+                TaskHelper.Enqueue
+                (() =>
+                    {
+                        if (!PvPCharacter->IsAddonAndNodesReady()) return false;
+
+                        foreach (var (nodeID, classJobID) in PVPClassJobComponentMap)
+                        {
+                            var componentNode = PvPCharacter->GetComponentNodeById(nodeID);
+                            if (componentNode == null) continue;
+
+                            AddCollisionEvent(PvPCharacter, componentNode, classJobID);
+                        }
+
+                        return true;
+                    }
+                );
+
+                break;
+            case AddonEvent.PreFinalize:
+                ClearEvents();
+                break;
+        }
+    }
+
+    private static void ClearEvents()
+    {
+        foreach (var atkEvent in Events.ToList())
+            atkEvent.Dispose();
+
+        Events.Clear();
+    }
 }

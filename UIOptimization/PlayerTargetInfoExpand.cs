@@ -1,27 +1,20 @@
-using System;
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.Enums;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class PlayerTargetInfoExpand : DailyModuleBase
+public unsafe class PlayerTargetInfoExpand : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title           = GetLoc("PlayerTargetInfoExpandTitle"),
-        Description     = GetLoc("PlayerTargetInfoExpandDescription"),
-        Category        = ModuleCategories.UIOptimization,
-        ModulesConflict = ["LiveAnonymousMode"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
     private static readonly List<Payload> Payloads =
     [
         new("/Name/", LuminaWrapper.GetAddonText(6382), c => c.Name.TextValue),
@@ -31,7 +24,7 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
         new
         (
             "/OnlineStatus/",
-            GetLoc("OnlineStatus"),
+            Lang.Get("OnlineStatus"),
             c => string.IsNullOrEmpty(c.OnlineStatus.ValueNullable?.Name.ToString())
                      ? LuminaGetter.GetRowOrDefault<OnlineStatus>(47).Name.ToString()
                      : c.OnlineStatus.ValueNullable?.Name.ToString()
@@ -44,23 +37,33 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
             LuminaWrapper.GetAddonText(780),
             c => LuminaGetter.GetRowOrDefault<Emote>(c.ToStruct()->EmoteController.EmoteId).Name.ToString()
         ),
-        new("/TargetsTarget/", GetLoc("TargetOfTarget"), c => c.TargetObject?.Name.TextValue ?? ""),
-        new("/ShieldValue/", GetLoc("Sheild"), c => c.ShieldPercentage.ToString()),
+        new("/TargetsTarget/", Lang.Get("TargetOfTarget"), c => c.TargetObject?.Name.TextValue ?? ""),
+        new("/ShieldValue/", Lang.Get("Sheild"), c => c.ShieldPercentage.ToString()),
         new("/CurrentHP/", LuminaWrapper.GetAddonText(232), c => c.CurrentHp.ToString()),
-        new("/MaxHP/", GetLoc("MaxHP"), c => c.MaxHp.ToString()),
+        new("/MaxHP/", Lang.Get("MaxHP"), c => c.MaxHp.ToString()),
         new("/CurrentMP/", LuminaWrapper.GetAddonText(233), c => c.CurrentMp.ToString()),
-        new("/MaxMP/", GetLoc("MaxMP"), c => c.MaxMp.ToString()),
+        new("/MaxMP/", Lang.Get("MaxMP"), c => c.MaxMp.ToString()),
         new("/CurrentCP/", LuminaWrapper.GetAddonText(1004), c => c.CurrentCp.ToString()),
-        new("/MaxCP/", GetLoc("MaxCP"), c => c.MaxCp.ToString()),
+        new("/MaxCP/", Lang.Get("MaxCP"), c => c.MaxCp.ToString()),
         new("/CurrentGP/", LuminaWrapper.GetAddonText(1003), c => c.CurrentGp.ToString()),
-        new("/MaxGP/", GetLoc("MaxGP"), c => c.MaxGp.ToString())
+        new("/MaxGP/", Lang.Get("MaxGP"), c => c.MaxGp.ToString())
     ];
 
     private static Config ModuleConfig = null!;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title           = Lang.Get("PlayerTargetInfoExpandTitle"),
+        Description     = Lang.Get("PlayerTargetInfoExpandDescription"),
+        Category        = ModuleCategory.UIOptimization,
+        ModulesConflict = ["LiveAnonymousMode"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_TargetInfo", UpdateTargetInfo);
         DService.Instance().AddonLifecycle.RegisterListener
@@ -76,7 +79,7 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
     protected override void ConfigUI()
     {
         var tableSize = new Vector2(ImGui.GetContentRegionAvail().X / 2, 0);
-        
+
         using (ImRaii.Group())
         {
             DrawInputAndPreviewText(Lang.Get("Target"), ref ModuleConfig.TargetPattern);
@@ -92,7 +95,7 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
                 ref ModuleConfig.FocusTargetPattern
             );
         }
-        
+
         ImGui.SameLine();
 
         using (var table = ImRaii.Table("PayloadDisplay", 2, ImGuiTableFlags.Borders, tableSize / 1.5f))
@@ -136,7 +139,7 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(-1f);
                     if (ImGui.InputText($"###{categoryTitle}", ref config, 64))
-                        SaveConfig(ModuleConfig);
+                        ModuleConfig.Save(this);
 
                     if (DService.Instance().ObjectTable.LocalPlayer is ICharacter chara)
                     {
@@ -231,7 +234,7 @@ public unsafe class PlayerTargetInfoExpand : DailyModuleBase
         public Func<ICharacter, string> ValueFunc   { get; } = valueFunc;
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public string FocusTargetPattern   = "/Level/级 /Name/";
         public string TargetPattern        = "/Name/ [/Job/] «/FCTag/»";

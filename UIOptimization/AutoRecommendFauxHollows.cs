@@ -1,36 +1,37 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoRecommendFauxHollows : DailyModuleBase
+public unsafe class AutoRecommendFauxHollows : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoRecommendFauxHollowsTitle"),
-        Description = GetLoc("AutoRecommendFauxHollowsDescription"),
-        Category    = ModuleCategories.UIOptimization,
-        Author      = ["Veever"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private static Config ModuleConfig = null!;
 
     private static readonly BoardState Board      = new();
     private static readonly Solver     FauxSolver = new();
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoRecommendFauxHollowsTitle"),
+        Description = Lang.Get("AutoRecommendFauxHollowsDescription"),
+        Category    = ModuleCategory.UIOptimization,
+        Author      = ["Veever"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         Overlay ??= new(this);
 
@@ -39,7 +40,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
         if (WeeklyPuzzle != null)
             OnWeeklyPuzzleEvent(AddonEvent.PostSetup, null);
     }
-    
+
     protected override void Uninit()
     {
         DService.Instance().AddonLifecycle.UnregisterListener(OnWeeklyPuzzleEvent);
@@ -48,7 +49,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("AutoRecommendFauxHollows-PrioritizeSwords"), ref ModuleConfig.PrioritizeSwords))
+        if (ImGui.Checkbox(Lang.Get("AutoRecommendFauxHollows-PrioritizeSwords"), ref ModuleConfig.PrioritizeSwords))
         {
             FauxSolver.FindSwordsFirst = ModuleConfig.PrioritizeSwords;
             ModuleConfig.Save(this);
@@ -66,7 +67,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
         var windowPos = new Vector2(WeeklyPuzzle->GetX() - ImGui.GetWindowSize().X, WeeklyPuzzle->GetY() + 5);
         ImGui.SetWindowPos(windowPos);
 
-        ImGui.TextColored(KnownColor.Orange.ToVector4(), GetLoc("AutoRecommendFauxHollowsTitle"));
+        ImGui.TextColored(KnownColor.Orange.ToVector4(), Lang.Get("AutoRecommendFauxHollowsTitle"));
 
         ImGui.Separator();
 
@@ -221,7 +222,7 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
         Commander     = 18
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public bool PrioritizeSwords;
     }
@@ -327,14 +328,14 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
             Swords        = SwordsTL | SwordsTR | SwordsML | SwordsMR | SwordsBL | SwordsBR | RotatedEither
         }
 
-        public const int WIDTH  = 6;
-        public const int HEIGHT = 6;
+        public const int     WIDTH  = 6;
+        public const int     HEIGHT = 6;
+        public       BitMask Blockers;
+        public       int     BoxChestTL = -1;
+        public       bool    SwordsHorizontal;
+        public       int     SwordsTL = -1;
 
-        public Tile[]  Tiles = new Tile[WIDTH * HEIGHT];
-        public BitMask Blockers;
-        public int     SwordsTL = -1;
-        public bool    SwordsHorizontal;
-        public int     BoxChestTL = -1;
+        public Tile[] Tiles = new Tile[WIDTH * HEIGHT];
 
         public bool Update(Tile[] tiles)
         {
@@ -535,40 +536,6 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
 
     public class Patterns
     {
-        public class Cell
-        (
-            int     chestTl,
-            BitMask foxes
-        )
-        {
-            public readonly int     ChestTL = chestTl;
-            public          BitMask Foxes   = foxes;
-        }
-
-        public class Row
-        (
-            int    swordsTl,
-            bool   swordsHorizontal,
-            Cell[] cells
-        )
-        {
-            public readonly int    SwordsTL         = swordsTl;
-            public readonly bool   SwordsHorizontal = swordsHorizontal;
-            public readonly Cell[] Cells            = cells;
-        }
-
-        public class Sheet
-        (
-            BitMask blockers,
-            Row[]   rows
-        )
-        {
-            public          BitMask Blockers = blockers;
-            public readonly Row[]   Rows     = rows;
-        }
-
-        public readonly List<Sheet> KnownPatterns = [];
-
         private static readonly Sheet[] KnownBaseSheets =
         [
             new
@@ -835,6 +802,8 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
             )
         ];
 
+        public readonly List<Sheet> KnownPatterns = [];
+
         public Patterns()
         {
             foreach (var s in KnownBaseSheets)
@@ -870,5 +839,37 @@ public unsafe class AutoRecommendFauxHollows : DailyModuleBase
         );
 
         private static Sheet RotateSheetLeft(Sheet sheet) => new(RotateCellMaskLeft(sheet.Blockers), sheet.Rows.Select(RotateRowLeft).ToArray());
+
+        public class Cell
+        (
+            int     chestTl,
+            BitMask foxes
+        )
+        {
+            public readonly int     ChestTL = chestTl;
+            public          BitMask Foxes   = foxes;
+        }
+
+        public class Row
+        (
+            int    swordsTl,
+            bool   swordsHorizontal,
+            Cell[] cells
+        )
+        {
+            public readonly Cell[] Cells            = cells;
+            public readonly bool   SwordsHorizontal = swordsHorizontal;
+            public readonly int    SwordsTL         = swordsTl;
+        }
+
+        public class Sheet
+        (
+            BitMask blockers,
+            Row[]   rows
+        )
+        {
+            public readonly Row[]   Rows     = rows;
+            public          BitMask Blockers = blockers;
+        }
     }
 }

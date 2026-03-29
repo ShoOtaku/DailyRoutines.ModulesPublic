@@ -1,9 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Hooking;
@@ -13,20 +13,16 @@ using KamiToolKit;
 using KamiToolKit.Nodes;
 using Lumina.Data;
 using Lumina.Excel.Sheets;
+using OmenTools.Info.Game;
+using OmenTools.Interop.Game;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class FastSetWeatherTime : DailyModuleBase
+public unsafe class FastSetWeatherTime : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("FastSetWeatherTimeTitle"),
-        Description = GetLoc("FastSetWeatherTimeDescription", COMMAND),
-        Category    = ModuleCategories.UIOptimization
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private const uint   MAX_TIME = 60 * 60 * 24;
     private const string COMMAND  = "wt";
 
@@ -47,15 +43,24 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
 
     private static readonly CompSig PlayWeatherSoundSig = new("48 89 5C 24 ?? 48 89 6C 24 ?? 56 57 41 56 48 83 EC ?? 45 33 F6 0F 29 74 24");
 
-    private delegate void* PlayWeatherSoundDelegate(void* manager, byte weatherID, void* a3, void* a4);
-
     private static Hook<PlayWeatherSoundDelegate> PlayWeatherSoundHook;
 
     private static readonly CompSig UpdateBgmSituationSig = new("48 89 5C 24 ?? 57 48 83 EC 20 B8 ?? ?? ?? ?? 49 8B F9 41 8B D8");
 
-    private delegate void* UpdateBgmSituationDelegate(void* manager, ushort bgmSituationID, int column, void* a4, void* a5);
-
     private static Hook<UpdateBgmSituationDelegate> UpdateBgmSituationHook;
+
+    private static TextButtonNode? OpenButton;
+
+    private static Config ModuleConfig = null!;
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("FastSetWeatherTimeTitle"),
+        Description = Lang.Get("FastSetWeatherTimeDescription", COMMAND),
+        Category    = ModuleCategory.UIOptimization
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     private static uint RealTime
     {
@@ -81,13 +86,9 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
         set => RenderTimePatch.Set(value);
     }
 
-    private static TextButtonNode? OpenButton;
-
-    private static Config ModuleConfig = null!;
-
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         PlayWeatherSoundHook ??= PlayWeatherSoundSig.GetHook<PlayWeatherSoundDelegate>(PlayWeatherSoundDetour);
         PlayWeatherSoundHook.Enable();
@@ -100,14 +101,14 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
         AddonDRFastSetWeather.Addon = new()
         {
             InternalName = "DRFastSetWeather",
-            Title        = $"{GetLoc("Weather")} & {GetLoc("Time")}",
+            Title        = $"{Lang.Get("Weather")} & {Lang.Get("Time")}",
             Size         = new(254f, 50f)
         };
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_NaviMap", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_NaviMap", OnAddon);
 
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("FastSetWeatherTime-CommandHelp") });
+        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastSetWeatherTime-CommandHelp") });
     }
 
     protected override void Uninit()
@@ -128,7 +129,7 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("FastSetWeatherTime-CommandHelp"));
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("FastSetWeatherTime-CommandHelp"));
 
         using (ImRaii.PushIndent())
         {
@@ -136,8 +137,322 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
 
             if (ImageHelper.Instance().TryGetImage(NAVI_MAP_IMAGE_URL, out var image))
             {
-                ImGui.TextUnformatted($"2. {GetLoc("FastSetWeatherTime-OperationHelp-ClickNaviMap")}");
+                ImGui.TextUnformatted($"2. {Lang.Get("FastSetWeatherTime-OperationHelp-ClickNaviMap")}");
                 ImGui.Image(image.Handle, image.Size);
+            }
+        }
+    }
+
+    private delegate void* PlayWeatherSoundDelegate(void* manager, byte weatherID, void* a3, void* a4);
+
+    private delegate void* UpdateBgmSituationDelegate(void* manager, ushort bgmSituationID, int column, void* a4, void* a5);
+
+    private class Config : ModuleConfig
+    {
+        public Dictionary<uint, ZoneSetting> ZoneSettings = [];
+    }
+
+    private class AddonDRFastSetWeather : NativeAddon
+    {
+        private TextButtonNode? clearButtonNode;
+
+        private NumericInputNode? hourInputNode;
+        private NumericInputNode? minuteInputNode;
+
+        private TextButtonNode?   saveButtonNode;
+        private NumericInputNode? secondInputNode;
+
+        private SliderNode? timeNode;
+
+        private       Dictionary<byte, (IconButtonNode IconButton, SimpleNineGridNode EnabledIcon)> weatherButtons = [];
+        public static AddonDRFastSetWeather?                                                        Addon { get; set; }
+
+        protected override void OnSetup(AtkUnitBase* addon)
+        {
+            weatherButtons.Clear();
+
+            var layout = new VerticalListNode
+            {
+                IsVisible = true,
+                Position  = ContentStartPosition
+            };
+
+            var windowHeight = 125f;
+
+            var weathers = ParseLVB((ushort)GameState.TerritoryType)
+                           .WeatherList
+                           .Where
+                           (weather => LuminaGetter.TryGetRow(weather, out Weather weatherRow) &&
+                                       !string.IsNullOrEmpty(weatherRow.Name.ToString())       &&
+                                       ImageHelper.TryGetGameIcon((uint)weatherRow.Icon, out _)
+                           )
+                           .ToList();
+
+            const float WEATHER_BUTTON_HEIGHT = 54f;
+
+            if (weathers is { Count: > 0 })
+            {
+                windowHeight += weathers.Count / 4 * WEATHER_BUTTON_HEIGHT + (weathers.Count / 4 - 1) * 5;
+                SetWindowSize(Size.X, windowHeight);
+
+                var currentRow = new HorizontalFlexNode
+                {
+                    IsVisible = true,
+                    Size      = new(0, WEATHER_BUTTON_HEIGHT)
+                };
+
+                var itemsInCurrentRow = 0;
+
+                foreach (var weather in weathers)
+                {
+                    var weatherRow = LuminaGetter.GetRowOrDefault<Weather>(weather);
+
+                    if (itemsInCurrentRow >= 4)
+                    {
+                        layout.Height += currentRow.Height;
+                        layout.AddNode(currentRow);
+                        layout.AddDummy(5f);
+
+                        currentRow = new HorizontalFlexNode
+                        {
+                            IsVisible = true,
+                            Size      = new(0, WEATHER_BUTTON_HEIGHT)
+                        };
+
+                        itemsInCurrentRow = 0;
+                    }
+
+                    var weatherButton = new IconButtonNode
+                    {
+                        Size      = new(WEATHER_BUTTON_HEIGHT),
+                        IsVisible = true,
+                        IsEnabled = true,
+                        IconId    = (uint)weatherRow.Icon,
+                        OnClick = () =>
+                        {
+                            if (IsWeatherCustom() && GetDisplayWeather() == weather)
+                                ToggleWeather(false);
+                            else
+                                ToggleWeather(true, weather);
+
+                            foreach (var (id, (_, enabledIcon)) in weatherButtons)
+                                enabledIcon.IsVisible = IsWeatherCustom() && GetDisplayWeather() == id;
+                        },
+                        TextTooltip = $"{weatherRow.Name}"
+                    };
+                    var enabledIconNode = new SimpleNineGridNode
+                    {
+                        TexturePath        = "ui/uld/ContentsReplaySetting_hr1.tex",
+                        TextureCoordinates = new(36, 44),
+                        TextureSize        = new(36),
+                        Size               = new(22),
+                        Position           = new(22, 24),
+                        IsVisible          = IsWeatherCustom() && GetDisplayWeather() == weather
+                    };
+                    enabledIconNode.AttachNode(weatherButton);
+
+                    weatherButtons[weather] = (weatherButton, enabledIconNode);
+
+                    currentRow.AddNode(weatherButton);
+                    currentRow.AddDummy(5);
+                    currentRow.Width += weatherButton.Size.X + 4;
+
+                    itemsInCurrentRow++;
+                }
+
+                if (itemsInCurrentRow > 0)
+                {
+                    layout.Height += currentRow.Height;
+                    layout.AddNode(currentRow);
+                }
+            }
+
+            windowHeight += 40 + 5 + 40;
+            SetWindowSize(Size.X, windowHeight);
+
+            layout.AddDummy(5f);
+
+            var timeEnabled = new CheckboxNode
+            {
+                IsVisible = true,
+                String    = Lang.Get("FastSetWeatherTime-Addon-ModifyTime"),
+                Size      = new(100, 28),
+                IsChecked = IsTimeCustom(),
+                OnClick = x =>
+                {
+                    ToggleTime(x, RealTime);
+                    timeNode.Value = (int)RealTime;
+                }
+            };
+            layout.AddNode(timeEnabled);
+
+            timeNode = new()
+            {
+                Range = new(0, (int)(MAX_TIME - 1)),
+                Value = (int)GetDisplayTime(),
+                Size  = new(Size.X - ContentStartPosition.X, 28),
+                OnValueChanged = x =>
+                {
+                    if (!IsTimeCustom()) return;
+                    ToggleTime(true, (uint)x);
+                }
+            };
+
+            timeNode.ValueNode.FontSize      = 0;
+            timeNode.FloatValueNode.FontSize = 0;
+
+            layout.AddNode(timeNode);
+
+            var timeRow = new HorizontalListNode
+            {
+                IsVisible = true,
+                Size      = new(100, 35)
+            };
+
+            hourInputNode = new()
+            {
+                Size = new(78f, 30f),
+                OnValueUpdate = hour =>
+                {
+                    if (!IsTimeCustom()) return;
+
+                    var span = TimeSpan.FromSeconds(GetDisplayTime());
+                    ToggleTime(true, (uint)(span.Minutes * 60 + span.Seconds + hour * 60 * 60));
+                    timeNode.Value = (int)GetDisplayTime();
+                }
+            };
+
+            timeRow.Width += hourInputNode.Width;
+            timeRow.AddNode(hourInputNode);
+
+            minuteInputNode = new()
+            {
+                Size = new(78f, 30f),
+                OnValueUpdate = minute =>
+                {
+                    if (!IsTimeCustom()) return;
+
+                    var span = TimeSpan.FromSeconds(GetDisplayTime());
+                    ToggleTime(true, (uint)(minute * 60 + span.Seconds + span.Hours * 60 * 60));
+                    timeNode.Value = (int)GetDisplayTime();
+                }
+            };
+
+            timeRow.Width += minuteInputNode.Width;
+            timeRow.AddNode(minuteInputNode);
+
+            secondInputNode = new()
+            {
+                Size = new(78f, 30f),
+                OnValueUpdate = second =>
+                {
+                    if (!IsTimeCustom()) return;
+
+                    var span = TimeSpan.FromSeconds(GetDisplayTime());
+                    ToggleTime(true, (uint)(span.Minutes * 60 + second + span.Hours * 60 * 60));
+                    timeNode.Value = (int)GetDisplayTime();
+                }
+            };
+
+            timeRow.Width += secondInputNode.Width;
+            timeRow.AddNode(secondInputNode);
+
+            layout.AddNode(timeRow);
+
+            windowHeight += 35;
+            SetWindowSize(Size.X, windowHeight);
+
+            var operationRow = new HorizontalFlexNode
+            {
+                IsVisible = true,
+                Size      = new(Size.X - 2 * ContentStartPosition.X, 45),
+                Position  = new(0, -10)
+            };
+            layout.AddNode(operationRow);
+
+            saveButtonNode = new TextButtonNode
+            {
+                String = Lang.Get("Save"),
+                Size   = new(operationRow.Width / 2 - 5f, 30),
+                OnClick = () =>
+                {
+                    if (!IsTimeCustom() && !IsWeatherCustom()) return;
+
+                    var originalSetting = ModuleConfig.ZoneSettings.TryGetValue(GameState.TerritoryType, out var data) ? data : new();
+                    ModuleConfig.ZoneSettings[GameState.TerritoryType] = new()
+                    {
+                        IsTimeEnabled    = IsTimeCustom()    || originalSetting.IsTimeEnabled,
+                        IsWeatherEnabled = IsWeatherCustom() || originalSetting.IsWeatherEnabled,
+                        Time             = IsTimeCustom() ? GetDisplayTime() : originalSetting.Time,
+                        WeatherID        = IsWeatherCustom() ? GetDisplayWeather() : originalSetting.WeatherID
+                    };
+                    ModuleConfig.Save(ModuleManager.GetModule<FastSetWeatherTime>());
+
+                    var setting = ModuleConfig.ZoneSettings[GameState.TerritoryType];
+
+                    var message = Lang.Get
+                    (
+                        "FastSetWeatherTime-Notification-Saved",
+                        GameState.TerritoryTypeData.ExtractPlaceName(),
+                        GameState.TerritoryType,
+                        setting.IsWeatherEnabled && setting.WeatherID != 255
+                            ? LuminaWrapper.GetWeatherName(setting.WeatherID)
+                            : LuminaWrapper.GetAddonText(7),
+                        setting.IsTimeEnabled && TimeSpan.FromSeconds(setting.Time) is { } timeSpan
+                            ? $"{timeSpan.Hours:D2}:{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}"
+                            : LuminaWrapper.GetAddonText(7)
+                    );
+                    NotifyHelper.Chat(message);
+                }
+            };
+            operationRow.AddNode(saveButtonNode);
+
+            clearButtonNode = new TextButtonNode
+            {
+                String = Lang.Get("Clear"),
+                Size   = new(operationRow.Width / 2 - 5f, 30),
+                OnClick = () =>
+                {
+                    if (ModuleConfig.ZoneSettings.Remove(GameState.TerritoryType))
+                    {
+                        ModuleConfig.Save(ModuleManager.GetModule<FastSetWeatherTime>());
+                        NotifyHelper.Chat(Lang.Get("FastSetWeatherTime-Notification-Cleard"));
+                    }
+                }
+            };
+            operationRow.AddNode(clearButtonNode);
+
+            layout.AttachNode(this);
+        }
+
+        protected override void OnFinalize(AtkUnitBase* addon)
+        {
+            weatherButtons.Clear();
+            timeNode        = null;
+            hourInputNode   = null;
+            minuteInputNode = null;
+            secondInputNode = null;
+            saveButtonNode  = null;
+            clearButtonNode = null;
+        }
+
+        protected override void OnUpdate(AtkUnitBase* addon)
+        {
+            if (timeNode != null && hourInputNode != null && minuteInputNode != null && secondInputNode != null)
+            {
+                if (!IsTimeCustom())
+                    timeNode.Value = (int)GetDisplayTime();
+
+                var span = TimeSpan.FromSeconds(GetDisplayTime());
+                hourInputNode.Value   = span.Hours;
+                minuteInputNode.Value = span.Minutes;
+                secondInputNode.Value = span.Seconds;
+            }
+
+            if (saveButtonNode != null && clearButtonNode != null)
+            {
+                saveButtonNode.IsEnabled  = GameState.TerritoryType > 0 && (IsTimeCustom() || IsWeatherCustom());
+                clearButtonNode.IsEnabled = ModuleConfig.ZoneSettings.ContainsKey(GameState.TerritoryType);
             }
         }
     }
@@ -313,316 +628,6 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
 
     #endregion
 
-    private class Config : ModuleConfiguration
-    {
-        public Dictionary<uint, ZoneSetting> ZoneSettings = [];
-    }
-
-    private class AddonDRFastSetWeather : NativeAddon
-    {
-        public static AddonDRFastSetWeather? Addon { get; set; }
-
-        private Dictionary<byte, (IconButtonNode IconButton, SimpleNineGridNode EnabledIcon)> weatherButtons = [];
-
-        private SliderNode? timeNode;
-
-        private NumericInputNode? hourInputNode;
-        private NumericInputNode? minuteInputNode;
-        private NumericInputNode? secondInputNode;
-
-        private TextButtonNode? saveButtonNode;
-        private TextButtonNode? clearButtonNode;
-
-        protected override void OnSetup(AtkUnitBase* addon)
-        {
-            weatherButtons.Clear();
-
-            var layout = new VerticalListNode
-            {
-                IsVisible = true,
-                Position  = ContentStartPosition
-            };
-
-            var windowHeight = 125f;
-
-            var weathers = ParseLVB((ushort)GameState.TerritoryType)
-                           .WeatherList
-                           .Where
-                           (weather => LuminaGetter.TryGetRow(weather, out Weather weatherRow) &&
-                                       !string.IsNullOrEmpty(weatherRow.Name.ToString())       &&
-                                       ImageHelper.TryGetGameIcon((uint)weatherRow.Icon, out _)
-                           )
-                           .ToList();
-
-            const float WEATHER_BUTTON_HEIGHT = 54f;
-
-            if (weathers is { Count: > 0 })
-            {
-                windowHeight += weathers.Count / 4 * WEATHER_BUTTON_HEIGHT + (weathers.Count / 4 - 1) * 5;
-                SetWindowSize(Size.X, windowHeight);
-
-                var currentRow = new HorizontalFlexNode
-                {
-                    IsVisible = true,
-                    Size      = new(0, WEATHER_BUTTON_HEIGHT)
-                };
-
-                var itemsInCurrentRow = 0;
-
-                foreach (var weather in weathers)
-                {
-                    var weatherRow = LuminaGetter.GetRowOrDefault<Weather>(weather);
-
-                    if (itemsInCurrentRow >= 4)
-                    {
-                        layout.Height += currentRow.Height;
-                        layout.AddNode(currentRow);
-                        layout.AddDummy(5f);
-
-                        currentRow = new HorizontalFlexNode
-                        {
-                            IsVisible = true,
-                            Size      = new(0, WEATHER_BUTTON_HEIGHT)
-                        };
-
-                        itemsInCurrentRow = 0;
-                    }
-
-                    var weatherButton = new IconButtonNode
-                    {
-                        Size      = new(WEATHER_BUTTON_HEIGHT),
-                        IsVisible = true,
-                        IsEnabled = true,
-                        IconId    = (uint)weatherRow.Icon,
-                        OnClick = () =>
-                        {
-                            if (IsWeatherCustom() && GetDisplayWeather() == weather)
-                                ToggleWeather(false);
-                            else
-                                ToggleWeather(true, weather);
-
-                            foreach (var (id, (_, enabledIcon)) in weatherButtons)
-                                enabledIcon.IsVisible = IsWeatherCustom() && GetDisplayWeather() == id;
-                        },
-                        TextTooltip = $"{weatherRow.Name}"
-                    };
-                    var enabledIconNode = new SimpleNineGridNode
-                    {
-                        TexturePath        = "ui/uld/ContentsReplaySetting_hr1.tex",
-                        TextureCoordinates = new(36, 44),
-                        TextureSize        = new(36),
-                        Size               = new(22),
-                        Position           = new(22, 24),
-                        IsVisible          = IsWeatherCustom() && GetDisplayWeather() == weather
-                    };
-                    enabledIconNode.AttachNode(weatherButton);
-
-                    weatherButtons[weather] = (weatherButton, enabledIconNode);
-
-                    currentRow.AddNode(weatherButton);
-                    currentRow.AddDummy(5);
-                    currentRow.Width += weatherButton.Size.X + 4;
-
-                    itemsInCurrentRow++;
-                }
-
-                if (itemsInCurrentRow > 0)
-                {
-                    layout.Height += currentRow.Height;
-                    layout.AddNode(currentRow);
-                }
-            }
-
-            windowHeight += 40 + 5 + 40;
-            SetWindowSize(Size.X, windowHeight);
-
-            layout.AddDummy(5f);
-
-            var timeEnabled = new CheckboxNode
-            {
-                IsVisible = true,
-                String    = GetLoc("FastSetWeatherTime-Addon-ModifyTime"),
-                Size      = new(100, 28),
-                IsChecked = IsTimeCustom(),
-                OnClick = x =>
-                {
-                    ToggleTime(x, RealTime);
-                    timeNode.Value = (int)RealTime;
-                }
-            };
-            layout.AddNode(timeEnabled);
-
-            timeNode = new()
-            {
-                Range = new(0, (int)(MAX_TIME - 1)),
-                Value = (int)GetDisplayTime(),
-                Size  = new(Size.X - ContentStartPosition.X, 28),
-                OnValueChanged = x =>
-                {
-                    if (!IsTimeCustom()) return;
-                    ToggleTime(true, (uint)x);
-                }
-            };
-
-            timeNode.ValueNode.FontSize      = 0;
-            timeNode.FloatValueNode.FontSize = 0;
-
-            layout.AddNode(timeNode);
-
-            var timeRow = new HorizontalListNode
-            {
-                IsVisible = true,
-                Size      = new(100, 35)
-            };
-
-            hourInputNode = new()
-            {
-                Size = new(78f, 30f),
-                OnValueUpdate = hour =>
-                {
-                    if (!IsTimeCustom()) return;
-
-                    var span = TimeSpan.FromSeconds(GetDisplayTime());
-                    ToggleTime(true, (uint)(span.Minutes * 60 + span.Seconds + hour * 60 * 60));
-                    timeNode.Value = (int)GetDisplayTime();
-                }
-            };
-
-            timeRow.Width += hourInputNode.Width;
-            timeRow.AddNode(hourInputNode);
-
-            minuteInputNode = new()
-            {
-                Size = new(78f, 30f),
-                OnValueUpdate = minute =>
-                {
-                    if (!IsTimeCustom()) return;
-
-                    var span = TimeSpan.FromSeconds(GetDisplayTime());
-                    ToggleTime(true, (uint)(minute * 60 + span.Seconds + span.Hours * 60 * 60));
-                    timeNode.Value = (int)GetDisplayTime();
-                }
-            };
-
-            timeRow.Width += minuteInputNode.Width;
-            timeRow.AddNode(minuteInputNode);
-
-            secondInputNode = new()
-            {
-                Size = new(78f, 30f),
-                OnValueUpdate = second =>
-                {
-                    if (!IsTimeCustom()) return;
-
-                    var span = TimeSpan.FromSeconds(GetDisplayTime());
-                    ToggleTime(true, (uint)(span.Minutes * 60 + second + span.Hours * 60 * 60));
-                    timeNode.Value = (int)GetDisplayTime();
-                }
-            };
-
-            timeRow.Width += secondInputNode.Width;
-            timeRow.AddNode(secondInputNode);
-
-            layout.AddNode(timeRow);
-
-            windowHeight += 35;
-            SetWindowSize(Size.X, windowHeight);
-
-            var operationRow = new HorizontalFlexNode
-            {
-                IsVisible = true,
-                Size      = new(Size.X - 2 * ContentStartPosition.X, 45),
-                Position  = new(0, -10)
-            };
-            layout.AddNode(operationRow);
-
-            saveButtonNode = new TextButtonNode
-            {
-                String = GetLoc("Save"),
-                Size   = new(operationRow.Width / 2 - 5f, 30),
-                OnClick = () =>
-                {
-                    if (!IsTimeCustom() && !IsWeatherCustom()) return;
-
-                    var originalSetting = ModuleConfig.ZoneSettings.TryGetValue(GameState.TerritoryType, out var data) ? data : new();
-                    ModuleConfig.ZoneSettings[GameState.TerritoryType] = new()
-                    {
-                        IsTimeEnabled    = IsTimeCustom()    || originalSetting.IsTimeEnabled,
-                        IsWeatherEnabled = IsWeatherCustom() || originalSetting.IsWeatherEnabled,
-                        Time             = IsTimeCustom() ? GetDisplayTime() : originalSetting.Time,
-                        WeatherID        = IsWeatherCustom() ? GetDisplayWeather() : originalSetting.WeatherID
-                    };
-                    ModuleConfig.Save(ModuleManager.GetModule<FastSetWeatherTime>());
-
-                    var setting = ModuleConfig.ZoneSettings[GameState.TerritoryType];
-
-                    var message = GetLoc
-                    (
-                        "FastSetWeatherTime-Notification-Saved",
-                        GameState.TerritoryTypeData.ExtractPlaceName(),
-                        GameState.TerritoryType,
-                        setting.IsWeatherEnabled && setting.WeatherID != 255
-                            ? LuminaWrapper.GetWeatherName(setting.WeatherID)
-                            : LuminaWrapper.GetAddonText(7),
-                        setting.IsTimeEnabled && TimeSpan.FromSeconds(setting.Time) is { } timeSpan
-                            ? $"{timeSpan.Hours:D2}:{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}"
-                            : LuminaWrapper.GetAddonText(7)
-                    );
-                    Chat(message);
-                }
-            };
-            operationRow.AddNode(saveButtonNode);
-
-            clearButtonNode = new TextButtonNode
-            {
-                String = GetLoc("Clear"),
-                Size   = new(operationRow.Width / 2 - 5f, 30),
-                OnClick = () =>
-                {
-                    if (ModuleConfig.ZoneSettings.Remove(GameState.TerritoryType))
-                    {
-                        ModuleConfig.Save(ModuleManager.GetModule<FastSetWeatherTime>());
-                        Chat(GetLoc("FastSetWeatherTime-Notification-Cleard"));
-                    }
-                }
-            };
-            operationRow.AddNode(clearButtonNode);
-
-            layout.AttachNode(this);
-        }
-
-        protected override void OnFinalize(AtkUnitBase* addon)
-        {
-            weatherButtons.Clear();
-            timeNode        = null;
-            hourInputNode   = null;
-            minuteInputNode = null;
-            secondInputNode = null;
-            saveButtonNode  = null;
-            clearButtonNode = null;
-        }
-
-        protected override void OnUpdate(AtkUnitBase* addon)
-        {
-            if (timeNode != null && hourInputNode != null && minuteInputNode != null && secondInputNode != null)
-            {
-                if (!IsTimeCustom())
-                    timeNode.Value = (int)GetDisplayTime();
-
-                var span = TimeSpan.FromSeconds(GetDisplayTime());
-                hourInputNode.Value   = span.Hours;
-                minuteInputNode.Value = span.Minutes;
-                secondInputNode.Value = span.Seconds;
-            }
-
-            if (saveButtonNode != null && clearButtonNode != null)
-            {
-                saveButtonNode.IsEnabled  = GameState.TerritoryType > 0 && (IsTimeCustom() || IsWeatherCustom());
-                clearButtonNode.IsEnabled = ModuleConfig.ZoneSettings.ContainsKey(GameState.TerritoryType);
-            }
-        }
-    }
-
     #region 自定义类
 
     private class ZoneSetting
@@ -636,8 +641,8 @@ public unsafe class FastSetWeatherTime : DailyModuleBase
 
     private class LVBFile : FileResource
     {
-        public ushort[] WeatherIDs;
         public string   ENVBFile;
+        public ushort[] WeatherIDs;
 
         public override void LoadFile()
         {

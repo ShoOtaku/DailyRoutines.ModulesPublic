@@ -1,32 +1,35 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoManageInterruptAction : DailyModuleBase
+public class AutoManageInterruptAction : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoManageInterruptActionTitle"),
-        Description = GetLoc("AutoManageInterruptActionDescription"),
-        Category    = ModuleCategories.Action,
-    };
-
     private static readonly HashSet<uint> InterruptActions = [7538, 7551];
 
-    protected override void Init() => 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoManageInterruptActionTitle"),
+        Description = Lang.Get("AutoManageInterruptActionDescription"),
+        Category    = ModuleCategory.Action
+    };
+
+    protected override void Init() =>
         UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
 
-    private static void OnPreUseAction(
+    private static void OnPreUseAction
+    (
         ref bool                        isPrevented,
         ref ActionType                  actionType,
         ref uint                        actionID,
         ref ulong                       targetID,
         ref uint                        extraParam,
         ref ActionManager.UseActionMode queueState,
-        ref uint                        comboRouteID)
+        ref uint                        comboRouteID
+    )
     {
         if (actionType != ActionType.Action || !InterruptActions.Contains(actionID)) return;
         if (TargetManager.Target is IBattleChara { IsCasting: true, IsCastInterruptible: true }) return;
@@ -34,6 +37,6 @@ public class AutoManageInterruptAction : DailyModuleBase
         isPrevented = true;
     }
 
-    protected override void Uninit() => 
+    protected override void Uninit() =>
         UseActionManager.Instance().Unreg(OnPreUseAction);
 }

@@ -1,40 +1,43 @@
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Manager;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class HullbreakerIsleHelper : DailyModuleBase
+public class HullbreakerIsleHelper : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("HullbreakerIsleHelperTitle"),
-        Description = GetLoc("HullbreakerIsleHelperDescription"),
-        Category    = ModuleCategories.Assist
-    };
-
     private static readonly HashSet<uint> FakeTreasuresID = [2004074, 2004075, 2004076, 2004077, 2004078, 2004079];
 
     private static List<Vector3> TrapPositions         = [];
     private static List<Vector3> FakeTreasurePositions = [];
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("HullbreakerIsleHelperTitle"),
+        Description = Lang.Get("HullbreakerIsleHelperDescription"),
+        Category    = ModuleCategory.Assist
+    };
 
     protected override void Init()
     {
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
-    
+
     protected override void Uninit()
     {
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
 
         WindowManager.Draw -= OnDraw;
         FrameworkManager.Instance().Unreg(OnUpdate);
-        
+
         TrapPositions.Clear();
         FakeTreasurePositions.Clear();
     }

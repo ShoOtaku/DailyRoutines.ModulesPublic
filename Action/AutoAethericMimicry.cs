@@ -1,45 +1,57 @@
-using System.Collections.Generic;
-using System.Linq;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
 using KamiToolKit.Nodes;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using OmenTools.Threading;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoAethericMimicry : DailyModuleBase
+public class AutoAethericMimicry : ModuleBase
 {
+    private static readonly HashSet<uint> Status = [2124, 2125, 2126];
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoAethericMimicryTitle"),
-        Description = GetLoc("AutoAethericMimicryDescription"),
-        Category    = ModuleCategories.Action
+        Title       = Lang.Get("AutoAethericMimicryTitle"),
+        Description = Lang.Get("AutoAethericMimicryDescription"),
+        Category    = ModuleCategory.Action
     };
-    
+
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private static readonly HashSet<uint> Status = [2124, 2125, 2126];
-    
-    protected override void Init() => 
+    protected override void Init() =>
         UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
 
     protected override void Uninit()
     {
         UseActionManager.Instance().Unreg(OnPreUseAction);
-        
+
         AddonDRAutoAethericMimicry.Addon?.Dispose();
         AddonDRAutoAethericMimicry.Addon = null;
     }
 
-    private static void OnPreUseAction(ref bool isPrevented, ref ActionType actionType, ref uint actionID, ref ulong targetID, ref uint extraParam, ref ActionManager.UseActionMode queueState, ref uint comboRouteID)
+    private static void OnPreUseAction
+    (
+        ref bool                        isPrevented,
+        ref ActionType                  actionType,
+        ref uint                        actionID,
+        ref ulong                       targetID,
+        ref uint                        extraParam,
+        ref ActionManager.UseActionMode queueState,
+        ref uint                        comboRouteID
+    )
     {
         if (actionType != ActionType.Action || actionID != 18322) return;
         if (targetID   != 0xE0000000 && targetID        != LocalPlayerState.EntityID) return;
         if (Status.Any(x => LocalPlayerState.HasStatus(x, out _))) return;
-        
+
         AddonDRAutoAethericMimicry.OpenWithNewInstance();
         isPrevented = true;
     }
@@ -47,10 +59,10 @@ public class AutoAethericMimicry : DailyModuleBase
     private class AddonDRAutoAethericMimicry : NativeAddon
     {
         public static AddonDRAutoAethericMimicry? Addon;
-        
+        private       IconButtonNode              DPSButton;
+        private       IconButtonNode              HealerButton;
+
         private IconButtonNode TankButton;
-        private IconButtonNode HealerButton;
-        private IconButtonNode DPSButton;
 
         public static void OpenWithNewInstance()
         {
@@ -60,22 +72,22 @@ public class AutoAethericMimicry : DailyModuleBase
             {
                 InternalName = "DRAutoAethericMimicry",
                 Title        = string.Empty,
-                Size         = new(180f, 50f),
+                Size         = new(180f, 50f)
             };
             Addon.SetWindowPosition(ImGui.GetMousePos() - Addon.Size with { X = Addon.Size.X / 1.5f });
-            
+
             Addon.Open();
         }
-        
+
         protected override unsafe void OnSetup(AtkUnitBase* addon)
         {
             ((WindowNode)WindowNode).CloseButtonNode.IsVisible = false;
-            
+
             var rowOneContainer = new HorizontalFlexNode
             {
                 Size      = new(160, 50),
                 Position  = new(10, 19),
-                IsVisible = true,
+                IsVisible = true
             };
 
             TankButton = new()
@@ -88,14 +100,14 @@ public class AutoAethericMimicry : DailyModuleBase
                 {
                     if (TryGetChara([1], out var chara))
                         UseActionManager.Instance().UseActionLocation(ActionType.Action, 18322, chara.EntityID);
-                    
+
                     Notify(chara);
                     Addon.Close();
                 },
-                TextTooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1082)}",
+                TextTooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1082)}"
             };
             rowOneContainer.AddNode(TankButton);
-            
+
             HealerButton = new()
             {
                 Size      = new(53f),
@@ -106,14 +118,14 @@ public class AutoAethericMimicry : DailyModuleBase
                 {
                     if (TryGetChara([4], out var chara))
                         UseActionManager.Instance().UseActionLocation(ActionType.Action, 18322, chara.EntityID);
-                    
+
                     Notify(chara);
                     Addon.Close();
                 },
-                TextTooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1083)}",
+                TextTooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1083)}"
             };
             rowOneContainer.AddNode(HealerButton);
-            
+
             DPSButton = new()
             {
                 Size      = new(53f),
@@ -124,18 +136,18 @@ public class AutoAethericMimicry : DailyModuleBase
                 {
                     if (TryGetChara([2, 3], out var chara))
                         UseActionManager.Instance().UseActionLocation(ActionType.Action, 18322, chara.EntityID);
-                    
+
                     Notify(chara);
                     Addon.Close();
                 },
-                TextTooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1084)}",
+                TextTooltip = $"{LuminaWrapper.GetActionName(18322)}: {LuminaWrapper.GetAddonText(1084)}"
             };
             rowOneContainer.AddNode(DPSButton);
-            
+
             TankButton.IsEnabled   = TryGetChara([1],    out _);
             HealerButton.IsEnabled = TryGetChara([4],    out _);
             DPSButton.IsEnabled    = TryGetChara([2, 3], out _);
-            
+
             rowOneContainer.AttachNode(this);
         }
 
@@ -144,13 +156,13 @@ public class AutoAethericMimicry : DailyModuleBase
             if (LocalPlayerState.ClassJob != 36 || DService.Instance().KeyState[VirtualKey.ESCAPE])
             {
                 Close();
-                
+
                 if (SystemMenu != null)
                     SystemMenu->Close(true);
                 return;
             }
-            
-            if (!Throttler.Throttle("AutoAethericMimicry-OnUpdateButtons")) return;
+
+            if (!Throttler.Shared.Throttle("AutoAethericMimicry-OnUpdateButtons")) return;
 
             TankButton.IsEnabled   = TryGetChara([1],    out _);
             HealerButton.IsEnabled = TryGetChara([4],    out _);
@@ -162,9 +174,11 @@ public class AutoAethericMimicry : DailyModuleBase
             chara = null;
 
             chara = DService.Instance().ObjectTable
-                            .Where(x => x is IPlayerCharacter player                 &&
-                                        player.EntityID != LocalPlayerState.EntityID &&
-                                        roles.Contains(player.ClassJob.Value.Role))
+                            .Where
+                            (x => x is IPlayerCharacter player                 &&
+                                  player.EntityID != LocalPlayerState.EntityID &&
+                                  roles.Contains(player.ClassJob.Value.Role)
+                            )
                             .Where(x => x is { YalmDistanceX: <= 25, YalmDistanceZ: <= 25 })
                             .OrderBy(x => x.YalmDistanceX + x.YalmDistanceZ)
                             .OfType<IPlayerCharacter>()
@@ -176,12 +190,19 @@ public class AutoAethericMimicry : DailyModuleBase
         {
             if (chara == null)
             {
-                Chat(GetLoc("AutoAethericMimicry-NoAvailableTarget"));
+                NotifyHelper.Chat(Lang.Get("AutoAethericMimicry-NoAvailableTarget"));
                 return;
             }
 
-            Chat(GetSLoc("AutoAethericMimicry-MimicTarget", chara.ClassJob.Value.ToBitmapFontIcon(),
-                         new PlayerPayload(chara.Name.ToString(), chara.HomeWorld.RowId)));
+            NotifyHelper.Chat
+            (
+                Lang.GetSe
+                (
+                    "AutoAethericMimicry-MimicTarget",
+                    chara.ClassJob.Value.ToBitmapFontIcon(),
+                    new PlayerPayload(chara.Name.ToString(), chara.HomeWorld.RowId)
+                )
+            );
         }
     }
 }

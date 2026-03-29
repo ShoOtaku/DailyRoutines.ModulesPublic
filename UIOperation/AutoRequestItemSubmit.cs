@@ -1,23 +1,20 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using OmenTools.Interop.Game.AddonEvent;
+using OmenTools.Interop.Game.Lumina;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoRequestItemSubmit : DailyModuleBase
+public unsafe class AutoRequestItemSubmit : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoRequestItemSubmitTitle"),
-        Description = GetLoc("AutoRequestItemSubmitDescription"),
-        Category    = ModuleCategories.UIOperation,
-    };
-    
     private static readonly HashSet<string> HQItemTexts =
     [
         LuminaWrapper.GetAddonText(5450),
@@ -27,10 +24,17 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
 
     private static Config ModuleConfig = null!;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoRequestItemSubmitTitle"),
+        Description = Lang.Get("AutoRequestItemSubmitDescription"),
+        Category    = ModuleCategory.UIOperation
+    };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
-        
+        ModuleConfig = Config.Load(this) ?? new();
+
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "Request", OnAddonRequest);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "Request", OnAddonRequest);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "Request", OnAddonRequest);
@@ -38,10 +42,10 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ConflictKeyText();
-        
-        if (ImGui.Checkbox(GetLoc("AutoRequestItemSubmit-SubmitHQItem"), ref ModuleConfig.IsSubmitHQItem))
-            SaveConfig(ModuleConfig);
+        ImGuiOm.ConflictKeyText();
+
+        if (ImGui.Checkbox(Lang.Get("AutoRequestItemSubmit-SubmitHQItem"), ref ModuleConfig.IsSubmitHQItem))
+            ModuleConfig.Save(this);
     }
 
     private static void OnAddonRequest(AddonEvent type, AddonArgs args)
@@ -59,41 +63,42 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
                 break;
         }
     }
-    
+
     private static void OnAddonSelectYesno(AddonEvent type, AddonArgs args)
     {
         if (!ModuleConfig.IsSubmitHQItem) return;
 
         var text = ((AddonSelectYesno*)SelectYesno)->PromptText->NodeText.ToString();
         if (!HQItemTexts.Contains(text)) return;
-        
-        ClickSelectYesnoYes();
+
+        AddonSelectYesnoEvent.ClickYes();
     }
-    
+
     private static void OperateOnRequest()
     {
-        if (IsConflictKeyPressed())
+        if (DRConfig.Instance().ConflictKeyBinding.IsPressed())
             return;
-        
+
         var addon = (AddonRequest*)Request;
         if (addon == null) return;
-        
+
         if (addon->HandOverButton->IsEnabled)
         {
             addon->HandOverButton->Click();
             return;
         }
-        
+
         var agent = AgentNpcTrade.Instance();
         if (agent == null) return;
 
         var manager = InventoryManager.Instance();
         if (manager == null) return;
-        
+
         var container = manager->GetInventoryContainer(InventoryType.HandIn);
         if (container == null) return;
 
         var requestState = UIState.Instance()->NpcTrade.Requests;
+
         for (var i = 0; i < requestState.Count; i++)
         {
             var slotState   = container->GetInventorySlot(i);
@@ -106,10 +111,10 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
                 AgentId.NpcTrade.SendEvent(0, 2, i, 0, 0);
                 return;
             }
-            
+
             var firstItem = agent->SelectedTurnInSlotItemOptionValues[0].Value;
             if (firstItem == null || firstItem->ItemId == 0) return;
-            
+
             AgentId.NpcTrade.SendEvent(1, 0, 0, firstItem->GetItemId(), 0U, 0);
             return;
         }
@@ -121,7 +126,7 @@ public unsafe class AutoRequestItemSubmit : DailyModuleBase
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectYesno);
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public bool IsSubmitHQItem = true;
     }

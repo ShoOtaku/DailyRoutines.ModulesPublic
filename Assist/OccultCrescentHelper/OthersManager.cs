@@ -1,8 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Extensions;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
@@ -18,8 +17,15 @@ using KamiToolKit.Nodes;
 using KamiToolKit.Overlay;
 using KamiToolKit.Timelines;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Helpers;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
+using OmenTools.Threading;
+using OmenTools.Threading.TaskHelper;
 using Action = Lumina.Excel.Sheets.Action;
 using ActionKind = FFXIVClientStructs.FFXIV.Client.UI.Agent.ActionKind;
+using AgentShowDelegate = OmenTools.Interop.Game.Models.Native.AgentShowDelegate;
 using TerritoryIntendedUse = FFXIVClientStructs.FFXIV.Client.Enums.TerritoryIntendedUse;
 
 namespace DailyRoutines.ModulesPublic;
@@ -120,22 +126,22 @@ public partial class OccultCrescentHelper
         {
             using var id = ImRaii.PushId("OthersManager");
 
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("OccultCrescentHelper-OthersManager-IslandID"));
-            ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-OthersManager-IslandID-Help"), 20f * GlobalFontScale);
+            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("OccultCrescentHelper-OthersManager-IslandID"));
+            ImGuiOm.HelpMarker(Lang.Get("OccultCrescentHelper-OthersManager-IslandID-Help"), 20f * GlobalUIScale);
 
             using (ImRaii.PushIndent())
             {
-                if (ImGui.Checkbox($"{GetLoc("OccultCrescentHelper-OthersManager-IslandIDInChat")}", ref ModuleConfig.IsEnabledIslandIDChat))
+                if (ImGui.Checkbox($"{Lang.Get("OccultCrescentHelper-OthersManager-IslandIDInChat")}", ref ModuleConfig.IsEnabledIslandIDChat))
                     ModuleConfig.Save(MainModule);
             }
 
             ImGui.NewLine();
 
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("OccultCrescentHelper-OthersManager-ModifyInfoHUD"));
-            ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-OthersManager-ModifyInfoHUD-Help"), 20f * GlobalFontScale);
+            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("OccultCrescentHelper-OthersManager-ModifyInfoHUD"));
+            ImGuiOm.HelpMarker(Lang.Get("OccultCrescentHelper-OthersManager-ModifyInfoHUD-Help"), 20f * GlobalUIScale);
 
-            ImGui.SameLine(0, 8f * GlobalFontScale);
+            ImGui.SameLine(0, 8f * GlobalUIScale);
 
             if (ImGui.Checkbox("###ModifyInfoHUD", ref ModuleConfig.IsEnabledModifyInfoHUD))
             {
@@ -149,20 +155,20 @@ public partial class OccultCrescentHelper
             {
                 using (ImRaii.PushIndent())
                 {
-                    ImGui.TextColored(KnownColor.Orange.ToVector4(), GetLoc("OccultCrescentHelper-OthersManager-ModifySupportJobOrder"));
+                    ImGui.TextColored(KnownColor.Orange.ToVector4(), Lang.Get("OccultCrescentHelper-OthersManager-ModifySupportJobOrder"));
                     ImGuiOm.HelpMarker
                     (
-                        GetLoc("OccultCrescentHelper-OthersManager-ModifySupportJobOrder-Help", LuminaWrapper.GetAddonText(16658)),
-                        30f * GlobalFontScale
+                        Lang.Get("OccultCrescentHelper-OthersManager-ModifySupportJobOrder-Help", LuminaWrapper.GetAddonText(16658)),
+                        30f * GlobalUIScale
                     );
 
                     ImGui.SameLine();
-                    if (ImGui.SmallButton(GetLoc("Save")))
+                    if (ImGui.SmallButton(Lang.Get("Save")))
                         ModuleConfig.Save(MainModule);
 
                     ImGui.SameLine();
 
-                    if (ImGui.SmallButton(GetLoc("Reset")))
+                    if (ImGui.SmallButton(Lang.Get("Reset")))
                     {
                         ModuleConfig.AddonSupportJobOrder = ModuleConfig.AddonSupportJobOrder.Order().ToList();
                         ModuleConfig.Save(MainModule);
@@ -216,11 +222,11 @@ public partial class OccultCrescentHelper
             ImGui.TextColored
             (
                 KnownColor.LightSkyBlue.ToVector4(),
-                $"{GetLoc("OccultCrescentHelper-OthersManager-ModifyDefaultEnterZonePosition")} ({LuminaWrapper.GetAddonText(16586)})"
+                $"{Lang.Get("OccultCrescentHelper-OthersManager-ModifyDefaultEnterZonePosition")} ({LuminaWrapper.GetAddonText(16586)})"
             );
-            ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-OthersManager-ModifyDefaultEnterZonePosition-Help"), 20f * GlobalFontScale);
+            ImGuiOm.HelpMarker(Lang.Get("OccultCrescentHelper-OthersManager-ModifyDefaultEnterZonePosition-Help"), 20f * GlobalUIScale);
 
-            ImGui.SameLine(0, 8f * GlobalFontScale);
+            ImGui.SameLine(0, 8f * GlobalUIScale);
             if (ImGui.Checkbox("###ModifyDefaultEnterZonePositionSouthHorn", ref ModuleConfig.IsEnabledModifyDefaultPositionEnterZoneSouthHorn))
                 ModuleConfig.Save(MainModule);
 
@@ -228,14 +234,14 @@ public partial class OccultCrescentHelper
             {
                 using (ImRaii.PushIndent())
                 {
-                    ImGui.SetNextItemWidth(200f * GlobalFontScale);
+                    ImGui.SetNextItemWidth(200f * GlobalUIScale);
                     ImGui.InputFloat3("###DefaultPositionEnterZoneSouthHornInput", ref ModuleConfig.DefaultPositionEnterZoneSouthHorn);
                     if (ImGui.IsItemDeactivatedAfterEdit())
                         ModuleConfig.Save(MainModule);
 
                     ImGui.SameLine();
 
-                    if (ImGui.Button($"{GetLoc("Current")}##SetDefaultPositionEnterZoneSouthHorn"))
+                    if (ImGui.Button($"{Lang.Get("Current")}##SetDefaultPositionEnterZoneSouthHorn"))
                     {
                         ModuleConfig.DefaultPositionEnterZoneSouthHorn = DService.Instance().ObjectTable.LocalPlayer?.Position ?? default;
                         ModuleConfig.Save(MainModule);
@@ -261,10 +267,10 @@ public partial class OccultCrescentHelper
             ImGui.NewLine();
 
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("OccultCrescentHelper-OthersManager-AutoEnableDisablePlugins")}");
-            ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-OthersManager-AutoEnableDisablePlugins-Help"), 20f * GlobalFontScale);
+            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("OccultCrescentHelper-OthersManager-AutoEnableDisablePlugins")}");
+            ImGuiOm.HelpMarker(Lang.Get("OccultCrescentHelper-OthersManager-AutoEnableDisablePlugins-Help"), 20f * GlobalUIScale);
 
-            ImGui.SameLine(0, 8f * GlobalFontScale);
+            ImGui.SameLine(0, 8f * GlobalUIScale);
             if (ImGui.Checkbox("###IsEnabledAutoEnableDisablePlugins", ref ModuleConfig.IsEnabledAutoEnableDisablePlugins))
                 ModuleConfig.Save(MainModule);
 
@@ -272,7 +278,7 @@ public partial class OccultCrescentHelper
             {
                 using (ImRaii.PushIndent())
                 {
-                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 20f * GlobalFontScale);
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - 20f * GlobalUIScale);
                     ImGui.InputText("###AutoEnableDisablePluginsInput", ref ModuleConfig.AutoEnableDisablePlugins, 1024);
                     if (ImGui.IsItemDeactivatedAfterEdit())
                         ModuleConfig.Save(MainModule);
@@ -283,20 +289,20 @@ public partial class OccultCrescentHelper
             ImGui.NewLine();
 
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("OccultCrescentHelper-OthersManager-HideDutyCommand"));
-            ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-OthersManager-HideDutyCommand-Help"), 20f * GlobalFontScale);
+            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("OccultCrescentHelper-OthersManager-HideDutyCommand"));
+            ImGuiOm.HelpMarker(Lang.Get("OccultCrescentHelper-OthersManager-HideDutyCommand-Help"), 20f * GlobalUIScale);
 
-            ImGui.SameLine(0, 8f * GlobalFontScale);
+            ImGui.SameLine(0, 8f * GlobalUIScale);
             if (ImGui.Checkbox("###HideDutyCommand", ref ModuleConfig.IsEnabledHideDutyCommand))
                 ModuleConfig.Save(MainModule);
 
             ImGui.NewLine();
 
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("OccultCrescentHelper-OthersManager-FastUseKnowledgeCrystal"));
-            ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-OthersManager-FastUseKnowledgeCrystal-Help"), 20f * GlobalFontScale);
+            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("OccultCrescentHelper-OthersManager-FastUseKnowledgeCrystal"));
+            ImGuiOm.HelpMarker(Lang.Get("OccultCrescentHelper-OthersManager-FastUseKnowledgeCrystal-Help"), 20f * GlobalUIScale);
 
-            ImGui.SameLine(0, 8f * GlobalFontScale);
+            ImGui.SameLine(0, 8f * GlobalUIScale);
             if (ImGui.Checkbox("###FastUseKnowledgeCrystal", ref ModuleConfig.IsEnabledKnowledgeCrystalFastUse))
                 ModuleConfig.Save(MainModule);
         }
@@ -348,17 +354,17 @@ public partial class OccultCrescentHelper
             if (ModuleConfig.IsEnabledIslandIDChat)
             {
                 var message = new SeStringBuilder()
-                              .AddText($"{GetLoc("OccultCrescentHelper-OthersManager-IslandID")}: ")
+                              .AddText($"{Lang.Get("OccultCrescentHelper-OthersManager-IslandID")}: ")
                               .AddUiForeground(45)
                               .AddText(islandID.ToString())
                               .AddUiForegroundOff()
                               .Build();
-                Chat(message);
+                NotifyHelper.Chat(message);
             }
 
             if (!IsJustLogin                                                  &&
                 ModuleConfig.IsEnabledModifyDefaultPositionEnterZoneSouthHorn &&
-                BetweenAreas)
+                DService.Instance().Condition.IsBetweenAreas)
             {
                 OthersTaskHelper.Abort();
                 OthersTaskHelper.Enqueue
@@ -390,7 +396,7 @@ public partial class OccultCrescentHelper
         private static void OnActionContents(AddonEvent type, AddonArgs args)
         {
             if (GameState.TerritoryIntendedUse != TerritoryIntendedUse.OccultCrescent) return;
-            if (!Throttler.Throttle("OccultCrescentHelper-OthersManager-ActionDetail")) return;
+            if (!Throttler.Shared.Throttle("OccultCrescentHelper-OthersManager-ActionDetail")) return;
 
             if (ActionContents == null) return;
 
@@ -415,7 +421,7 @@ public partial class OccultCrescentHelper
                     {
                         var textNode = MKDInfo->GetTextNodeById(19);
                         if (textNode != null)
-                            textNode->SetText($"{GetLoc("OccultCrescentHelper-OthersManager-IslandID")}: {GetIslandID()}");
+                            textNode->SetText($"{Lang.Get("OccultCrescentHelper-OthersManager-IslandID")}: {GetIslandID()}");
                     }
 
                     if (ModuleConfig.IsEnabledModifyInfoHUD && SettingButton == null)
@@ -505,25 +511,25 @@ public partial class OccultCrescentHelper
         {
             private const float LERP_SPEED = 0.2f;
 
-            private bool isFocused;
-
             public readonly Dictionary<uint, TextureButtonNode> SupportJobButtons = [];
+
+            private SimpleNineGridNode backgroundNode;
+            private SimpleNineGridNode borderNode;
+
+            private TextureButtonNode  closeButtonNode;
+            private SimpleNineGridNode headerBackgroundNode;
+            private SimpleNineGridNode headerBorderNode;
+
+            private bool isFocused;
 
             private List<SupportJobActionListNode> jobActionsContainer = [];
 
             private VerticalListNode jobContainer;
 
-            private SimpleNineGridNode backgroundNode;
-            private SimpleNineGridNode borderNode;
-
             private SimpleNineGridNode moonPatternNode;
-            private SimpleNineGridNode patternLeftNode;
             private SimpleNineGridNode patternLeftCornerNode;
+            private SimpleNineGridNode patternLeftNode;
             private SimpleNineGridNode patternRightNode;
-            private SimpleNineGridNode headerBackgroundNode;
-            private SimpleNineGridNode headerBorderNode;
-
-            private TextureButtonNode closeButtonNode;
 
             public bool PressedButtonOnce { get; set; }
 
@@ -562,7 +568,7 @@ public partial class OccultCrescentHelper
                 windowNode.BackgroundImageNode.Position = new(0);
                 windowNode.BackgroundImageNode.Size     = new(windowNode.Width - 2f, windowNode.Height - 12f);
 
-                if (!Throttler.Throttle("OccultCrescentHelper-OthersManager-UpdateAddon", 10)) return;
+                if (!Throttler.Shared.Throttle("OccultCrescentHelper-OthersManager-UpdateAddon", 10)) return;
 
                 foreach (var node in jobActionsContainer)
                 {
@@ -673,8 +679,8 @@ public partial class OccultCrescentHelper
 
                     if (presetJob.UnlockType != CrescentSupportJobUnlockType.None)
                     {
-                        unlockLink = $"{GetLoc("OccultCrescentHelper-OthersManager-SupportJobUnlockLink")}:\n" +
-                                     $"{presetJob.UnlockLinkName}\n"                                           +
+                        unlockLink = $"{Lang.Get("OccultCrescentHelper-OthersManager-SupportJobUnlockLink")}:\n" +
+                                     $"{presetJob.UnlockLinkName}\n"                                             +
                                      $"[{presetJob.UnlockTypeName}]";
                     }
 
@@ -1357,10 +1363,10 @@ public partial class OccultCrescentHelper
                         IsVisible = true,
                         Position  = new(10, 8),
                         Size      = new(Width, 28),
-                        String    = GetLoc("OccultCrescentHelper-OthersManager-DragRealActionIcon"),
+                        String    = Lang.Get("OccultCrescentHelper-OthersManager-DragRealActionIcon"),
                         TextTooltip = new SeStringBuilder()
                                       .AddIcon(BitmapFontIcon.ExclamationRectangle)
-                                      .AddText($" {GetLoc("OccultCrescentHelper-OthersManager-DragRealActionIcon-Help")}")
+                                      .AddText($" {Lang.Get("OccultCrescentHelper-OthersManager-DragRealActionIcon-Help")}")
                                       .Build()
                                       .Encode(),
                         IsChecked = ModuleConfig.AddonIsDragRealAction,
@@ -1383,22 +1389,15 @@ public partial class OccultCrescentHelper
 
                 public class SupportActionNode : DragDropNode
                 {
-                    public CrescentSupportJob       Job  { get; private set; }
-                    public SupportJobActionListNode List { get; private set; }
-
-                    public bool IsRealAction { get; private set; }
-                    public int  ActionIndex  { get; private set; }
-                    public uint ActionID     { get; private set; }
-
-                    public bool IsDefault { get; private set; }
-                    public bool IsHidden  { get; private set; }
-
-                    public SimpleNineGridNode DefaultIconNode { get; private set; }
-                    public SimpleNineGridNode HiddenIconNode  { get; private set; }
-
-                    public static byte                 DefaultAction     { get; private set; }
-                    public static ActionSlotHiddenFlag ActionHiddenFlags { get; private set; }
-                    public static HashSet<byte>        HiddenActions     { get; private set; } = [];
+                    [Flags]
+                    public enum ActionSlotHiddenFlag : byte
+                    {
+                        Action0 = 1 << 0,
+                        Action1 = 1 << 1,
+                        Action2 = 1 << 2,
+                        Action3 = 1 << 3,
+                        Action4 = 1 << 4
+                    }
 
                     public SupportActionNode(CrescentSupportJob job, SupportJobActionListNode list, uint actionID, int actionIndex, bool isRealAction = false)
                     {
@@ -1433,6 +1432,23 @@ public partial class OccultCrescentHelper
 
                         Toggle(IsRealAction);
                     }
+
+                    public CrescentSupportJob       Job  { get; private set; }
+                    public SupportJobActionListNode List { get; private set; }
+
+                    public bool IsRealAction { get; private set; }
+                    public int  ActionIndex  { get; private set; }
+                    public uint ActionID     { get; private set; }
+
+                    public bool IsDefault { get; private set; }
+                    public bool IsHidden  { get; private set; }
+
+                    public SimpleNineGridNode DefaultIconNode { get; private set; }
+                    public SimpleNineGridNode HiddenIconNode  { get; private set; }
+
+                    public static byte                 DefaultAction     { get; private set; }
+                    public static ActionSlotHiddenFlag ActionHiddenFlags { get; private set; }
+                    public static HashSet<byte>        HiddenActions     { get; private set; } = [];
 
                     public void Toggle(bool isRealAction)
                     {
@@ -1522,16 +1538,6 @@ public partial class OccultCrescentHelper
                         }
                     }
 
-                    [Flags]
-                    public enum ActionSlotHiddenFlag : byte
-                    {
-                        Action0 = 1 << 0,
-                        Action1 = 1 << 1,
-                        Action2 = 1 << 2,
-                        Action3 = 1 << 3,
-                        Action4 = 1 << 4
-                    }
-
                     public static ActionSlotHiddenFlag IndexToHiddenFlag(int index) => index switch
                     {
                         0 => ActionSlotHiddenFlag.Action0,
@@ -1547,9 +1553,6 @@ public partial class OccultCrescentHelper
 
         private class LongTimeBuffButton : OverlayNode
         {
-            public override OverlayLayer OverlayLayer     => OverlayLayer.BehindUserInterface;
-            public override bool         HideWithNativeUi => true;
-
             private readonly TextButtonNode buttonNode;
 
             private bool    isAnyNearby;
@@ -1561,26 +1564,29 @@ public partial class OccultCrescentHelper
                 {
                     Size        = new(48, 24),
                     String      = new SeStringBuilder().AddIcon(BitmapFontIcon.ElementalLevel).Build().Encode(),
-                    TextTooltip = GetLoc("OccultCrescentHelper-Command-PBuff-Help"),
+                    TextTooltip = Lang.Get("OccultCrescentHelper-Command-PBuff-Help"),
                     OnClick     = () => ChatManager.Instance().SendMessage("/pdr pbuff"),
                     Scale       = new(3)
                 };
                 buttonNode.AttachNode(this);
             }
 
+            public override OverlayLayer OverlayLayer     => OverlayLayer.BehindUserInterface;
+            public override bool         HideWithNativeUi => true;
+
             protected override void OnUpdate()
             {
                 if (ModuleConfig.IsEnabledKnowledgeCrystalFastUse                         &&
                     GameState.TerritoryIntendedUse == TerritoryIntendedUse.OccultCrescent &&
-                    !OccupiedInEvent)
+                    !DService.Instance().Condition.IsOccupiedInEvent)
                 {
-                    if (Throttler.Throttle("OccultCrescentHelper-OthersManager-LongTimeBuffButton"))
+                    if (Throttler.Shared.Throttle("OccultCrescentHelper-OthersManager-LongTimeBuffButton"))
                     {
                         isAnyNearby    = CrescentSupportJob.TryFindKnowledgeCrystal(out var gameObject);
                         nearbyPosition = isAnyNearby ? gameObject.Position : Vector3.Zero;
                     }
 
-                    if (nearbyPosition != Vector3.Zero &&
+                    if (nearbyPosition != Vector3.Zero                                                  &&
                         GameViewHelper.WorldToScreen(nearbyPosition, out var screenPos, out var inView) &&
                         inView)
                     {

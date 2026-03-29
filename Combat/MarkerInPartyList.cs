@@ -1,59 +1,62 @@
-using DailyRoutines.Abstracts;
+using System.Numerics;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Hooking;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit.Classes;
+using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using FFXIVClientStructs.FFXIV.Client.UI;
-using KamiToolKit.Enums;
-using OmenTools.Extensions;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class MarkerInPartyList : DailyModuleBase
+public unsafe class MarkerInPartyList : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("MarkerInPartyListTitle"),
-        Description = GetLoc("MarkerInPartyListDescription"),
-        Category    = ModuleCategories.Combat,
-        Author      = ["status102"]
-    };
+    public delegate void LocalMarkingDelegate(void* manager, uint markingType, GameObjectId objectID, uint entityID);
 
     private const int DEFAULT_ICON_ID = 61201;
 
     private static readonly (short X, short Y) BasePosition = (41, 35);
 
     private static readonly CompSig                     LocalMarkingSig = new("E8 ?? ?? ?? ?? 4C 8B C5 8B D7 48 8B CB E8");
-    public delegate         void                        LocalMarkingDelegate(void* manager, uint markingType, GameObjectId objectID, uint entityID);
     public static           Hook<LocalMarkingDelegate>? LocalMarkingHook;
 
     private static Config? ModuleConfig;
-    
+
     private static readonly Dictionary<int, int> MarkedObject = new(8); // markID, memberIndex
-    private static readonly List<IconImageNode>  NodeList = new(8);
+    private static readonly List<IconImageNode>  NodeList     = new(8);
 
     private static bool NeedClear;
-    
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("MarkerInPartyListTitle"),
+        Description = Lang.Get("MarkerInPartyListDescription"),
+        Category    = ModuleCategory.Combat,
+        Author      = ["status102"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig =   LoadConfig<Config>() ?? new();
+        ModuleConfig =   Config.Load(this) ?? new();
         TaskHelper   ??= new();
 
         LocalMarkingHook = LocalMarkingSig.GetHook<LocalMarkingDelegate>(LocalMarkingDetour);
         LocalMarkingHook.Enable();
 
         DService.Instance().ClientState.TerritoryChanged += ResetMarkedObject;
-        
+
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "_PartyList", OnAddonPartyList);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "_PartyList", OnAddonPartyList);
     }
@@ -61,7 +64,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
     protected override void Uninit()
     {
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddonPartyList);
-        
+
         DService.Instance().ClientState.TerritoryChanged -= ResetMarkedObject;
 
         ResetPartyMemberList();
@@ -70,29 +73,32 @@ public unsafe class MarkerInPartyList : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.SetNextItemWidth(200f * GlobalFontScale);
+        ImGui.SetNextItemWidth(200f * GlobalUIScale);
         var iconOffset = ModuleConfig.IconOffset;
         ImGui.InputFloat2(Lang.Get("MarkerInPartyList-IconOffset"), ref iconOffset, format: "%.1f");
+
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
             ModuleConfig.IconOffset = iconOffset;
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
             RefreshNodeStatus();
         }
 
-        ImGui.SetNextItemWidth(200f * GlobalFontScale);
+        ImGui.SetNextItemWidth(200f * GlobalUIScale);
         ImGui.InputInt(Lang.Get("MarkerInPartyList-IconScale"), ref ModuleConfig.Size);
+
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
             RefreshNodeStatus();
         }
 
         if (ImGui.Checkbox(Lang.Get("MarkerInPartyList-HidePartyListIndexNumber"), ref ModuleConfig.HidePartyListIndexNumber))
         {
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
             var hide = ModuleConfig.HidePartyListIndexNumber;
+
             foreach (var (node, i) in NodeList.Zip(Enumerable.Range(10, 8)))
             {
                 var component = PartyList->GetNodeById((uint)i);
@@ -121,7 +127,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
 
     private static void ModifyPartyMemberNumber(bool visible)
     {
-        if (!PartyList->IsAddonAndNodesReady() || (!ModuleConfig.HidePartyListIndexNumber && !visible))
+        if (!PartyList->IsAddonAndNodesReady() || !ModuleConfig.HidePartyListIndexNumber && !visible)
             return;
 
         foreach (var id in Enumerable.Range(10, 8).ToList())
@@ -138,7 +144,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
                 textNode->ToggleVisibility(visible);
         }
     }
-    
+
     private static void ProcessMarkIconSetted(uint markIndex, uint entityID)
     {
         if (AgentHUD.Instance() is null || InfoProxyCrossRealm.Instance() is null)
@@ -146,11 +152,12 @@ public unsafe class MarkerInPartyList : DailyModuleBase
 
         int index;
         var mark = (int)(markIndex + 1);
+
         if (mark <= 0 || mark > LuminaGetter.Get<Marker>().Count || !LuminaGetter.TryGetRow((uint)mark, out Marker markerRow))
         {
             if (FindMember(entityID, out index))
                 RemoveMemberMark(index);
-            
+
             return;
         }
 
@@ -171,6 +178,13 @@ public unsafe class MarkerInPartyList : DailyModuleBase
             RemoveMemberMark(index);
             AddMemberMark(index, markerRow.Icon);
         }
+    }
+
+    private class Config : ModuleConfig
+    {
+        public bool    HidePartyListIndexNumber = true;
+        public Vector2 IconOffset               = new(0, 0);
+        public int     Size                     = 27;
     }
 
     #region ImageNode
@@ -206,10 +220,10 @@ public unsafe class MarkerInPartyList : DailyModuleBase
     private static void HideImageNode(int i)
     {
         if (i is < 0 or > 7 || NodeList.Count <= i) return;
-        
+
         var node = NodeList[i];
         if (node == null) return;
-        
+
         node.IsVisible = false;
     }
 
@@ -224,7 +238,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
             var component = PartyList->GetNodeById((uint)i);
             if (component is null || !component->IsVisible())
                 continue;
-            
+
             node.Position    = new(component->X + BasePosition.X + ModuleConfig.IconOffset.X, component->Y + BasePosition.Y + ModuleConfig.IconOffset.Y);
             node.TextureSize = node.ActualTextureSize;
             node.Size        = new(ModuleConfig.Size);
@@ -266,9 +280,11 @@ public unsafe class MarkerInPartyList : DailyModuleBase
     private static bool FindMember(uint entityID, out int index)
     {
         var pAgentHUD = AgentHUD.Instance();
+
         for (var i = 0; i < pAgentHUD->PartyMemberCount; ++i)
         {
             var charData = pAgentHUD->PartyMembers[i];
+
             if (entityID == charData.EntityId)
             {
                 index = i;
@@ -278,8 +294,9 @@ public unsafe class MarkerInPartyList : DailyModuleBase
 
         if (InfoProxyCrossRealm.Instance()->IsCrossRealm)
         {
-            var myGroup = InfoProxyCrossRealm.GetMemberByEntityId(LocalPlayerState.EntityID);
+            var myGroup      = InfoProxyCrossRealm.GetMemberByEntityId(LocalPlayerState.EntityID);
             var pGroupMember = InfoProxyCrossRealm.GetMemberByEntityId(entityID);
+
             if (myGroup is not null && pGroupMember is not null && pGroupMember->GroupIndex == myGroup->GroupIndex)
             {
                 index = pGroupMember->MemberIndex;
@@ -336,7 +353,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
                             IconId    = DEFAULT_ICON_ID,
                             NodeFlags = NodeFlags.Fill,
                             DrawFlags = DrawFlags.None,
-                            WrapMode  = WrapMode.Stretch,
+                            WrapMode  = WrapMode.Stretch
                         };
                         imageNode.Priority = 5;
 
@@ -348,6 +365,7 @@ public unsafe class MarkerInPartyList : DailyModuleBase
                         return;
 
                     var markers = MarkingController.Instance()->Markers;
+
                     for (var i = 0; i < markers.Length; i++)
                     {
                         var gameObjectID = markers[i].ObjectId;
@@ -364,11 +382,4 @@ public unsafe class MarkerInPartyList : DailyModuleBase
     }
 
     #endregion
-
-    private class Config : ModuleConfiguration
-    {
-        public Vector2 IconOffset               = new(0, 0);
-        public int     Size                     = 27;
-        public bool    HidePartyListIndexNumber = true;
-    }
 }

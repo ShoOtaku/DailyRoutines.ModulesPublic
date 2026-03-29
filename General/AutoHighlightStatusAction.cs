@@ -1,35 +1,30 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using Dalamud.Interface.Textures;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using OmenTools.ImGuiOm.Widgets.Combos;
+using OmenTools.Info.Game.Data;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
 using LuminaAction = Lumina.Excel.Sheets.Action;
 using Status = Lumina.Excel.Sheets.Status;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoHighlightStatusAction : DailyModuleBase
+public unsafe class AutoHighlightStatusAction : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoHighlightStatusActionTitle"),
-        Description = GetLoc("AutoHighlightStatusActionDescription"),
-        Category    = ModuleCategories.General,
-        Author      = ["HaKu"]
-    };
-
-    private static readonly CompSig IsActionHighlightedSig = new("E8 ?? ?? ?? ?? 88 47 41 80 BB C9 00 00 00 01");
-    [return: MarshalAs(UnmanagedType.U1)]
-    private delegate bool IsActionHighlightedDelegate(ActionManager* actionManager, ActionType actionType, uint actionID);
-    private static Hook<IsActionHighlightedDelegate>? IsActionHighlightedHook;
+    private static readonly CompSig                            IsActionHighlightedSig = new("E8 ?? ?? ?? ?? 88 47 41 80 BB C9 00 00 00 01");
+    private static          Hook<IsActionHighlightedDelegate>? IsActionHighlightedHook;
 
     private static Config ModuleConfig = null!;
 
@@ -54,20 +49,60 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
     private static readonly List<StatusKey> ResyncKeys = new(16);
     private static readonly List<StatusKey> RemoveKeys = new(16);
 
+
+    private static readonly Dictionary<uint, StatusConfig> StatusConfigs = new()
+    {
+
+        [838]  = new StatusConfig { BindActions = [3599], Countdown  = 4.0f, KeepHighlight  = true },
+        [843]  = new StatusConfig { BindActions = [3608], Countdown  = 4.0f, KeepHighlight  = true },
+        [1881] = new StatusConfig { BindActions = [16554], Countdown = 4.0f, KeepHighlight  = true },
+        [1248] = new StatusConfig { BindActions = [8324], Countdown  = 10.0f, KeepHighlight = false },
+
+        [143]  = new StatusConfig { BindActions = [121], Countdown   = 4.0f, KeepHighlight = true },
+        [144]  = new StatusConfig { BindActions = [132], Countdown   = 4.0f, KeepHighlight = true },
+        [1871] = new StatusConfig { BindActions = [16532], Countdown = 4.0f, KeepHighlight = true },
+
+        [2614] = new StatusConfig { BindActions = [24290], Countdown = 6.0f, KeepHighlight = true },
+        [2615] = new StatusConfig { BindActions = [24290], Countdown = 6.0f, KeepHighlight = true },
+        [2616] = new StatusConfig { BindActions = [24290], Countdown = 6.0f, KeepHighlight = true },
+
+        [179]  = new StatusConfig { BindActions = [17864], Countdown = 4.0f, KeepHighlight = true },
+        [189]  = new StatusConfig { BindActions = [17865], Countdown = 4.0f, KeepHighlight = true },
+        [1895] = new StatusConfig { BindActions = [16540], Countdown = 4.0f, KeepHighlight = true },
+
+        [124]  = new StatusConfig { BindActions = [100], Countdown        = 4.0f, KeepHighlight = true },
+        [1200] = new StatusConfig { BindActions = [7406, 3560], Countdown = 4.0f, KeepHighlight = true },
+        [129]  = new StatusConfig { BindActions = [113], Countdown        = 4.0f, KeepHighlight = true },
+        [1201] = new StatusConfig { BindActions = [7407, 3560], Countdown = 4.0f, KeepHighlight = true },
+
+        [1299] = new StatusConfig { BindActions = [7485], Countdown  = 4.0f, KeepHighlight = true },
+        [2719] = new StatusConfig { BindActions = [25772], Countdown = 4.0f, KeepHighlight = true },
+
+        [2677] = new StatusConfig { BindActions = [45], Countdown = 4.0f, KeepHighlight = true }
+    };
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoHighlightStatusActionTitle"),
+        Description = Lang.Get("AutoHighlightStatusActionDescription"),
+        Category    = ModuleCategory.General,
+        Author      = ["HaKu"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         if (ModuleConfig.MonitoredStatus.Count == 0)
         {
             ModuleConfig.MonitoredStatus = StatusConfigs.ToDictionary(x => x.Key, x => x.Value);
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
         }
 
         RebuildComboChains();
 
-        StatusCombo ??= new("StatusCombo", PresetSheet.Statuses.Values);
-        ActionCombo ??= new("ActionCombo", PresetSheet.PlayerActions.Values);
+        StatusCombo ??= new("StatusCombo", Sheets.Statuses.Values);
+        ActionCombo ??= new("ActionCombo", Sheets.PlayerActions.Values);
 
         IsActionHighlightedHook = IsActionHighlightedSig.GetHook<IsActionHighlightedDelegate>(IsActionHighlightedDetour);
         IsActionHighlightedHook.Enable();
@@ -97,29 +132,29 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.SetNextItemWidth(100f * GlobalFontScale);
-        if (ImGui.SliderFloat($"{GetLoc("AutoHighlightStatusAction-Countdown")}##ReminderThreshold", ref ModuleConfig.Countdown, 2.0f, 10.0f, "%.1f"))
-            SaveConfig(ModuleConfig);
-        ImGuiOm.HelpMarker(GetLoc("AutoHighlightStatusAction-Countdown-Help"));
+        ImGui.SetNextItemWidth(100f * GlobalUIScale);
+        if (ImGui.SliderFloat($"{Lang.Get("AutoHighlightStatusAction-Countdown")}##ReminderThreshold", ref ModuleConfig.Countdown, 2.0f, 10.0f, "%.1f"))
+            ModuleConfig.Save(this);
+        ImGuiOm.HelpMarker(Lang.Get("AutoHighlightStatusAction-Countdown-Help"));
 
-        ImGui.SameLine(0, 5f * GlobalFontScale);
-        if (ImGui.Checkbox($"{GetLoc("AutoHighlightStatusAction-KeepHighlightAfterExpire")}##KeepHighlightAfterExpire", ref KeepHighlightAfterExpire))
-            SaveConfig(ModuleConfig);
-        ImGuiOm.HelpMarker(GetLoc("AutoHighlightStatusAction-KeepHighlightAfterExpire-Help"));
+        ImGui.SameLine(0, 5f * GlobalUIScale);
+        if (ImGui.Checkbox($"{Lang.Get("AutoHighlightStatusAction-KeepHighlightAfterExpire")}##KeepHighlightAfterExpire", ref KeepHighlightAfterExpire))
+            ModuleConfig.Save(this);
+        ImGuiOm.HelpMarker(Lang.Get("AutoHighlightStatusAction-KeepHighlightAfterExpire-Help"));
 
         ImGui.Spacing();
 
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
+        ImGui.SetNextItemWidth(300f * GlobalUIScale);
         using (ImRaii.PushId("Status"))
             StatusCombo.DrawRadio();
         ImGui.TextDisabled("↓");
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
+        ImGui.SetNextItemWidth(300f * GlobalUIScale);
         using (ImRaii.PushId("Action"))
             ActionCombo.DrawCheckbox();
 
         ImGui.Spacing();
 
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, GetLoc("Add")))
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, Lang.Get("Add")))
         {
             if (StatusCombo.SelectedID != 0 && ActionCombo.SelectedIDs.Count > 0)
             {
@@ -136,15 +171,15 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
 
         ImGui.NewLine();
 
-        using var table = ImRaii.Table("PlayersInList", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY, new(0, 200f * GlobalFontScale));
+        using var table = ImRaii.Table("PlayersInList", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY, new(0, 200f * GlobalUIScale));
         if (!table)
             return;
 
-        ImGui.TableSetupColumn("##Delete",                                                   ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableSetupColumn(GetLoc("Status"),                                             ImGuiTableColumnFlags.WidthStretch, 15);
-        ImGui.TableSetupColumn(GetLoc("Action"),                                             ImGuiTableColumnFlags.WidthStretch, 40);
-        ImGui.TableSetupColumn(GetLoc("AutoHighlightStatusAction-Countdown"),                ImGuiTableColumnFlags.WidthStretch, 20);
-        ImGui.TableSetupColumn(GetLoc("AutoHighlightStatusAction-KeepHighlightAfterExpire"), ImGuiTableColumnFlags.WidthStretch, 20);
+        ImGui.TableSetupColumn("##Delete",                                                     ImGuiTableColumnFlags.WidthFixed);
+        ImGui.TableSetupColumn(Lang.Get("Status"),                                             ImGuiTableColumnFlags.WidthStretch, 15);
+        ImGui.TableSetupColumn(Lang.Get("Action"),                                             ImGuiTableColumnFlags.WidthStretch, 40);
+        ImGui.TableSetupColumn(Lang.Get("AutoHighlightStatusAction-Countdown"),                ImGuiTableColumnFlags.WidthStretch, 20);
+        ImGui.TableSetupColumn(Lang.Get("AutoHighlightStatusAction-KeepHighlightAfterExpire"), ImGuiTableColumnFlags.WidthStretch, 20);
 
         ImGui.TableHeadersRow();
 
@@ -156,7 +191,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
 
             ImGui.TableNextColumn();
 
-            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, GetLoc("Delete")))
+            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.TrashAlt, Lang.Get("Delete")))
             {
                 ModuleConfig.MonitoredStatus.Remove(status);
                 ModuleConfig.Save(this);
@@ -204,7 +239,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
                 ModuleConfig.Countdown = statusConfig.Countdown;
 
             ImGui.TableNextColumn();
-            ImGui.TextUnformatted(statusConfig.KeepHighlight ? GetLoc("Yes") : GetLoc("No"));
+            ImGui.TextUnformatted(statusConfig.KeepHighlight ? Lang.Get("Yes") : Lang.Get("No"));
             if (ImGui.IsItemHovered())
                 ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
             if (ImGui.IsItemClicked())
@@ -233,7 +268,7 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
 
         LastUpdateTicks = Environment.TickCount64;
         SeedTrackedStatuses();
-        
+
         FrameworkManager.Instance().Reg(OnUpdate, 1000);
         UseActionManager.Instance().RegPostUseActionLocation(OnPostUseActionLocation);
         CharacterStatusManager.Instance().RegGain(OnGainStatus);
@@ -252,17 +287,17 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         var nowTicks = Environment.TickCount64;
         var dt       = (nowTicks - LastUpdateTicks) / 1000f;
         LastUpdateTicks = nowTicks;
-        if (dt <= 0f) 
+        if (dt <= 0f)
             dt = 1f;
-        if (dt > 5f) 
-            dt  = 5f;
+        if (dt > 5f)
+            dt = 5f;
 
         if (TargetManager.Target is not IBattleNPC { IsDead: false } battleNpcTarget)
         {
             ActionsToHighlight.Clear();
             return;
         }
-        
+
         var currentTargetEntityID = battleNpcTarget.EntityID;
         ResyncKeys.Clear();
         RemoveKeys.Clear();
@@ -468,12 +503,13 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
     private static void SeedTrackedStatuses()
     {
         var counter = -1;
+
         foreach (var obj in DService.Instance().ObjectTable)
         {
             counter++;
             if (counter >= 200)
                 break;
-            
+
             if (obj is not IBattleChara { IsDead: false } battleChara)
                 continue;
 
@@ -628,44 +664,14 @@ public unsafe class AutoHighlightStatusAction : DailyModuleBase
         }
     }
 
-    private class Config : ModuleConfiguration
+    [return: MarshalAs(UnmanagedType.U1)]
+    private delegate bool IsActionHighlightedDelegate(ActionManager* actionManager, ActionType actionType, uint actionID);
+
+    private class Config : ModuleConfig
     {
+        public float                          Countdown       = 4;
         public Dictionary<uint, StatusConfig> MonitoredStatus = [];
-
-        public float Countdown = 4;
     }
-
-
-    private static readonly Dictionary<uint, StatusConfig> StatusConfigs = new()
-    {
-
-        [838]  = new StatusConfig { BindActions = [3599], Countdown  = 4.0f, KeepHighlight  = true },
-        [843]  = new StatusConfig { BindActions = [3608], Countdown  = 4.0f, KeepHighlight  = true },
-        [1881] = new StatusConfig { BindActions = [16554], Countdown = 4.0f, KeepHighlight  = true },
-        [1248] = new StatusConfig { BindActions = [8324], Countdown  = 10.0f, KeepHighlight = false },
-
-        [143]  = new StatusConfig { BindActions = [121], Countdown   = 4.0f, KeepHighlight = true },
-        [144]  = new StatusConfig { BindActions = [132], Countdown   = 4.0f, KeepHighlight = true },
-        [1871] = new StatusConfig { BindActions = [16532], Countdown = 4.0f, KeepHighlight = true },
-
-        [2614] = new StatusConfig { BindActions = [24290], Countdown = 6.0f, KeepHighlight = true },
-        [2615] = new StatusConfig { BindActions = [24290], Countdown = 6.0f, KeepHighlight = true },
-        [2616] = new StatusConfig { BindActions = [24290], Countdown = 6.0f, KeepHighlight = true },
-
-        [179]  = new StatusConfig { BindActions = [17864], Countdown = 4.0f, KeepHighlight = true },
-        [189]  = new StatusConfig { BindActions = [17865], Countdown = 4.0f, KeepHighlight = true },
-        [1895] = new StatusConfig { BindActions = [16540], Countdown = 4.0f, KeepHighlight = true },
-
-        [124]  = new StatusConfig { BindActions = [100], Countdown        = 4.0f, KeepHighlight = true },
-        [1200] = new StatusConfig { BindActions = [7406, 3560], Countdown = 4.0f, KeepHighlight = true },
-        [129]  = new StatusConfig { BindActions = [113], Countdown        = 4.0f, KeepHighlight = true },
-        [1201] = new StatusConfig { BindActions = [7407, 3560], Countdown = 4.0f, KeepHighlight = true },
-
-        [1299] = new StatusConfig { BindActions = [7485], Countdown  = 4.0f, KeepHighlight = true },
-        [2719] = new StatusConfig { BindActions = [25772], Countdown = 4.0f, KeepHighlight = true },
-
-        [2677] = new StatusConfig { BindActions = [45], Countdown = 4.0f, KeepHighlight = true }
-    };
 
     private class StatusConfig
     {

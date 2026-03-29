@@ -1,26 +1,21 @@
-using System;
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using FFXIVClientStructs.Interop;
+using OmenTools.Interop.Game.Helpers;
+using OmenTools.OmenService;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
 namespace DailyRoutines.Modules;
 
-public unsafe class ScrollableTabs : DailyModuleBase
+public unsafe class ScrollableTabs : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("ScrollableTabsTitle"),
-        Description = GetLoc("ScrollableTabsDescription"),
-        Category    = ModuleCategories.UIOptimization,
-        Author      = ["Cyf5119"]
-    };
-
     private const int NUM_ARMOURY_BOARD_TABS            = 12;
     private const int NUM_INVENTORY_TABS                = 5;
     private const int NUM_INVENTORY_LARGE_TABS          = 4;
@@ -31,17 +26,6 @@ public unsafe class ScrollableTabs : DailyModuleBase
 
     private static Config ModuleConfig = null!;
     private static int    WheelState;
-
-    private static AtkCollisionNode* IntersectingCollisionNode =>
-        RaptureAtkModule.Instance()->AtkCollisionManager.IntersectingCollisionNode;
-
-    private static bool IsNext =>
-        WheelState == (!ModuleConfig.Invert ? 1 : -1);
-
-    private static bool IsPrev =>
-        WheelState == (!ModuleConfig.Invert ? -1 : 1);
-
-    private delegate void AddonUpdateHandler(AtkUnitBase* unitBase);
 
     private static readonly Dictionary<string, AddonUpdateHandler> UIHandlerMapping = [];
     private static readonly Dictionary<string, string>             UINameMapping    = [];
@@ -156,17 +140,34 @@ public unsafe class ScrollableTabs : DailyModuleBase
         }
     }
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("ScrollableTabsTitle"),
+        Description = Lang.Get("ScrollableTabsDescription"),
+        Category    = ModuleCategory.UIOptimization,
+        Author      = ["Cyf5119"]
+    };
+
+    private static AtkCollisionNode* IntersectingCollisionNode =>
+        RaptureAtkModule.Instance()->AtkCollisionManager.IntersectingCollisionNode;
+
+    private static bool IsNext =>
+        WheelState == (!ModuleConfig.Invert ? 1 : -1);
+
+    private static bool IsPrev =>
+        WheelState == (!ModuleConfig.Invert ? -1 : 1);
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new Config();
+        ModuleConfig = Config.Load(this) ?? new();
 
         FrameworkManager.Instance().Reg(OnUpdate);
     }
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(GetLoc("ScrollableTabs-Invert"), ref ModuleConfig.Invert))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("ScrollableTabs-Invert"), ref ModuleConfig.Invert))
+            ModuleConfig.Save(this);
     }
 
     protected override void Uninit() =>
@@ -212,7 +213,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
             itemInventryWindowSizeType == 2)
             mappedName = "InventoryExpansion";
 
-        if (!TryGetAddonByName(mappedName, out var unitBase))
+        if (!AddonHelper.TryGetByName(mappedName, out var unitBase))
         {
             WheelState = 0;
             return;
@@ -227,7 +228,7 @@ public unsafe class ScrollableTabs : DailyModuleBase
     private static void HandleCharacterUI(AtkUnitBase* unitBase)
     {
         var name           = unitBase->NameString;
-        var addonCharacter = name == "Character" ? (AddonCharacter*)unitBase : GetAddonByName<AddonCharacter>("Character");
+        var addonCharacter = name == "Character" ? (AddonCharacter*)unitBase : AddonHelper.GetByName<AddonCharacter>("Character");
 
         if (addonCharacter == null                             ||
             !addonCharacter->AddonControl.IsChildSetupComplete ||
@@ -653,7 +654,9 @@ public unsafe class ScrollableTabs : DailyModuleBase
         addon->AtkUnitBase.ReceiveEvent((AtkEventType)37, 0, &atkEvent, &data);
     }
 
-    private class Config : ModuleConfiguration
+    private delegate void AddonUpdateHandler(AtkUnitBase* unitBase);
+
+    private class Config : ModuleConfig
     {
         public bool Invert = true;
     }

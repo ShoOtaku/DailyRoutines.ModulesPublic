@@ -1,43 +1,33 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using Dalamud.Interface.Components;
-using Dalamud.Utility.Numerics;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Arrays;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit.Classes;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 using KamiToolKit.Overlay;
-using Bounds = FFXIVClientStructs.FFXIV.Common.Math.Bounds;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
+using OmenTools.Threading;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class OptimizedEnemyList : DailyModuleBase
+public unsafe class OptimizedEnemyList : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title           = GetLoc("OptimizedEnemyListTitle"),
-        Description     = GetLoc("OptimizedEnemyListDescription"),
-        Category        = ModuleCategories.UIOptimization,
-        PreviewImageURL = ["https://gh.atmoomen.top/raw.githubusercontent.com/AtmoOmen/StaticAssets/main/DailyRoutines/image/OptimizedEnemyList-UI.png"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private static readonly CompSig                                AgentHudUpdateEnemyListSig = new("40 55 57 41 56 48 81 EC ?? ?? ?? ?? 4C 8B F1");
-    private delegate        void                                   AgentHudUpdateEnemyListDelegate(AgentHUD* agent);
     private static          Hook<AgentHudUpdateEnemyListDelegate>? AgentHudUpdateEnemyListHook;
 
     private static Config ModuleConfig = null!;
@@ -53,12 +43,22 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             IconTextNodesRow StatusNodes
             )>
         TextNodes = [];
-    
+
     private static OverlayController? Controller;
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title           = Lang.Get("OptimizedEnemyListTitle"),
+        Description     = Lang.Get("OptimizedEnemyListDescription"),
+        Category        = ModuleCategory.UIOptimization,
+        PreviewImageURL = ["https://gh.atmoomen.top/raw.githubusercontent.com/AtmoOmen/StaticAssets/main/DailyRoutines/image/OptimizedEnemyList-UI.png"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         Controller ??= new();
 
@@ -69,7 +69,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,            "_EnemyList", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_EnemyList", OnAddon);
     }
-    
+
     protected override void Uninit()
     {
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
@@ -84,14 +84,14 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.SetNextItemWidth(200f * GlobalFontScale);
-        ImGui.InputFloat2($"{GetLoc("Offset")}###TextOffsetInput", ref ModuleConfig.TextOffset, format: "%.1f");
+        ImGui.SetNextItemWidth(200f * GlobalUIScale);
+        ImGui.InputFloat2($"{Lang.Get("Offset")}###TextOffsetInput", ref ModuleConfig.TextOffset, format: "%.1f");
 
         if (ImGui.IsItemDeactivatedAfterEdit())
             ModuleConfig.Save(this);
 
-        ImGui.SetNextItemWidth(200f * GlobalFontScale);
-        ImGui.InputByte($"{GetLoc("FontSize")}###FontSize", ref ModuleConfig.FontSize);
+        ImGui.SetNextItemWidth(200f * GlobalUIScale);
+        ImGui.InputByte($"{Lang.Get("FontSize")}###FontSize", ref ModuleConfig.FontSize);
         if (ImGui.IsItemDeactivatedAfterEdit())
             ModuleConfig.Save(this);
 
@@ -100,27 +100,27 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         ModuleConfig.TextColor = ImGuiComponents.ColorPickerWithPalette(0, "###TextColorInput", ModuleConfig.TextColor);
 
         ImGui.SameLine();
-        ImGui.TextUnformatted($"{GetLoc("Color")} ({GetLoc("Text")})");
+        ImGui.TextUnformatted($"{Lang.Get("Color")} ({Lang.Get("Text")})");
 
         ModuleConfig.TextEdgeColor = ImGuiComponents.ColorPickerWithPalette(1, "###EdgeColorInput", ModuleConfig.TextEdgeColor);
 
         ImGui.SameLine();
-        ImGui.TextUnformatted($"{GetLoc("EdgeColor")} ({GetLoc("Text")})");
-                
-        ImGui.SetNextItemWidth(200f * GlobalFontScale);
-        if (ImGui.SliderFloat($"{GetLoc("Alpha")} ({GetLoc("Background")})", ref ModuleConfig.BackgroundAlpha, 0, 1, "%.1f"))
+        ImGui.TextUnformatted($"{Lang.Get("EdgeColor")} ({Lang.Get("Text")})");
+
+        ImGui.SetNextItemWidth(200f * GlobalUIScale);
+        if (ImGui.SliderFloat($"{Lang.Get("Alpha")} ({Lang.Get("Background")})", ref ModuleConfig.BackgroundAlpha, 0, 1, "%.1f"))
             ModuleConfig.BackgroundAlpha = Math.Clamp(ModuleConfig.BackgroundAlpha, 0, 1);
-                
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Save, $"{GetLoc("Save")}"))
+
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Save, $"{Lang.Get("Save")}"))
             ModuleConfig.Save(this);
 
         ImGui.SameLine();
 
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Redo, $"{GetLoc("Reset")}"))
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Redo, $"{Lang.Get("Reset")}"))
         {
             var newConfig = new Config();
             ModuleConfig.TextColor       = newConfig.TextColor;
-            ModuleConfig.TextEdgeColor       = newConfig.TextEdgeColor;
+            ModuleConfig.TextEdgeColor   = newConfig.TextEdgeColor;
             ModuleConfig.BackgroundAlpha = newConfig.BackgroundAlpha;
 
             ModuleConfig.Save(this);
@@ -128,23 +128,23 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
         ImGui.NewLine();
 
-        if (ImGui.Checkbox(GetLoc("OptimizedEnemyList-UseCustomGeneralInfo"), ref ModuleConfig.UseCustomizeText))
+        if (ImGui.Checkbox(Lang.Get("OptimizedEnemyList-UseCustomGeneralInfo"), ref ModuleConfig.UseCustomizeText))
             ModuleConfig.Save(this);
 
         if (ModuleConfig.UseCustomizeText)
         {
             using (ImRaii.PushIndent())
-            using (ImRaii.ItemWidth(300f * GlobalFontScale))
+            using (ImRaii.ItemWidth(300f * GlobalUIScale))
             {
-                ImGui.InputText($"{GetLoc("General")}##CustomizeTextPatternInput", ref ModuleConfig.CustomTextPattern);
+                ImGui.InputText($"{Lang.Get("General")}##CustomizeTextPatternInput", ref ModuleConfig.CustomTextPattern);
                 if (ImGui.IsItemDeactivatedAfterEdit())
                     ModuleConfig.Save(this);
-                
+
                 ImGui.InputText($"{LuminaWrapper.GetAddonText(1032)}##CustomizeCastTextPatternInput", ref ModuleConfig.CustomCastTextPattern);
                 if (ImGui.IsItemDeactivatedAfterEdit())
                     ModuleConfig.Save(this);
             }
-            
+
         }
     }
 
@@ -158,7 +158,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
 
             case AddonEvent.PostDraw:
                 if (!DService.Instance().Condition[ConditionFlag.InCombat] ||
-                    !Throttler.Throttle("OptimizedEnemyList-OnAddonDraw", 10))
+                    !Throttler.Shared.Throttle("OptimizedEnemyList-OnAddonDraw", 10))
                     return;
 
                 UpdateTextNodes();
@@ -179,13 +179,14 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
     private static void UpdateTextNodes()
     {
         if (!EnemyList->IsAddonAndNodesReady()) return;
-        
+
         var enemyListArray = EnemyListNumberArray.Instance();
         if (enemyListArray == null) return;
 
         if (enemyListArray->EnemyCount == 0) return;
-        
+
         var nodes = TextNodes;
+
         if (nodes is not { Count: > 0 })
         {
             CreateTextNodes();
@@ -196,7 +197,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         if (hudArray == null) return;
 
         var isTargetCasting = hudArray->IntArray[69] != -1;
-        
+
         for (var i = 0; i < MathF.Min(enemyListArray->EnemyCount, nodes.Count); i++)
         {
             var info = enemyListArray->Enemies[i];
@@ -210,6 +211,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             var statusNodes    = nodes[i].StatusNodes;
 
             var gameObj = CharacterManager.Instance()->LookupBattleCharaByEntityId(entityID);
+
             if (gameObj == null || !HaterInfo.TryGetValue(gameObj->EntityId, out var enmity))
             {
                 textNode.String             = string.Empty;
@@ -219,6 +221,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             }
 
             var componentNode = EnemyList->GetComponentNodeById(nodes[i].ComponentNodeID);
+
             if (componentNode == null)
             {
                 CreateTextNodes();
@@ -245,7 +248,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             {
                 if (counter == 5) break;
 
-                if (status.StatusId == 0) continue;
+                if (status.StatusId           == 0) continue;
                 if ((uint)status.SourceObject != LocalPlayerState.EntityID) continue;
 
                 var node = statusNodes[counter];
@@ -262,8 +265,9 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             }
 
             statusNodes.ShouldBeVisible = counter > 0;
-            
+
             var isCasting = gameObj->IsCasting || isTargetCasting && (nint)gameObj == (TargetManager.Target?.Address ?? nint.Zero);
+
             if (isCasting)
             {
                 origCastBarNode->SetAlpha(0);
@@ -287,7 +291,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
                 castBarNode.IsVisible = false;
                 castBarNode.Progress  = 0f;
             }
-            
+
             textNode.TextColor        = ModuleConfig.TextColor;
             textNode.TextOutlineColor = ModuleConfig.TextEdgeColor;
             backgroundNode.Alpha      = ModuleConfig.BackgroundAlpha;
@@ -295,6 +299,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             textNode.FontSize = ModuleConfig.FontSize;
 
             var healthPercentage = (float)gameObj->Health / gameObj->MaxHealth * 100f;
+
             if (isCasting)
             {
                 var castTimeLeft = MathF.Max(gameObj->CastInfo.TotalCastTime - gameObj->CastInfo.CurrentCastTime, 0f);
@@ -318,8 +323,9 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
                 MathF.Max
                 (
                     targetNameTextNode->X + targetNameTextNode->GetTextDrawSize().X + 5f,
-                    castBarNode.X + 7f
-                ) + ModuleConfig.TextOffset.X,
+                    castBarNode.X         + 7f
+                ) +
+                ModuleConfig.TextOffset.X,
                 4 + ModuleConfig.TextOffset.Y
             );
 
@@ -339,6 +345,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         ClearTextNodes();
 
         var counter = -1;
+
         foreach (var nodePtr in buttonNodesPtr)
         {
             var node = (AtkComponentNode*)nodePtr;
@@ -443,6 +450,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             actionName = LuminaWrapper.GetAddonText(1032);
 
         var timeText = remainingTime != 0 ? remainingTime.ToString("F1") : "\ue07f\ue07b";
+
         if (ModuleConfig.UseCustomizeText)
         {
             return string.Format
@@ -476,39 +484,27 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         nodes.Reverse();
         return nodes.Count > 0;
     }
-    
-    private class Config : ModuleConfiguration
+
+    private delegate void AgentHudUpdateEnemyListDelegate(AgentHUD* agent);
+
+    private class Config : ModuleConfig
     {
-        public byte    FontSize   = 10;
-        public Vector2 TextOffset = Vector2.Zero;
-
-        public bool   UseCustomizeText;
-        public string CustomTextPattern     = @"HP: {0}% / Enmity: {1}%";
+        public float  BackgroundAlpha       = 0.6f;
         public string CustomCastTextPattern = @"{0}: {1} / HP: {2}%";
-
-        public Vector4 TextColor       = Vector4.One;
-        public Vector4 TextEdgeColor   = new(0, 0.372549f, 1, 1);
-        public float   BackgroundAlpha = 0.6f;
+        public string CustomTextPattern     = @"HP: {0}% / Enmity: {1}%";
 
         public bool DisplayStatus = true;
+        public byte FontSize      = 10;
+
+        public Vector4 TextColor     = Vector4.One;
+        public Vector4 TextEdgeColor = new(0, 0.372549f, 1, 1);
+        public Vector2 TextOffset    = Vector2.Zero;
+
+        public bool UseCustomizeText;
     }
 
     private class IconTextNodesRow : OverlayNode, IEnumerable<IconTextNode>
     {
-        public int  Count  { get; init; }
-        public uint NodeID { get; init; }
-        
-        public int  Index  { get; init; }
-
-        public override OverlayLayer OverlayLayer     => OverlayLayer.Foreground;
-        public override bool         HideWithNativeUi => true;
-
-        public bool ShouldBeVisible { get; set; }
-
-        public List<IconTextNode> Nodes { get; init; } = [];
-
-        public IconTextNode this[int index] => Nodes[index];
-
         public IconTextNodesRow(int count, uint nodeID, int index)
         {
             ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(count, 0);
@@ -532,6 +528,20 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
             Size = new(25 + (25 + 2) * count, 41);
         }
 
+        public int  Count  { get; init; }
+        public uint NodeID { get; init; }
+
+        public int Index { get; init; }
+
+        public override OverlayLayer OverlayLayer     => OverlayLayer.Foreground;
+        public override bool         HideWithNativeUi => true;
+
+        public bool ShouldBeVisible { get; set; }
+
+        public List<IconTextNode> Nodes { get; init; } = [];
+
+        public IconTextNode this[int index] => Nodes[index];
+
         public IEnumerator<IconTextNode> GetEnumerator() => Nodes.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
@@ -549,7 +559,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
     {
         public readonly IconImageNode IconNode;
         public readonly TextNode      TextNode;
-        
+
         public IconTextNode()
         {
             IconNode = new()
@@ -579,7 +589,7 @@ public unsafe class OptimizedEnemyList : DailyModuleBase
         public void Update(Status status)
         {
             if (!LuminaGetter.TryGetRow(status.StatusId, out Lumina.Excel.Sheets.Status row)) return;
-            
+
             IconNode.IconId = row.Icon;
             TextNode.SetNumber((int)status.RemainingTime);
 

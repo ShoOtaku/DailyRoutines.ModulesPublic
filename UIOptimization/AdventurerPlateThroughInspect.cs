@@ -1,29 +1,33 @@
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using KamiToolKit.Nodes;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models.Packets.Upstream;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AdventurerPlateThroughInspect : DailyModuleBase
+public unsafe class AdventurerPlateThroughInspect : ModuleBase
 {
+    private static IconButtonNode? OpenButton;
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AdventurerPlateThroughInspectTitle"),
-        Description = GetLoc("AdventurerPlateThroughInspectDescription"),
-        Category    = ModuleCategories.UIOptimization
+        Title       = Lang.Get("AdventurerPlateThroughInspectTitle"),
+        Description = Lang.Get("AdventurerPlateThroughInspectDescription"),
+        Category    = ModuleCategory.UIOptimization
     };
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-    
-    private static IconButtonNode? OpenButton;
 
     protected override void Init()
     {
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "CharacterInspect", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CharacterInspect", OnAddon);
-        if (CharacterInspect->IsAddonAndNodesReady()) 
+        if (CharacterInspect->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
 
@@ -48,7 +52,7 @@ public unsafe class AdventurerPlateThroughInspect : DailyModuleBase
                     };
                     OpenButton.AttachNode(CharacterInspect->RootNode);
                 }
-                
+
                 break;
             case AddonEvent.PreFinalize:
                 OpenButton?.Dispose();
@@ -56,7 +60,7 @@ public unsafe class AdventurerPlateThroughInspect : DailyModuleBase
                 break;
         }
     }
-    
+
     protected override void Uninit()
     {
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);

@@ -1,5 +1,7 @@
 using System.Numerics;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -7,25 +9,25 @@ using KamiToolKit.Nodes;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class FastBLUSpellbookSearchBar : DailyModuleBase
+public unsafe class FastBLUSpellbookSearchBar : ModuleBase
 {
+    private static string SearchBarInput = string.Empty;
+
+    private static TextInputNode? SearchBarNode;
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("FastBLUSpellbookSearchBarTitle"),
-        Description = GetLoc("FastBLUSpellbookSearchBarDescription"),
-        Category    = ModuleCategories.UIOptimization,
+        Title       = Lang.Get("FastBLUSpellbookSearchBarTitle"),
+        Description = Lang.Get("FastBLUSpellbookSearchBarDescription"),
+        Category    = ModuleCategory.UIOptimization
     };
-    
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private static string SearchBarInput = string.Empty;
-    
-    private static TextInputNode? SearchBarNode;
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init()
     {
         TaskHelper ??= new();
-        
+
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "AOZNotebook", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "AOZNotebook", OnAddon);
     }
@@ -40,7 +42,7 @@ public unsafe class FastBLUSpellbookSearchBar : DailyModuleBase
                 break;
             case AddonEvent.PostDraw:
                 if (AOZNotebook == null) return;
-                
+
                 if (SearchBarNode == null)
                 {
                     ConductSearch(SearchBarInput);
@@ -72,11 +74,11 @@ public unsafe class FastBLUSpellbookSearchBar : DailyModuleBase
                         {
                             SearchBarInput = x.ToString();
                             ConductSearch(SearchBarInput);
-                        },
+                        }
                     };
                     SearchBarNode.CurrentTextNode.FontSize =  14;
                     SearchBarNode.CurrentTextNode.Position += new Vector2(0, 3);
-                    
+
                     SearchBarNode.AttachNode(component);
                 }
 
@@ -87,26 +89,30 @@ public unsafe class FastBLUSpellbookSearchBar : DailyModuleBase
 
     private void ConductSearch(string input)
     {
-        TaskHelper.Enqueue(() =>
-        {
-            var addon = AOZNotebook;
-            if (addon == null)
+        TaskHelper.Enqueue
+        (() =>
             {
-                TaskHelper.Abort();
+                var addon = AOZNotebook;
+
+                if (addon == null)
+                {
+                    TaskHelper.Abort();
+                    return true;
+                }
+
+                if (!addon->IsAddonAndNodesReady()) return false;
+
+                // 非技能页面
+                if (addon->AtkValues->Int >= 9)
+                {
+                    TaskHelper.Abort();
+                    return true;
+                }
+
+                AgentId.AozNotebook.SendEvent(2, 0, 0U, input);
                 return true;
             }
-            
-            if (!addon->IsAddonAndNodesReady()) return false;
-            // 非技能页面
-            if (addon->AtkValues->Int >= 9)
-            {
-                TaskHelper.Abort();
-                return true;
-            }
-            
-            AgentId.AozNotebook.SendEvent(2, 0, 0U, input);
-            return true;
-        });
+        );
     }
 
     protected override void Uninit()

@@ -1,28 +1,33 @@
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using Lumina.Excel.Sheets;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoSortItems : DailyModuleBase
+public class AutoSortItems : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoSortItemsTitle"),
-        Description = GetLoc("AutoSortItemsDescription"),
-        Category    = ModuleCategories.General,
-        Author      = ["那年雪落"]
-    };
-
-    private static readonly string[] SortOptions        = [GetLoc("Descending"), GetLoc("Ascending")];
-    private static readonly string[] TabOptions         = [GetLoc("AutoSortItems-Splited"), GetLoc("AutoSortItems-Merged")];
+    private static readonly string[] SortOptions        = [Lang.Get("Descending"), Lang.Get("Ascending")];
+    private static readonly string[] TabOptions         = [Lang.Get("AutoSortItems-Splited"), Lang.Get("AutoSortItems-Merged")];
     private static readonly string[] SortOptionsCommand = ["des", "asc"];
 
     private static Config ModuleConfig = null!;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoSortItemsTitle"),
+        Description = Lang.Get("AutoSortItemsDescription"),
+        Category    = ModuleCategory.General,
+        Author      = ["那年雪落"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig =   LoadConfig<Config>() ?? new();
+        ModuleConfig =   Config.Load(this) ?? new();
         TaskHelper   ??= new() { TimeoutMS = 15_000 };
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
@@ -36,43 +41,43 @@ public class AutoSortItems : DailyModuleBase
 
         ImGui.NewLine();
 
-        if (ImGui.Checkbox(GetLoc("SendChat"), ref ModuleConfig.SendChat))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendChat"), ref ModuleConfig.SendChat))
+            ModuleConfig.Save(this);
 
         ImGui.SameLine();
-        if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
-            SaveConfig(ModuleConfig);
+        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref ModuleConfig.SendNotification))
+            ModuleConfig.Save(this);
 
         ImGui.Spacing();
 
         var       tableSize = (ImGui.GetContentRegionAvail() * 0.75f) with { Y = 0 };
-        using var table     = ImRaii.Table(GetLoc("Sort"), 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg, tableSize);
+        using var table     = ImRaii.Table(Lang.Get("Sort"), 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg, tableSize);
         if (!table) return;
 
         ImGui.TableSetupColumn("名称", ImGuiTableColumnFlags.WidthStretch, 30);
         ImGui.TableSetupColumn("方法", ImGuiTableColumnFlags.WidthStretch, 30);
 
         ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
-        
+
         ImGui.TableNextColumn();
         ImGui.TextUnformatted(LuminaWrapper.GetAddonText(12210));
 
         var typeText = LuminaGetter.GetRow<Addon>(9448)!.Value.Text.ToString();
 
-        DrawTableRow("兵装库 ID", "ID",            ref ModuleConfig.ArmouryChestID,   SortOptions);
-        DrawTableRow("兵装库等级",  GetLoc("Level"), ref ModuleConfig.ArmouryItemLevel, SortOptions);
-        DrawTableRow("兵装库类型",  typeText,        ref ModuleConfig.ArmouryCategory,  SortOptions, GetLoc("AutoSortItems-ArmouryCategoryDesc"));
+        DrawTableRow("兵装库 ID", "ID",              ref ModuleConfig.ArmouryChestID,   SortOptions);
+        DrawTableRow("兵装库等级",  Lang.Get("Level"), ref ModuleConfig.ArmouryItemLevel, SortOptions);
+        DrawTableRow("兵装库类型",  typeText,          ref ModuleConfig.ArmouryCategory,  SortOptions, Lang.Get("AutoSortItems-ArmouryCategoryDesc"));
 
         ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
-        
+
         ImGui.TableNextColumn();
         ImGui.TextUnformatted(LuminaWrapper.GetAddonText(12209));
 
-        DrawTableRow("背包 HQ", "HQ",                            ref ModuleConfig.InventoryHQ,        SortOptions);
-        DrawTableRow("背包 ID", "ID",                            ref ModuleConfig.InventoryID,        SortOptions);
-        DrawTableRow("背包等级",  GetLoc("Level"),                 ref ModuleConfig.InventoryItemLevel, SortOptions);
-        DrawTableRow("背包类型",  typeText,                        ref ModuleConfig.InventoryCategory,  SortOptions, GetLoc("AutoSortItems-InventoryCategoryDesc"));
-        DrawTableRow("背包分栏",  GetLoc("AutoSortItems-Splited"), ref ModuleConfig.InventoryTab,       TabOptions,  GetLoc("AutoSortItems-InventoryTabDesc"));
+        DrawTableRow("背包 HQ", "HQ",                              ref ModuleConfig.InventoryHQ,        SortOptions);
+        DrawTableRow("背包 ID", "ID",                              ref ModuleConfig.InventoryID,        SortOptions);
+        DrawTableRow("背包等级",  Lang.Get("Level"),                 ref ModuleConfig.InventoryItemLevel, SortOptions);
+        DrawTableRow("背包类型",  typeText,                          ref ModuleConfig.InventoryCategory,  SortOptions, Lang.Get("AutoSortItems-InventoryCategoryDesc"));
+        DrawTableRow("背包分栏",  Lang.Get("AutoSortItems-Splited"), ref ModuleConfig.InventoryTab,       TabOptions,  Lang.Get("AutoSortItems-InventoryTabDesc"));
     }
 
     protected override void Uninit() =>
@@ -94,7 +99,7 @@ public class AutoSortItems : DailyModuleBase
         ImGui.TableNextColumn();
         ImGui.SetNextItemWidth(-1);
         if (ImGui.Combo($"##{label}", ref value, options, options.Length) && value != oldValue)
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
     }
 
     private void OnZoneChanged(ushort zone)
@@ -107,7 +112,7 @@ public class AutoSortItems : DailyModuleBase
 
     private bool CheckCanSort()
     {
-        if (!GameState.IsLoggedIn || !UIModule.IsScreenReady() || OccupiedInEvent) return false;
+        if (!GameState.IsLoggedIn || !UIModule.IsScreenReady() || DService.Instance().Condition.IsOccupiedInEvent) return false;
 
         if (!DService.Instance().ClientState.IsClientIdle() || !IsInValidZone())
         {
@@ -143,25 +148,27 @@ public class AutoSortItems : DailyModuleBase
         ChatManager.Instance().SendMessage("/itemsort execute inventory");
 
         if (ModuleConfig.SendNotification)
-            NotificationInfo(GetLoc("AutoSortItems-SortMessage"));
+            NotifyHelper.NotificationInfo(Lang.Get("AutoSortItems-SortMessage"));
         if (ModuleConfig.SendChat)
-            Chat(GetLoc("AutoSortItems-SortMessage"));
+            NotifyHelper.Chat(Lang.Get("AutoSortItems-SortMessage"));
 
         return true;
 
-        void SendSortCondition(string target, string condition, int setting) =>
+        void SendSortCondition(string target, string condition, int setting)
+        {
             ChatManager.Instance().SendMessage($"/itemsort condition {target} {condition} {SortOptionsCommand[setting]}");
+        }
     }
 
-    public class Config : ModuleConfiguration
+    public class Config : ModuleConfig
     {
+        public int ArmouryCategory;
         public int ArmouryChestID;
         public int ArmouryItemLevel;
-        public int ArmouryCategory;
+        public int InventoryCategory;
         public int InventoryHQ;
         public int InventoryID;
         public int InventoryItemLevel;
-        public int InventoryCategory;
         public int InventoryTab;
 
         public bool SendChat;

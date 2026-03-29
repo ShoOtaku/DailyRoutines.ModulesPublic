@@ -1,16 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using DailyRoutines.Helpers;
 using Dalamud.Game.Text;
 using Dalamud.Utility;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using OmenTools.Dalamud;
+using OmenTools.OmenService;
+using NotifyHelper = OmenTools.OmenService.NotifyHelper;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -77,8 +73,8 @@ public partial class AutoReplyChatBot
         }
         catch (Exception ex)
         {
-            NotificationError(GetLoc("AutoReplyChatBot-ErrorTitle"));
-            Error($"{GetLoc("AutoReplyChatBot-ErrorTitle")}:", ex);
+            NotifyHelper.NotificationError(Lang.Get("AutoReplyChatBot-ErrorTitle"));
+            DLog.Error($"{Lang.Get("AutoReplyChatBot-ErrorTitle")}:", ex);
 
             reply = string.Empty;
         }
@@ -88,7 +84,7 @@ public partial class AutoReplyChatBot
 
         SendReply(originalType, target, reply);
 
-        NotificationInfo(reply, $"{GetLoc("AutoReplyChatBot-AutoRepliedTo")}{target}");
+        NotifyHelper.NotificationInfo(reply, $"{Lang.Get("AutoReplyChatBot-AutoRepliedTo")}{target}");
         AppendHistory(target, "assistant", reply);
     }
 
@@ -237,7 +233,7 @@ public partial class AutoReplyChatBot
         }
         catch (Exception ex)
         {
-            Error($"过滤失败: {ex.Message}");
+            DLog.Error($"过滤失败: {ex.Message}");
             return null;
         }
     }

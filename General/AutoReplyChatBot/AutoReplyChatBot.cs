@@ -1,24 +1,22 @@
-using System;
-using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Security.Authentication;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Helpers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public partial class AutoReplyChatBot : DailyModuleBase
+public partial class AutoReplyChatBot : ModuleBase
 {
     private static Config ModuleConfig = null!;
 
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoReplyChatBotTitle"),
-        Description = GetLoc("AutoReplyChatBotDescription"),
-        Category    = ModuleCategories.General,
+        Title       = Lang.Get("AutoReplyChatBotTitle"),
+        Description = Lang.Get("AutoReplyChatBotDescription"),
+        Category    = ModuleCategory.General,
         Author      = ["Wotou"]
     };
 
@@ -26,7 +24,7 @@ public partial class AutoReplyChatBot : DailyModuleBase
 
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         if (ModuleConfig.SystemPrompts is not { Count: > 0 })
         {
@@ -38,7 +36,7 @@ public partial class AutoReplyChatBot : DailyModuleBase
             ModuleConfig.GameContextSettings.TryAdd(contextType, true);
 
         ModuleConfig.SystemPrompts = ModuleConfig.SystemPrompts.DistinctBy(x => x.Name).ToList();
-        SaveConfig(ModuleConfig);
+        ModuleConfig.Save(this);
 
         DService.Instance().Chat.ChatMessage += OnChat;
     }

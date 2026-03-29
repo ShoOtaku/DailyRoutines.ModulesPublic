@@ -1,43 +1,49 @@
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using OmenTools.Interop.Game.Models.Packets.Upstream;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoCuffACur : DailyModuleBase
+public class AutoCuffACur : ModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoCuffACurTitle"),
-        Description = GetLoc("AutoCuffACurDescription"),
-        Category    = ModuleCategories.GoldSaucer,
+        Title       = Lang.Get("AutoCuffACurTitle"),
+        Description = Lang.Get("AutoCuffACurDescription"),
+        Category    = ModuleCategory.GoldSaucer
     };
 
     protected override void Init()
     {
         TaskHelper ??= new();
-        
+
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup, "PunchingMachine", OnAddonSetup);
     }
 
     protected override void ConfigUI()
     {
-        ConflictKeyText();
-        
+        ImGuiOm.ConflictKeyText();
+
         ImGui.NewLine();
-        
-        using (ImRaii.Disabled(GameState.TerritoryType != 144 || TaskHelper.IsBusy || OccupiedInEvent))
+
+        using (ImRaii.Disabled(GameState.TerritoryType != 144 || TaskHelper.IsBusy || DService.Instance().Condition.IsOccupiedInEvent))
         {
-            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Play, GetLoc("Start")))
+            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Play, Lang.Get("Start")))
                 EnqueueNewRound();
         }
 
         ImGui.SameLine();
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Stop, GetLoc("Stop")))
+
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Stop, Lang.Get("Stop")))
         {
             TaskHelper.Abort();
             new EventCompletePackt(2359300, 14).Send();
@@ -46,26 +52,30 @@ public class AutoCuffACur : DailyModuleBase
 
     private unsafe void OnAddonSetup(AddonEvent type, AddonArgs args)
     {
-        if (InterruptByConflictKey(TaskHelper, this)) return;
+        if (TaskHelper.AbortByConflictKey(this)) return;
 
         var currentMGP = 0;
-        
+
         TaskHelper.Abort();
         TaskHelper.Enqueue(WaitSelectStringAddon);
-        TaskHelper.Enqueue(() =>
-        {
-            UpdateSelectStringInfo(GetLoc("AutoCuffACur-StartingRound"));
-            
-            currentMGP = InventoryManager.Instance()->GetInventoryItemCount(29);
-            new EventActionPacket(2359300, 17235982).Send();
-        });
+        TaskHelper.Enqueue
+        (() =>
+            {
+                UpdateSelectStringInfo(Lang.Get("AutoCuffACur-StartingRound"));
+
+                currentMGP = InventoryManager.Instance()->GetInventoryItemCount(29);
+                new EventActionPacket(2359300, 17235982).Send();
+            }
+        );
         TaskHelper.Enqueue(() => InventoryManager.Instance()->GetInventoryItemCount(29) != currentMGP);
         TaskHelper.DelayNext(1000);
-        TaskHelper.Enqueue(() =>
-        {
-            new EventActionPacket(2359300, 17301518, 3).Send();
-            UpdateSelectStringInfo($"{GetLoc("AutoCuffACur-WaitingForResult")}......");
-        });
+        TaskHelper.Enqueue
+        (() =>
+            {
+                new EventActionPacket(2359300, 17301518, 3).Send();
+                UpdateSelectStringInfo($"{Lang.Get("AutoCuffACur-WaitingForResult")}......");
+            }
+        );
         TaskHelper.DelayNext(3000);
         TaskHelper.Enqueue(() => new EventCompletePackt(2359300, 14).Send());
         TaskHelper.Enqueue(EnqueueNewRound);
@@ -76,13 +86,13 @@ public class AutoCuffACur : DailyModuleBase
 
     private bool EnqueueNewRound()
     {
-        if (InterruptByConflictKey(TaskHelper, this)) return true;
-        if (OccupiedInEvent) return false;
-        
+        if (TaskHelper.AbortByConflictKey(this)) return true;
+        if (DService.Instance().Condition.IsOccupiedInEvent) return false;
+
         new EventStartPackt(LocalPlayerState.EntityID, 2359300).Send();
         return true;
     }
-    
+
     private static unsafe void UpdateSelectStringInfo(string info)
     {
         if (!SelectString->IsAddonAndNodesReady() || !PunchingMachine->IsAddonAndNodesReady()) return;
@@ -90,7 +100,7 @@ public class AutoCuffACur : DailyModuleBase
         var list = SelectString->GetComponentListById(3);
         var text = SelectString->GetTextNodeById(2);
         if (list == null || text == null) return;
-        
+
         list->OwnerNode->ToggleVisibility(false);
         list->SetEnabledState(false);
 
@@ -99,11 +109,11 @@ public class AutoCuffACur : DailyModuleBase
 
         var builder = new SeStringBuilder();
         builder.AddUiForeground(28);
-        builder.AddText($"[{GetLoc("AutoCuffACurTitle")}]");
+        builder.AddText($"[{Lang.Get("AutoCuffACurTitle")}]");
         builder.AddUiForegroundOff();
         builder.Add(NewLinePayload.Payload);
         builder.AddText(info);
-        
+
         text->SetText(builder.Build().EncodeWithNullTerminator());
         text->SetPositionFloat(20, 60);
     }
@@ -111,7 +121,7 @@ public class AutoCuffACur : DailyModuleBase
     protected override unsafe void Uninit()
     {
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSetup);
-        
+
         if (PunchingMachine->IsAddonAndNodesReady())
             new EventCompletePackt(2359300, 14).Send();
     }

@@ -1,21 +1,29 @@
-using System;
-using System.Linq;
 using System.Numerics;
 using System.Text;
-using DailyRoutines.Managers;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Lumina.Excel.Sheets;
+using OmenTools.Info.Game.Enums;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
+using OmenTools.Threading;
+using OmenTools.Threading.TaskHelper;
 using TerritoryIntendedUse = FFXIVClientStructs.FFXIV.Client.Enums.TerritoryIntendedUse;
 
 namespace DailyRoutines.ModulesPublic;
 
 public partial class OccultCrescentHelper
 {
-    public class SupportJobManager(OccultCrescentHelper mainModule) : BaseIslandModule(mainModule)
+    public class SupportJobManager
+    (
+        OccultCrescentHelper mainModule
+    ) : BaseIslandModule(mainModule)
     {
         private const string COMMAND_SWITCH_JOB = "pjob";
         private const string COMMAND_BUFF       = "pbuff";
@@ -29,13 +37,13 @@ public partial class OccultCrescentHelper
             CommandManager.AddSubCommand
             (
                 COMMAND_SWITCH_JOB,
-                new(OnCommandSwitchJob) { HelpMessage = $"{GetLoc("OccultCrescentHelper-Command-PJob-Help")}" }
+                new(OnCommandSwitchJob) { HelpMessage = $"{Lang.Get("OccultCrescentHelper-Command-PJob-Help")}" }
             );
 
             CommandManager.AddSubCommand
             (
                 COMMAND_BUFF,
-                new(OnCommandBuff) { HelpMessage = $"{GetLoc("OccultCrescentHelper-Command-PBuff-Help")}" }
+                new(OnCommandBuff) { HelpMessage = $"{Lang.Get("OccultCrescentHelper-Command-PBuff-Help")}" }
             );
 
             UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
@@ -65,11 +73,11 @@ public partial class OccultCrescentHelper
             {
                 if (ImGui.Checkbox
                     (
-                        $"{GetLoc("OccultCrescentHelper-SupportJobManager-Monk-PhantomKickNoMove")}##NoMoveMonk",
+                        $"{Lang.Get("OccultCrescentHelper-SupportJobManager-Monk-PhantomKickNoMove")}##NoMoveMonk",
                         ref ModuleConfig.IsEnabledMonkKickNoMove
                     ))
                     ModuleConfig.Save(MainModule);
-                ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-SupportJobManager-Monk-PhantomKickNoMove-Help"), 20f * GlobalFontScale);
+                ImGuiOm.HelpMarker(Lang.Get("OccultCrescentHelper-SupportJobManager-Monk-PhantomKickNoMove-Help"), 20f * GlobalUIScale);
             }
 
             ImGui.NewLine();
@@ -80,36 +88,36 @@ public partial class OccultCrescentHelper
             {
                 if (ImGui.Checkbox
                     (
-                        $"{GetLoc("OccultCrescentHelper-SupportJobManager-Berserker-RageAutoFace")}##BerserkerRageAutoFace",
+                        $"{Lang.Get("OccultCrescentHelper-SupportJobManager-Berserker-RageAutoFace")}##BerserkerRageAutoFace",
                         ref ModuleConfig.IsEnabledBerserkerRageAutoFace
                     ))
                     ModuleConfig.Save(MainModule);
-                ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-SupportJobManager-Berserker-RageAutoFace-Help"), 20f * GlobalFontScale);
+                ImGuiOm.HelpMarker(Lang.Get("OccultCrescentHelper-SupportJobManager-Berserker-RageAutoFace-Help"), 20f * GlobalUIScale);
 
                 if (ImGui.Checkbox
                     (
-                        $"{GetLoc("OccultCrescentHelper-SupportJobManager-Berserker-RageReplace")}##BerserkerRageReplace",
+                        $"{Lang.Get("OccultCrescentHelper-SupportJobManager-Berserker-RageReplace")}##BerserkerRageReplace",
                         ref ModuleConfig.IsEnabledBerserkerRageReplace
                     ))
                     ModuleConfig.Save(MainModule);
-                ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-SupportJobManager-Berserker-RageReplace-Help"), 20f * GlobalFontScale);
+                ImGuiOm.HelpMarker(Lang.Get("OccultCrescentHelper-SupportJobManager-Berserker-RageReplace-Help"), 20f * GlobalUIScale);
             }
 
             ImGui.NewLine();
 
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Command"));
+            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("Command"));
 
             using (ImRaii.PushIndent())
             {
-                ImGui.TextUnformatted($"/pdr {COMMAND_SWITCH_JOB} {GetLoc("OccultCrescentHelper-Command-PJob-Help")}");
+                ImGui.TextUnformatted($"/pdr {COMMAND_SWITCH_JOB} {Lang.Get("OccultCrescentHelper-Command-PJob-Help")}");
 
                 var builder = new StringBuilder();
                 builder.Append("ID:\n");
                 foreach (var data in LuminaGetter.Get<MKDSupportJob>())
                     builder.Append($"\t{data.RowId} - {data.Name}\t{data.NameFemale}\t{data.NameEnglish}\n");
-                ImGuiOm.HelpMarker(builder.ToString().TrimEnd('\n'), 100f * GlobalFontScale);
+                ImGuiOm.HelpMarker(builder.ToString().TrimEnd('\n'), 100f * GlobalUIScale);
 
-                ImGui.TextUnformatted($"/pdr {COMMAND_BUFF} {GetLoc("OccultCrescentHelper-Command-PBuff-Help")}");
+                ImGui.TextUnformatted($"/pdr {COMMAND_BUFF} {Lang.Get("OccultCrescentHelper-Command-PBuff-Help")}");
             }
         }
 
@@ -223,7 +231,7 @@ public partial class OccultCrescentHelper
             if (!CrescentSupportJob.TryFindKnowledgeCrystal(out var gameObject) ||
                 LocalPlayerState.DistanceToObject2DSquared(gameObject) > 10)
             {
-                NotificationError(GetLoc("OccultCrescentHelper-OthersManager-Notification-CrystalNotFound"));
+                NotifyHelper.NotificationError(Lang.Get("OccultCrescentHelper-OthersManager-Notification-CrystalNotFound"));
                 return;
             }
 
@@ -261,7 +269,7 @@ public partial class OccultCrescentHelper
                 (() =>
                     {
                         if (sJob.IsThisJob()) return true;
-                        if (!Throttler.Throttle("OthersManager-OthersManager-ChangeSupportJob", 750)) return false;
+                        if (!Throttler.Shared.Throttle("OthersManager-OthersManager-ChangeSupportJob", 750)) return false;
 
                         sJob.ChangeTo();
                         return false;
@@ -282,7 +290,7 @@ public partial class OccultCrescentHelper
             (() =>
                 {
                     if (currentJob.IsThisJob()) return true;
-                    if (!Throttler.Throttle("OthersManager-OthersManager-ChangeSupportJob", 750)) return false;
+                    if (!Throttler.Shared.Throttle("OthersManager-OthersManager-ChangeSupportJob", 750)) return false;
 
                     currentJob.ChangeTo();
                     return false;

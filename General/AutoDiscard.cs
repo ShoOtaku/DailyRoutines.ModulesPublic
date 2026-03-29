@@ -1,28 +1,24 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using OmenTools.Dalamud.Attributes;
+using OmenTools.Interop.Game.AddonEvent;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
+using OmenTools.Threading.TaskHelper;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoDiscard : DailyModuleBase
+public unsafe class AutoDiscard : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoDiscardTitle"),
-        Description = GetLoc("AutoDiscardDescription"),
-        Category    = ModuleCategories.General
-    };
-
-    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-
     private const string COMMAND = "/pdrdiscard";
 
     private static readonly Dictionary<DiscardBehaviour, string> DiscardBehaviourLoc = new()
@@ -52,30 +48,42 @@ public unsafe class AutoDiscard : DailyModuleBase
     private static uint       AddItemsByCategoryInput  = 61;
     private static List<Item> LastAddedItemsByCategory = [];
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoDiscardTitle"),
+        Description = Lang.Get("AutoDiscardDescription"),
+        Category    = ModuleCategory.General
+    };
+
+    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
+
     protected override void Init()
     {
-        ModuleConfig =   LoadConfig<Config>() ?? new();
+        ModuleConfig =   Config.Load(this) ?? new();
         TaskHelper   ??= new() { TimeoutMS = 2_000 };
 
         var itemNames = LuminaGetter.Get<Item>()
-                                    .Where(x => !string.IsNullOrEmpty(x.Name.ToString()) &&
-                                                x.ItemSortCategory.RowId != 3            && x.ItemSortCategory.RowId != 4)
+                                    .Where
+                                    (x => !string.IsNullOrEmpty(x.Name.ToString()) &&
+                                          x.ItemSortCategory.RowId != 3            &&
+                                          x.ItemSortCategory.RowId != 4
+                                    )
                                     .GroupBy(x => x.Name.ToString())
                                     .Select(x => x.First())
                                     .ToList();
         ItemSearcher ??= new(itemNames, [x => x.Name.ToString(), x => x.RowId.ToString()]);
 
-        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("AutoDiscard-CommandHelp") });
+        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("AutoDiscard-CommandHelp") });
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreSetup, "SelectYesno", OnAddon);
     }
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("Command")}:");
 
         ImGui.SameLine();
-        ImGui.TextUnformatted($"{COMMAND} → {GetLoc("AutoDiscard-CommandHelp")}");
+        ImGui.TextUnformatted($"{COMMAND} → {Lang.Get("AutoDiscard-CommandHelp")}");
 
         ImGui.Spacing();
 
@@ -83,7 +91,7 @@ public unsafe class AutoDiscard : DailyModuleBase
 
         ImGui.SameLine();
 
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.FileImport, GetLoc("Import")))
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.FileImport, Lang.Get("Import")))
         {
             var config = ImportFromClipboard<DiscardItemsGroup>();
 
@@ -94,7 +102,7 @@ public unsafe class AutoDiscard : DailyModuleBase
             }
         }
 
-        var       tableSize = new Vector2(ImGui.GetContentRegionAvail().X - 8f * GlobalFontScale, 0);
+        var       tableSize = new Vector2(ImGui.GetContentRegionAvail().X - 8f * GlobalUIScale, 0);
         using var table     = ImRaii.Table("DiscardGroupTable", 5, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg, tableSize);
         if (!table) return;
 
@@ -110,16 +118,16 @@ public unsafe class AutoDiscard : DailyModuleBase
         ImGui.TableNextColumn();
 
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("Name"));
+        ImGuiOm.Text(Lang.Get("Name"));
 
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("AutoDiscard-ItemsOverview"));
+        ImGuiOm.Text(Lang.Get("AutoDiscard-ItemsOverview"));
 
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("Mode"));
+        ImGuiOm.Text(Lang.Get("Mode"));
 
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("Operation"));
+        ImGuiOm.Text(Lang.Get("Operation"));
 
         for (var i = 0; i < ModuleConfig.DiscardGroups.Count; i++)
         {
@@ -143,399 +151,6 @@ public unsafe class AutoDiscard : DailyModuleBase
             OperationColumn(i);
         }
     }
-
-    #region Table
-
-    private void DrawAddNewGroupButton()
-    {
-        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, GetLoc("Add")))
-            ImGui.OpenPopup("AddNewGroupPopup");
-
-        using var popup = ImRaii.Popup("AddNewGroupPopup", ImGuiWindowFlags.AlwaysAutoResize);
-        if (!popup) return;
-
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
-        ImGui.InputTextWithHint("###NewGroupNameInput",
-                                GetLoc("AutoDiscard-AddNewGroupInputNameHelp"), ref NewGroupNameInput,
-                                100);
-
-        if (ImGui.Button(GetLoc("Confirm")))
-        {
-            var info = new DiscardItemsGroup(NewGroupNameInput);
-
-            if (!string.IsNullOrWhiteSpace(NewGroupNameInput) && !ModuleConfig.DiscardGroups.Contains(info))
-            {
-                ModuleConfig.DiscardGroups.Add(info);
-                SaveConfig(ModuleConfig);
-
-                NewGroupNameInput = string.Empty;
-                ImGui.CloseCurrentPopup();
-            }
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button(GetLoc("Cancel")))
-            ImGui.CloseCurrentPopup();
-    }
-
-    private void UniqueNameColumn(int index)
-    {
-        if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
-
-        var       group = ModuleConfig.DiscardGroups[index];
-        using var id    = ImRaii.PushId(index);
-
-        if (ImGuiOm.SelectableFillCell($"{group.UniqueName}"))
-        {
-            EditGroupNameInput = group.UniqueName;
-            ImGui.OpenPopup("EditGroupPopup");
-        }
-
-        using var popup = ImRaii.Popup("EditGroupPopup", ImGuiWindowFlags.AlwaysAutoResize);
-        if (!popup) return;
-
-        ImGui.SetNextItemWidth(300f * GlobalFontScale);
-        ImGui.InputTextWithHint("###EditGroupNameInput", GetLoc("AutoDiscard-AddNewGroupInputNameHelp"), ref EditGroupNameInput, 100);
-
-        if (ImGui.Button(GetLoc("Confirm")))
-        {
-            if (!string.IsNullOrWhiteSpace(EditGroupNameInput) &&
-                !ModuleConfig.DiscardGroups.Contains(new(EditGroupNameInput)))
-            {
-                ModuleConfig.DiscardGroups
-                            .FirstOrDefault(x => x.UniqueName == group.UniqueName)
-                            .UniqueName = EditGroupNameInput;
-
-                SaveConfig(ModuleConfig);
-                EditGroupNameInput = string.Empty;
-
-                ImGui.CloseCurrentPopup();
-            }
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button(GetLoc("Cancel")))
-            ImGui.CloseCurrentPopup();
-    }
-
-    private void ItemsColumn(int index)
-    {
-        if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
-
-        var       group = ModuleConfig.DiscardGroups[index];
-        using var id    = ImRaii.PushId(index);
-
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2.5f);
-
-        using (ImRaii.Group())
-        {
-            if (group.Items.Count > 0)
-            {
-                using (ImRaii.Group())
-                using (ImRaii.Group())
-                {
-                    foreach (var item in group.Items.TakeLast(15))
-                    {
-                        var itemData = LuminaGetter.GetRow<Item>(item);
-                        if (itemData == null) continue;
-
-                        var itemIcon = DService.Instance().Texture.GetFromGameIcon(new(itemData.Value.Icon)).GetWrapOrDefault();
-                        if (itemIcon == null) continue;
-
-                        ImGui.Image(itemIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
-                        ImGui.SameLine();
-                    }
-                }
-            }
-            else
-                ImGui.TextUnformatted(GetLoc("AutoDiscard-NoItemInGroupHelp"));
-        }
-
-        if (ImGui.IsItemClicked())
-            ImGui.OpenPopup("ItemsEditMenu");
-
-        var popupToOpen = string.Empty;
-
-        using (var popupMenu = ImRaii.Popup("ItemsEditMenu", ImGuiWindowFlags.AlwaysAutoResize))
-        {
-            if (popupMenu)
-            {
-                ImGui.TextUnformatted(group.UniqueName);
-
-                ImGui.Separator();
-                ImGui.Spacing();
-
-                if (ImGui.MenuItem(GetLoc("AutoDiscard-AddItemsBatch")))
-                {
-                    ImGui.CloseCurrentPopup();
-                    popupToOpen = "AddItemsBatch";
-                }
-
-                if (ImGui.MenuItem(GetLoc("AutoDiscard-AddItemsManual")))
-                {
-                    ImGui.CloseCurrentPopup();
-                    popupToOpen = "AddItemsManual";
-                }
-            }
-        }
-
-        if (!string.IsNullOrEmpty(popupToOpen))
-            ImGui.OpenPopup(popupToOpen);
-
-        using (var popup = ImRaii.Popup("AddItemsBatch"))
-        {
-            if (popup)
-            {
-                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("AutoDiscard-AddItemsByName"));
-
-                using (ImRaii.PushIndent())
-                {
-                    using (ImRaii.Disabled(string.IsNullOrWhiteSpace(AddItemsByNameInput)))
-                    {
-                        if (ImGui.Button($"{GetLoc("Add")}##AddItemByName"))
-                        {
-                            LastAddedItemsByName = ItemSearcher.Data
-                                                               .Where(x => x.Name.ToString().Contains(AddItemsByNameInput, StringComparison.OrdinalIgnoreCase))
-                                                               .ToList();
-                            LastAddedItemsByName.ForEach(x => group.Items.Add(x.RowId));
-                            SaveConfig(ModuleConfig);
-
-                            NotificationSuccess(GetLoc("AutoDiscard-Notification-ItemsAdded", LastAddedItemsByName.Count));
-                        }
-                    }
-
-                    ImGui.SameLine();
-
-                    using (ImRaii.Disabled(LastAddedItemsByName.Count == 0))
-                    {
-                        if (ImGui.Button($"{GetLoc("Cancel")}##AddItemByName"))
-                        {
-                            LastAddedItemsByName.ForEach(x => group.Items.Remove(x.RowId));
-                            SaveConfig(ModuleConfig);
-
-                            LastAddedItemsByName.Clear();
-                        }
-                    }
-
-                    ImGui.SameLine();
-                    ImGui.SetNextItemWidth(300f * GlobalFontScale);
-                    ImGui.InputText("###AddByItemName", ref AddItemsByNameInput, 128);
-                }
-
-                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("AutoDiscard-AddItemsByCategory"));
-
-                using (ImRaii.PushIndent())
-                {
-                    using (ImRaii.Disabled(!LuminaGetter.TryGetRow<ItemUICategory>(AddItemsByCategoryInput, out _)))
-                    {
-                        if (ImGui.Button($"{GetLoc("Add")}##AddItemByCategory"))
-                        {
-                            LastAddedItemsByCategory = ItemSearcher.Data
-                                                                   .Where(x => x.ItemUICategory.RowId == AddItemsByCategoryInput)
-                                                                   .ToList();
-                            LastAddedItemsByCategory.ForEach(x => group.Items.Add(x.RowId));
-                            SaveConfig(ModuleConfig);
-
-                            NotificationSuccess(GetLoc("AutoDiscard-Notification-ItemsAdded", LastAddedItemsByCategory.Count));
-                        }
-                    }
-
-                    ImGui.SameLine();
-
-                    using (ImRaii.Disabled(LastAddedItemsByCategory.Count == 0))
-                    {
-                        if (ImGui.Button($"{GetLoc("Cancel")}##AddItemByCategory"))
-                        {
-                            LastAddedItemsByCategory.ForEach(x => group.Items.Remove(x.RowId));
-                            SaveConfig(ModuleConfig);
-
-                            LastAddedItemsByCategory.Clear();
-                        }
-                    }
-
-                    ImGui.SameLine();
-                    ImGui.SetNextItemWidth(300f * GlobalFontScale);
-
-                    using (var combo = ImRaii.Combo("###AddItemsByCategoryCombo",
-                                                    LuminaGetter.TryGetRow<ItemUICategory>(AddItemsByCategoryInput, out var uiCategory)
-                                                        ? uiCategory.Name.ToString()
-                                                        : string.Empty, ImGuiComboFlags.HeightLarge))
-                    {
-                        if (combo)
-                        {
-                            foreach (var itemUiCategory in LuminaGetter.Get<ItemUICategory>())
-                            {
-                                var name = itemUiCategory.Name.ToString();
-                                if (string.IsNullOrEmpty(name)) continue;
-                                if (!ImageHelper.TryGetGameIcon((uint)itemUiCategory.Icon, out var icon)) continue;
-
-                                if (ImGuiOm.SelectableImageWithText(icon.Handle, new(ImGui.GetTextLineHeightWithSpacing()), name,
-                                                                    AddItemsByCategoryInput == itemUiCategory.RowId))
-                                    AddItemsByCategoryInput = itemUiCategory.RowId;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        using (var popup = ImRaii.Popup("AddItemsManual"))
-        {
-            if (popup)
-            {
-                var leftChildSize = new Vector2(300 * GlobalFontScale, 500 * GlobalFontScale);
-
-                using (var leftChild = ImRaii.Child("SelectedItemChild", leftChildSize, true))
-                {
-                    if (leftChild)
-                    {
-                        ImGui.SetNextItemWidth(-1f);
-                        ImGui.InputTextWithHint("###SelectedItemSearchInput", GetLoc("PleaseSearch"), ref SelectedItemSearchInput, 100);
-
-                        ImGui.Separator();
-
-                        foreach (var item in group.Items)
-                        {
-                            var specificItemNullable = LuminaGetter.GetRow<Item>(item);
-                            if (specificItemNullable == null) continue;
-                            var specificItem     = specificItemNullable.Value;
-                            var specificItemIcon = DService.Instance().Texture.GetFromGameIcon(new(specificItem.Icon)).GetWrapOrDefault();
-                            if (specificItemIcon == null) continue;
-
-                            if (!string.IsNullOrWhiteSpace(SelectedItemSearchInput) &&
-                                !specificItem.Name.ToString().Contains(SelectedItemSearchInput, StringComparison.OrdinalIgnoreCase)) continue;
-
-                            if (ImGuiOm.SelectableImageWithText(specificItemIcon.Handle,
-                                                                new(ImGui.GetTextLineHeightWithSpacing()),
-                                                                specificItem.Name.ToString(),
-                                                                false,
-                                                                ImGuiSelectableFlags.DontClosePopups))
-                                group.Items.Remove(specificItem.RowId);
-                        }
-                    }
-                }
-
-                ImGui.SameLine();
-
-                using (ImRaii.Group())
-                {
-                    using (ImRaii.Disabled())
-                    {
-                        using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0)))
-                        {
-                            ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - 24f);
-                            ImGuiOm.ButtonIcon("DecoExchangeIcon", FontAwesomeIcon.ExchangeAlt);
-                        }
-                    }
-                }
-
-                ImGui.SameLine();
-
-                using (var rightChild = ImRaii.Child("SearchItemChild", leftChildSize, true))
-                {
-                    if (rightChild)
-                    {
-                        ImGui.SetNextItemWidth(-1f);
-                        if (ImGui.InputTextWithHint("###GameItemSearchInput", GetLoc("PleaseSearch"), ref ItemSearchInput, 100))
-                            ItemSearcher.Search(ItemSearchInput);
-
-                        ImGui.Separator();
-
-                        foreach (var item in ItemSearcher.SearchResult)
-                        {
-                            if (group.Items.Contains(item.RowId)) continue;
-
-                            var itemIcon = DService.Instance().Texture.GetFromGameIcon(new(item.Icon)).GetWrapOrDefault();
-                            if (itemIcon == null) continue;
-
-                            if (ImGuiOm.SelectableImageWithText(itemIcon.Handle,
-                                                                new(ImGui.GetTextLineHeightWithSpacing()),
-                                                                item.Name.ToString(),
-                                                                group.Items.Contains(item.RowId),
-                                                                ImGuiSelectableFlags.DontClosePopups))
-                            {
-                                if (!group.Items.Remove(item.RowId))
-                                    group.Items.Add(item.RowId);
-
-                                SaveConfig(ModuleConfig);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private void BehaviourColumn(int index)
-    {
-        if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
-
-        var       group = ModuleConfig.DiscardGroups[index];
-        using var id    = ImRaii.PushId(index);
-
-        foreach (var behaviourPair in DiscardBehaviourLoc)
-        {
-            if (ImGui.RadioButton(behaviourPair.Value, behaviourPair.Key == group.Behaviour))
-            {
-                group.Behaviour = behaviourPair.Key;
-                SaveConfig(ModuleConfig);
-            }
-
-            ImGui.SameLine();
-        }
-    }
-
-    private void OperationColumn(int index)
-    {
-        if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
-
-        var       group = ModuleConfig.DiscardGroups[index];
-        using var id    = ImRaii.PushId(index);
-
-        using (ImRaii.Disabled(TaskHelper.IsBusy))
-        {
-            if (ImGuiOm.ButtonIcon($"Run_{index}", FontAwesomeIcon.Play, GetLoc("Run")))
-                group.Enqueue(TaskHelper);
-        }
-
-        ImGui.SameLine();
-        if (ImGuiOm.ButtonIcon($"Stop_{index}", FontAwesomeIcon.Stop, GetLoc("Stop")))
-            TaskHelper.Abort();
-
-        using (ImRaii.Disabled(TaskHelper.IsBusy))
-        {
-            ImGui.SameLine();
-
-            if (ImGuiOm.ButtonIcon($"Copy_{index}", FontAwesomeIcon.Copy, GetLoc("Copy")))
-            {
-                var newGroup = new DiscardItemsGroup(GenerateUniqueName(group.UniqueName))
-                {
-                    Behaviour = group.Behaviour,
-                    Items     = group.Items
-                };
-
-                ModuleConfig.DiscardGroups.Add(newGroup);
-                SaveConfig(ModuleConfig);
-            }
-
-            ImGui.SameLine();
-            if (ImGuiOm.ButtonIcon($"Export_{index}", FontAwesomeIcon.FileExport, GetLoc("Export")))
-                ExportToClipboard(group);
-
-            ImGui.SameLine();
-
-            if (ImGuiOm.ButtonIcon($"Delete_{index}", FontAwesomeIcon.TrashAlt, GetLoc("HoldCtrlToDelete")))
-            {
-                if (ImGui.IsKeyDown(ImGuiKey.LeftCtrl))
-                {
-                    ModuleConfig.DiscardGroups.Remove(group);
-                    SaveConfig(ModuleConfig);
-                }
-            }
-        }
-    }
-
-    #endregion
 
     private void OnCommand(string command, string arguments) =>
         EnqueueDiscardGroup(arguments.Trim());
@@ -620,7 +235,7 @@ public unsafe class AutoDiscard : DailyModuleBase
     private void OnAddon(AddonEvent type, AddonArgs args)
     {
         if (!TaskHelper.IsBusy) return;
-        ClickSelectYesnoYes();
+        AddonSelectYesnoEvent.ClickYes();
     }
 
     protected override void Uninit()
@@ -654,6 +269,14 @@ public unsafe class AutoDiscard : DailyModuleBase
         public HashSet<uint>    Items      { get; set; } = [];
         public DiscardBehaviour Behaviour  { get; set; } = DiscardBehaviour.Discard;
 
+        public bool Equals(DiscardItemsGroup? other)
+        {
+            if (other is null || GetType() != other.GetType())
+                return false;
+
+            return UniqueName == other.UniqueName;
+        }
+
         public void Enqueue(TaskHelper? taskHelper)
         {
             if (taskHelper == null) return;
@@ -677,11 +300,16 @@ public unsafe class AutoDiscard : DailyModuleBase
 
                     if (Behaviour == DiscardBehaviour.Discard)
                     {
-                        taskHelper.Enqueue(() => AgentInventoryContext.Instance()->DiscardItem(itemInventory,
-                                                                                               type,
-                                                                                               slot,
-                                                                                               AgentInventory.Instance()->GetActiveAddonID()));
-                        taskHelper.Enqueue(() => { ClickSelectYesnoYes(); });
+                        taskHelper.Enqueue
+                        (() => AgentInventoryContext.Instance()->DiscardItem
+                         (
+                             itemInventory,
+                             type,
+                             slot,
+                             AgentInventory.Instance()->GetActiveAddonID()
+                         )
+                        );
+                        taskHelper.Enqueue(() => { AddonSelectYesnoEvent.ClickYes(); });
                     }
                     else
                     {
@@ -705,20 +333,20 @@ public unsafe class AutoDiscard : DailyModuleBase
             switch (Behaviour)
             {
                 case DiscardBehaviour.Discard:
-                    if (!ClickContextMenu(LuminaWrapper.GetAddonText(91)))
+                    if (!AddonContextMenuEvent.Select(LuminaWrapper.GetAddonText(91)))
                     {
                         ContextMenuAddon->Close(true);
                         break;
                     }
 
-                    taskHelper.Enqueue(() => ClickSelectYesnoYes(), "ConfirmDiscard", weight: 1);
+                    taskHelper.Enqueue(() => AddonSelectYesnoEvent.ClickYes(), "ConfirmDiscard", weight: 1);
                     break;
                 case DiscardBehaviour.Sell:
-                    if (!ClickContextMenu(LuminaWrapper.GetAddonText(5480)) &&
-                        !ClickContextMenu(LuminaWrapper.GetAddonText(93)))
+                    if (!AddonContextMenuEvent.Select(LuminaWrapper.GetAddonText(5480)) &&
+                        !AddonContextMenuEvent.Select(LuminaWrapper.GetAddonText(93)))
                     {
                         ContextMenuAddon->Close(true);
-                        ChatError(GetLoc("AutoDiscard-NoSellPage"));
+                        NotifyHelper.ChatError(Lang.Get("AutoDiscard-NoSellPage"));
 
                         taskHelper.Abort();
                     }
@@ -727,14 +355,6 @@ public unsafe class AutoDiscard : DailyModuleBase
             }
 
             return true;
-        }
-
-        public bool Equals(DiscardItemsGroup? other)
-        {
-            if (other is null || GetType() != other.GetType())
-                return false;
-
-            return UniqueName == other.UniqueName;
         }
 
         public override bool Equals(object? obj) => Equals(obj as DiscardItemsGroup);
@@ -750,8 +370,420 @@ public unsafe class AutoDiscard : DailyModuleBase
         public static bool operator !=(DiscardItemsGroup lhs, DiscardItemsGroup rhs) => !(lhs == rhs);
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public List<DiscardItemsGroup> DiscardGroups = [];
     }
+
+    #region Table
+
+    private void DrawAddNewGroupButton()
+    {
+        if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, Lang.Get("Add")))
+            ImGui.OpenPopup("AddNewGroupPopup");
+
+        using var popup = ImRaii.Popup("AddNewGroupPopup", ImGuiWindowFlags.AlwaysAutoResize);
+        if (!popup) return;
+
+        ImGui.SetNextItemWidth(300f * GlobalUIScale);
+        ImGui.InputTextWithHint
+        (
+            "###NewGroupNameInput",
+            Lang.Get("AutoDiscard-AddNewGroupInputNameHelp"),
+            ref NewGroupNameInput,
+            100
+        );
+
+        if (ImGui.Button(Lang.Get("Confirm")))
+        {
+            var info = new DiscardItemsGroup(NewGroupNameInput);
+
+            if (!string.IsNullOrWhiteSpace(NewGroupNameInput) && !ModuleConfig.DiscardGroups.Contains(info))
+            {
+                ModuleConfig.DiscardGroups.Add(info);
+                ModuleConfig.Save(this);
+
+                NewGroupNameInput = string.Empty;
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button(Lang.Get("Cancel")))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void UniqueNameColumn(int index)
+    {
+        if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
+
+        var       group = ModuleConfig.DiscardGroups[index];
+        using var id    = ImRaii.PushId(index);
+
+        if (ImGuiOm.SelectableFillCell($"{group.UniqueName}"))
+        {
+            EditGroupNameInput = group.UniqueName;
+            ImGui.OpenPopup("EditGroupPopup");
+        }
+
+        using var popup = ImRaii.Popup("EditGroupPopup", ImGuiWindowFlags.AlwaysAutoResize);
+        if (!popup) return;
+
+        ImGui.SetNextItemWidth(300f * GlobalUIScale);
+        ImGui.InputTextWithHint("###EditGroupNameInput", Lang.Get("AutoDiscard-AddNewGroupInputNameHelp"), ref EditGroupNameInput, 100);
+
+        if (ImGui.Button(Lang.Get("Confirm")))
+        {
+            if (!string.IsNullOrWhiteSpace(EditGroupNameInput) &&
+                !ModuleConfig.DiscardGroups.Contains(new(EditGroupNameInput)))
+            {
+                ModuleConfig.DiscardGroups
+                            .FirstOrDefault(x => x.UniqueName == group.UniqueName)
+                            .UniqueName = EditGroupNameInput;
+
+                ModuleConfig.Save(this);
+                EditGroupNameInput = string.Empty;
+
+                ImGui.CloseCurrentPopup();
+            }
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button(Lang.Get("Cancel")))
+            ImGui.CloseCurrentPopup();
+    }
+
+    private void ItemsColumn(int index)
+    {
+        if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
+
+        var       group = ModuleConfig.DiscardGroups[index];
+        using var id    = ImRaii.PushId(index);
+
+        ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 2.5f);
+
+        using (ImRaii.Group())
+        {
+            if (group.Items.Count > 0)
+            {
+                using (ImRaii.Group())
+                using (ImRaii.Group())
+                {
+                    foreach (var item in group.Items.TakeLast(15))
+                    {
+                        var itemData = LuminaGetter.GetRow<Item>(item);
+                        if (itemData == null) continue;
+
+                        var itemIcon = DService.Instance().Texture.GetFromGameIcon(new(itemData.Value.Icon)).GetWrapOrDefault();
+                        if (itemIcon == null) continue;
+
+                        ImGui.Image(itemIcon.Handle, new(ImGui.GetTextLineHeightWithSpacing()));
+                        ImGui.SameLine();
+                    }
+                }
+            }
+            else
+                ImGui.TextUnformatted(Lang.Get("AutoDiscard-NoItemInGroupHelp"));
+        }
+
+        if (ImGui.IsItemClicked())
+            ImGui.OpenPopup("ItemsEditMenu");
+
+        var popupToOpen = string.Empty;
+
+        using (var popupMenu = ImRaii.Popup("ItemsEditMenu", ImGuiWindowFlags.AlwaysAutoResize))
+        {
+            if (popupMenu)
+            {
+                ImGui.TextUnformatted(group.UniqueName);
+
+                ImGui.Separator();
+                ImGui.Spacing();
+
+                if (ImGui.MenuItem(Lang.Get("AutoDiscard-AddItemsBatch")))
+                {
+                    ImGui.CloseCurrentPopup();
+                    popupToOpen = "AddItemsBatch";
+                }
+
+                if (ImGui.MenuItem(Lang.Get("AutoDiscard-AddItemsManual")))
+                {
+                    ImGui.CloseCurrentPopup();
+                    popupToOpen = "AddItemsManual";
+                }
+            }
+        }
+
+        if (!string.IsNullOrEmpty(popupToOpen))
+            ImGui.OpenPopup(popupToOpen);
+
+        using (var popup = ImRaii.Popup("AddItemsBatch"))
+        {
+            if (popup)
+            {
+                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("AutoDiscard-AddItemsByName"));
+
+                using (ImRaii.PushIndent())
+                {
+                    using (ImRaii.Disabled(string.IsNullOrWhiteSpace(AddItemsByNameInput)))
+                    {
+                        if (ImGui.Button($"{Lang.Get("Add")}##AddItemByName"))
+                        {
+                            LastAddedItemsByName = ItemSearcher.Data
+                                                               .Where(x => x.Name.ToString().Contains(AddItemsByNameInput, StringComparison.OrdinalIgnoreCase))
+                                                               .ToList();
+                            LastAddedItemsByName.ForEach(x => group.Items.Add(x.RowId));
+                            ModuleConfig.Save(this);
+
+                            NotifyHelper.NotificationSuccess(Lang.Get("AutoDiscard-Notification-ItemsAdded", LastAddedItemsByName.Count));
+                        }
+                    }
+
+                    ImGui.SameLine();
+
+                    using (ImRaii.Disabled(LastAddedItemsByName.Count == 0))
+                    {
+                        if (ImGui.Button($"{Lang.Get("Cancel")}##AddItemByName"))
+                        {
+                            LastAddedItemsByName.ForEach(x => group.Items.Remove(x.RowId));
+                            ModuleConfig.Save(this);
+
+                            LastAddedItemsByName.Clear();
+                        }
+                    }
+
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth(300f * GlobalUIScale);
+                    ImGui.InputText("###AddByItemName", ref AddItemsByNameInput, 128);
+                }
+
+                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("AutoDiscard-AddItemsByCategory"));
+
+                using (ImRaii.PushIndent())
+                {
+                    using (ImRaii.Disabled(!LuminaGetter.TryGetRow<ItemUICategory>(AddItemsByCategoryInput, out _)))
+                    {
+                        if (ImGui.Button($"{Lang.Get("Add")}##AddItemByCategory"))
+                        {
+                            LastAddedItemsByCategory = ItemSearcher.Data
+                                                                   .Where(x => x.ItemUICategory.RowId == AddItemsByCategoryInput)
+                                                                   .ToList();
+                            LastAddedItemsByCategory.ForEach(x => group.Items.Add(x.RowId));
+                            ModuleConfig.Save(this);
+
+                            NotifyHelper.NotificationSuccess(Lang.Get("AutoDiscard-Notification-ItemsAdded", LastAddedItemsByCategory.Count));
+                        }
+                    }
+
+                    ImGui.SameLine();
+
+                    using (ImRaii.Disabled(LastAddedItemsByCategory.Count == 0))
+                    {
+                        if (ImGui.Button($"{Lang.Get("Cancel")}##AddItemByCategory"))
+                        {
+                            LastAddedItemsByCategory.ForEach(x => group.Items.Remove(x.RowId));
+                            ModuleConfig.Save(this);
+
+                            LastAddedItemsByCategory.Clear();
+                        }
+                    }
+
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth(300f * GlobalUIScale);
+
+                    using (var combo = ImRaii.Combo
+                           (
+                               "###AddItemsByCategoryCombo",
+                               LuminaGetter.TryGetRow<ItemUICategory>(AddItemsByCategoryInput, out var uiCategory)
+                                   ? uiCategory.Name.ToString()
+                                   : string.Empty,
+                               ImGuiComboFlags.HeightLarge
+                           ))
+                    {
+                        if (combo)
+                        {
+                            foreach (var itemUiCategory in LuminaGetter.Get<ItemUICategory>())
+                            {
+                                var name = itemUiCategory.Name.ToString();
+                                if (string.IsNullOrEmpty(name)) continue;
+                                if (!ImageHelper.TryGetGameIcon((uint)itemUiCategory.Icon, out var icon)) continue;
+
+                                if (ImGuiOm.SelectableImageWithText
+                                    (
+                                        icon.Handle,
+                                        new(ImGui.GetTextLineHeightWithSpacing()),
+                                        name,
+                                        AddItemsByCategoryInput == itemUiCategory.RowId
+                                    ))
+                                    AddItemsByCategoryInput = itemUiCategory.RowId;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        using (var popup = ImRaii.Popup("AddItemsManual"))
+        {
+            if (popup)
+            {
+                var leftChildSize = new Vector2(300 * GlobalUIScale, 500 * GlobalUIScale);
+
+                using (var leftChild = ImRaii.Child("SelectedItemChild", leftChildSize, true))
+                {
+                    if (leftChild)
+                    {
+                        ImGui.SetNextItemWidth(-1f);
+                        ImGui.InputTextWithHint("###SelectedItemSearchInput", Lang.Get("PleaseSearch"), ref SelectedItemSearchInput, 100);
+
+                        ImGui.Separator();
+
+                        foreach (var item in group.Items)
+                        {
+                            var specificItemNullable = LuminaGetter.GetRow<Item>(item);
+                            if (specificItemNullable == null) continue;
+                            var specificItem     = specificItemNullable.Value;
+                            var specificItemIcon = DService.Instance().Texture.GetFromGameIcon(new(specificItem.Icon)).GetWrapOrDefault();
+                            if (specificItemIcon == null) continue;
+
+                            if (!string.IsNullOrWhiteSpace(SelectedItemSearchInput) &&
+                                !specificItem.Name.ToString().Contains(SelectedItemSearchInput, StringComparison.OrdinalIgnoreCase)) continue;
+
+                            if (ImGuiOm.SelectableImageWithText
+                                (
+                                    specificItemIcon.Handle,
+                                    new(ImGui.GetTextLineHeightWithSpacing()),
+                                    specificItem.Name.ToString(),
+                                    false,
+                                    ImGuiSelectableFlags.DontClosePopups
+                                ))
+                                group.Items.Remove(specificItem.RowId);
+                        }
+                    }
+                }
+
+                ImGui.SameLine();
+
+                using (ImRaii.Group())
+                {
+                    using (ImRaii.Disabled())
+                    {
+                        using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0)))
+                        {
+                            ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y / 2 - 24f);
+                            ImGuiOm.ButtonIcon("DecoExchangeIcon", FontAwesomeIcon.ExchangeAlt);
+                        }
+                    }
+                }
+
+                ImGui.SameLine();
+
+                using (var rightChild = ImRaii.Child("SearchItemChild", leftChildSize, true))
+                {
+                    if (rightChild)
+                    {
+                        ImGui.SetNextItemWidth(-1f);
+                        if (ImGui.InputTextWithHint("###GameItemSearchInput", Lang.Get("PleaseSearch"), ref ItemSearchInput, 100))
+                            ItemSearcher.Search(ItemSearchInput);
+
+                        ImGui.Separator();
+
+                        foreach (var item in ItemSearcher.SearchResult)
+                        {
+                            if (group.Items.Contains(item.RowId)) continue;
+
+                            var itemIcon = DService.Instance().Texture.GetFromGameIcon(new(item.Icon)).GetWrapOrDefault();
+                            if (itemIcon == null) continue;
+
+                            if (ImGuiOm.SelectableImageWithText
+                                (
+                                    itemIcon.Handle,
+                                    new(ImGui.GetTextLineHeightWithSpacing()),
+                                    item.Name.ToString(),
+                                    group.Items.Contains(item.RowId),
+                                    ImGuiSelectableFlags.DontClosePopups
+                                ))
+                            {
+                                if (!group.Items.Remove(item.RowId))
+                                    group.Items.Add(item.RowId);
+
+                                ModuleConfig.Save(this);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void BehaviourColumn(int index)
+    {
+        if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
+
+        var       group = ModuleConfig.DiscardGroups[index];
+        using var id    = ImRaii.PushId(index);
+
+        foreach (var behaviourPair in DiscardBehaviourLoc)
+        {
+            if (ImGui.RadioButton(behaviourPair.Value, behaviourPair.Key == group.Behaviour))
+            {
+                group.Behaviour = behaviourPair.Key;
+                ModuleConfig.Save(this);
+            }
+
+            ImGui.SameLine();
+        }
+    }
+
+    private void OperationColumn(int index)
+    {
+        if (index < 0 || index > ModuleConfig.DiscardGroups.Count) return;
+
+        var       group = ModuleConfig.DiscardGroups[index];
+        using var id    = ImRaii.PushId(index);
+
+        using (ImRaii.Disabled(TaskHelper.IsBusy))
+        {
+            if (ImGuiOm.ButtonIcon($"Run_{index}", FontAwesomeIcon.Play, Lang.Get("Run")))
+                group.Enqueue(TaskHelper);
+        }
+
+        ImGui.SameLine();
+        if (ImGuiOm.ButtonIcon($"Stop_{index}", FontAwesomeIcon.Stop, Lang.Get("Stop")))
+            TaskHelper.Abort();
+
+        using (ImRaii.Disabled(TaskHelper.IsBusy))
+        {
+            ImGui.SameLine();
+
+            if (ImGuiOm.ButtonIcon($"Copy_{index}", FontAwesomeIcon.Copy, Lang.Get("Copy")))
+            {
+                var newGroup = new DiscardItemsGroup(GenerateUniqueName(group.UniqueName))
+                {
+                    Behaviour = group.Behaviour,
+                    Items     = group.Items
+                };
+
+                ModuleConfig.DiscardGroups.Add(newGroup);
+                ModuleConfig.Save(this);
+            }
+
+            ImGui.SameLine();
+            if (ImGuiOm.ButtonIcon($"Export_{index}", FontAwesomeIcon.FileExport, Lang.Get("Export")))
+                ExportToClipboard(group);
+
+            ImGui.SameLine();
+
+            if (ImGuiOm.ButtonIcon($"Delete_{index}", FontAwesomeIcon.TrashAlt, Lang.Get("HoldCtrlToDelete")))
+            {
+                if (ImGui.IsKeyDown(ImGuiKey.LeftCtrl))
+                {
+                    ModuleConfig.DiscardGroups.Remove(group);
+                    ModuleConfig.Save(this);
+                }
+            }
+        }
+    }
+
+    #endregion
 }

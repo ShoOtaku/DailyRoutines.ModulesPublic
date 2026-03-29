@@ -1,10 +1,10 @@
-using System;
 using System.Collections.Frozen;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.Text.SeStringHandling;
@@ -16,22 +16,18 @@ using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
+using OmenTools.Dalamud;
+using OmenTools.Info.Game.Data;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
+using Control = FFXIVClientStructs.FFXIV.Client.Game.Control.Control;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoSendMoney : DailyModuleBase
+public unsafe class AutoSendMoney : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoSendMoneyTitle"),
-        Description = GetLoc("AutoSendMoneyDescription"),
-        Category    = ModuleCategories.General,
-        Author      = ["status102"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
-    
     private const uint MAXIMUM_GIL_PER_TRADE = 1_000_000;
 
     private static readonly CompSig TradeRequestSig = new("48 89 6C 24 ?? 56 57 41 56 48 83 EC ?? 48 8B E9 44 8B F2 48 8D 0D");
@@ -53,11 +49,21 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
     private static SendMoneyRuntime? Runtime;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoSendMoneyTitle"),
+        Description = Lang.Get("AutoSendMoneyDescription"),
+        Category    = ModuleCategory.General,
+        Author      = ["status102"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { NeedAuth = true };
+
     private static bool IsRunning => Runtime != null;
 
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         ValidateConfigChanges();
         TaskHelper ??= new() { TimeoutMS = 5_000 };
@@ -65,366 +71,8 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
     protected override void Uninit() =>
         Stop();
-    
-    #region UI
 
-    protected override void ConfigUI()
-    {
-        if (NameLength < 0)
-            NameLength = ImGui.CalcTextSize(GetLoc("All")).X;
-
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Settings")}");
-
-        using (ImRaii.PushIndent())
-        using (ImRaii.ItemWidth(100f * GlobalFontScale))
-        {
-            ImGui.InputInt($"{GetLoc("AutoSendMoney-Step", 1)}##Step1Input", ref ModuleConfig.Step1, flags: ImGuiInputTextFlags.CharsDecimal);
-            if (ImGui.IsItemDeactivatedAfterEdit())
-            {
-                ValidateConfigChanges();
-                ModuleConfig.Save(this);
-            }
-            
-            ImGui.InputInt($"{GetLoc("AutoSendMoney-Step", 2)}##Step2Input", ref ModuleConfig.Step2, flags: ImGuiInputTextFlags.CharsDecimal);
-            if (ImGui.IsItemDeactivatedAfterEdit())
-            {
-                ValidateConfigChanges();
-                ModuleConfig.Save(this);
-            }
-            
-            ImGui.InputInt($"{GetLoc("AutoSendMoney-DelayLowerLimit")}##DelayLowerLimitInput", ref ModuleConfig.Delay1, flags: ImGuiInputTextFlags.CharsDecimal);
-            if (ImGui.IsItemDeactivatedAfterEdit())
-            {
-                ValidateConfigChanges();
-                ModuleConfig.Save(this);
-            }
-            
-            ImGui.InputInt($"{GetLoc("AutoSendMoney-DelayUpperLimit")}##DelayUpperLimitInput", ref ModuleConfig.Delay2, flags: ImGuiInputTextFlags.CharsDecimal);
-            if (ImGui.IsItemDeactivatedAfterEdit())
-            {
-                ValidateConfigChanges();
-                ModuleConfig.Save(this);
-            }
-        }
-
-        ImGui.NewLine();
-
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Control")}");
-        
-        using (ImRaii.PushIndent())
-        {
-            using (ImRaii.Disabled(IsRunning))
-            {
-                if (ImGui.Button($"{FontAwesomeIcon.FlagCheckered.ToIconString()} {GetLoc("Start")}"))
-                    Start();
-            }
-
-            ImGui.SameLine();
-            if (ImGui.Button($"{FontAwesomeIcon.Stop.ToIconString()} {GetLoc("Stop")}"))
-                Stop();
-        }
-        
-        ImGui.NewLine();
-        
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("AutoSendMoney-ListToTrade")}");
-
-        using (ImRaii.PushIndent())
-        {
-            if (ImGui.Button(GetLoc("AutoSendMoney-AddPartyList")))
-                AddPartyMembers();
-
-            ImGui.SameLine();
-            if (ImGui.Button(GetLoc("AutoSendMoney-AddTarget")))
-                AddCurrentTarget();
-            
-            using (ImRaii.PushId("All"))
-                DrawGlobalPlan();
-
-            foreach (var p in Members)
-            {
-                using (ImRaii.PushId(p.EntityID.ToString()))
-                    DrawMemberPlan(p);
-            }
-        }
-    }
-
-    private static void DrawGlobalPlan()
-    {
-        using var group   = ImRaii.Group();
-        var       hasPlan = EditPlan.Count > 0;
-
-        if (ImGui.Checkbox("##AllHasPlan", ref hasPlan))
-        {
-            if (hasPlan)
-            {
-                foreach (var p in Members)
-                {
-                    if (EditPlan.ContainsKey(p.EntityID)) continue;
-                    EditPlan.Add(p.EntityID, (long)(PlanAll * 10000));
-                }
-            }
-            else
-                EditPlan.Clear();
-        }
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted(GetLoc("All"));
-
-        using var disabled = ImRaii.Disabled(IsRunning);
-
-        ImGui.SameLine(NameLength + 60);
-
-        ImGui.SetNextItemWidth(80f * GlobalFontScale);
-        ImGui.InputDouble($"{GetLoc("Wan")}##AllMoney", ref PlanAll, 0, 0, "%.1lf", ImGuiInputTextFlags.CharsDecimal);
-
-        if (ImGui.IsItemDeactivatedAfterEdit())
-        {
-            var keys = EditPlan.Keys.ToArray();
-            foreach (var key in keys)
-                EditPlan[key] = (long)(PlanAll * 10000);
-        }
-
-        CurrentChange = 0;
-
-        foreach (var num in MoneyButtons)
-        {
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(15f * GlobalFontScale);
-            var display = $"{(num < 0 ? string.Empty : '+')}{num}";
-            if (ImGui.Button($"{display}##All"))
-                CurrentChange = num * 1_0000;
-        }
-
-        if (CurrentChange != 0)
-        {
-            PlanAll += CurrentChange / 10000.0;
-
-            foreach (var p in Members)
-            {
-                if (!EditPlan.TryAdd(p.EntityID, CurrentChange))
-                    EditPlan[p.EntityID] += CurrentChange;
-            }
-        }
-
-        ImGui.SameLine();
-
-        if (ImGui.Button($"{GetLoc("Reset")}###ResetAll"))
-        {
-            PlanAll = 0;
-
-            var keys = EditPlan.Keys.ToArray();
-            foreach (var key in keys)
-                EditPlan[key] = 0;
-        }
-    }
-
-    private static void DrawMemberPlan(Member p)
-    {
-        using var group   = ImRaii.Group();
-        var       hasPlan = EditPlan.ContainsKey(p.EntityID);
-
-        using (ImRaii.Disabled(IsRunning))
-        {
-            if (ImGui.Checkbox($"##{p.FullName}-CheckBox", ref hasPlan))
-            {
-                if (hasPlan)
-                    EditPlan.Add(p.EntityID, (long)(PlanAll * 10000));
-                else
-                    EditPlan.Remove(p.EntityID);
-            }
-        }
-
-        if (p.GroupIndex >= 0)
-        {
-            ImGui.SameLine();
-            ImGui.TextUnformatted($"{(char)('A' + p.GroupIndex)}-");
-        }
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted(p.FullName);
-
-        ImGui.SameLine(NameLength + 60);
-        if (!hasPlan)
-            return;
-
-        if (IsRunning)
-            ImGui.TextUnformatted(GetLoc("AutoSendMoney-Count", Runtime?.GetRemaining(p.EntityID) ?? 0));
-        else
-        {
-            ImGui.SetNextItemWidth(80f * GlobalFontScale);
-            var value = EditPlan.TryGetValue(p.EntityID, out var valueToken) ? valueToken / 10000.0 : 0;
-            ImGui.InputDouble($"{GetLoc("Wan")}##{p.EntityID}-Money", ref value, 0, 0, "%.1lf", ImGuiInputTextFlags.CharsDecimal);
-            if (ImGui.IsItemDeactivatedAfterEdit())
-                EditPlan[p.EntityID] = (long)(value * 10000);
-
-            CurrentChange = 0;
-
-            foreach (var num in MoneyButtons)
-            {
-                ImGui.SameLine();
-                ImGui.SetNextItemWidth(15f * GlobalFontScale);
-                var display = $"{(num < 0 ? string.Empty : '+')}{num}";
-                if (ImGui.Button($"{display}##Single_{p.EntityID}"))
-                    CurrentChange = num * 1_0000;
-            }
-
-            if (CurrentChange != 0)
-                EditPlan[p.EntityID] = (long)(value * 10000) + CurrentChange;
-
-            ImGui.SameLine();
-            if (ImGui.Button($"{GetLoc("Reset")}###ResetSingle-{p.EntityID}"))
-                EditPlan[p.EntityID] = 0;
-        }
-    }
-
-    public static void AddPartyMembers()
-    {
-        Members.Clear();
-        var cwProxy = InfoProxyCrossRealm.Instance();
-
-        if (cwProxy->IsCrossRealm)
-        {
-            var myGroup = InfoProxyCrossRealm.GetMemberByEntityId((uint)Control.GetLocalPlayer()->GetGameObjectId())->GroupIndex;
-            AddCrossRealmGroupMembers(cwProxy->CrossRealmGroups[myGroup], myGroup);
-
-            for (var i = 0; i < cwProxy->CrossRealmGroups.Length; i++)
-            {
-                if (i == myGroup)
-                    continue;
-
-                AddCrossRealmGroupMembers(cwProxy->CrossRealmGroups[i], i);
-            }
-        }
-        else
-        {
-            var pAgentHUD = AgentHUD.Instance();
-
-            for (var i = 0; i < pAgentHUD->PartyMemberCount; ++i)
-            {
-                var charData        = pAgentHUD->PartyMembers[i];
-                var partyMemberName = SeString.Parse(charData.Name.Value).TextValue;
-
-                AddMember(charData.EntityId, partyMemberName, charData.Object->HomeWorld);
-            }
-        }
-
-        var removedKeys = EditPlan.Keys.Where(k => Members.All(m => m.EntityID != k)).ToArray();
-        foreach (var key in removedKeys)
-            EditPlan.Remove(key);
-
-        foreach (var item in Members)
-            EditPlan.TryAdd(item.EntityID, 0);
-
-        NameLength = Members.Select(p => ImGui.CalcTextSize(p.FullName).X)
-                            .Append(ImGui.CalcTextSize(GetLoc("All")).X)
-                            .Max();
-    }
-
-    private static void AddCrossRealmGroupMembers(CrossRealmGroup crossRealmGroup, int groupIndex)
-    {
-        for (var i = 0; i < crossRealmGroup.GroupMemberCount; i++)
-        {
-            var groupMember = crossRealmGroup.GroupMembers[i];
-            AddMember(groupMember.EntityId, SeString.Parse(groupMember.Name).TextValue, (ushort)groupMember.HomeWorld, groupIndex);
-        }
-    }
-
-    private static void AddMember(uint entityID, string fullName, ushort worldID, int groupIndex = -1)
-    {
-        if (string.IsNullOrWhiteSpace(fullName))
-            return;
-        if (!PresetSheet.Worlds.TryGetValue(worldID, out var world))
-            return;
-
-        Members.Add(new() { EntityID = entityID, FirstName = fullName, World = world.Name.ToString(), GroupIndex = groupIndex });
-    }
-
-    private static void AddCurrentTarget()
-    {
-        var target = TargetSystem.Instance()->GetTargetObject();
-
-        if (target is not null &&
-            DService.Instance().ObjectTable.SearchByEntityID(target->EntityId) is ICharacter { ObjectKind: ObjectKind.Player } player)
-        {
-            if (Members.Any(p => p.EntityID == player.EntityID))
-                return;
-
-            Members.Add(new(player));
-            EditPlan.TryAdd(player.EntityID, 0);
-            NameLength = Members.Select(p => ImGui.CalcTextSize(p.FullName).X)
-                                .Append(ImGui.CalcTextSize(GetLoc("All")).X)
-                                .Max();
-        }
-    }
-
-    #endregion
-
-    #region 交易流程
-
-    private void Start()
-    {
-        if (Runtime != null) return;
-        ValidateConfigChanges();
-        Runtime = new SendMoneyRuntime(this);
-    }
-
-    private static void Stop()
-    {
-        Runtime?.Dispose();
-        Runtime = null;
-    }
-
-    #endregion
-
-    #region 工具
-
-    private static bool IsWithinTradeDistance(Vector3 pos2)
-    {
-        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
-            return false;
-
-        var delta      = localPlayer.Position - pos2;
-        var distanceSq = delta.X * delta.X    + delta.Z * delta.Z;
-        return distanceSq < 16;
-    }
-    
-    private static int GetRandomDelayMS()
-    {
-        var min = Math.Max(0, ModuleConfig.Delay1);
-        var max = Math.Max(0, ModuleConfig.Delay2);
-        if (max <= min) return min;
-        return Random.Shared.Next(min, max);
-    }
-
-    private static void ValidateConfigChanges()
-    {
-        ModuleConfig.Step1 = Math.Abs(ModuleConfig.Step1);
-        ModuleConfig.Step2 = Math.Abs(ModuleConfig.Step2);
-
-        if (ModuleConfig.Step1 == 0) ModuleConfig.Step1 = 50;
-        if (ModuleConfig.Step2 == 0) ModuleConfig.Step2 = 100;
-        if (ModuleConfig.Step2 < ModuleConfig.Step1)
-            (ModuleConfig.Step1, ModuleConfig.Step2) = (ModuleConfig.Step2, ModuleConfig.Step1);
-
-        ModuleConfig.Delay1 = Math.Max(0, ModuleConfig.Delay1);
-        ModuleConfig.Delay2 = Math.Max(0, ModuleConfig.Delay2);
-        if (ModuleConfig.Delay2 < ModuleConfig.Delay1)
-            (ModuleConfig.Delay1, ModuleConfig.Delay2) = (ModuleConfig.Delay2, ModuleConfig.Delay1);
-        if (ModuleConfig.Delay2 == ModuleConfig.Delay1)
-            ModuleConfig.Delay2 = ModuleConfig.Delay1 + 1;
-
-        MoneyButtons =
-        [
-            -ModuleConfig.Step2,
-            -ModuleConfig.Step1,
-            ModuleConfig.Step1,
-            ModuleConfig.Step2
-        ];
-    }
-
-    #endregion
-
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public int Delay1 = 200;
         public int Delay2 = 500;
@@ -462,19 +110,18 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
     private sealed class SendMoneyRuntime : IDisposable
     {
-        private readonly AutoSendMoney          owner;
-        private readonly HashSet<uint>          pendingTradeRequests = [];
-        private readonly Dictionary<uint, long> tradePlan;
-        private          PreCheckState          checkState;
-        private          uint                   currentMoney;
-        private          bool                   isDisposed;
+        private static readonly FrozenSet<uint>        TradeFinishLogMessages = [10920, 10921, 10922, 10923];
+        private readonly        AutoSendMoney          owner;
+        private readonly        HashSet<uint>          pendingTradeRequests = [];
+        private readonly        Dictionary<uint, long> tradePlan;
+        private                 PreCheckState          checkState;
+        private                 uint                   currentMoney;
+        private                 bool                   isDisposed;
 
         private bool                             isTrading;
         private uint                             lastTradeEntityID;
         private Hook<TradeRequestDelegate>?      tradeRequestHook;
         private Hook<TradeStatusUpdateDelegate>? tradeStatusUpdateHook;
-
-        private static readonly FrozenSet<uint> TradeFinishLogMessages = [10920, 10921, 10922, 10923];
 
         public SendMoneyRuntime(AutoSendMoney owner)
         {
@@ -516,12 +163,12 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
         public long GetRemaining(uint entityID) =>
             tradePlan.GetValueOrDefault(entityID, 0);
-        
+
         private void OnLogMessage(uint logMessageID, LogMessageQueueItem item)
         {
             if (!TradeFinishLogMessages.Contains(logMessageID)) return;
             if (Trade == null) return;
-            
+
             Trade->Close(true);
             CompleteTrade();
         }
@@ -648,7 +295,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
             checkState = default;
 
             if (!tradePlan.ContainsKey(lastTradeEntityID))
-                Warning(GetLoc("AutoSendMoney-NoPlan"));
+                DLog.Warning(Lang.Get("AutoSendMoney-NoPlan"));
             else
             {
                 tradePlan[lastTradeEntityID] -= currentMoney;
@@ -673,7 +320,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         private bool SetTradeGil(uint money)
         {
             if (!Trade->IsAddonAndNodesReady()) return false;
-            
+
             InventoryManager.Instance()->SetTradeGilAmount(money);
             currentMoney = money;
             return true;
@@ -683,7 +330,7 @@ public unsafe class AutoSendMoney : DailyModuleBase
         {
             if (!Trade->IsAddonAndNodesReady()) return false;
             if (checkState.SelfConfirmed) return true;
-            
+
             Trade->GetComponentButtonById(33)->Click();
             checkState = checkState with { SelfConfirmed = true };
             return true;
@@ -772,4 +419,366 @@ public unsafe class AutoSendMoney : DailyModuleBase
 
         private delegate nint TradeStatusUpdateDelegate(InventoryManager* manager, nint entityID, nint a3);
     }
+
+    #region UI
+
+    protected override void ConfigUI()
+    {
+        if (NameLength < 0)
+            NameLength = ImGui.CalcTextSize(Lang.Get("All")).X;
+
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("Settings")}");
+
+        using (ImRaii.PushIndent())
+        using (ImRaii.ItemWidth(100f * GlobalUIScale))
+        {
+            ImGui.InputInt($"{Lang.Get("AutoSendMoney-Step", 1)}##Step1Input", ref ModuleConfig.Step1, flags: ImGuiInputTextFlags.CharsDecimal);
+
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                ValidateConfigChanges();
+                ModuleConfig.Save(this);
+            }
+
+            ImGui.InputInt($"{Lang.Get("AutoSendMoney-Step", 2)}##Step2Input", ref ModuleConfig.Step2, flags: ImGuiInputTextFlags.CharsDecimal);
+
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                ValidateConfigChanges();
+                ModuleConfig.Save(this);
+            }
+
+            ImGui.InputInt($"{Lang.Get("AutoSendMoney-DelayLowerLimit")}##DelayLowerLimitInput", ref ModuleConfig.Delay1, flags: ImGuiInputTextFlags.CharsDecimal);
+
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                ValidateConfigChanges();
+                ModuleConfig.Save(this);
+            }
+
+            ImGui.InputInt($"{Lang.Get("AutoSendMoney-DelayUpperLimit")}##DelayUpperLimitInput", ref ModuleConfig.Delay2, flags: ImGuiInputTextFlags.CharsDecimal);
+
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                ValidateConfigChanges();
+                ModuleConfig.Save(this);
+            }
+        }
+
+        ImGui.NewLine();
+
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("Control")}");
+
+        using (ImRaii.PushIndent())
+        {
+            using (ImRaii.Disabled(IsRunning))
+            {
+                if (ImGui.Button($"{FontAwesomeIcon.FlagCheckered.ToIconString()} {Lang.Get("Start")}"))
+                    Start();
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button($"{FontAwesomeIcon.Stop.ToIconString()} {Lang.Get("Stop")}"))
+                Stop();
+        }
+
+        ImGui.NewLine();
+
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("AutoSendMoney-ListToTrade")}");
+
+        using (ImRaii.PushIndent())
+        {
+            if (ImGui.Button(Lang.Get("AutoSendMoney-AddPartyList")))
+                AddPartyMembers();
+
+            ImGui.SameLine();
+            if (ImGui.Button(Lang.Get("AutoSendMoney-AddTarget")))
+                AddCurrentTarget();
+
+            using (ImRaii.PushId("All"))
+                DrawGlobalPlan();
+
+            foreach (var p in Members)
+            {
+                using (ImRaii.PushId(p.EntityID.ToString()))
+                    DrawMemberPlan(p);
+            }
+        }
+    }
+
+    private static void DrawGlobalPlan()
+    {
+        using var group   = ImRaii.Group();
+        var       hasPlan = EditPlan.Count > 0;
+
+        if (ImGui.Checkbox("##AllHasPlan", ref hasPlan))
+        {
+            if (hasPlan)
+            {
+                foreach (var p in Members)
+                {
+                    if (EditPlan.ContainsKey(p.EntityID)) continue;
+                    EditPlan.Add(p.EntityID, (long)(PlanAll * 10000));
+                }
+            }
+            else
+                EditPlan.Clear();
+        }
+
+        ImGui.SameLine();
+        ImGui.TextUnformatted(Lang.Get("All"));
+
+        using var disabled = ImRaii.Disabled(IsRunning);
+
+        ImGui.SameLine(NameLength + 60);
+
+        ImGui.SetNextItemWidth(80f * GlobalUIScale);
+        ImGui.InputDouble($"{Lang.Get("Wan")}##AllMoney", ref PlanAll, 0, 0, "%.1lf", ImGuiInputTextFlags.CharsDecimal);
+
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            var keys = EditPlan.Keys.ToArray();
+            foreach (var key in keys)
+                EditPlan[key] = (long)(PlanAll * 10000);
+        }
+
+        CurrentChange = 0;
+
+        foreach (var num in MoneyButtons)
+        {
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(15f * GlobalUIScale);
+            var display = $"{(num < 0 ? string.Empty : '+')}{num}";
+            if (ImGui.Button($"{display}##All"))
+                CurrentChange = num * 1_0000;
+        }
+
+        if (CurrentChange != 0)
+        {
+            PlanAll += CurrentChange / 10000.0;
+
+            foreach (var p in Members)
+            {
+                if (!EditPlan.TryAdd(p.EntityID, CurrentChange))
+                    EditPlan[p.EntityID] += CurrentChange;
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (ImGui.Button($"{Lang.Get("Reset")}###ResetAll"))
+        {
+            PlanAll = 0;
+
+            var keys = EditPlan.Keys.ToArray();
+            foreach (var key in keys)
+                EditPlan[key] = 0;
+        }
+    }
+
+    private static void DrawMemberPlan(Member p)
+    {
+        using var group   = ImRaii.Group();
+        var       hasPlan = EditPlan.ContainsKey(p.EntityID);
+
+        using (ImRaii.Disabled(IsRunning))
+        {
+            if (ImGui.Checkbox($"##{p.FullName}-CheckBox", ref hasPlan))
+            {
+                if (hasPlan)
+                    EditPlan.Add(p.EntityID, (long)(PlanAll * 10000));
+                else
+                    EditPlan.Remove(p.EntityID);
+            }
+        }
+
+        if (p.GroupIndex >= 0)
+        {
+            ImGui.SameLine();
+            ImGui.TextUnformatted($"{(char)('A' + p.GroupIndex)}-");
+        }
+
+        ImGui.SameLine();
+        ImGui.TextUnformatted(p.FullName);
+
+        ImGui.SameLine(NameLength + 60);
+        if (!hasPlan)
+            return;
+
+        if (IsRunning)
+            ImGui.TextUnformatted(Lang.Get("AutoSendMoney-Count", Runtime?.GetRemaining(p.EntityID) ?? 0));
+        else
+        {
+            ImGui.SetNextItemWidth(80f * GlobalUIScale);
+            var value = EditPlan.TryGetValue(p.EntityID, out var valueToken) ? valueToken / 10000.0 : 0;
+            ImGui.InputDouble($"{Lang.Get("Wan")}##{p.EntityID}-Money", ref value, 0, 0, "%.1lf", ImGuiInputTextFlags.CharsDecimal);
+            if (ImGui.IsItemDeactivatedAfterEdit())
+                EditPlan[p.EntityID] = (long)(value * 10000);
+
+            CurrentChange = 0;
+
+            foreach (var num in MoneyButtons)
+            {
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(15f * GlobalUIScale);
+                var display = $"{(num < 0 ? string.Empty : '+')}{num}";
+                if (ImGui.Button($"{display}##Single_{p.EntityID}"))
+                    CurrentChange = num * 1_0000;
+            }
+
+            if (CurrentChange != 0)
+                EditPlan[p.EntityID] = (long)(value * 10000) + CurrentChange;
+
+            ImGui.SameLine();
+            if (ImGui.Button($"{Lang.Get("Reset")}###ResetSingle-{p.EntityID}"))
+                EditPlan[p.EntityID] = 0;
+        }
+    }
+
+    public static void AddPartyMembers()
+    {
+        Members.Clear();
+        var cwProxy = InfoProxyCrossRealm.Instance();
+
+        if (cwProxy->IsCrossRealm)
+        {
+            var myGroup = InfoProxyCrossRealm.GetMemberByEntityId((uint)Control.GetLocalPlayer()->GetGameObjectId())->GroupIndex;
+            AddCrossRealmGroupMembers(cwProxy->CrossRealmGroups[myGroup], myGroup);
+
+            for (var i = 0; i < cwProxy->CrossRealmGroups.Length; i++)
+            {
+                if (i == myGroup)
+                    continue;
+
+                AddCrossRealmGroupMembers(cwProxy->CrossRealmGroups[i], i);
+            }
+        }
+        else
+        {
+            var pAgentHUD = AgentHUD.Instance();
+
+            for (var i = 0; i < pAgentHUD->PartyMemberCount; ++i)
+            {
+                var charData        = pAgentHUD->PartyMembers[i];
+                var partyMemberName = SeString.Parse(charData.Name.Value).TextValue;
+
+                AddMember(charData.EntityId, partyMemberName, charData.Object->HomeWorld);
+            }
+        }
+
+        var removedKeys = EditPlan.Keys.Where(k => Members.All(m => m.EntityID != k)).ToArray();
+        foreach (var key in removedKeys)
+            EditPlan.Remove(key);
+
+        foreach (var item in Members)
+            EditPlan.TryAdd(item.EntityID, 0);
+
+        NameLength = Members.Select(p => ImGui.CalcTextSize(p.FullName).X)
+                            .Append(ImGui.CalcTextSize(Lang.Get("All")).X)
+                            .Max();
+    }
+
+    private static void AddCrossRealmGroupMembers(CrossRealmGroup crossRealmGroup, int groupIndex)
+    {
+        for (var i = 0; i < crossRealmGroup.GroupMemberCount; i++)
+        {
+            var groupMember = crossRealmGroup.GroupMembers[i];
+            AddMember(groupMember.EntityId, SeString.Parse(groupMember.Name).TextValue, (ushort)groupMember.HomeWorld, groupIndex);
+        }
+    }
+
+    private static void AddMember(uint entityID, string fullName, ushort worldID, int groupIndex = -1)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+            return;
+        if (!Sheets.Worlds.TryGetValue(worldID, out var world))
+            return;
+
+        Members.Add(new() { EntityID = entityID, FirstName = fullName, World = world.Name.ToString(), GroupIndex = groupIndex });
+    }
+
+    private static void AddCurrentTarget()
+    {
+        var target = TargetSystem.Instance()->GetTargetObject();
+
+        if (target is not null &&
+            DService.Instance().ObjectTable.SearchByEntityID(target->EntityId) is ICharacter { ObjectKind: ObjectKind.Player } player)
+        {
+            if (Members.Any(p => p.EntityID == player.EntityID))
+                return;
+
+            Members.Add(new(player));
+            EditPlan.TryAdd(player.EntityID, 0);
+            NameLength = Members.Select(p => ImGui.CalcTextSize(p.FullName).X)
+                                .Append(ImGui.CalcTextSize(Lang.Get("All")).X)
+                                .Max();
+        }
+    }
+
+    #endregion
+
+    #region 交易流程
+
+    private void Start()
+    {
+        if (Runtime != null) return;
+        ValidateConfigChanges();
+        Runtime = new SendMoneyRuntime(this);
+    }
+
+    private static void Stop()
+    {
+        Runtime?.Dispose();
+        Runtime = null;
+    }
+
+    #endregion
+
+    #region 工具
+
+    private static bool IsWithinTradeDistance(Vector3 pos2)
+    {
+        if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer)
+            return false;
+
+        var delta      = localPlayer.Position - pos2;
+        var distanceSq = delta.X * delta.X    + delta.Z * delta.Z;
+        return distanceSq < 16;
+    }
+
+    private static int GetRandomDelayMS()
+    {
+        var min = Math.Max(0, ModuleConfig.Delay1);
+        var max = Math.Max(0, ModuleConfig.Delay2);
+        if (max <= min) return min;
+        return Random.Shared.Next(min, max);
+    }
+
+    private static void ValidateConfigChanges()
+    {
+        ModuleConfig.Step1 = Math.Abs(ModuleConfig.Step1);
+        ModuleConfig.Step2 = Math.Abs(ModuleConfig.Step2);
+
+        if (ModuleConfig.Step1 == 0) ModuleConfig.Step1 = 50;
+        if (ModuleConfig.Step2 == 0) ModuleConfig.Step2 = 100;
+        if (ModuleConfig.Step2 < ModuleConfig.Step1)
+            (ModuleConfig.Step1, ModuleConfig.Step2) = (ModuleConfig.Step2, ModuleConfig.Step1);
+
+        ModuleConfig.Delay1 = Math.Max(0, ModuleConfig.Delay1);
+        ModuleConfig.Delay2 = Math.Max(0, ModuleConfig.Delay2);
+        if (ModuleConfig.Delay2 < ModuleConfig.Delay1)
+            (ModuleConfig.Delay1, ModuleConfig.Delay2) = (ModuleConfig.Delay2, ModuleConfig.Delay1);
+        if (ModuleConfig.Delay2 == ModuleConfig.Delay1)
+            ModuleConfig.Delay2 = ModuleConfig.Delay1 + 1;
+
+        MoneyButtons =
+        [
+            -ModuleConfig.Step2,
+            -ModuleConfig.Step1,
+            ModuleConfig.Step1,
+            ModuleConfig.Step2
+        ];
+    }
+
+    #endregion
 }

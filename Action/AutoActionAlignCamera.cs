@@ -1,30 +1,36 @@
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Utility.Numerics;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using OmenTools.Interop.Game.Helpers;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models.Packets.Upstream;
+using OmenTools.OmenService;
 using Action = Lumina.Excel.Sheets.Action;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoActionAlignCamera : DailyModuleBase
+public unsafe class AutoActionAlignCamera : ModuleBase
 {
+    private static Config ModuleConfig = null!;
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoActionAlignCameraTitle"),
-        Description = GetLoc("AutoActionAlignCameraDescription"),
-        Category    = ModuleCategories.Action
+        Title       = Lang.Get("AutoActionAlignCameraTitle"),
+        Description = Lang.Get("AutoActionAlignCameraDescription"),
+        Category    = ModuleCategory.Action
     };
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
 
-    private static Config ModuleConfig = null!;
-
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new() { ActionReversed = [94, 29494, 24402] };
+        ModuleConfig = Config.Load(this) ?? new() { ActionReversed = [94, 29494, 24402] };
 
         UseActionManager.Instance().RegPreUseActionLocation(OnPreUseAction);
     }
@@ -45,12 +51,12 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
         ImGui.TableNextColumn();
 
         ImGui.TableNextColumn();
-        ImGuiOm.Text(GetLoc("Action"));
+        ImGuiOm.Text(Lang.Get("Action"));
 
         ImGui.TableNextColumn();
-        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 4f * GlobalFontScale);
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 4f * GlobalUIScale);
         ImGuiOm.Text(FontAwesomeIcon.Undo.ToIconString());
-        ImGuiOm.TooltipHover(GetLoc("AutoActionAlignCamera-ReverseDirection"));
+        ImGuiOm.TooltipHover(Lang.Get("AutoActionAlignCamera-ReverseDirection"));
 
         foreach (var actionPair in ModuleConfig.ActionEnabled)
         {
@@ -72,11 +78,11 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
             }
 
             ImGui.TableNextColumn();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4f * GlobalFontScale);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 4f * GlobalUIScale);
             ImGui.Image(actionIcon.Handle, new(ImGui.GetTextLineHeight()));
 
             ImGui.SameLine();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2f * GlobalFontScale);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2f * GlobalUIScale);
             ImGui.TextUnformatted($"{data.Name.ToString()}");
 
             ImGui.TableNextColumn();
@@ -109,10 +115,10 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
 
         if (DService.Instance().ObjectTable.LocalPlayer is not { } localPlayer) return;
 
-        var transformedRotation = CameraDirHToCharaRotation(CameraManager.Instance()->Camera->DirH);
+        var transformedRotation = RotationHelper.CameraDirHToChara(CameraManager.Instance()->Camera->DirH);
 
         if (ModuleConfig.ActionReversed.Contains(adjustedID))
-            transformedRotation = CharaRotationSymmetricTransform(transformedRotation);
+            transformedRotation = RotationHelper.CharaSymmetricTransform(transformedRotation);
 
         if (GameState.ContentFinderCondition != 0)
         {
@@ -128,10 +134,8 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
         localPlayer.ToStruct()->SetRotation(transformedRotation);
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
-        public HashSet<uint> ActionReversed = [];
-
         public Dictionary<uint, bool> ActionEnabled = new()
         {
             // 回避跳跃
@@ -201,5 +205,7 @@ public unsafe class AutoActionAlignCamera : DailyModuleBase
             // 启示录
             [34581] = true
         };
+
+        public HashSet<uint> ActionReversed = [];
     }
 }

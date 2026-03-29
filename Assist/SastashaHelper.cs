@@ -1,24 +1,19 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models.Packets.Upstream;
+using OmenTools.OmenService;
 using ObjectKind = Dalamud.Game.ClientState.Objects.Enums.ObjectKind;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class SastashaHelper : DailyModuleBase
+public unsafe class SastashaHelper : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("SastashaHelperTitle"),
-        Description = GetLoc("SastashaHelperDescription"),
-        Category    = ModuleCategories.Assist
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     // Book Data ID - Coral Data ID
     private static readonly Dictionary<uint, (uint CoralDataID, ushort UIColor, ObjectHighlightColor HighlightColor)> BookToCoral = new()
     {
@@ -33,6 +28,15 @@ public unsafe class SastashaHelper : DailyModuleBase
     private static ulong                CorrectCoralDataID;
     private static ObjectHighlightColor CorrectCoralHighlightColor;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("SastashaHelperTitle"),
+        Description = Lang.Get("SastashaHelperDescription"),
+        Category    = ModuleCategory.Assist
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override void Init()
     {
         TaskHelper ??= new() { TimeoutMS = 30_000 };
@@ -40,7 +44,7 @@ public unsafe class SastashaHelper : DailyModuleBase
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
     }
-    
+
     protected override void Uninit()
     {
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
@@ -50,7 +54,7 @@ public unsafe class SastashaHelper : DailyModuleBase
         CorrectCoralDataID         = 0;
         CorrectCoralHighlightColor = ObjectHighlightColor.None;
     }
-    
+
     private void OnZoneChanged(ushort zone)
     {
         TaskHelper?.Abort();
@@ -59,9 +63,9 @@ public unsafe class SastashaHelper : DailyModuleBase
 
         CorrectCoralDataID         = 0;
         CorrectCoralHighlightColor = ObjectHighlightColor.None;
-        
+
         if (GameState.TerritoryType != 1036) return;
-        
+
         TaskHelper.Enqueue(GetCorrectCoral);
         GamePacketManager.Instance().RegPostSendPacket(OnPostSendPackt);
         FrameworkManager.Instance().Reg(OnUpdate, 2_000);
@@ -70,12 +74,12 @@ public unsafe class SastashaHelper : DailyModuleBase
     private static void OnPostSendPackt(int opcode, nint packet, bool isPrioritize)
     {
         if (opcode != UpstreamOpcode.EventStartOpcode) return;
-        
+
         var packetData = (EventStartPackt*)packet;
         if (packetData->EventID == 983066)
             FrameworkManager.Instance().Unreg(OnUpdate);
     }
-    
+
     private static void OnUpdate(IFramework _)
     {
         if (CorrectCoralDataID == 0 || CorrectCoralHighlightColor == ObjectHighlightColor.None) return;
@@ -101,9 +105,9 @@ public unsafe class SastashaHelper : DailyModuleBase
 
         var info = BookToCoral[book.DataID];
 
-        Chat
+        NotifyHelper.Chat
         (
-            GetSLoc
+            Lang.GetSe
             (
                 "SastashaHelper-Message",
                 new SeStringBuilder()

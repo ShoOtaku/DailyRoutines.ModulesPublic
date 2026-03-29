@@ -1,4 +1,3 @@
-using System;
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Net;
@@ -6,38 +5,40 @@ using System.Net.NetworkInformation;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Helpers;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.RemoteInteraction.ISPTranslation;
+using DailyRoutines.RemoteInteraction.ISPTranslation.Models.Responses;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Text.SeStringHandling;
 using Newtonsoft.Json;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public partial class AutoDisplayNetworkLatency : DailyModuleBase
+public partial class AutoDisplayNetworkLatency : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title           = GetLoc("AutoDisplayNetworkLatencyTitle"),
-        Description     = GetLoc("AutoDisplayNetworkLatencyDescription"),
-        Category        = ModuleCategories.System,
-        PreviewImageURL = ["https://gh.atmoomen.top/raw.githubusercontent.com/AtmoOmen/StaticAssets/main/DailyRoutines/image/AutoDisplayNetworkLatency-UI.png"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private static Config ModuleConfig = null!;
 
     private static ServerPingMonitor?       Monitor;
     private static IDtrBarEntry?            Entry;
     private static CancellationTokenSource? CancelSource;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title           = Lang.Get("AutoDisplayNetworkLatencyTitle"),
+        Description     = Lang.Get("AutoDisplayNetworkLatencyDescription"),
+        Category        = ModuleCategory.System,
+        PreviewImageURL = ["https://gh.atmoomen.top/raw.githubusercontent.com/AtmoOmen/StaticAssets/main/DailyRoutines/image/AutoDisplayNetworkLatency-UI.png"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         Overlay       ??= new(this);
         Overlay.Flags &=  ~ImGuiWindowFlags.AlwaysAutoResize;
@@ -72,13 +73,13 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Format"));
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("Format"));
 
         using (ImRaii.PushIndent())
         {
             ImGui.InputText("##FormatInput", ref ModuleConfig.Format);
             if (ImGui.IsItemDeactivatedAfterEdit())
-                SaveConfig(ModuleConfig);
+                ModuleConfig.Save(this);
         }
     }
 
@@ -231,14 +232,16 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
 
         return;
 
-        static Vector4 GetPingColor(float ping) =>
-            ping switch
+        static Vector4 GetPingColor(float ping)
+        {
+            return ping switch
             {
                 < 0   => KnownColor.Gray.ToVector4(),
                 < 100 => KnownColor.SpringGreen.ToVector4(),
                 < 200 => KnownColor.Orange.ToVector4(),
                 _     => KnownColor.Red.ToVector4()
             };
+        }
 
         static void DrawStatColumn(string label, string value, Vector4 color)
         {
@@ -246,7 +249,7 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
             ImGui.Spacing();
             ImGui.TextDisabled(label);
 
-            ImGui.SameLine(0, 8f * GlobalFontScale);
+            ImGui.SameLine(0, 8f * GlobalUIScale);
             using (FontManager.Instance().UIFont120.Push())
                 ImGui.TextColored(color, value);
         }
@@ -312,17 +315,35 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
         }
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
-        public string Format = GetLoc("AutoDisplayNetworkLatency-DefaultFormat");
+        public string Format = Lang.Get("AutoDisplayNetworkLatency-DefaultFormat");
     }
 
     private partial class ServerPingMonitor : IDisposable
     {
-        private readonly Ping pingSender = new();
+        private const string TARGET_IP_QUERY_API = "http://ip-api.com/json/{0}?lang={1}";
+
+        private const    int  AF_INET                   = 2;
+        private const    int  AF_INET6                  = 23;
+        private const    int  TCP_TABLE_OWNER_PID_ALL   = 5;
+        private const    int  MIB_TCP_STATE_ESTABLISHED = 5;
+        private const    int  MIB_TCP_STATE_LISTEN      = 2;
+        private readonly Ping pingSender                = new();
 
         private unsafe byte* buffer;
         private        int   bufferSize;
+
+        private CancellationTokenSource? ipInfoCancelSource;
+        private Task?                    ipInfoTask;
+
+        private int needToRefreshAddress;
+
+        public ServerPingMonitor()
+        {
+            DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
+            GameState.Instance().Login                       += OnLogin;
+        }
 
         public IPAddress              ServerAddress         { get; private set; } = IPAddress.Loopback;
         public ushort                 ServerPort            { get; private set; }
@@ -335,23 +356,28 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
         public int                    HistoryIndex          { get; private set; }
         public int                    FilledCount           { get; private set; }
 
-        private int needToRefreshAddress;
-
-        private CancellationTokenSource? ipInfoCancelSource;
-        private Task?                    ipInfoTask;
-
-        private const string TARGET_IP_QUERY_API = "http://ip-api.com/json/{0}?lang={1}";
-
-        private const int AF_INET                   = 2;
-        private const int AF_INET6                  = 23;
-        private const int TCP_TABLE_OWNER_PID_ALL   = 5;
-        private const int MIB_TCP_STATE_ESTABLISHED = 5;
-        private const int MIB_TCP_STATE_LISTEN      = 2;
-
-        public ServerPingMonitor()
+        public void Dispose()
         {
-            DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
-            GameState.Instance().Login                       += OnLogin;
+            GameState.Instance().Login                       -= OnLogin;
+            DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
+
+            Volatile.Write(ref needToRefreshAddress, 0);
+
+            ipInfoCancelSource?.Cancel();
+            ipInfoCancelSource?.Dispose();
+
+            pingSender.Dispose();
+
+            unsafe
+            {
+                if (buffer != null)
+                {
+                    NativeMemory.Free(buffer);
+                    buffer = null;
+                }
+            }
+
+            GC.SuppressFinalize(this);
         }
 
         private void OnLogin() =>
@@ -409,36 +435,40 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
             AddressInfo = null;
 
             var token = ipInfoCancelSource.Token;
-            ipInfoTask = Task.Run(async () =>
-            {
-                try
+            ipInfoTask = Task.Run
+            (
+                async () =>
                 {
-                    if (HTTPClientHelper.Get() is not { } httpClient) return;
-
-                    var response = await httpClient.GetStringAsync(string.Format(TARGET_IP_QUERY_API, address, CultureInfo.CurrentUICulture), token);
-                    if (token.IsCancellationRequested) return;
-
-                    if (JsonConvert.DeserializeObject<IPLocationDTO>(response) is { } newInfo)
+                    try
                     {
+                        if (HTTPClientHelper.Get() is not { } httpClient) return;
+
+                        var response = await httpClient.GetStringAsync(string.Format(TARGET_IP_QUERY_API, address, CultureInfo.CurrentUICulture), token);
                         if (token.IsCancellationRequested) return;
 
-                        ISPInfo = await ISPTranslatorRequest.TranslateAsync(newInfo.InternetServiceProvider);
-                        if (await ISPTranslatorRequest.TranslateAsync(newInfo.CityName) is { } cityNameInfo)
-                            newInfo.CityName = cityNameInfo.Translated;
+                        if (JsonConvert.DeserializeObject<IPLocationDTO>(response) is { } newInfo)
+                        {
+                            if (token.IsCancellationRequested) return;
 
-                        AddressInfo = newInfo;
+                            ISPInfo = await RemoteISPTranslation.GetFreshAsync(newInfo.InternetServiceProvider, cancellationToken: token);
+                            if (await RemoteISPTranslation.GetFreshAsync(newInfo.CityName, cancellationToken: token) is { } cityNameInfo)
+                                newInfo.CityName = cityNameInfo.Translated;
+
+                            AddressInfo = newInfo;
+                        }
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    // ignored
-                }
-                catch (Exception)
-                {
-                    AddressInfo = null;
-                    ISPInfo     = null;
-                }
-            }, token);
+                    catch (OperationCanceledException)
+                    {
+                        // ignored
+                    }
+                    catch (Exception)
+                    {
+                        AddressInfo = null;
+                        ISPInfo     = null;
+                    }
+                },
+                token
+            );
         }
 
         private bool UpdateAddressInfo()
@@ -454,6 +484,7 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
                 ResetAddress();
 
                 var currentPID = (uint)Environment.ProcessId;
+
                 if (!TryFindBestEndpointForPID(currentPID, out var observed))
                 {
                     ResetAddress();
@@ -835,33 +866,9 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
             uint                                 reserved = 0
         );
 
-        public void Dispose()
-        {
-            GameState.Instance().Login                       -= OnLogin;
-            DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-
-            Volatile.Write(ref needToRefreshAddress, 0);
-
-            ipInfoCancelSource?.Cancel();
-            ipInfoCancelSource?.Dispose();
-
-            pingSender.Dispose();
-
-            unsafe
-            {
-                if (buffer != null)
-                {
-                    NativeMemory.Free(buffer);
-                    buffer = null;
-                }
-            }
-
-            GC.SuppressFinalize(this);
-        }
-
         ~ServerPingMonitor() =>
             Dispose();
-        
+
         private readonly record struct ConnectionEndpoint
         (
             IPAddress Address,
@@ -896,19 +903,46 @@ public partial class AutoDisplayNetworkLatency : DailyModuleBase
 
     private class IPLocationDTO
     {
-        [JsonProperty("status")]      public string? Status                  { get; set; }
-        [JsonProperty("country")]     public string? CountryName             { get; set; }
-        [JsonProperty("countryCode")] public string? CountryCode             { get; set; }
-        [JsonProperty("region")]      public string? RegionCode              { get; set; }
-        [JsonProperty("regionName")]  public string? RegionName              { get; set; }
-        [JsonProperty("city")]        public string? CityName                { get; set; }
-        [JsonProperty("zip")]         public string? ZipCode                 { get; set; }
-        [JsonProperty("lat")]         public double? Latitude                { get; set; }
-        [JsonProperty("lon")]         public double? Longitude               { get; set; }
-        [JsonProperty("timezone")]    public string? TimeZone                { get; set; }
-        [JsonProperty("isp")]         public string? InternetServiceProvider { get; set; }
-        [JsonProperty("org")]         public string? Organization            { get; set; }
-        [JsonProperty("as")]          public string? AutonomousSystem        { get; set; }
-        [JsonProperty("query")]       public string? IPAddress               { get; set; }
+        [JsonProperty("status")]
+        public string? Status { get; set; }
+
+        [JsonProperty("country")]
+        public string? CountryName { get; set; }
+
+        [JsonProperty("countryCode")]
+        public string? CountryCode { get; set; }
+
+        [JsonProperty("region")]
+        public string? RegionCode { get; set; }
+
+        [JsonProperty("regionName")]
+        public string? RegionName { get; set; }
+
+        [JsonProperty("city")]
+        public string? CityName { get; set; }
+
+        [JsonProperty("zip")]
+        public string? ZipCode { get; set; }
+
+        [JsonProperty("lat")]
+        public double? Latitude { get; set; }
+
+        [JsonProperty("lon")]
+        public double? Longitude { get; set; }
+
+        [JsonProperty("timezone")]
+        public string? TimeZone { get; set; }
+
+        [JsonProperty("isp")]
+        public string? InternetServiceProvider { get; set; }
+
+        [JsonProperty("org")]
+        public string? Organization { get; set; }
+
+        [JsonProperty("as")]
+        public string? AutonomousSystem { get; set; }
+
+        [JsonProperty("query")]
+        public string? IPAddress { get; set; }
     }
 }

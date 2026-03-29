@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
@@ -18,32 +15,35 @@ using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using OmenTools.Dalamud;
+using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
+using OmenTools.Threading;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class AutoRecordSubTimeLeft : DailyModuleBase
+public class AutoRecordSubTimeLeft : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = "自动记录剩余游戏时间",
-        Description = "登录时, 自动记录保存当前账号剩余的游戏时间, 并显示在服务器信息栏",
-        Category    = ModuleCategories.General,
-        Author      = ["Due"]
-    };
-
-    public override ModulePermission Permission { get; } = new() { CNOnly = true, CNDefaultEnabled = true };
-
     private static readonly CompSig                          AgentLobbyOnLoginSig = new("E8 ?? ?? ?? ?? 41 C6 45 ?? ?? E9 ?? ?? ?? ?? 83 FB 03");
-    private unsafe delegate nint                             AgentLobbyOnLoginDelegate(AgentLobby* agent);
     private static          Hook<AgentLobbyOnLoginDelegate>? AgentLobbyOnLoginHook;
 
     private static Config           ModuleConfig = null!;
     private static IDtrBarEntry?    Entry;
     private static PlaytimeManager? Manager;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = "自动记录剩余游戏时间",
+        Description = "登录时, 自动记录保存当前账号剩余的游戏时间, 并显示在服务器信息栏",
+        Category    = ModuleCategory.General,
+        Author      = ["Due"]
+    };
+
+    public override ModulePermission Permission { get; } = new() { CNOnly = true, CNDefaultEnabled = true };
+
     protected override unsafe void Init()
     {
-        ModuleConfig =   LoadConfig<Config>() ?? new();
+        ModuleConfig =   Config.Load(this) ?? new();
         TaskHelper   ??= new();
 
         var path = Path.Join(ConfigDirectoryPath, "PlatimeData.log");
@@ -52,7 +52,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
         Entry         ??= DService.Instance().DTRBar.Get("DailyRoutines-GameTimeLeft");
         Entry.OnClick =   OnDTREntryClick;
-        
+
         UpdateEntryAndTimeInfo();
 
         AgentLobbyOnLoginHook ??= AgentLobbyOnLoginSig.GetHook<AgentLobbyOnLoginDelegate>(AgentLobbyOnLoginDetour);
@@ -140,7 +140,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
 
         if (type == AddonEvent.PostDraw)
         {
-            if (!Throttler.Throttle("AutoRecordSubTimeLeft-OnAddonDraw"))
+            if (!Throttler.Shared.Throttle("AutoRecordSubTimeLeft-OnAddonDraw"))
                 return;
         }
 
@@ -219,8 +219,8 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
                 }
                 catch (Exception ex)
                 {
-                    Warning("更新游戏点月卡订阅信息失败", ex);
-                    NotificationWarning(ex.Message, "更新游戏点月卡订阅信息失败");
+                    DLog.Warning("更新游戏点月卡订阅信息失败", ex);
+                    NotifyHelper.NotificationWarning(ex.Message, "更新游戏点月卡订阅信息失败");
                 }
 
                 return true;
@@ -342,41 +342,35 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         return parts.Count > 0 ? string.Join(" ", parts) : "0 秒";
     }
 
-    private class Config : ModuleConfiguration
+    private unsafe delegate nint AgentLobbyOnLoginDelegate(AgentLobby* agent);
+
+    private class Config : ModuleConfig
     {
         public Dictionary<ulong, (DateTime Record, TimeSpan LeftMonth, TimeSpan LeftTime)> Infos = [];
     }
 
     private sealed class PlaytimeManager : IDisposable
     {
-        private readonly string   logPath;
-        private readonly string   sessionID  = Guid.NewGuid().ToString("N");
-        private readonly int      processID  = Environment.ProcessId;
-        private readonly TimeSpan staleGrace = TimeSpan.FromSeconds(90);
-        private readonly Mutex    fileMutex;
-
-        private CancellationTokenSource? cancelSource;
-        private Task?                    backgroundTask;
+        private readonly Dictionary<string, SessionState> activeSessions = new(StringComparer.Ordinal);
+        private readonly Mutex                            fileMutex;
+        private readonly List<TimeInterval>               historyIntervals = [];
+        private readonly string                           logPath;
+        private readonly int                              processID  = Environment.ProcessId;
+        private readonly string                           sessionID  = Guid.NewGuid().ToString("N");
+        private readonly TimeSpan                         staleGrace = TimeSpan.FromSeconds(90);
+        private          Task?                            backgroundTask;
 
         public PlaytimeStats CachedStats;
 
-        private readonly Dictionary<string, SessionState> activeSessions   = new(StringComparer.Ordinal);
-        private readonly List<TimeInterval>               historyIntervals = [];
+        private CancellationTokenSource? cancelSource;
+        private bool                     isRunning;
 
         private long lastFilePosition;
-        private bool isRunning;
-
-        public record struct PlaytimeStats
-        (
-            TimeSpan Today,
-            TimeSpan Yesterday,
-            TimeSpan Last7Days
-        );
 
         public PlaytimeManager(string path)
         {
             logPath = path;
-            
+
             var mutexName = $@"Global\DailyRoutines-PlaytimeTracker-{GetStableHashCode(Path.GetFullPath(logPath).ToUpperInvariant())}";
             fileMutex = new Mutex(false, mutexName);
 
@@ -393,29 +387,6 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             }
         }
 
-        private static uint GetStableHashCode(string value)
-        {
-            var hash = 2166136261;
-            foreach (var character in value)
-                hash = hash * 16777619 ^ character;
-            return hash;
-        }
-
-        public void Start()
-        {
-            if (isRunning) return;
-            isRunning    = true;
-            cancelSource = new CancellationTokenSource();
-            
-            backgroundTask = Task.Factory.StartNew(BackgroundTaskLoop, cancelSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-        }
-
-        public void OnLogin() =>
-            WriteEvent("start");
-
-        public void OnLogout() =>
-            WriteEvent("stop");
-
         public void Dispose()
         {
             isRunning = false;
@@ -431,7 +402,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             }
 
             cancelSource?.Dispose();
-            
+
             try
             {
                 WriteEvent("stop");
@@ -444,10 +415,33 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             fileMutex.Dispose();
         }
 
+        private static uint GetStableHashCode(string value)
+        {
+            var hash = 2166136261;
+            foreach (var character in value)
+                hash = hash * 16777619 ^ character;
+            return hash;
+        }
+
+        public void Start()
+        {
+            if (isRunning) return;
+            isRunning    = true;
+            cancelSource = new CancellationTokenSource();
+
+            backgroundTask = Task.Factory.StartNew(BackgroundTaskLoop, cancelSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        }
+
+        public void OnLogin() =>
+            WriteEvent("start");
+
+        public void OnLogout() =>
+            WriteEvent("stop");
+
         private async Task BackgroundTaskLoop()
         {
             var token = cancelSource!.Token;
-            
+
             UpdateData();
 
             try
@@ -546,7 +540,7 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         private void UpdateData()
         {
             ParseLogFile();
-            
+
             var now        = StandardTimeManager.Instance().UTCNow;
             var todayLocal = StandardTimeManager.Instance().Today;
 
@@ -556,13 +550,13 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             var yesterdayStartUTC = todayStartUTC.AddDays(-1);
 
             var weekStartUTC = todayStartUTC.AddDays(-6);
-            
+
             var activeIntervals = GetActiveIntervals(now);
-            
+
             var today     = CalculateDuration(todayStartUTC,     todayEndUTC,   activeIntervals);
             var yesterday = CalculateDuration(yesterdayStartUTC, todayStartUTC, activeIntervals);
             var last7     = CalculateDuration(weekStartUTC,      todayEndUTC,   activeIntervals);
-            
+
             CachedStats = new PlaytimeStats(today, yesterday, last7);
         }
 
@@ -724,10 +718,10 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
         private TimeSpan CalculateDuration(DateTime rangeStart, DateTime rangeEnd, List<TimeInterval> activeIntervals)
         {
             long ticks = 0;
-            
+
             var idx          = historyIntervals.BinarySearch(new TimeInterval(rangeStart, rangeStart), IntervalStartComparer.Instance);
             if (idx < 0) idx = ~idx;
-            
+
             if (idx > 0 && historyIntervals[idx - 1].End > rangeStart)
                 idx--;
 
@@ -758,10 +752,17 @@ public class AutoRecordSubTimeLeft : DailyModuleBase
             return new TimeSpan(ticks);
         }
 
+        public record struct PlaytimeStats
+        (
+            TimeSpan Today,
+            TimeSpan Yesterday,
+            TimeSpan Last7Days
+        );
+
         private class SessionState
         {
-            public DateTime? StartTime;
             public DateTime  LastEventTime;
+            public DateTime? StartTime;
         }
 
         private readonly record struct TimeInterval

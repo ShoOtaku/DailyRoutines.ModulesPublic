@@ -1,22 +1,23 @@
-using System.Collections.Generic;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.ClientState.JobGauge.Types;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoDance : DailyModuleBase
+public unsafe class AutoDance : ModuleBase
 {
+    private static readonly HashSet<uint> DanceActions = [15997, 15998];
+
     public override ModuleInfo Info { get; } = new()
     {
-        Title       = GetLoc("AutoDanceTitle"),
-        Description = GetLoc("AutoDanceDescription"),
-        Category    = ModuleCategories.Action,
+        Title       = Lang.Get("AutoDanceTitle"),
+        Description = Lang.Get("AutoDanceDescription"),
+        Category    = ModuleCategory.Action
     };
-
-    private static readonly HashSet<uint> DanceActions = [15997, 15998];
 
     protected override void Init()
     {
@@ -25,20 +26,22 @@ public unsafe class AutoDance : DailyModuleBase
         UseActionManager.Instance().RegPostUseActionLocation(OnPostUseAction);
     }
 
-    private void OnPostUseAction(
+    private void OnPostUseAction
+    (
         bool       result,
         ActionType actionType,
         uint       actionID,
         ulong      targetID,
         Vector3    location,
         uint       extraParam,
-        byte       a7)
+        byte       a7
+    )
     {
         if (!result || actionType != ActionType.Action || !DanceActions.Contains(actionID)) return;
-        
+
         var gauge = DService.Instance().JobGauges.Get<DNCGauge>();
         if (gauge.IsDancing) return;
-        
+
         TaskHelper.Enqueue(() => gauge.IsDancing);
         TaskHelper.Enqueue(() => DanceStep(actionID != 15997));
     }
@@ -46,6 +49,7 @@ public unsafe class AutoDance : DailyModuleBase
     private bool DanceStep(bool isTechnicalStep)
     {
         var gauge = DService.Instance().JobGauges.Get<DNCGauge>();
+
         if (!gauge.IsDancing)
         {
             TaskHelper.Abort();
@@ -55,10 +59,10 @@ public unsafe class AutoDance : DailyModuleBase
         if (gauge.CompletedSteps < (isTechnicalStep ? 4 : 2))
         {
             var nextStep = gauge.NextStep;
-            
-            if (ActionManager.Instance()->GetActionStatus(ActionType.Action, nextStep) != 0) 
+
+            if (ActionManager.Instance()->GetActionStatus(ActionType.Action, nextStep) != 0)
                 return false;
-            
+
             if (UseActionManager.Instance().UseActionLocation(ActionType.Action, nextStep))
             {
                 TaskHelper.Enqueue(() => DanceStep(isTechnicalStep));

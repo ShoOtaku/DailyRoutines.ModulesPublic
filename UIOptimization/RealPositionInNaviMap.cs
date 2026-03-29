@@ -1,45 +1,49 @@
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Nodes;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class RealPositionInNaviMap : DailyModuleBase
+public unsafe class RealPositionInNaviMap : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("RealPositionInNaviMapTitle"),
-        Description = GetLoc("RealPositionInNaviMapDescription"),
-        Category    = ModuleCategories.UIOptimization
-    };
-
     private static Config ModuleConfig = null!;
-    
+
     private static TextButtonNode? PositionButton;
 
     private static int LastX;
     private static int LastY;
-    
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("RealPositionInNaviMapTitle"),
+        Description = Lang.Get("RealPositionInNaviMapDescription"),
+        Category    = ModuleCategory.UIOptimization
+    };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
-        
+        ModuleConfig = Config.Load(this) ?? new();
+
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_NaviMap", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_NaviMap", OnAddon);
     }
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("RealPositionInNaviMap-CopyFormat"));
-        ImGuiOm.HelpMarker(GetLoc("RealPositionInNaviMap-CopyFormatHelp"), 20f * GlobalFontScale);
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("RealPositionInNaviMap-CopyFormat"));
+        ImGuiOm.HelpMarker(Lang.Get("RealPositionInNaviMap-CopyFormatHelp"), 20f * GlobalUIScale);
 
         ImGui.InputText("###CopyFormat", ref ModuleConfig.CopyFormat, 256);
         if (ImGui.IsItemDeactivatedAfterEdit())
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
     }
 
     protected override void Uninit()
@@ -64,7 +68,7 @@ public unsafe class RealPositionInNaviMap : DailyModuleBase
                 }
 
                 LastX = LastY = 0;
-                
+
                 break;
 
             case AddonEvent.PostRequestedUpdate:
@@ -81,7 +85,7 @@ public unsafe class RealPositionInNaviMap : DailyModuleBase
                     else
                         return;
                 }
-                
+
                 if (PositionButton == null)
                 {
                     var origTextNode = NaviMap->GetTextNodeById(6);
@@ -111,7 +115,7 @@ public unsafe class RealPositionInNaviMap : DailyModuleBase
                             if (!string.IsNullOrWhiteSpace(result))
                             {
                                 ImGui.SetClipboardText(result);
-                                NotificationSuccess($"{GetLoc("CopiedToClipboard")}: {result}");
+                                NotifyHelper.NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {result}");
                             }
                         }
                     };
@@ -139,7 +143,7 @@ public unsafe class RealPositionInNaviMap : DailyModuleBase
         }
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public string CopyFormat = @"X:{0:F1} Y:{1:F1} Z:{2:F1}";
     }

@@ -1,43 +1,38 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Infos;
+using DailyRoutines.Common.Info.Abstractions;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using OmenTools.Info.Game.Data;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public partial class AutoOpenMapLinks : DailyModuleBase
+public partial class AutoOpenMapLinks : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoOpenMapLinksTitle"),
-        Description = GetLoc("AutoOpenMapLinksDescription"),
-        Category    = ModuleCategories.General,
-        Author      = ["KirisameVanilla"]
-    };
-
     private static readonly AutoOpenMapLinksMenuItem AutoOpenMapLinksItem = new();
 
     private static          Config               ModuleConfig   = null!;
     private static readonly HashSet<XivChatType> ValidChatTypes = [.. Enum.GetValues<XivChatType>()];
 
-    public class Config : ModuleConfiguration
+    public override ModuleInfo Info { get; } = new()
     {
-        public HashSet<string>      WhitelistPlayer  = [];
-        public HashSet<XivChatType> WhitelistChannel = [];
-        public bool                 IsFlagCentered;
-    }
+        Title       = Lang.Get("AutoOpenMapLinksTitle"),
+        Description = Lang.Get("AutoOpenMapLinksDescription"),
+        Category    = ModuleCategory.General,
+        Author      = ["KirisameVanilla"]
+    };
 
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         DService.Instance().Chat.ChatMessage         += HandleChatMessage;
         DService.Instance().ContextMenu.OnMenuOpened += OnMenuOpen;
@@ -65,7 +60,7 @@ public partial class AutoOpenMapLinks : DailyModuleBase
         using (ImRaii.PushId("PlayerWhitelist"))
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("AutoOpenMapLinks-TargetPlayer"));
+            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("AutoOpenMapLinks-TargetPlayer"));
 
             ImGui.Spacing();
 
@@ -74,13 +69,13 @@ public partial class AutoOpenMapLinks : DailyModuleBase
                 using var combo = ImRaii.Combo
                 (
                     "###WhitelistPlayerCombo",
-                    GetLoc("AutoOpenMapLinks-AlreadyAddedPlayerCount", ModuleConfig.WhitelistPlayer.Count),
+                    Lang.Get("AutoOpenMapLinks-AlreadyAddedPlayerCount", ModuleConfig.WhitelistPlayer.Count),
                     ImGuiComboFlags.HeightLarge
                 );
 
                 if (combo)
                 {
-                    if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, GetLoc("Add")))
+                    if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Plus, Lang.Get("Add")))
                     {
                         ModuleConfig.WhitelistPlayer.Add(string.Empty);
                         ModuleConfig.Save(this);
@@ -94,7 +89,7 @@ public partial class AutoOpenMapLinks : DailyModuleBase
                         var       input         = whitelistName;
                         using var id            = ImRaii.PushId($"{whitelistName}_{i}_Name");
 
-                        if (ImGuiOm.ButtonIcon("Delete", FontAwesomeIcon.TrashAlt, GetLoc("Delete")))
+                        if (ImGuiOm.ButtonIcon("Delete", FontAwesomeIcon.TrashAlt, Lang.Get("Delete")))
                         {
                             ModuleConfig.WhitelistPlayer.Remove(whitelistName);
                             ModuleConfig.Save(this);
@@ -113,7 +108,7 @@ public partial class AutoOpenMapLinks : DailyModuleBase
                                 ModuleConfig.Save(this);
                             }
                             else
-                                NotificationError(GetLoc("InvalidName"));
+                                NotifyHelper.NotificationError(Lang.Get("InvalidName"));
                         }
                     }
                 }
@@ -121,7 +116,7 @@ public partial class AutoOpenMapLinks : DailyModuleBase
 
             ImGui.SameLine();
 
-            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Eraser, GetLoc("Clear")))
+            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Eraser, Lang.Get("Clear")))
             {
                 ModuleConfig.WhitelistPlayer.Clear();
                 ModuleConfig.Save(this);
@@ -133,7 +128,7 @@ public partial class AutoOpenMapLinks : DailyModuleBase
         using (ImRaii.PushId("ChannelWhitelist"))
         {
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("AutoOpenMapLinks-WhitelistChannels"));
+            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("AutoOpenMapLinks-WhitelistChannels"));
 
             ImGui.Spacing();
 
@@ -142,7 +137,7 @@ public partial class AutoOpenMapLinks : DailyModuleBase
                 using var combo = ImRaii.Combo
                 (
                     "###WhitelistChannelCombo",
-                    GetLoc("AutoOpenMapLinks-AlreadyAddedChannelCount", ModuleConfig.WhitelistChannel.Count),
+                    Lang.Get("AutoOpenMapLinks-AlreadyAddedChannelCount", ModuleConfig.WhitelistChannel.Count),
                     ImGuiComboFlags.HeightLarge
                 );
 
@@ -167,7 +162,7 @@ public partial class AutoOpenMapLinks : DailyModuleBase
 
             ImGui.SameLine();
 
-            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Eraser, GetLoc("Clear")))
+            if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.Eraser, Lang.Get("Clear")))
             {
                 ModuleConfig.WhitelistChannel.Clear();
                 ModuleConfig.Save(this);
@@ -232,6 +227,16 @@ public partial class AutoOpenMapLinks : DailyModuleBase
         }
     }
 
+    [GeneratedRegex(@"^.+@[^\s@]+$")]
+    private static partial Regex PlayerNameRegex();
+
+    public class Config : ModuleConfig
+    {
+        public bool                 IsFlagCentered;
+        public HashSet<XivChatType> WhitelistChannel = [];
+        public HashSet<string>      WhitelistPlayer  = [];
+    }
+
     private class AutoOpenMapLinksMenuItem : MenuItemBase
     {
         public override string Name       { get; protected set; } = Lang.Get("AutoOpenMapLinks-ClickMenu");
@@ -249,7 +254,7 @@ public partial class AutoOpenMapLinks : DailyModuleBase
 
             var id = $"{playerName}@{playerWorld.ValueNullable?.Name}";
             if (!ModuleConfig.WhitelistPlayer.Add(id))
-                NotificationWarning(GetLoc("AutoOpenMapLinks-AlreadyExistedInList"));
+                NotifyHelper.NotificationWarning(Lang.Get("AutoOpenMapLinks-AlreadyExistedInList"));
         }
 
         public override bool IsDisplay(IMenuOpenedArgs args)
@@ -261,12 +266,9 @@ public partial class AutoOpenMapLinks : DailyModuleBase
                 null or "LookingForGroup" or "PartyMemberList" or "FriendList" or "FreeCompany" or "SocialList"
                     or "ContactList" or "ChatLog" or "_PartyList" or "LinkShell" or "CrossWorldLinkshell"
                     or "ContentMemberList" or "BeginnerChatList" or "CircleBook" =>
-                    target.TargetName != string.Empty && PresetSheet.Worlds.ContainsKey(target.TargetHomeWorld.RowId),
+                    target.TargetName != string.Empty && Sheets.Worlds.ContainsKey(target.TargetHomeWorld.RowId),
                 _ => false
             };
         }
     }
-
-    [GeneratedRegex(@"^.+@[^\s@]+$")]
-    private static partial Regex PlayerNameRegex();
 }

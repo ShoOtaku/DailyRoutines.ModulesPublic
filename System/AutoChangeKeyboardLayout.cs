@@ -1,40 +1,38 @@
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.InteropServices;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using OmenTools.Interop.Game.Models;
+using OmenTools.Threading;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
+public unsafe class AutoChangeKeyboardLayout : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoChangeKeyboardLayoutTitle"),
-        Description = GetLoc("AutoChangeKeyboardLayoutDescription"),
-        Category    = ModuleCategories.System,
-        Author      = ["JiaXX"]
-    };
-    
     private static readonly CompSig SetTextInputTargetSig =
         new("4C 8B DC 55 53 57 41 54 41 57 49 8D AB ?? ?? ?? ?? 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 85 ?? ?? ?? ?? 48 8B 9D ?? ?? ?? ??");
-    private delegate void SetTextInputTargetDelegate(
-        AtkComponentTextInput* component,
-        AtkEventType           eventType,
-        int                    eventParam,
-        AtkEvent*              atkEvent,
-        AtkEventData*          atkEventData);
+
     private static Hook<SetTextInputTargetDelegate>? SetTextInputTargetHook;
 
     private static Config ModuleConfig = null!;
-    
+
     private static Dictionary<ushort, KeyboardLayoutInfo>? CachedLayouts;
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoChangeKeyboardLayoutTitle"),
+        Description = Lang.Get("AutoChangeKeyboardLayoutDescription"),
+        Category    = ModuleCategory.System,
+        Author      = ["JiaXX"]
+    };
 
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         var currentLayoutHandle = InputMethodController.CurrentLayout;
         var currentLangID       = (ushort)(currentLayoutHandle.ToInt64() & 0xFFFF);
@@ -42,13 +40,13 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
         if (ModuleConfig.FocusLayoutLangID == 0)
         {
             ModuleConfig.FocusLayoutLangID = currentLangID;
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
         }
 
         if (ModuleConfig.UnfocusLayoutLangID == 0)
         {
             ModuleConfig.UnfocusLayoutLangID = currentLangID;
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
         }
 
         SetTextInputTargetHook ??= SetTextInputTargetSig.GetHook<SetTextInputTargetDelegate>(ChangeKeyboardLayout);
@@ -57,25 +55,26 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        if (Throttler.Throttle("AutoChangeKeyboardLayout-GetLayouts", 1_000))
+        if (Throttler.Shared.Throttle("AutoChangeKeyboardLayout-GetLayouts", 1_000))
             CachedLayouts = InputMethodController.GetAllKeyboardLayouts();
 
         if (CachedLayouts == null) return;
 
         // 聚焦时的布局选择
-        ImGui.TextUnformatted(GetLoc("Focused"));
+        ImGui.TextUnformatted(Lang.Get("Focused"));
 
-        using (var focusCombo = ImRaii.Combo("##FocusLayout", CachedLayouts.GetValueOrDefault(ModuleConfig.FocusLayoutLangID).Name ?? GetLoc("Unknown")))
+        using (var focusCombo = ImRaii.Combo("##FocusLayout", CachedLayouts.GetValueOrDefault(ModuleConfig.FocusLayoutLangID).Name ?? Lang.Get("Unknown")))
         {
             if (focusCombo)
             {
                 foreach (var (langID, layout) in CachedLayouts)
                 {
                     var isSelected = ModuleConfig.FocusLayoutLangID == langID;
+
                     if (ImGui.Selectable(layout.Name, isSelected))
                     {
                         ModuleConfig.FocusLayoutLangID = langID;
-                        SaveConfig(ModuleConfig);
+                        ModuleConfig.Save(this);
                     }
 
                     if (isSelected)
@@ -87,19 +86,20 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
         ImGui.Spacing();
 
         // 失焦时的布局选择
-        ImGui.TextUnformatted(GetLoc("Unfocused"));
-        
-        using (var unfocusCombo = ImRaii.Combo("##UnfocusLayout", CachedLayouts.GetValueOrDefault(ModuleConfig.UnfocusLayoutLangID).Name ?? GetLoc("Unknown")))
+        ImGui.TextUnformatted(Lang.Get("Unfocused"));
+
+        using (var unfocusCombo = ImRaii.Combo("##UnfocusLayout", CachedLayouts.GetValueOrDefault(ModuleConfig.UnfocusLayoutLangID).Name ?? Lang.Get("Unknown")))
         {
             if (unfocusCombo)
             {
                 foreach (var (langID, layout) in CachedLayouts)
                 {
                     var isSelected = ModuleConfig.UnfocusLayoutLangID == langID;
+
                     if (ImGui.Selectable(layout.Name, isSelected))
                     {
                         ModuleConfig.UnfocusLayoutLangID = langID;
-                        SaveConfig(ModuleConfig);
+                        ModuleConfig.Save(this);
                     }
 
                     if (isSelected)
@@ -111,15 +111,17 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
         ImGui.NewLine();
 
         var currentLangID = (ushort)(InputMethodController.CurrentLayout.ToInt64() & 0xFFFF);
-        ImGui.TextUnformatted($"{GetLoc("Current")}\n\t\t{CachedLayouts.GetValueOrDefault(currentLangID).Name ?? GetLoc("Unknown")}");
+        ImGui.TextUnformatted($"{Lang.Get("Current")}\n\t\t{CachedLayouts.GetValueOrDefault(currentLangID).Name ?? Lang.Get("Unknown")}");
     }
 
-    private static void ChangeKeyboardLayout(
+    private static void ChangeKeyboardLayout
+    (
         AtkComponentTextInput* component,
         AtkEventType           eventType,
         int                    eventParam,
         AtkEvent*              atkEvent,
-        AtkEventData*          atkEventData)
+        AtkEventData*          atkEventData
+    )
     {
         SetTextInputTargetHook!.Original(component, eventType, eventParam, atkEvent, atkEventData);
 
@@ -152,8 +154,21 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
             InputMethodController.SwitchToLayout(focusLayout);
     }
 
+    private delegate void SetTextInputTargetDelegate
+    (
+        AtkComponentTextInput* component,
+        AtkEventType           eventType,
+        int                    eventParam,
+        AtkEvent*              atkEvent,
+        AtkEventData*          atkEventData
+    );
+
     private static class InputMethodController
     {
+        private static Dictionary<ushort, KeyboardLayoutInfo>? allLayouts;
+
+        public static nint CurrentLayout => GetKeyboardLayout(0);
+
         [DllImport("user32.dll")]
         private static extern void ActivateKeyboardLayout(nint hkl, uint Flags);
 
@@ -166,23 +181,19 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
         [DllImport("user32.dll")]
         private static extern nint LoadKeyboardLayout(string pwszKLID, uint Flags);
 
-        public static nint CurrentLayout => GetKeyboardLayout(0);
-
-        private static Dictionary<ushort, KeyboardLayoutInfo>? allLayouts;
-
         public static Dictionary<ushort, KeyboardLayoutInfo> GetAllKeyboardLayouts()
         {
             if (allLayouts != null) return allLayouts;
 
             allLayouts = new Dictionary<ushort, KeyboardLayoutInfo>();
-            
+
             var layoutCount = GetKeyboardLayoutList(0, null);
-            if (layoutCount == 0) 
+            if (layoutCount == 0)
                 return allLayouts;
 
             var layouts     = new nint[layoutCount];
             var actualCount = GetKeyboardLayoutList(layoutCount, layouts);
-            if (actualCount == 0) 
+            if (actualCount == 0)
                 return allLayouts;
 
             foreach (var layout in layouts)
@@ -203,7 +214,10 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
                 var culture = new CultureInfo(langID);
                 return culture.DisplayName;
             }
-            catch { return string.Format($"0x{langID:X4}"); }
+            catch
+            {
+                return string.Format($"0x{langID:X4}");
+            }
         }
 
         public static void SwitchToLayout(nint layoutHandle)
@@ -241,7 +255,7 @@ public unsafe class AutoChangeKeyboardLayout : DailyModuleBase
         }
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
         public ushort FocusLayoutLangID;   // 聚焦时的布局语言ID
         public ushort UnfocusLayoutLangID; // 失焦时的布局语言ID

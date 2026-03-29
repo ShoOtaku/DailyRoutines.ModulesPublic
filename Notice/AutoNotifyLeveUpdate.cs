@@ -1,29 +1,32 @@
-using System;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
+public unsafe class AutoNotifyLeveUpdate : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("AutoNotifyLeveUpdateTitle"),
-        Description = GetLoc("AutoNotifyLeveUpdateDescription"),
-        Category    = ModuleCategories.Notice,
-        Author      = ["HSS"]
-    };
-
     private static Config ModuleConfig = null!;
 
     private static DateTime NextLeveCheck = DateTime.MinValue;
     private static DateTime FinishTime    = StandardTimeManager.Instance().UTCNow;
     private static int      LastLeve;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("AutoNotifyLeveUpdateTitle"),
+        Description = Lang.Get("AutoNotifyLeveUpdateDescription"),
+        Category    = ModuleCategory.Notice,
+        Author      = ["HSS"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
         FrameworkManager.Instance().Reg(OnUpdate, 60_000);
     }
 
@@ -37,9 +40,9 @@ public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
         ImGui.TextUnformatted($"{Lang.Get("AutoNotifyLeveUpdate-UpdateTimeText")}{NextLeveCheck.ToLocalTime():g}");
 
         if (ImGui.Checkbox(Lang.Get("AutoNotifyLeveUpdate-OnChatMessageConfig"), ref ModuleConfig.OnChatMessage))
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
 
-        ImGui.SetNextItemWidth(200f * GlobalFontScale);
+        ImGui.SetNextItemWidth(200f * GlobalUIScale);
 
         if (ImGui.SliderInt
             (
@@ -50,7 +53,7 @@ public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
             ))
         {
             LastLeve = 0;
-            SaveConfig(ModuleConfig);
+            ModuleConfig.Save(this);
         }
     }
 
@@ -76,8 +79,8 @@ public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
                           $"{Lang.Get("AutoNotifyLeveUpdate-UpdateTimeText")}{NextLeveCheck.ToLocalTime():g}";
 
             if (ModuleConfig.OnChatMessage)
-                Chat(message);
-            NotificationInfo(message);
+                NotifyHelper.Chat(message);
+            NotifyHelper.NotificationInfo(message);
         }
     }
 
@@ -86,17 +89,17 @@ public unsafe class AutoNotifyLeveUpdate : DailyModuleBase
 
     private static DateTime MathFinishTime(int num, DateTime nowUTC)
     {
-        if (num >= 100) 
+        if (num >= 100)
             return nowUTC;
-        
+
         var requiredPeriods      = (100 - num + 2) / 3;
         var lastIncrementTimeUTC = new DateTime(nowUTC.Year, nowUTC.Month, nowUTC.Day, nowUTC.Hour >= 12 ? 12 : 0, 0, 0, DateTimeKind.Utc);
         return lastIncrementTimeUTC.AddHours(12 * requiredPeriods);
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
-        public bool OnChatMessage         = true;
         public int  NotificationThreshold = 97;
+        public bool OnChatMessage         = true;
     }
 }

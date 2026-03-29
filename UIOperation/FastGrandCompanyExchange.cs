@@ -1,8 +1,9 @@
-using System;
-using System.Linq;
 using System.Numerics;
-using DailyRoutines.Abstracts;
-using DailyRoutines.Managers;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Utility;
@@ -14,29 +15,36 @@ using KamiToolKit;
 using KamiToolKit.Nodes;
 using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
+using OmenTools.Dalamud.Attributes;
+using OmenTools.Interop.Game.AddonEvent;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Threading.TaskHelper.Enums;
 
 namespace DailyRoutines.ModulesPublic;
 
-public class FastGrandCompanyExchange : DailyModuleBase
+public class FastGrandCompanyExchange : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("FastGrandCompanyExchangeTitle"),
-        Description = GetLoc("FastGrandCompanyExchangeDescription"),
-        Category    = ModuleCategories.UIOperation
-    };
-
-    public bool IsExchanging => TaskHelper?.IsBusy ?? false;
-
     private const string COMMAND = "gce";
 
     private static Config ModuleConfig = null!;
 
     private static DRFastGCExchange? Addon;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("FastGrandCompanyExchangeTitle"),
+        Description = Lang.Get("FastGrandCompanyExchangeDescription"),
+        Category    = ModuleCategory.UIOperation
+    };
+
+    public bool IsExchanging => TaskHelper?.IsBusy ?? false;
+
+    [IPCProvider("DailyRoutines.Modules.FastGrandCompanyExchange.IsBusy")]
+    public bool IsCurrentlyBusy => IsExchanging;
+
     protected override void Init()
     {
-        ModuleConfig = LoadConfig<Config>() ?? new();
+        ModuleConfig = Config.Load(this) ?? new();
 
         TaskHelper ??= new();
 
@@ -50,7 +58,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "GrandCompanyExchange", OnAddon);
 
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = GetLoc("FastGrandCompanyExchange-CommandHelp") });
+        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastGrandCompanyExchange-CommandHelp") });
     }
 
     protected override void Uninit()
@@ -64,10 +72,10 @@ public class FastGrandCompanyExchange : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{GetLoc("Command")}:");
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("Command")}:");
 
         ImGui.SameLine();
-        ImGui.TextWrapped($"/pdr {COMMAND} {GetLoc("FastGrandCompanyExchange-CommandHelp")}");
+        ImGui.TextWrapped($"/pdr {COMMAND} {Lang.Get("FastGrandCompanyExchange-CommandHelp")}");
     }
 
     private static unsafe void OnAddon(AddonEvent type, AddonArgs? args)
@@ -195,7 +203,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
                                 if (!GrandCompanyExchange->IsAddonAndNodesReady()) return false;
                                 if (SelectYesno == null) return true;
 
-                                ClickSelectYesnoYes();
+                                AddonSelectYesnoEvent.ClickYes();
                                 return false;
                             },
                             timeoutBehaviour: TaskAbortBehaviour.AbortCurrent,
@@ -217,7 +225,10 @@ public class FastGrandCompanyExchange : DailyModuleBase
         return true;
     }
 
-    private unsafe class DRFastGCExchange(FastGrandCompanyExchange instance) : NativeAddon
+    private unsafe class DRFastGCExchange
+    (
+        FastGrandCompanyExchange instance
+    ) : NativeAddon
     {
         private bool IsNotClosed { get; set; }
 
@@ -237,7 +248,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
                 IsVisible = true,
                 IsEnabled = true,
                 Size      = new(layoutNode.Size.X - 10, 38),
-                String    = GetLoc("Exchange"),
+                String    = Lang.Get("Exchange"),
                 OnClick = () =>
                 {
                     if (instance.TaskHelper.IsBusy) return;
@@ -254,7 +265,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
                 IsVisible = true,
                 Size      = new(layoutNode.Size.X - 20, 24),
                 FontSize  = 14,
-                String    = GetLoc("Item")
+                String    = Lang.Get("Item")
             };
 
             layoutNode.AddNode(itemLableNode);
@@ -284,7 +295,7 @@ public class FastGrandCompanyExchange : DailyModuleBase
                 IsVisible = true,
                 Size      = new(layoutNode.Size.X - 20, 24),
                 FontSize  = 14,
-                String    = GetLoc("Amount")
+                String    = Lang.Get("Amount")
             };
 
             layoutNode.AddNode(countLableNode);
@@ -373,12 +384,9 @@ public class FastGrandCompanyExchange : DailyModuleBase
         }
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
-        public string ExchangeItemName  = string.Empty;
         public int    ExchangeItemCount = -1;
+        public string ExchangeItemName  = string.Empty;
     }
-
-    [IPCProvider("DailyRoutines.Modules.FastGrandCompanyExchange.IsBusy")]
-    public bool IsCurrentlyBusy => IsExchanging;
 }

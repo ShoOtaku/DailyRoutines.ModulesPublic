@@ -1,37 +1,40 @@
 using System.Runtime.InteropServices;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
+using OmenTools.Interop.Game.Models;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class OptimizedBorderlessWindow : DailyModuleBase
+public unsafe class OptimizedBorderlessWindow : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = GetLoc("OptimizedBorderlessWindowTitle"),
-        Description = GetLoc("OptimizedBorderlessWindowDescription"),
-        Category    = ModuleCategories.System
-    };
-    
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
     private static readonly CompSig WindowProcessSig =
         new("40 55 53 56 57 41 54 41 56 48 8D 6C 24 ?? 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 45 E0");
-    private delegate nint                        WindowProcessDelegate(ulong hWnd, uint uMsg, ulong wParam, long lParam);
-    private static   Hook<WindowProcessDelegate> WindowProcessHook = null!;
+
+    private static Hook<WindowProcessDelegate> WindowProcessHook = null!;
 
     private static readonly CompSig SetMainWindowBorderlessSig =
         new("40 53 48 83 EC 60 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24 ?? 48 8B D9 48 8B 49 18");
-    private delegate void                                  SetMainWindowBorderlessDelegate(GameWindow* self, bool borderless);
-    private static   Hook<SetMainWindowBorderlessDelegate> SetMainWindowBorderlessHook = null!;
-    
+
+    private static Hook<SetMainWindowBorderlessDelegate> SetMainWindowBorderlessHook = null!;
+
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("OptimizedBorderlessWindowTitle"),
+        Description = Lang.Get("OptimizedBorderlessWindowDescription"),
+        Category    = ModuleCategory.System
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+
     protected override void Init()
     {
         WindowProcessHook           ??= WindowProcessSig.GetHook<WindowProcessDelegate>(WindowProcessDetour);
         SetMainWindowBorderlessHook ??= SetMainWindowBorderlessSig.GetHook<SetMainWindowBorderlessDelegate>(SetMainWindowBorderlessDetour);
-        
+
         WindowProcessHook.Enable();
         SetMainWindowBorderlessHook.Enable();
 
@@ -41,7 +44,7 @@ public unsafe class OptimizedBorderlessWindow : DailyModuleBase
 
     protected override void Uninit()
     {
-        if (Initialized && Framework.Instance()->GameWindow->Borderless)
+        if (IsInitialized && Framework.Instance()->GameWindow->Borderless)
         {
             var windowHandle = Framework.Instance()->GameWindow->WindowHandle;
             WinAPI.SetWindowLongPtrW(windowHandle, WinAPI.GwlpStyle, 0x80000000); // WS_POPUP
@@ -58,6 +61,7 @@ public unsafe class OptimizedBorderlessWindow : DailyModuleBase
                 if (Framework.Instance()->GameWindow->Borderless)
                 {
                     var windowPos = (WinAPI.WindowPos*)lParam;
+
                     if ((windowPos->Flags & WinAPI.SwpNoSize) == 0)
                     {
                         // 调整无边框窗口大小以覆盖整个显示器
@@ -99,7 +103,7 @@ public unsafe class OptimizedBorderlessWindow : DailyModuleBase
     private static void MakeBorderless()
     {
         var windowHandle = Framework.Instance()->GameWindow->WindowHandle;
-        
+
         WinAPI.Rect rect;
         WinAPI.GetWindowRect(windowHandle, &rect);
         ConvertToBorderlessRect(ref rect);
@@ -112,10 +116,10 @@ public unsafe class OptimizedBorderlessWindow : DailyModuleBase
     private static void SyncSwapchainResolution(int width, int height)
     {
         if (width <= 0 || height <= 0) return;
-        
+
         var device = Device.Instance();
         if (device->NewWidth == width && device->NewHeight == height) return;
-        
+
         device->NewWidth                = (uint)width;
         device->NewHeight               = (uint)height;
         device->RequestResolutionChange = 1;
@@ -125,13 +129,18 @@ public unsafe class OptimizedBorderlessWindow : DailyModuleBase
     {
         var originalRect = rect;
         var monitor      = WinAPI.MonitorFromRect(&originalRect, WinAPI.MonitorDefaultToPrimary);
+
         if (monitor != 0)
         {
             var monitorInfo = new WinAPI.MonitorInfo { CbSize = sizeof(WinAPI.MonitorInfo) };
-            if (WinAPI.GetMonitorInfoW(monitor, &monitorInfo)) 
+            if (WinAPI.GetMonitorInfoW(monitor, &monitorInfo))
                 rect = monitorInfo.RCMonitor;
         }
     }
+
+    private delegate nint WindowProcessDelegate(ulong hWnd, uint uMsg, ulong wParam, long lParam);
+
+    private delegate void SetMainWindowBorderlessDelegate(GameWindow* self, bool borderless);
 
     private static class WinAPI
     {
@@ -163,7 +172,7 @@ public unsafe class OptimizedBorderlessWindow : DailyModuleBase
 
         [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW", ExactSpelling = true)]
         public static extern bool GetMonitorInfoW(ulong hmonitor, MonitorInfo* lpmi);
-        
+
         public struct Rect
         {
             public int Left;

@@ -1,7 +1,8 @@
-using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Interface.Utility;
@@ -11,47 +12,49 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.Havok.Animation.Playback.Control.Default;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
-public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
+public unsafe class PortraitAnimationTimeEditor : ModuleBase
 {
-    public override ModuleInfo Info => new()
-    {
-        Title       = GetLoc("PortraitAnimationTimeEditorTitle"),
-        Description = GetLoc("PortraitAnimationTimeEditorDescription"),
-        Author      = ["Yarukon"],
-        Category    = ModuleCategories.UIOptimization
-    };
-
-    private static AgentBannerEditorState* EditorState   => AgentBannerEditor.Instance()->EditorState;
-    private static CharaViewPortrait*      CharaView     => EditorState != null ? EditorState->CharaView : null;
-    private static Character*              PortraitChara => CharaView   != null ?  CharaView->GetCharacter() : null;
-    
     private static float Duration;
     private static int   FrameCount;
     private static float CurrentFrame;
 
     private static Vector2 ComponentSize = new(100);
 
+    public override ModuleInfo Info => new()
+    {
+        Title       = Lang.Get("PortraitAnimationTimeEditorTitle"),
+        Description = Lang.Get("PortraitAnimationTimeEditorDescription"),
+        Author      = ["Yarukon"],
+        Category    = ModuleCategory.UIOptimization
+    };
+
+    private static AgentBannerEditorState* EditorState   => AgentBannerEditor.Instance()->EditorState;
+    private static CharaViewPortrait*      CharaView     => EditorState != null ? EditorState->CharaView : null;
+    private static Character*              PortraitChara => CharaView   != null ? CharaView->GetCharacter() : null;
+
     protected override void Init()
     {
-        Overlay       ??= new(this);
+        Overlay ??= new(this);
         Overlay.Flags = ImGuiWindowFlags.NoTitleBar  |
                         ImGuiWindowFlags.NoResize    |
                         ImGuiWindowFlags.NoMove      |
                         ImGuiWindowFlags.NoScrollbar |
                         ImGuiWindowFlags.NoScrollWithMouse;
-        
+
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostSetup,   "BannerEditor", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "BannerEditor", OnAddon);
-        if (BannerEditor->IsAddonAndNodesReady()) 
+        if (BannerEditor->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
     }
-    
+
     protected override void OverlayUI()
     {
         var addon = BannerEditor;
+
         if (addon == null)
         {
             Overlay.IsOpen = false;
@@ -67,11 +70,12 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
 
         using var font = FontManager.Instance().UIFont80.Push();
 
-        ImGui.SetWindowPos(nodeState.TopLeft with { Y = nodeState.Y - ImGui.GetWindowSize().Y - (2f * GlobalFontScale) });
-        ImGui.SetWindowSize(nodeState.Size with { Y = (3f * ImGui.GetTextLineHeightWithSpacing()) - (1 * ImGui.GetStyle().ItemSpacing.Y) });
+        ImGui.SetWindowPos(nodeState.TopLeft with { Y = nodeState.Y - ImGui.GetWindowSize().Y - 2f * GlobalUIScale });
+        ImGui.SetWindowSize(nodeState.Size with { Y = 3f * ImGui.GetTextLineHeightWithSpacing() - 1 * ImGui.GetStyle().ItemSpacing.Y });
 
         var control = GetAnimationControl(PortraitChara);
         ImGuiHelpers.CenterCursorFor(ComponentSize.X);
+
         using (ImRaii.Group())
         {
             if (ImGuiOm.ButtonIcon("###LastTenFrame", FontAwesomeIcon.Backward, "-10"))
@@ -81,15 +85,18 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
             }
 
             ImGui.SameLine();
+
             if (ImGuiOm.ButtonIcon("###LastFrame", FontAwesomeIcon.ArrowLeft))
             {
                 CurrentFrame = Math.Max(0, CurrentFrame - 1);
                 UpdatePortraitCurrentFrame(CurrentFrame);
             }
+
             ImGuiOm.TooltipHover("-1");
 
             var isPlaying = control->PlaybackSpeed > 0;
-            ImGui.SameLine(0, 8f * GlobalFontScale);
+            ImGui.SameLine(0, 8f * GlobalUIScale);
+
             if (ImGuiOm.ButtonIcon("PauseAndPlay", isPlaying ? FontAwesomeIcon.Pause : FontAwesomeIcon.Play))
             {
                 CharaView->ToggleAnimationPlayback(isPlaying);
@@ -97,13 +104,15 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
             }
 
             ImGui.SameLine();
+
             if (ImGuiOm.ButtonIcon("Ceiling", FontAwesomeIcon.GripLines))
             {
                 CurrentFrame = MathF.Ceiling(CurrentFrame);
                 UpdatePortraitCurrentFrame(CurrentFrame);
             }
 
-            ImGui.SameLine(0, 8f * GlobalFontScale);
+            ImGui.SameLine(0, 8f * GlobalUIScale);
+
             if (ImGuiOm.ButtonIcon("###NextFrame", FontAwesomeIcon.ArrowRight))
             {
                 CurrentFrame = Math.Min(CurrentFrame + 1, FrameCount);
@@ -113,25 +122,32 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
             ImGuiOm.TooltipHover("+1");
 
             ImGui.SameLine();
+
             if (ImGuiOm.ButtonIcon("###NextTenFrame", FontAwesomeIcon.Forward, "+10"))
             {
                 CurrentFrame = Math.Min(CurrentFrame + 10, FrameCount);
                 UpdatePortraitCurrentFrame(CurrentFrame);
             }
         }
-        
+
         ComponentSize = ImGui.GetItemRectSize();
 
-        ImGui.SetNextItemWidth(nodeState.Size.X - (4 * ImGui.GetStyle().ItemSpacing.X));
-        if (ImGui.SliderFloat("###TimestampSlider", ref CurrentFrame, 0f, FrameCount,
-                              FrameCount < 100 ? $"%.3f / {FrameCount}" : $"%.2f / {FrameCount}"))
+        ImGui.SetNextItemWidth(nodeState.Size.X - 4 * ImGui.GetStyle().ItemSpacing.X);
+        if (ImGui.SliderFloat
+            (
+                "###TimestampSlider",
+                ref CurrentFrame,
+                0f,
+                FrameCount,
+                FrameCount < 100 ? $"%.3f / {FrameCount}" : $"%.2f / {FrameCount}"
+            ))
             UpdatePortraitCurrentFrame(CurrentFrame);
-        
+
         CurrentFrame = CharaView->GetAnimationTime();
         UpdateDuration(PortraitChara);
     }
 
-    protected override void Uninit() => 
+    protected override void Uninit() =>
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
     private void OnAddon(AddonEvent type, AddonArgs? args) =>
@@ -169,7 +185,7 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
         var baseTimeline = PortraitChara->Timeline.TimelineSequencer.GetSchedulerTimeline(0);
         if (baseTimeline == null)
             return;
-        
+
         Duration   = animation->hkaAnimationControl.Binding.ptr->Animation.ptr->Duration - 0.5f;
         FrameCount = (int)Math.Round(30f * Duration);
     }
@@ -189,7 +205,7 @@ public unsafe class PortraitAnimationTimeEditor : DailyModuleBase
 
         return actor->Model->Skeleton->PartialSkeletons->GetHavokAnimatedSkeleton(0)->AnimationControls[0];
     }
-    
+
     [StructLayout(LayoutKind.Explicit)]
     private struct Actor
     {

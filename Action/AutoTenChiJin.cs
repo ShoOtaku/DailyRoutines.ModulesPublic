@@ -1,29 +1,27 @@
-using System.Collections.Generic;
-using DailyRoutines.Abstracts;
+using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Enums;
+using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.Interop.Game.Models.Packets.Upstream;
+using OmenTools.OmenService;
 using Action = Lumina.Excel.Sheets.Action;
 using ActionKind = FFXIVClientStructs.FFXIV.Client.UI.Agent.ActionKind;
+using Control = FFXIVClientStructs.FFXIV.Client.Game.Control.Control;
 
 namespace DailyRoutines.ModulesPublic;
 
 // TODO: 整合成一个忍术模块
-public unsafe class AutoTenChiJin : DailyModuleBase
+public unsafe class AutoTenChiJin : ModuleBase
 {
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title           = GetLoc("AutoTenChiJinTitle"),
-        Description     = GetLoc("AutoTenChiJinDescription"),
-        Category        = ModuleCategories.Action,
-        ModulesConflict = ["AutoThrottleTenChiJin"]
-    };
-    
     private static readonly Dictionary<uint, List<uint>> NormalSequence = new()
     {
         // 风魔手里剑 → 天
@@ -47,9 +45,9 @@ public unsafe class AutoTenChiJin : DailyModuleBase
         // 火遁 → 劫火灭却之术
         [2266] = 16491,
         // 冰遁 → 冰晶乱流之术
-        [2268] = 16492,
+        [2268] = 16492
     };
-    
+
     private static readonly Dictionary<uint, List<uint>> TenChiJinSequence = new()
     {
         // 风遁 → 人地天
@@ -65,21 +63,28 @@ public unsafe class AutoTenChiJin : DailyModuleBase
     private static Config ModuleConfig = null!;
 
     private static readonly CompSig                     IsSlotUsableSig = new("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 0F B6 F2 48 8B D9 41 8B F8");
-    private delegate        byte                        IsSlotUsableDelegate(RaptureHotbarModule.HotbarSlot* slot, RaptureHotbarModule.HotbarSlotType type, uint id);
     private static          Hook<IsSlotUsableDelegate>? IsSlotUsableHook;
 
     private static AddonDRNinJutsuActionsPreview? Addon;
 
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title           = Lang.Get("AutoTenChiJinTitle"),
+        Description     = Lang.Get("AutoTenChiJinDescription"),
+        Category        = ModuleCategory.Action,
+        ModulesConflict = ["AutoThrottleTenChiJin"]
+    };
+
     protected override void Init()
     {
-        ModuleConfig =   LoadConfig<Config>() ?? new();
+        ModuleConfig =   Config.Load(this) ?? new();
         TaskHelper   ??= new() { TimeoutMS = 2_000 };
 
         Addon ??= new()
         {
             InternalName = "DRNinJutsuActionsPreview",
             Title        = LuminaWrapper.GetActionName(2260),
-            Size         = new(430f, 110f),
+            Size         = new(430f, 110f)
         };
 
         UseActionManager.Instance().RegPreUseAction(OnPreUseAction);
@@ -90,21 +95,21 @@ public unsafe class AutoTenChiJin : DailyModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Button(GetLoc("AutoTenChiJin-OpenNijutsuActionsAddon")))
+        if (ImGui.Button(Lang.Get("AutoTenChiJin-OpenNijutsuActionsAddon")))
             Addon.Toggle();
-        
+
         ImGui.NewLine();
-        
-        if (ImGui.Checkbox(GetLoc("SendNotification"), ref ModuleConfig.SendNotification))
-            SaveConfig(ModuleConfig);
-        
-        if (ImGui.Checkbox(GetLoc("AutoTenChiJin-AutoCastNinJiTsu"), ref ModuleConfig.AutoCastNinJiTsu))
-            SaveConfig(ModuleConfig);
+
+        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref ModuleConfig.SendNotification))
+            ModuleConfig.Save(this);
+
+        if (ImGui.Checkbox(Lang.Get("AutoTenChiJin-AutoCastNinJiTsu"), ref ModuleConfig.AutoCastNinJiTsu))
+            ModuleConfig.Save(this);
     }
 
     private static byte IsSlotUsableDetour(RaptureHotbarModule.HotbarSlot* slot, RaptureHotbarModule.HotbarSlotType type, uint id)
     {
-        if (type != RaptureHotbarModule.HotbarSlotType.Action || !NinJiTsuActions.Contains(id)) 
+        if (type != RaptureHotbarModule.HotbarSlotType.Action || !NinJiTsuActions.Contains(id))
             return IsSlotUsableHook.Original(slot, type, id);
 
         var localPlayer = Control.GetLocalPlayer();
@@ -114,7 +119,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
         if (localPlayer->StatusManager.HasStatus(1186))
             return (byte)(TenChiJinSequence.ContainsKey(id) ? 1 : 0);
 
-        var charges      = ActionManager.Instance()->GetCurrentCharges(2261);
+        var charges = ActionManager.Instance()->GetCurrentCharges(2261);
         // 稍微有点延迟所以加一秒
         var cooldownLeft = 21 - ActionManager.Instance()->GetRecastTimeElapsed(ActionType.Action, 2261);
 
@@ -125,15 +130,22 @@ public unsafe class AutoTenChiJin : DailyModuleBase
         return (byte)(charges > 0 || localPlayer->StatusManager.HasStatus(497) ? 1 : 0);
     }
 
-    private void OnPreUseAction(
+    private void OnPreUseAction
+    (
         ref bool                        isPrevented,
-        ref ActionType                  actionType, ref uint actionID,     ref ulong targetID, ref uint extraParam,
-        ref ActionManager.UseActionMode queueState, ref uint comboRouteID)
+        ref ActionType                  actionType,
+        ref uint                        actionID,
+        ref ulong                       targetID,
+        ref uint                        extraParam,
+        ref ActionManager.UseActionMode queueState,
+        ref uint                        comboRouteID
+    )
     {
         var localPlayer = Control.GetLocalPlayer();
         if (localPlayer == null || localPlayer->ClassJob != 30) return;
-        
+
         if (actionType != ActionType.Action || !NinJiTsuActions.Contains(actionID)) return;
+
         if (TaskHelper.IsBusy)
         {
             // 避免搓兔子
@@ -144,7 +156,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
 
         var manager = ActionManager.Instance();
         if (manager == null) return;
-        
+
         var actionStatus = manager->GetActionStatus(actionType, actionID);
 
         // 天地人状态期间
@@ -160,7 +172,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
             var cooldown        = manager->IsActionOffCooldown(ActionType.Action, 2261);
             var isKassatsu      = localPlayer->StatusManager.HasStatus(497);
             if (ninJiTsuCharges == 0 && !cooldown && !isKassatsu) return;
-            
+
             if (actionStatus is 572 or 582)
                 EnqueueTenChiJin(actionID);
         }
@@ -175,20 +187,22 @@ public unsafe class AutoTenChiJin : DailyModuleBase
         if (localPlayer->StatusManager.HasStatus(1186))
         {
             if (!TenChiJinSequence.TryGetValue(actionID, out var sequence)) return;
-            
-            if (ModuleConfig.SendNotification) 
-                NotificationInfo(GetLoc("AutoTenChiJin-Notification", LuminaWrapper.GetActionName(actionID)));
+
+            if (ModuleConfig.SendNotification)
+                NotifyHelper.NotificationInfo(Lang.Get("AutoTenChiJin-Notification", LuminaWrapper.GetActionName(actionID)));
             TaskHelper.Abort();
-            
+
             foreach (var ninJiTsu in sequence)
             {
-                TaskHelper.Enqueue(() =>
-                {
-                    if (TargetManager.Target is not { } target) return false;
-                    if (ActionManager.Instance()->GetActionStatus(ActionType.Action, ninJiTsu) != 0) return false;
-                    UseActionManager.Instance().UseActionLocation(ActionType.Action, ninJiTsu, target.EntityID);
-                    return true;
-                });
+                TaskHelper.Enqueue
+                (() =>
+                    {
+                        if (TargetManager.Target is not { } target) return false;
+                        if (ActionManager.Instance()->GetActionStatus(ActionType.Action, ninJiTsu) != 0) return false;
+                        UseActionManager.Instance().UseActionLocation(ActionType.Action, ninJiTsu, target.EntityID);
+                        return true;
+                    }
+                );
             }
         }
         else
@@ -198,67 +212,82 @@ public unsafe class AutoTenChiJin : DailyModuleBase
 
             var isNeedTransformed = Kassatsu.TryGetValue(actionID, out var kassatsu);
             var isKassatsu        = localPlayer->StatusManager.HasStatus(497);
-            
-            if (ModuleConfig.SendNotification) 
-                NotificationInfo(GetLoc("AutoTenChiJin-Notification", LuminaWrapper.GetActionName(actionID)));
+
+            if (ModuleConfig.SendNotification)
+                NotifyHelper.NotificationInfo(Lang.Get("AutoTenChiJin-Notification", LuminaWrapper.GetActionName(actionID)));
             TaskHelper.Abort();
-            
+
             for (var i = 0; i < sequence.Count; i++)
             {
                 var ninJiTsu = sequence[i];
+
                 if (i == 0)
                 {
-                    var ninJiTsuKassatsu = (ninJiTsu % 2259 / 2) + 18805;
+                    var ninJiTsuKassatsu = ninJiTsu % 2259 / 2 + 18805;
                     var finalAction      = isKassatsu ? ninJiTsuKassatsu : ninJiTsu;
-                    
+
                     TaskHelper.Enqueue(() => ActionManager.Instance()->GetActionStatus(ActionType.Action, finalAction) == 0);
-                    TaskHelper.Enqueue(() =>
-                    {
-                        new UseActionPacket(ActionType.Action, finalAction, localPlayer->EntityId, localPlayer->Rotation).Send();
-                        ActionManager.Instance()->StartCooldown(ActionType.Action, finalAction);
-                    });
+                    TaskHelper.Enqueue
+                    (() =>
+                        {
+                            new UseActionPacket(ActionType.Action, finalAction, localPlayer->EntityId, localPlayer->Rotation).Send();
+                            ActionManager.Instance()->StartCooldown(ActionType.Action, finalAction);
+                        }
+                    );
                 }
                 else
                 {
-                    TaskHelper.Enqueue(() =>
-                    {
-                        new UseActionPacket(ActionType.Action, ninJiTsu, localPlayer->EntityId, localPlayer->Rotation).Send();
-                        ActionManager.Instance()->StartCooldown(ActionType.Action, ninJiTsu);
-                    });
+                    TaskHelper.Enqueue
+                    (() =>
+                        {
+                            new UseActionPacket(ActionType.Action, ninJiTsu, localPlayer->EntityId, localPlayer->Rotation).Send();
+                            ActionManager.Instance()->StartCooldown(ActionType.Action, ninJiTsu);
+                        }
+                    );
                 }
-                
+
                 TaskHelper.DelayNext(300);
             }
-            
+
             if (ModuleConfig.AutoCastNinJiTsu)
             {
                 // 等待忍术变成目标技能以防网卡
-                TaskHelper.Enqueue(() =>
-                {
-                    // 处理生杀
-                    var finalActionID = !isKassatsu || !isNeedTransformed ? actionID : kassatsu;
-                    return ActionManager.Instance()->GetAdjustedActionId(2260) == finalActionID;
-                });
-                TaskHelper.Enqueue(() =>
-                {
-                    var finalActionID = !isKassatsu || !isNeedTransformed ? actionID : kassatsu;
-                    return UseActionManager.Instance().UseActionLocation(ActionType.Action, finalActionID,
-                                                              row.CanTargetHostile && TargetManager.Target is { } target
-                                                                  ? target.EntityID
-                                                                  : localPlayer->EntityId);
-                });
+                TaskHelper.Enqueue
+                (() =>
+                    {
+                        // 处理生杀
+                        var finalActionID = !isKassatsu || !isNeedTransformed ? actionID : kassatsu;
+                        return ActionManager.Instance()->GetAdjustedActionId(2260) == finalActionID;
+                    }
+                );
+                TaskHelper.Enqueue
+                (() =>
+                    {
+                        var finalActionID = !isKassatsu || !isNeedTransformed ? actionID : kassatsu;
+                        return UseActionManager.Instance().UseActionLocation
+                        (
+                            ActionType.Action,
+                            finalActionID,
+                            row.CanTargetHostile && TargetManager.Target is { } target
+                                ? target.EntityID
+                                : localPlayer->EntityId
+                        );
+                    }
+                );
             }
         }
-        
+
     }
 
     protected override void Uninit()
     {
         UseActionManager.Instance().Unreg(OnPreUseAction);
-        
+
         Addon?.Dispose();
         Addon = null;
     }
+
+    private delegate byte IsSlotUsableDelegate(RaptureHotbarModule.HotbarSlot* slot, RaptureHotbarModule.HotbarSlotType type, uint id);
 
     private class AddonDRNinJutsuActionsPreview : NativeAddon
     {
@@ -269,7 +298,7 @@ public unsafe class AutoTenChiJin : DailyModuleBase
                 Width          = 60 * NormalSequence.Count,
                 AlignmentFlags = FlexFlags.FitContentHeight | FlexFlags.CenterVertically | FlexFlags.CenterHorizontally,
                 Position       = new(20, 40),
-                IsVisible      = true,
+                IsVisible      = true
             };
 
             foreach (var actionID in NormalSequence.Keys)
@@ -286,24 +315,24 @@ public unsafe class AutoTenChiJin : DailyModuleBase
                     Payload = new()
                     {
                         Type = DragDropType.Action,
-                        Int2 = (int)actionID,
+                        Int2 = (int)actionID
                     },
                     IsClickable = false,
                     OnRollOver  = node => node.ShowTooltip(AtkTooltipManager.AtkTooltipType.Action, ActionKind.Action),
-                    OnRollOut   = node => node.HideTooltip(),
+                    OnRollOut   = node => node.HideTooltip()
                 };
-                
+
                 flexGrid.AddNode(dragDropNode);
                 flexGrid.AddDummy();
             }
-            
+
             flexGrid.AttachNode(this);
         }
     }
 
-    private class Config : ModuleConfiguration
+    private class Config : ModuleConfig
     {
-        public bool SendNotification = true;
         public bool AutoCastNinJiTsu = true;
+        public bool SendNotification = true;
     }
 }

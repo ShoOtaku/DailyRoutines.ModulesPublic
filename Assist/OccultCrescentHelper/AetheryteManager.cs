@@ -1,25 +1,33 @@
-using System;
-using System.Linq;
 using System.Numerics;
-using DailyRoutines.IPC;
-using DailyRoutines.Managers;
+using DailyRoutines.Extensions;
+using DailyRoutines.Manager;
 using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using OmenTools.Dalamud;
+using OmenTools.Info.Game.Enums;
+using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
+using OmenTools.Interop.Game.Models.Packets.Upstream;
+using OmenTools.OmenService;
+using OmenTools.Threading;
+using OmenTools.Threading.TaskHelper;
 
 namespace DailyRoutines.ModulesPublic;
 
 public partial class OccultCrescentHelper
 {
-    public class AetheryteManager(OccultCrescentHelper mainModule) : BaseIslandModule(mainModule)
+    public class AetheryteManager
+    (
+        OccultCrescentHelper mainModule
+    ) : BaseIslandModule(mainModule)
     {
-        public static bool IsTaskHelperBusy => MoveTaskHelper?.IsBusy ?? false;
-
         private const string COMMAND_TP = "ptp";
 
         private static TaskHelper? MoveTaskHelper;
+        public static  bool        IsTaskHelperBusy => MoveTaskHelper?.IsBusy ?? false;
 
         public override void Init()
         {
@@ -28,7 +36,7 @@ public partial class OccultCrescentHelper
             DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
             DService.Instance().ClientState.Logout           += OnLogout;
 
-            CommandManager.AddSubCommand(COMMAND_TP, new(OnCommandTP) { HelpMessage = GetLoc("OccultCrescentHelper-Command-PTP-Help") });
+            CommandManager.AddSubCommand(COMMAND_TP, new(OnCommandTP) { HelpMessage = Lang.Get("OccultCrescentHelper-Command-PTP-Help") });
         }
 
         public override void Uninit()
@@ -42,7 +50,7 @@ public partial class OccultCrescentHelper
             MoveTaskHelper?.Dispose();
             MoveTaskHelper = null;
 
-            vnavmeshIPC.PathStop();
+            vnavmeshIPC.StopPathfind();
         }
 
         public override void DrawConfig()
@@ -51,14 +59,14 @@ public partial class OccultCrescentHelper
 
             using (FontManager.Instance().UIFont.Push())
             {
-                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("OccultCrescentHelper-FastTeleport"));
+                ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("OccultCrescentHelper-FastTeleport"));
 
-                ImGui.SameLine(0, 8f * GlobalFontScale);
+                ImGui.SameLine(0, 8f * GlobalUIScale);
 
-                if (ImGui.SmallButton($"{GetLoc("Stop")}##StopAetheryte"))
+                if (ImGui.SmallButton($"{Lang.Get("Stop")}##StopAetheryte"))
                 {
                     MoveTaskHelper.Abort();
-                    vnavmeshIPC.PathStop();
+                    vnavmeshIPC.StopPathfind();
                 }
 
                 var longestName = string.Empty;
@@ -84,37 +92,37 @@ public partial class OccultCrescentHelper
 
             ImGui.NewLine();
 
-            if (ImGui.Checkbox($"{GetLoc("OccultCrescentHelper-PrioritizeMoveTo")}", ref ModuleConfig.IsEnabledMoveToAetheryte))
+            if (ImGui.Checkbox($"{Lang.Get("OccultCrescentHelper-PrioritizeMoveTo")}", ref ModuleConfig.IsEnabledMoveToAetheryte))
                 ModuleConfig.Save(MainModule);
-            ImGuiOm.HelpMarker(GetLoc("OccultCrescentHelper-AetheryteManager-PrioritizeMoveTo-Help"), 20f * GlobalFontScale);
+            ImGuiOm.HelpMarker(Lang.Get("OccultCrescentHelper-AetheryteManager-PrioritizeMoveTo-Help"), 20f * GlobalUIScale);
 
             if (ModuleConfig.IsEnabledMoveToAetheryte)
             {
-                ImGui.SetNextItemWidth(150f * GlobalFontScale);
-                ImGui.SliderFloat($"{GetLoc("OccultCrescentHelper-DistanceTo")}", ref ModuleConfig.DistanceToMoveToAetheryte, 1f, 100f, "%.1f");
+                ImGui.SetNextItemWidth(150f * GlobalUIScale);
+                ImGui.SliderFloat($"{Lang.Get("OccultCrescentHelper-DistanceTo")}", ref ModuleConfig.DistanceToMoveToAetheryte, 1f, 100f, "%.1f");
                 if (ImGui.IsItemDeactivatedAfterEdit())
                     ModuleConfig.Save(MainModule);
-                ImGuiOm.HelpMarker($"{GetLoc("OccultCrescentHelper-AetheryteManager-PrioritizeMoveTo-DistanceTo-Help")}", 20f * GlobalFontScale);
+                ImGuiOm.HelpMarker($"{Lang.Get("OccultCrescentHelper-AetheryteManager-PrioritizeMoveTo-DistanceTo-Help")}", 20f * GlobalUIScale);
             }
 
             ImGui.NewLine();
 
-            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), GetLoc("Command"));
+            ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("Command"));
 
             using (ImRaii.PushIndent())
-                ImGui.TextUnformatted($"/pdr {COMMAND_TP} {GetLoc("OccultCrescentHelper-Command-PTP-Help")}");
+                ImGui.TextUnformatted($"/pdr {COMMAND_TP} {Lang.Get("OccultCrescentHelper-Command-PTP-Help")}");
         }
 
         private static void OnLogout(int type, int code)
         {
             MoveTaskHelper?.Abort();
-            vnavmeshIPC.PathStop();
+            vnavmeshIPC.StopPathfind();
         }
 
         private static void OnZoneChanged(ushort obj)
         {
             MoveTaskHelper?.Abort();
-            vnavmeshIPC.PathStop();
+            vnavmeshIPC.StopPathfind();
         }
 
         private static void OnCommandTP(string command, string args)
@@ -223,8 +231,8 @@ public partial class OccultCrescentHelper
                     MoveTaskHelper.Enqueue
                     (() =>
                         {
-                            if (!Throttler.Throttle("OccultCrescentHelper-AetheryteManager-MoveTo")) return false;
-                            if (vnavmeshIPC.PathIsRunning()) return true;
+                            if (!Throttler.Shared.Throttle("OccultCrescentHelper-AetheryteManager-MoveTo")) return false;
+                            if (vnavmeshIPC.GetIsPathfindRunning()) return true;
 
                             vnavmeshIPC.PathfindAndMoveTo(targetObj.Position, false);
                             return false;
@@ -235,10 +243,10 @@ public partial class OccultCrescentHelper
                     (() =>
                         {
                             // 可以稍微放宽一点
-                            if (LocalPlayerState.DistanceTo3D(targetObj.Position) <= 4f || !vnavmeshIPC.PathIsRunning())
+                            if (LocalPlayerState.DistanceTo3D(targetObj.Position) <= 4f || !vnavmeshIPC.GetIsPathfindRunning())
                             {
                                 ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.Dismount);
-                                vnavmeshIPC.PathStop();
+                                vnavmeshIPC.StopPathfind();
                                 return true;
                             }
 
