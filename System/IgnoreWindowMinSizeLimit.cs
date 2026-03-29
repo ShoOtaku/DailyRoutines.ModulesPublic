@@ -31,7 +31,7 @@ public unsafe class IgnoreWindowMinSizeLimit : ModuleBase
 
     protected override void Uninit()
     {
-        if (!IsInitialized) return;
+        if (!IsEnabled) return;
 
         GameWindow.Instance()->MinWidth  = OriginalMinWidth;
         GameWindow.Instance()->MinHeight = OriginalMinHeight;

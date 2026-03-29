@@ -45,7 +45,7 @@ public unsafe class FastMinimizeWindow : ModuleBase
         CommandManager.RemoveSubCommand(CommandMini);
         CommandManager.RemoveSubCommand(CommandTray);
 
-        if (IsInitialized)
+        if (IsEnabled)
         {
             var hwnd = Framework.Instance()->GameWindow->WindowHandle;
 

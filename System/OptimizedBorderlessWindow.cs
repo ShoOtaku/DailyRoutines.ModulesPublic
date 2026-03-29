@@ -44,7 +44,7 @@ public unsafe class OptimizedBorderlessWindow : ModuleBase
 
     protected override void Uninit()
     {
-        if (IsInitialized && Framework.Instance()->GameWindow->Borderless)
+        if (IsEnabled && Framework.Instance()->GameWindow->Borderless)
         {
             var windowHandle = Framework.Instance()->GameWindow->WindowHandle;
             WinAPI.SetWindowLongPtrW(windowHandle, WinAPI.GwlpStyle, 0x80000000); // WS_POPUP
