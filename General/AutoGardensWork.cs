@@ -21,12 +21,6 @@ namespace DailyRoutines.ModulesPublic;
 
 public unsafe class AutoGardensWork : ModuleBase
 {
-    private static Config ModuleConfig = null!;
-
-    private static string SearchSeed      = string.Empty;
-    private static string SearchSoil      = string.Empty;
-    private static string SearchFertilize = string.Empty;
-
     public override ModuleInfo Info { get; } = new()
     {
         Title               = Lang.Get("AutoGardensWorkTitle"),
@@ -36,6 +30,12 @@ public unsafe class AutoGardensWork : ModuleBase
     };
 
     public override ModulePermission Permission { get; } = new() { NeedAuth = true };
+    
+    private static Config ModuleConfig = null!;
+
+    private static string SearchSeed      = string.Empty;
+    private static string SearchSoil      = string.Empty;
+    private static string SearchFertilize = string.Empty;
 
     protected override void Init()
     {
