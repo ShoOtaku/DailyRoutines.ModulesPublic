@@ -2,7 +2,6 @@ using DailyRoutines.Common.Extensions;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
-using DailyRoutines.Manager;
 using OmenTools.Interop.Game.Helpers;
 using OmenTools.Interop.Game.Models;
 using OmenTools.OmenService;
