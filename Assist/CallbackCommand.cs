@@ -28,8 +28,19 @@ public unsafe class CallbackCommand : ModuleBase
     protected override void Uninit() =>
         CommandManager.Instance().RemoveSubCommand(COMMAND);
 
-    protected override void ConfigUI() =>
-        ImGui.TextWrapped(Lang.Get("CallbackCommand-CommandHelp-Detailed", COMMAND));
+    protected override void ConfigUI()
+    {
+        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), Lang.Get("Command"));
+
+        using (ImRaii.PushIndent())
+        {
+            ImGui.TextUnformatted($"/pdr {COMMAND} {Lang.Get("CallbackCommand-CommandHelp")}");
+
+            ImGui.NewLine();
+            
+            ImGui.TextWrapped(Lang.Get("CallbackCommand-CommandHelp-Detailed", COMMAND));
+        }
+    }
 
     private static void OnCommand(string command, string arguments)
     {
@@ -61,7 +72,7 @@ public unsafe class CallbackCommand : ModuleBase
             addon->Callback(atkValues);
             NotifyHelper.Instance().Chat(Lang.Get("CallbackCommand-Notification-ExecuteSuccuess", addonName, splited[1]));
         }
-        catch (Exception)
+        catch
         {
             NotifyHelper.Instance().ChatError(Lang.Get("CallbackCommand-Notification-ExecuteError", addonName, splited[1]));
         }
