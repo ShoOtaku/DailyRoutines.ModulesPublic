@@ -231,7 +231,7 @@ public partial class OccultCrescentHelper
             if (!CrescentSupportJob.TryFindKnowledgeCrystal(out var gameObject) ||
                 LocalPlayerState.DistanceToObject2DSquared(gameObject) > 10)
             {
-                NotifyHelper.NotificationError(Lang.Get("OccultCrescentHelper-OthersManager-Notification-CrystalNotFound"));
+                NotifyHelper.Instance().NotificationError(Lang.Get("OccultCrescentHelper-OthersManager-Notification-CrystalNotFound"));
                 return;
             }
 

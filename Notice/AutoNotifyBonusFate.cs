@@ -130,9 +130,9 @@ public class AutoNotifyBonusFate : ModuleBase
         var notificationMessage = Lang.Get("AutoNotifyBonusFate-Notification", fate.Name.ToString(), fate.Progress);
 
         if (ModuleConfig.SendChat)
-            NotifyHelper.Chat(chatMessage);
+            NotifyHelper.Instance().Chat(chatMessage);
         if (ModuleConfig.SendNotification)
-            NotifyHelper.NotificationInfo(notificationMessage);
+            NotifyHelper.Instance().NotificationInfo(notificationMessage);
         if (ModuleConfig.SendTTS)
             NotifyHelper.Speak(notificationMessage);
 

@@ -36,8 +36,8 @@ public class AutoVeryEasyQuestBattle : ModuleBase
 
         if (!SelectString->IsAddonAndNodesReady())
         {
-            NotifyHelper.Chat(Lang.Get("AutoVeryEasyQuestBattle-Notification"));
-            NotifyHelper.NotificationInfo(Lang.Get("AutoVeryEasyQuestBattle-Notification"));
+            NotifyHelper.Instance().Chat(Lang.Get("AutoVeryEasyQuestBattle-Notification"));
+            NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoVeryEasyQuestBattle-Notification"));
         }
     }
 

@@ -229,7 +229,7 @@ public partial class AutoReplyChatBot
                     }
                     catch (Exception ex)
                     {
-                        NotifyHelper.NotificationError(Lang.Get("AutoReplyChatBot-ErrorTitle"));
+                        NotifyHelper.Instance().NotificationError(Lang.Get("AutoReplyChatBot-ErrorTitle"));
                         DLog.Error($"{Lang.Get("AutoReplyChatBot-ErrorTitle")}:", ex);
                     }
 

@@ -461,7 +461,7 @@ public class AutoReplaceLocationAction : ModuleBase
         if (ModuleConfig.SendChat)
         {
             var mapPos = PositionHelper.WorldToMap(location.ToVector2(), GameState.MapData);
-            NotifyHelper.Chat
+            NotifyHelper.Instance().Chat
             (
                 Lang.GetSe
                 (
@@ -473,7 +473,7 @@ public class AutoReplaceLocationAction : ModuleBase
 
         if (ModuleConfig.SendNotification)
         {
-            NotifyHelper.NotificationSuccess
+            NotifyHelper.Instance().NotificationSuccess
             (
                 Lang.Get
                 (

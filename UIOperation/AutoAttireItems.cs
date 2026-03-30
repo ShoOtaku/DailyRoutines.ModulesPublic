@@ -128,7 +128,7 @@ public unsafe class AutoAttireItems : ModuleBase
                     }
                 );
                 TaskHelper.Enqueue
-                    (() => NotifyHelper.Chat(Lang.GetSe("AutoAttireItems-Message", new ItemPayload(x.Key.Set.ID), x.Value.Count, x.Key.SetItems.Count)));
+                    (() => NotifyHelper.Instance().Chat(Lang.GetSe("AutoAttireItems-Message", new ItemPayload(x.Key.Set.ID), x.Value.Count, x.Key.SetItems.Count)));
             }
         );
         TaskHelper.Enqueue(RestoreItemsFromPrismBox);

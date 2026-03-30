@@ -108,7 +108,7 @@ public partial class AutoOpenMapLinks : ModuleBase
                                 ModuleConfig.Save(this);
                             }
                             else
-                                NotifyHelper.NotificationError(Lang.Get("InvalidName"));
+                                NotifyHelper.Instance().NotificationError(Lang.Get("InvalidName"));
                         }
                     }
                 }
@@ -254,7 +254,7 @@ public partial class AutoOpenMapLinks : ModuleBase
 
             var id = $"{playerName}@{playerWorld.ValueNullable?.Name}";
             if (!ModuleConfig.WhitelistPlayer.Add(id))
-                NotifyHelper.NotificationWarning(Lang.Get("AutoOpenMapLinks-AlreadyExistedInList"));
+                NotifyHelper.Instance().NotificationWarning(Lang.Get("AutoOpenMapLinks-AlreadyExistedInList"));
         }
 
         public override bool IsDisplay(IMenuOpenedArgs args)

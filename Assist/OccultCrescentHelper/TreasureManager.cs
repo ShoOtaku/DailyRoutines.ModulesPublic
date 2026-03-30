@@ -355,7 +355,7 @@ public partial class OccultCrescentHelper
 
             if (LocalPlayerState.DistanceTo2D(CrescentAetheryte.ExpeditionBaseCamp.Position.ToVector2()) <= 50)
             {
-                NotifyHelper.NotificationError(Lang.Get("OccultCrescentHelper-TreasureManager-AutoOpenTreasure-Notification-Danger"));
+                NotifyHelper.Instance().NotificationError(Lang.Get("OccultCrescentHelper-TreasureManager-AutoOpenTreasure-Notification-Danger"));
                 return;
             }
 
@@ -382,7 +382,7 @@ public partial class OccultCrescentHelper
                 StopAutoTreasureHunt();
 
                 var message = Lang.Get("OccultCrescentHelper-TreasureManager-AutoOpenTreasure-Notification-End");
-                NotifyHelper.NotificationInfo(message);
+                NotifyHelper.Instance().NotificationInfo(message);
                 NotifyHelper.Speak(message);
 
                 // 亚返回

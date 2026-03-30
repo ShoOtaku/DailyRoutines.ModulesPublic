@@ -74,9 +74,9 @@ public class AutoNotifyDutyName : ModuleBase
         if (ModuleConfig.SendTTS)
             NotifyHelper.Speak(message);
         if (ModuleConfig.SendChat)
-            NotifyHelper.Chat(message);
+            NotifyHelper.Instance().Chat(message);
         if (ModuleConfig.SendNotification)
-            NotifyHelper.NotificationInfo(message);
+            NotifyHelper.Instance().NotificationInfo(message);
     }
 
     protected override void Uninit() =>

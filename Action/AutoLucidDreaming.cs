@@ -174,7 +174,7 @@ public unsafe class AutoLucidDreaming : ModuleBase
                 {
                     LastLucidDreamingUseTime = capturedTime;
                     if (ModuleConfig.SendNotification && Throttler.Shared.Throttle("AutoLucidDreaming-Notification", 10_000))
-                        NotifyHelper.NotificationInfo(Lang.Get("AutoLucidDreaming-Notification", localPlayer->Mana));
+                        NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoLucidDreaming-Notification", localPlayer->Mana));
                 }
 
                 return result;

@@ -235,7 +235,7 @@ public class MoreMessageFilterPresets : ModuleBase
     private static void ApplyFilterPresetAndNotify(FilterPreset preset, int index)
     {
         ApplyFilterPreset(preset, index);
-        NotifyHelper.NotificationSuccess(Lang.Get("MoreMessageFilterPresets-Notification-Applied", preset.Name, index + 1));
+        NotifyHelper.Instance().NotificationSuccess(Lang.Get("MoreMessageFilterPresets-Notification-Applied", preset.Name, index + 1));
     }
 
     private static void ApplyFilterPresetAndNotify(FilterPreset preset)

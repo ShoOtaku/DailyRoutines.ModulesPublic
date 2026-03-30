@@ -82,7 +82,7 @@ public unsafe class AutoFateStart : ModuleBase
 
         ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.FateStart, row.RowId, targetID);
         if (Throttler.Shared.Throttle($"AutoFateStart-Fate-{row.RowId}", 60_000))
-            NotifyHelper.Chat(Lang.Get("AutoFateStart-StartNotice", row.Name));
+            NotifyHelper.Instance().Chat(Lang.Get("AutoFateStart-StartNotice", row.Name));
     }
 
     private delegate void HandleSpawnNPCPacketDelegate(uint targetID, SpawnNpcPacket* packet);

@@ -248,12 +248,12 @@ public unsafe class AutoBroadcastActionHitInfo : ModuleBase
             switch (effectArray->Param0)
             {
                 case 32 or 64:
-                    NotifyHelper.ContentHintBlue(message, TimeSpan.FromSeconds(1));
+                    NotifyHelper.Instance().ContentHintBlue(message, TimeSpan.FromSeconds(1));
                     if (ModuleConfig.UseTTS)
                         NotifyHelper.Speak(message);
                     break;
                 case 96:
-                    NotifyHelper.ContentHintRed(message, TimeSpan.FromSeconds(1));
+                    NotifyHelper.Instance().ContentHintRed(message, TimeSpan.FromSeconds(1));
                     if (ModuleConfig.UseTTS)
                         NotifyHelper.Speak(message);
                     break;

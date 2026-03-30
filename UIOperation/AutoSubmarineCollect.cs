@@ -263,7 +263,7 @@ public unsafe class AutoSubmarineCollect : ModuleBase
 
         if (itemLacked != 0)
         {
-            NotifyHelper.Chat(Lang.GetSe("AutoSubmarineCollect-LackSpecificItems", SeString.CreateItemLink(itemLacked)));
+            NotifyHelper.Instance().Chat(Lang.GetSe("AutoSubmarineCollect-LackSpecificItems", SeString.CreateItemLink(itemLacked)));
             return true;
         }
 
@@ -348,7 +348,7 @@ public unsafe class AutoSubmarineCollect : ModuleBase
                               .Add(RawPayload.LinkTerminator);
             }
 
-            NotifyHelper.Chat(messageBuilder.Build());
+            NotifyHelper.Instance().Chat(messageBuilder.Build());
         }
 
         if (ModuleConfig.AutoCollectCount > 0 && finishedCount >= Math.Min(maxCount, ModuleConfig.AutoCollectCount))

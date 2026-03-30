@@ -47,13 +47,13 @@ public unsafe class AutoJoinExitDuty : ModuleBase
     {
         if (DService.Instance().PartyList.Length > 0)
         {
-            NotifyHelper.NotificationError(Lang.Get("AutoJoinExitDuty-AlreadyInParty"));
+            NotifyHelper.Instance().NotificationError(Lang.Get("AutoJoinExitDuty-AlreadyInParty"));
             return;
         }
 
         if (DService.Instance().Condition.IsBoundByDuty)
         {
-            NotifyHelper.NotificationError(Lang.Get("AutoJoinExitDuty-AlreadyInDutyNotice"));
+            NotifyHelper.Instance().NotificationError(Lang.Get("AutoJoinExitDuty-AlreadyInDutyNotice"));
             return;
         }
 
@@ -61,7 +61,7 @@ public unsafe class AutoJoinExitDuty : ModuleBase
 
         if (!UIState.IsInstanceContentUnlocked(TargetContent))
         {
-            NotifyHelper.NotificationError(Lang.Get("AutoJoinExitDuty-DutyLockedNotice", contentData.Name.ToString()));
+            NotifyHelper.Instance().NotificationError(Lang.Get("AutoJoinExitDuty-DutyLockedNotice", contentData.Name.ToString()));
             return;
         }
 

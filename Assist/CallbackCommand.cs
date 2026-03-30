@@ -50,7 +50,7 @@ public unsafe class CallbackCommand : ModuleBase
         var addonName = splited[0];
         if (!AddonHelper.TryGetByName(addonName, out var addon))
         {
-            NotifyHelper.ChatError(Lang.Get("CallbackCommand-Notification-AddonNotReady", addonName));
+            NotifyHelper.Instance().ChatError(Lang.Get("CallbackCommand-Notification-AddonNotReady", addonName));
             return;
         }
 
@@ -59,16 +59,16 @@ public unsafe class CallbackCommand : ModuleBase
         {
             using var atkValues = AtkValueArray.FromString(callbackArguments);
             addon->Callback(atkValues);
-            NotifyHelper.Chat(Lang.Get("CallbackCommand-Notification-ExecuteSuccuess", addonName, splited[1]));
+            NotifyHelper.Instance().Chat(Lang.Get("CallbackCommand-Notification-ExecuteSuccuess", addonName, splited[1]));
         }
         catch (Exception)
         {
-            NotifyHelper.ChatError(Lang.Get("CallbackCommand-Notification-ExecuteError", addonName, splited[1]));
+            NotifyHelper.Instance().ChatError(Lang.Get("CallbackCommand-Notification-ExecuteError", addonName, splited[1]));
         }
 
         return;
 
         void NotifyCommandError() =>
-            NotifyHelper.ChatError(Lang.Get("Commands-InvalidArgs", $"/pdr {COMMAND}", arguments));
+            NotifyHelper.Instance().ChatError(Lang.Get("Commands-InvalidArgs", $"/pdr {COMMAND}", arguments));
     }
 }

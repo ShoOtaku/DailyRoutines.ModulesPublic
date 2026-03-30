@@ -387,8 +387,8 @@ public class AutoNotifySPPlayers : ModuleBase
             {
                 var message = Lang.Get("AutoNotifySPPlayers-NoticeMessage", playerName);
 
-                NotifyHelper.Chat($"{message}\n     ({Lang.Get("CurrentTime")}: {StandardTimeManager.Instance().Now})");
-                NotifyHelper.NotificationInfo(message);
+                NotifyHelper.Instance().Chat($"{message}\n     ({Lang.Get("CurrentTime")}: {StandardTimeManager.Instance().Now})");
+                NotifyHelper.Instance().NotificationInfo(message);
                 NotifyHelper.Speak(message);
 
                 if (!string.IsNullOrWhiteSpace(config.Command))

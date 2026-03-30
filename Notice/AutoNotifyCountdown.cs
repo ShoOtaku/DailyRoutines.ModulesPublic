@@ -36,7 +36,7 @@ public class AutoNotifyCountdown : ModuleBase
         if (logMessageID != 5255) return;
         if (ModuleConfig.OnlyNotifyWhenBackground && GameState.IsForeground) return;
 
-        NotifyHelper.NotificationInfo(Lang.Get("AutoNotifyCountdown-NotificationTitle"));
+        NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoNotifyCountdown-NotificationTitle"));
         NotifyHelper.Speak(Lang.Get("AutoNotifyCountdown-NotificationTitle"));
     }
 

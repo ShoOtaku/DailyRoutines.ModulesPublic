@@ -92,12 +92,12 @@ public unsafe class AutoRefuseTrade : ModuleBase
 
         if (ModuleConfig.SendNotification)
         {
-            NotifyHelper.NotificationInfo(message);
+            NotifyHelper.Instance().NotificationInfo(message);
             NotifyHelper.Speak(message);
         }
 
         if (ModuleConfig.SendChat)
-            NotifyHelper.Chat($"{message}\n    ({Lang.Get("Time")}: {StandardTimeManager.Instance().Now.ToShortTimeString()})");
+            NotifyHelper.Instance().Chat($"{message}\n    ({Lang.Get("Time")}: {StandardTimeManager.Instance().Now.ToShortTimeString()})");
 
         if (!string.IsNullOrWhiteSpace(ModuleConfig.ExtraCommands))
         {

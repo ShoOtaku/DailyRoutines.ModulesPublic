@@ -192,7 +192,7 @@ public unsafe class AutoCheckItemLevel : ModuleBase
 
         ssb.Add(new NewLinePayload());
 
-        NotifyHelper.Chat(ssb.Build());
+        NotifyHelper.Instance().Chat(ssb.Build());
     }
 
     protected override void Uninit() =>

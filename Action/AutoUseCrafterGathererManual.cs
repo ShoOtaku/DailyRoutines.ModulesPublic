@@ -118,7 +118,7 @@ public unsafe class AutoUseCrafterGathererManual : ModuleBase
 
                 UseActionManager.Instance().UseActionLocation(ActionType.Item, itemID, 0xE0000000, default, 0xFFFF);
                 if (ModuleConfig.SendNotification)
-                    NotifyHelper.NotificationInfo(Lang.Get("AutoUseCrafterGathererManual-Notification", itemRow.Name.ToString()));
+                    NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoUseCrafterGathererManual-Notification", itemRow.Name.ToString()));
                 return true;
             }
         );

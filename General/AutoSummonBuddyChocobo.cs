@@ -167,9 +167,9 @@ public unsafe class AutoSummonBuddyChocobo : ModuleBase
 
             var notificationMessage = Lang.Get("AutoSummonBuddyChocobo-NotificationMessage");
             if (ModuleConfig.SendChat)
-                NotifyHelper.Chat(notificationMessage);
+                NotifyHelper.Instance().Chat(notificationMessage);
             if (ModuleConfig.SendNotification)
-                NotifyHelper.NotificationInfo(notificationMessage);
+                NotifyHelper.Instance().NotificationInfo(notificationMessage);
             if (ModuleConfig.SendTTS)
                 NotifyHelper.Speak(notificationMessage);
 

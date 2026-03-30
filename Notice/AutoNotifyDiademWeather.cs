@@ -103,8 +103,8 @@ public class AutoNotifyDiademWeather : ModuleBase
         if (!ModuleConfig.Weathers.Contains(weatherID)) return;
 
         var message = Lang.Get("AutoNotifyDiademWeather-Notification", weather.Name.ToString());
-        NotifyHelper.Chat(message);
-        NotifyHelper.NotificationInfo(message);
+        NotifyHelper.Instance().Chat(message);
+        NotifyHelper.Instance().NotificationInfo(message);
     }
 
     private class Config : ModuleConfig

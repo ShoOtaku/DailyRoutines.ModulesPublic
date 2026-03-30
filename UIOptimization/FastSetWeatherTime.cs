@@ -402,7 +402,7 @@ public unsafe class FastSetWeatherTime : ModuleBase
                             ? $"{timeSpan.Hours:D2}:{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}"
                             : LuminaWrapper.GetAddonText(7)
                     );
-                    NotifyHelper.Chat(message);
+                    NotifyHelper.Instance().Chat(message);
                 }
             };
             operationRow.AddNode(saveButtonNode);
@@ -416,7 +416,7 @@ public unsafe class FastSetWeatherTime : ModuleBase
                     if (ModuleConfig.ZoneSettings.Remove(GameState.TerritoryType))
                     {
                         ModuleConfig.Save(ModuleManager.GetModule<FastSetWeatherTime>());
-                        NotifyHelper.Chat(Lang.Get("FastSetWeatherTime-Notification-Cleard"));
+                        NotifyHelper.Instance().Chat(Lang.Get("FastSetWeatherTime-Notification-Cleard"));
                     }
                 }
             };

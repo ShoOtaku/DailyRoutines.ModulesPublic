@@ -112,7 +112,7 @@ public class AutoShowDutyGuide : ModuleBase
             if (ImGui.IsItemClicked())
             {
                 ImGui.SetClipboardText(text);
-                NotifyHelper.Chat("已将本段攻略内容复制至剪贴板");
+                NotifyHelper.Instance().Chat("已将本段攻略内容复制至剪贴板");
             }
 
             ImGui.NewLine();

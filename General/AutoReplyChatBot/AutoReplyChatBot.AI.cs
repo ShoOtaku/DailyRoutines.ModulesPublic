@@ -73,7 +73,7 @@ public partial class AutoReplyChatBot
         }
         catch (Exception ex)
         {
-            NotifyHelper.NotificationError(Lang.Get("AutoReplyChatBot-ErrorTitle"));
+            NotifyHelper.Instance().NotificationError(Lang.Get("AutoReplyChatBot-ErrorTitle"));
             DLog.Error($"{Lang.Get("AutoReplyChatBot-ErrorTitle")}:", ex);
 
             reply = string.Empty;
@@ -84,7 +84,7 @@ public partial class AutoReplyChatBot
 
         SendReply(originalType, target, reply);
 
-        NotifyHelper.NotificationInfo(reply, $"{Lang.Get("AutoReplyChatBot-AutoRepliedTo")}{target}");
+        NotifyHelper.Instance().NotificationInfo(reply, $"{Lang.Get("AutoReplyChatBot-AutoRepliedTo")}{target}");
         AppendHistory(target, "assistant", reply);
     }
 

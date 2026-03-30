@@ -484,7 +484,7 @@ public class AutoCheckFoodUsage : ModuleBase
             itemFoodId                 == ToFoodRowID(itemID)             &&
             remainingTime.TotalMinutes >= 25)
         {
-            NotifyHelper.Chat(Lang.GetSe("AutoCheckFoodUsage-NoticeMessage", new SeStringBuilder().AddItemLink(itemID, isHQ)));
+            NotifyHelper.Instance().Chat(Lang.GetSe("AutoCheckFoodUsage-NoticeMessage", new SeStringBuilder().AddItemLink(itemID, isHQ)));
             return true;
         }
 

@@ -244,7 +244,7 @@ public unsafe class AutoPlayerCommend : ModuleBase
             if (!LuminaGetter.TryGetRow<ClassJob>(memberInfo.ClassJob, out var job)) continue;
 
             AgentId.ContentsMvp.SendEvent(0, 0, playerIndex);
-            NotifyHelper.Chat
+            NotifyHelper.Instance().Chat
             (
                 Lang.GetSe
                 (
@@ -257,7 +257,7 @@ public unsafe class AutoPlayerCommend : ModuleBase
             return true;
         }
 
-        NotifyHelper.ChatError(Lang.Get("AutoPlayerCommend-ErrorWhenGiveCommendationMessage"));
+        NotifyHelper.Instance().ChatError(Lang.Get("AutoPlayerCommend-ErrorWhenGiveCommendationMessage"));
         return true;
 
         bool TryFindPlayerIndex(string playerName, uint playerJob, out int playerIndex)
@@ -346,7 +346,7 @@ public unsafe class AutoPlayerCommend : ModuleBase
             var playerName  = target.TargetCharacter != null ? target.TargetCharacter.Name : target.TargetName;
             var playerWorld = target.TargetCharacter?.HomeWorld ?? target.TargetHomeWorld;
 
-            NotifyHelper.NotificationInfo
+            NotifyHelper.Instance().NotificationInfo
             (
                 contentID == LocalPlayerState.ContentID
                     ? Lang.Get("AutoPlayerCommend-GiveNobodyCommendMessage")

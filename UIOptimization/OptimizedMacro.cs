@@ -415,11 +415,11 @@ public unsafe class OptimizedMacro : ModuleBase
             ModuleConfig.Presets[presetName] = presetData;
             ModuleConfig.Save(this);
 
-            NotifyHelper.Chat(Lang.Get(isOverwrite ? "OptimizedMacro-Notification-Overwritten" : "OptimizedMacro-Notification-Saved", presetName));
+            NotifyHelper.Instance().Chat(Lang.Get(isOverwrite ? "OptimizedMacro-Notification-Overwritten" : "OptimizedMacro-Notification-Saved", presetName));
         }
         catch
         {
-            NotifyHelper.Chat(Lang.Get("OptimizedMacro-Notification-SaveError", presetName));
+            NotifyHelper.Instance().Chat(Lang.Get("OptimizedMacro-Notification-SaveError", presetName));
         }
     }
 
@@ -445,11 +445,11 @@ public unsafe class OptimizedMacro : ModuleBase
             macroModule->SetSavePendingFlag(true, 1);
             hotbarModule->ReloadAllMacroSlots();
 
-            NotifyHelper.Chat(Lang.Get("OptimizedMacro-Notification-Loaded", presetName));
+            NotifyHelper.Instance().Chat(Lang.Get("OptimizedMacro-Notification-Loaded", presetName));
         }
         catch
         {
-            NotifyHelper.Chat(Lang.Get("OptimizedMacro-Notification-LoadError", presetName));
+            NotifyHelper.Instance().Chat(Lang.Get("OptimizedMacro-Notification-LoadError", presetName));
         }
     }
 
@@ -463,7 +463,7 @@ public unsafe class OptimizedMacro : ModuleBase
                 throw new Exception();
 
             ModuleConfig.Save(this);
-            NotifyHelper.Chat(Lang.Get("OptimizedMacro-Notification-Deleted", presetName));
+            NotifyHelper.Instance().Chat(Lang.Get("OptimizedMacro-Notification-Deleted", presetName));
 
             PresetDropdownNode.Options        = GetPresetNames();
             PresetDropdownNode.SelectedOption = DefaultOption;
@@ -473,7 +473,7 @@ public unsafe class OptimizedMacro : ModuleBase
         }
         catch
         {
-            NotifyHelper.Chat(Lang.Get("OptimizedMacro-Notification-DeleteError", presetName));
+            NotifyHelper.Instance().Chat(Lang.Get("OptimizedMacro-Notification-DeleteError", presetName));
         }
     }
 

@@ -150,6 +150,6 @@ public class AutoMoveGearsNotInSet : ModuleBase
         }
 
         Out:
-        NotifyHelper.Chat(Lang.Get("AutoMoveGearsNotInSet-Notification", counter));
+        NotifyHelper.Instance().Chat(Lang.Get("AutoMoveGearsNotInSet-Notification", counter));
     }
 }

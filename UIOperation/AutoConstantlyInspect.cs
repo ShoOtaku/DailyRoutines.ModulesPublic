@@ -28,7 +28,7 @@ public class AutoConstantlyInspect : ModuleBase
     {
         if (DRConfig.Instance().ConflictKeyBinding.IsPressed())
         {
-            NotifyHelper.NotificationSuccess(Lang.Get("ConflictKey-InterruptMessage"));
+            NotifyHelper.Instance().NotificationSuccess(Lang.Get("ConflictKey-InterruptMessage"));
             return;
         }
 

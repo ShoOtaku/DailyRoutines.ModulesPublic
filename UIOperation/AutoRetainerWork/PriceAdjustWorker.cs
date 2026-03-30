@@ -935,7 +935,7 @@ public unsafe partial class AutoRetainerWork
                     if (ImGui.MenuItem(Lang.Get("AutoRetainerWork-PriceAdjust-ClearCache")))
                     {
                         PriceCacheManager.ClearCache();
-                        NotifyHelper.NotificationSuccess(Lang.Get("AutoRetainerWork-PriceAdjust-CacheCleared"));
+                        NotifyHelper.Instance().NotificationSuccess(Lang.Get("AutoRetainerWork-PriceAdjust-CacheCleared"));
                     }
                 }
 
@@ -1907,7 +1907,7 @@ public unsafe partial class AutoRetainerWork
                         "AutoRetainerWork-PriceAdjust-ConductAbortBehavior",
                         new SeStringBuilder().AddUiForeground(behavior.ToString(), 67).Build()
                     );
-                    NotifyHelper.Chat(message);
+                    NotifyHelper.Instance().Chat(message);
                 }
 
                 if (behavior == AbortBehavior.无) return;
@@ -2215,7 +2215,7 @@ public unsafe partial class AutoRetainerWork
             var priceChangeRate     = origPrice == 0 ? 0 : (double)priceChangedValue / origPrice * 100;
             var priceChangeRateText = priceChangeRate.ToString("+0.##;-0.##") + "%";
 
-            NotifyHelper.Chat
+            NotifyHelper.Instance().Chat
             (
                 Lang.GetSe
                 (
@@ -2238,7 +2238,7 @@ public unsafe partial class AutoRetainerWork
             if (!ModuleConfig.SendPriceAdjustProcessMessage) return;
 
             var itemPayload = new SeStringBuilder().AddItemLink(itemID, isHQ).Build();
-            NotifyHelper.Chat
+            NotifyHelper.Instance().Chat
             (
                 Lang.GetSe
                 (

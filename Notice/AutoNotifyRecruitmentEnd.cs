@@ -33,7 +33,7 @@ public class AutoNotifyRecruitmentEnd : ModuleBase
         if (!ValidLogMessages.Contains(logMessageID)) return;
 
         var content = LuminaWrapper.GetLogMessageText(logMessageID);
-        NotifyHelper.NotificationInfo(content);
+        NotifyHelper.Instance().NotificationInfo(content);
         NotifyHelper.Speak(content);
     }
 }

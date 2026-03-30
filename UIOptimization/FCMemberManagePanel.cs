@@ -437,7 +437,7 @@ public unsafe class FCMemberManagePanel : ModuleBase
                 if (!AddonContextMenuEvent.Select(menuText))
                 {
                     ContextMenuAddon->Close(true);
-                    NotifyHelper.NotificationError
+                    NotifyHelper.Instance().NotificationError
                     (
                         $"{Lang.Get("FCMemberManagePanel-ContextMenuItemNoFound")}: {menuText}"
                     );

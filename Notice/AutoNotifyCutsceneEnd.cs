@@ -170,9 +170,9 @@ public unsafe class AutoNotifyCutsceneEnd : ModuleBase
 
         var message = $"{Lang.Get("AutoNotifyCutsceneEnd-NotificationMessage")}";
         if (ModuleConfig.SendChat)
-            NotifyHelper.Chat($"{message} {Lang.Get("AutoNotifyCutsceneEnd-NotificationMessage-WaitSeconds", $"{elapsedTime.TotalSeconds:F0}")}");
+            NotifyHelper.Instance().Chat($"{message} {Lang.Get("AutoNotifyCutsceneEnd-NotificationMessage-WaitSeconds", $"{elapsedTime.TotalSeconds:F0}")}");
         if (ModuleConfig.SendNotification)
-            NotifyHelper.NotificationInfo($"{message} {Lang.Get("AutoNotifyCutsceneEnd-NotificationMessage-WaitSeconds", $"{elapsedTime.TotalSeconds:F0}")}");
+            NotifyHelper.Instance().NotificationInfo($"{message} {Lang.Get("AutoNotifyCutsceneEnd-NotificationMessage-WaitSeconds", $"{elapsedTime.TotalSeconds:F0}")}");
         if (ModuleConfig.SendTTS)
             NotifyHelper.Speak(message);
     }

@@ -346,7 +346,7 @@ public unsafe class AutoDiscard : ModuleBase
                         !AddonContextMenuEvent.Select(LuminaWrapper.GetAddonText(93)))
                     {
                         ContextMenuAddon->Close(true);
-                        NotifyHelper.ChatError(Lang.Get("AutoDiscard-NoSellPage"));
+                        NotifyHelper.Instance().ChatError(Lang.Get("AutoDiscard-NoSellPage"));
 
                         taskHelper.Abort();
                     }
@@ -535,7 +535,7 @@ public unsafe class AutoDiscard : ModuleBase
                             LastAddedItemsByName.ForEach(x => group.Items.Add(x.RowId));
                             ModuleConfig.Save(this);
 
-                            NotifyHelper.NotificationSuccess(Lang.Get("AutoDiscard-Notification-ItemsAdded", LastAddedItemsByName.Count));
+                            NotifyHelper.Instance().NotificationSuccess(Lang.Get("AutoDiscard-Notification-ItemsAdded", LastAddedItemsByName.Count));
                         }
                     }
 
@@ -571,7 +571,7 @@ public unsafe class AutoDiscard : ModuleBase
                             LastAddedItemsByCategory.ForEach(x => group.Items.Add(x.RowId));
                             ModuleConfig.Save(this);
 
-                            NotifyHelper.NotificationSuccess(Lang.Get("AutoDiscard-Notification-ItemsAdded", LastAddedItemsByCategory.Count));
+                            NotifyHelper.Instance().NotificationSuccess(Lang.Get("AutoDiscard-Notification-ItemsAdded", LastAddedItemsByCategory.Count));
                         }
                     }
 

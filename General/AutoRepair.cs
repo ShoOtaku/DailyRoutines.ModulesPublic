@@ -116,7 +116,7 @@ public unsafe class AutoRepair : ModuleBase
         {
             TaskHelper.Abort();
             TaskHelper.Enqueue(() => IsAbleToRepair());
-            TaskHelper.Enqueue(() => NotifyHelper.NotificationInfo(Lang.Get("AutoRepair-RepairNotice"), Lang.Get("AutoRepairTitle")));
+            TaskHelper.Enqueue(() => NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoRepair-RepairNotice"), Lang.Get("AutoRepairTitle")));
             TaskHelper.Enqueue(() => new EventStartPackt(LocalPlayerState.EntityID, 720915).Send());
             TaskHelper.Enqueue(() => Repair->IsAddonAndNodesReady());
             TaskHelper.Enqueue(() => ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, 1000));
@@ -171,7 +171,7 @@ public unsafe class AutoRepair : ModuleBase
         if (items.Count > itemsUnableToRepair.Count)
         {
             TaskHelper.Enqueue(() => IsAbleToRepair(),                                                                                "等待可以维修状态");
-            TaskHelper.Enqueue(() => NotifyHelper.NotificationInfo(Lang.Get("AutoRepair-RepairNotice"), Lang.Get("AutoRepairTitle")), "发送开始维修通知");
+            TaskHelper.Enqueue(() => NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoRepair-RepairNotice"), Lang.Get("AutoRepairTitle")), "发送开始维修通知");
 
             // 没有暗物质不足的情况
             if (!isDMInsufficient)
@@ -196,7 +196,7 @@ public unsafe class AutoRepair : ModuleBase
         if (ModuleConfig.AllowNPCRepair && itemsUnableToRepair.Count > 0 && EventFramework.Instance()->IsEventIDNearby(720915))
         {
             TaskHelper.Enqueue(() => IsAbleToRepair());
-            TaskHelper.Enqueue(() => NotifyHelper.NotificationInfo(Lang.Get("AutoRepair-RepairNotice"), Lang.Get("AutoRepairTitle")));
+            TaskHelper.Enqueue(() => NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoRepair-RepairNotice"), Lang.Get("AutoRepairTitle")));
             TaskHelper.Enqueue(() => new EventStartPackt(LocalPlayerState.EntityID, 720915).Send());
             TaskHelper.Enqueue(() => Repair->IsAddonAndNodesReady());
             TaskHelper.Enqueue(() => ExecuteCommandManager.Instance().ExecuteCommand(ExecuteCommandFlag.RepairEquippedItemsNPC, 1000));

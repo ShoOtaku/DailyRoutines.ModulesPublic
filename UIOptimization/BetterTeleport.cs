@@ -862,7 +862,7 @@ public unsafe class BetterTeleport : ModuleBase
 
         var isPosDefault = aetherytePos.Y == 0;
 
-        NotifyHelper.NotificationInfo(Lang.Get("BetterTeleport-Notification", aetheryte.Name));
+        NotifyHelper.Instance().NotificationInfo(Lang.Get("BetterTeleport-Notification", aetheryte.Name));
 
         SearchWord = string.Empty;
         SearchResult.Clear();

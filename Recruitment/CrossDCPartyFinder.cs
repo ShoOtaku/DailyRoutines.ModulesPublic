@@ -493,7 +493,7 @@ public class CrossDCPartyFinder : ModuleBase
             {
                 IsNeedToDisable = false;
 
-                NotifyHelper.NotificationInfo($"获取了 {ListingsDisplay.Count} 条招募信息");
+                NotifyHelper.Instance().NotificationInfo($"获取了 {ListingsDisplay.Count} 条招募信息");
 
                 await DService.Instance().Framework.RunOnFrameworkThread
                 (() =>

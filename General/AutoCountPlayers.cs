@@ -213,7 +213,7 @@ public unsafe class AutoCountPlayers : ModuleBase
                                       .Append("     ")
                                       .Append(SeString.CreateMapLink(GameState.TerritoryType, GameState.Map, mapPos.X, mapPos.Y))
                                       .Build();
-                        NotifyHelper.Chat(message);
+                        NotifyHelper.Instance().Chat(message);
                     }
 
                     if (DService.Instance().GameGUI.WorldToScreen(playerAround.Position,            out var screenPos) &&
@@ -471,7 +471,7 @@ public unsafe class AutoCountPlayers : ModuleBase
                 if (ModuleConfig.SendNotification)
                 {
                     if (!ModuleConfig.FilterFriend || targetingPlayersInfo.All(x => !x.Player.ToStruct()->IsFriend))
-                        NotifyHelper.NotificationWarning(Lang.Get("AutoCountPlayers-Notification-SomeoneTargetingMe"));
+                        NotifyHelper.Instance().NotificationWarning(Lang.Get("AutoCountPlayers-Notification-SomeoneTargetingMe"));
                 }
 
                 if (ModuleConfig.SendChat)
@@ -494,7 +494,7 @@ public unsafe class AutoCountPlayers : ModuleBase
                     if (message.Payloads.Last() is NewLinePayload)
                         message.Payloads.RemoveAt(message.Payloads.Count - 1);
 
-                    NotifyHelper.Chat(builder.Build());
+                    NotifyHelper.Instance().Chat(builder.Build());
                 }
             }
         }

@@ -75,7 +75,7 @@ public class BaitSwitchCommand : ModuleBase
         // 要么都没找到 要么都找到了
         if (resultBait == resultFish)
         {
-            NotifyHelper.ChatError(Lang.Get("BaitSwitchCommand-Notice-NoMatchBait", itemName));
+            NotifyHelper.Instance().ChatError(Lang.Get("BaitSwitchCommand-Notice-NoMatchBait", itemName));
             return;
         }
 
@@ -133,7 +133,7 @@ public class BaitSwitchCommand : ModuleBase
 
         if (itemID == 0 || !Baits.ContainsKey(itemID) && !Fishes.ContainsKey(itemID))
         {
-            NotifyHelper.ChatError(Lang.Get("BaitSwitchCommand-Notice-NoMatchBait", itemID));
+            NotifyHelper.Instance().ChatError(Lang.Get("BaitSwitchCommand-Notice-NoMatchBait", itemID));
             return false;
         }
 
@@ -143,7 +143,7 @@ public class BaitSwitchCommand : ModuleBase
         {
             if (InventoryManager.Instance()->GetInventoryItemCount(itemID) <= 0)
             {
-                NotifyHelper.ChatError(Lang.Get("BaitSwitchCommand-Notice-NoBait", itemName));
+                NotifyHelper.Instance().ChatError(Lang.Get("BaitSwitchCommand-Notice-NoBait", itemName));
                 return false;
             }
         }
@@ -155,14 +155,14 @@ public class BaitSwitchCommand : ModuleBase
 
             if (swimBaitIndex == -1)
             {
-                NotifyHelper.ChatError(Lang.Get("BaitSwitchCommand-Notice-NoBait", itemName));
+                NotifyHelper.Instance().ChatError(Lang.Get("BaitSwitchCommand-Notice-NoBait", itemName));
                 return false;
             }
         }
 
         if (DService.Instance().Condition[ConditionFlag.Fishing])
         {
-            NotifyHelper.ChatError(Lang.Get("BaitSwitchCommand-Notice-FishingNow"));
+            NotifyHelper.Instance().ChatError(Lang.Get("BaitSwitchCommand-Notice-FishingNow"));
             return false;
         }
 

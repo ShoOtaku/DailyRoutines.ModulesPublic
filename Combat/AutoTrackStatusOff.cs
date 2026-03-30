@@ -74,7 +74,7 @@ public class AutoTrackStatusOff : ModuleBase
                 if (ImGuiOm.ButtonIconWithText(FontAwesomeIcon.FileExport, Lang.Get("Export")))
                 {
                     ExportToClipboard(ModuleConfig.StatusToMonitor);
-                    NotifyHelper.NotificationSuccess($"{Lang.Get("CopiedToClipboard")}");
+                    NotifyHelper.Instance().NotificationSuccess($"{Lang.Get("CopiedToClipboard")}");
                 }
             }
 
@@ -117,7 +117,7 @@ public class AutoTrackStatusOff : ModuleBase
             {
                 if (ModuleConfig.SendChat)
                 {
-                    NotifyHelper.Chat
+                    NotifyHelper.Instance().Chat
                     (
                         Lang.GetSe
                         (

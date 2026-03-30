@@ -605,7 +605,7 @@ public class FastWorldTravel : ModuleBase
             if (requestChannel.Writer.TryWrite(dcID))
             {
                 DLog.Debug($"[FastWorldTravel] 开始监控 {LuminaWrapper.GetDataCenterName(dcID)} ({dcID}) 大区状态");
-                NotifyHelper.Chat
+                NotifyHelper.Instance().Chat
                     ($"[{Lang.Get("FastWorldTravelTitle")}]\n开始实时监控 [{LuminaWrapper.GetDataCenterName(dcID)}] 大区可通行状态\n检测到可通行时: [{(JustGo ? "直接前往" : "发送通知")}]");
             }
         }
@@ -617,7 +617,7 @@ public class FastWorldTravel : ModuleBase
             if (activeMonitors.TryRemove(dcID, out var cts))
             {
                 DLog.Debug($"[FastWorldTravel] 停止监控 {LuminaWrapper.GetDataCenterName(dcID)} ({dcID}) 大区状态");
-                NotifyHelper.Chat($"[{Lang.Get("FastWorldTravelTitle")}]\n已停止对 [{LuminaWrapper.GetDataCenterName(dcID)}] 大区可通行状态的实时监控");
+                NotifyHelper.Instance().Chat($"[{Lang.Get("FastWorldTravelTitle")}]\n已停止对 [{LuminaWrapper.GetDataCenterName(dcID)}] 大区可通行状态的实时监控");
 
                 try
                 {
@@ -680,8 +680,8 @@ public class FastWorldTravel : ModuleBase
                     if (checkLogicFunc(dcID) is { Item1: true } result)
                     {
                         var message = $"大区 [{LuminaWrapper.GetDataCenterName(dcID)}] 已为可通行状态, 停止监控";
-                        NotifyHelper.Chat(message);
-                        NotifyHelper.NotificationInfo(message);
+                        NotifyHelper.Instance().Chat(message);
+                        NotifyHelper.Instance().NotificationInfo(message);
                         NotifyHelper.Speak(message);
 
                         if (JustGo)
@@ -772,7 +772,7 @@ public class FastWorldTravel : ModuleBase
             DService.Instance().Condition.Any(InvalidConditions) ||
             DService.Instance().Condition.Any(ConditionFlag.WaitingToVisitOtherWorld))
         {
-            NotifyHelper.NotificationError(Lang.Get("FastWorldTravel-Notice-InvalidEnv"));
+            NotifyHelper.Instance().NotificationError(Lang.Get("FastWorldTravel-Notice-InvalidEnv"));
             return;
         }
 
@@ -786,7 +786,7 @@ public class FastWorldTravel : ModuleBase
 
         if (string.IsNullOrWhiteSpace(args))
         {
-            NotifyHelper.NotificationError(Lang.Get("FastWorldTravel-Notice-InvalidInput"));
+            NotifyHelper.Instance().NotificationError(Lang.Get("FastWorldTravel-Notice-InvalidInput"));
             return;
         }
 
@@ -820,13 +820,13 @@ public class FastWorldTravel : ModuleBase
 
         if (worldID == 0 || !LuminaGetter.TryGetRow(worldID, out World targetWorld))
         {
-            NotifyHelper.NotificationError(Lang.Get("FastWorldTravel-Notice-WorldNoFound", args));
+            NotifyHelper.Instance().NotificationError(Lang.Get("FastWorldTravel-Notice-WorldNoFound", args));
             return;
         }
 
         if (GameState.CurrentWorld == worldID)
         {
-            NotifyHelper.NotificationError(Lang.Get("FastWorldTravel-Notice-SameWorld"));
+            NotifyHelper.Instance().NotificationError(Lang.Get("FastWorldTravel-Notice-SameWorld"));
             return;
         }
 
@@ -885,7 +885,7 @@ public class FastWorldTravel : ModuleBase
             () =>
             {
                 AgentWorldTravel.Instance()->TravelTo(worldID);
-                NotifyHelper.NotificationInfo
+                NotifyHelper.Instance().NotificationInfo
                 (
                     Lang.Get
                     (
@@ -1039,7 +1039,7 @@ public class FastWorldTravel : ModuleBase
     {
         try
         {
-            NotifyHelper.NotificationInfo("DCTravelrX 正在处理超域旅行请求, 请稍等");
+            NotifyHelper.Instance().NotificationInfo("DCTravelrX 正在处理超域旅行请求, 请稍等");
 
             for (var i = 0; i < data.Length; i++)
             {
@@ -1059,7 +1059,7 @@ public class FastWorldTravel : ModuleBase
 
                         if (exception != null)
                         {
-                            NotifyHelper.NotificationWarning("超域旅行失败: 请查看日志获取详细信息");
+                            NotifyHelper.Instance().NotificationWarning("超域旅行失败: 请查看日志获取详细信息");
                             DLog.Error("超域旅行失败", exception);
 
                             TaskHelper.Abort();

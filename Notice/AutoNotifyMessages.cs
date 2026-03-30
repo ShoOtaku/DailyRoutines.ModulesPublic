@@ -154,7 +154,7 @@ public class AutoNotifyMessages : ModuleBase
         var title   = $"[{type}]  {sender.TextValue}";
         var content = message.TextValue;
 
-        NotifyHelper.NotificationInfo(content, title);
+        NotifyHelper.Instance().NotificationInfo(content, title);
         NotifyHelper.Speak($"{sender.TextValue}{Lang.Get("AutoNotifyMessages-SomeoneSay")}: {content}");
     }
 

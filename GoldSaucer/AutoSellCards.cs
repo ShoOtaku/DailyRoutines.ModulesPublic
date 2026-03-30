@@ -219,8 +219,8 @@ public unsafe class AutoSellCards : ModuleBase
         if (!isCardInDeck)
         {
             var message = Lang.Get("AutoSellCards-CurrentCardNotInDeckMessage");
-            NotifyHelper.ChatError(message);
-            NotifyHelper.NotificationWarning(message);
+            NotifyHelper.Instance().ChatError(message);
+            NotifyHelper.Instance().NotificationWarning(message);
 
             TaskHelper.RemoveQueueTasks(2);
             return true;

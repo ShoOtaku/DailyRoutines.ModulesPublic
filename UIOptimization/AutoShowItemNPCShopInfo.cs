@@ -97,7 +97,7 @@ public unsafe class AutoShowItemNPCShopInfo : ModuleBase
             AddonShopsPreview.OpenWithData(itemInfo);
         else
         {
-            NotifyHelper.ChatError(Lang.Get("AutoShowItemNPCShopInfo-Notification-ShopNotFound", itemID));
+            NotifyHelper.Instance().ChatError(Lang.Get("AutoShowItemNPCShopInfo-Notification-ShopNotFound", itemID));
             return false;
         }
 

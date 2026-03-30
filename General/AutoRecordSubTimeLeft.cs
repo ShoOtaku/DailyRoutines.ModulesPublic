@@ -220,7 +220,7 @@ public class AutoRecordSubTimeLeft : ModuleBase
                 catch (Exception ex)
                 {
                     DLog.Warning("更新游戏点月卡订阅信息失败", ex);
-                    NotifyHelper.NotificationWarning(ex.Message, "更新游戏点月卡订阅信息失败");
+                    NotifyHelper.Instance().NotificationWarning(ex.Message, "更新游戏点月卡订阅信息失败");
                 }
 
                 return true;

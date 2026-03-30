@@ -332,7 +332,7 @@ public unsafe class AutoNotifyRouletteBonus : ModuleBase
                 }
             }
 
-            NotifyHelper.Chat(chatBuilder.Build());
+            NotifyHelper.Instance().Chat(chatBuilder.Build());
         }
 
         var notificationLines = new List<string>();
@@ -344,7 +344,7 @@ public unsafe class AutoNotifyRouletteBonus : ModuleBase
         var notificationString = string.Join('\n', notificationLines);
 
         if (ModuleConfig.SendNotification)
-            NotifyHelper.NotificationInfo(notificationString, Lang.Get("AutoNotifyRouletteBonusTitle"));
+            NotifyHelper.Instance().NotificationInfo(notificationString, Lang.Get("AutoNotifyRouletteBonusTitle"));
 
         if (ModuleConfig.SendTTS)
             NotifyHelper.Speak(notificationString);

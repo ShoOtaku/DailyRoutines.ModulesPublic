@@ -237,9 +237,9 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
                 var text = Lang.Get("AutoNotifyChaoticRaidBonus-Notification", dcName);
 
                 if (ModuleConfig.SendNotification)
-                    NotifyHelper.NotificationInfo(text);
+                    NotifyHelper.Instance().NotificationInfo(text);
                 if (ModuleConfig.SendChat)
-                    NotifyHelper.Chat(text);
+                    NotifyHelper.Instance().Chat(text);
                 if (ModuleConfig.SendTTS)
                     NotifyHelper.Speak(text);
             }

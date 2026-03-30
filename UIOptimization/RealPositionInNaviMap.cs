@@ -115,7 +115,7 @@ public unsafe class RealPositionInNaviMap : ModuleBase
                             if (!string.IsNullOrWhiteSpace(result))
                             {
                                 ImGui.SetClipboardText(result);
-                                NotifyHelper.NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {result}");
+                                NotifyHelper.Instance().NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {result}");
                             }
                         }
                     };

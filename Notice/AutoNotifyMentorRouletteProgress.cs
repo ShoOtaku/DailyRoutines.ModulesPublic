@@ -140,7 +140,7 @@ public unsafe class AutoNotifyMentorRouletteProgress : ModuleBase
                            ).ToDalamudString()
                        );
 
-                NotifyHelper.Chat(builder.Build());
+                NotifyHelper.Instance().Chat(builder.Build());
                 return true;
             }
         );

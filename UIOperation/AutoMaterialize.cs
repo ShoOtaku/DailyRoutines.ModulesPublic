@@ -94,7 +94,7 @@ public unsafe class AutoMaterialize : ModuleBase
                 TaskHelper.Enqueue(() => ExtractMateria(type, (uint)i) == 0, $"开始精炼单件装备 {itemName}({slot->ItemId})");
                 TaskHelper.Enqueue
                 (
-                    () => NotifyHelper.Chat(Lang.GetSe("AutoMaterialize-Notice-ExtractNow", SeString.CreateItemLink(itemData, slot->IsHighQuality()))),
+                    () => NotifyHelper.Instance().Chat(Lang.GetSe("AutoMaterialize-Notice-ExtractNow", SeString.CreateItemLink(itemData, slot->IsHighQuality()))),
                     $"通知精制进度 {itemName}({slot->ItemId})"
                 );
                 TaskHelper.DelayNext(1_000, $"等待精制完成 {itemName}({slot->ItemId})");
@@ -103,8 +103,8 @@ public unsafe class AutoMaterialize : ModuleBase
             }
         }
 
-        NotifyHelper.NotificationInfo(Lang.Get("AutoMaterialize-Notice-ExtractFinish"));
-        NotifyHelper.Chat(Lang.Get("AutoMaterialize-Notice-ExtractFinish"));
+        NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoMaterialize-Notice-ExtractFinish"));
+        NotifyHelper.Instance().Chat(Lang.Get("AutoMaterialize-Notice-ExtractFinish"));
 
         TaskHelper.Abort();
         return true;
@@ -121,7 +121,7 @@ public unsafe class AutoMaterialize : ModuleBase
         if (DService.Instance().Condition[ConditionFlag.Mounted])
         {
             TaskHelper.Abort();
-            NotifyHelper.NotificationError(Lang.Get("AutoMaterialize-Notice-OnMount"));
+            NotifyHelper.Instance().NotificationError(Lang.Get("AutoMaterialize-Notice-OnMount"));
             return false;
         }
 

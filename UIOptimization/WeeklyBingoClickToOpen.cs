@@ -329,7 +329,7 @@ public class WeeklyBingoClickToOpen : ModuleBase
         };
 
         if (bingoDataRow.Type == 0 && !UIState.IsInstanceContentUnlocked(bingoDataID))
-            NotifyHelper.NotificationError(Lang.Get("WeeklyBingoClickToOpen-UnlockError")); // 还没有解锁该副本
+            NotifyHelper.Instance().NotificationError(Lang.Get("WeeklyBingoClickToOpen-UnlockError")); // 还没有解锁该副本
 
         return dutyRowID != 0;
     }

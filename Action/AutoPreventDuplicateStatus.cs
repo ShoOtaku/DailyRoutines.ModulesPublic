@@ -188,7 +188,7 @@ public unsafe class AutoPreventDuplicateStatus : ModuleBase
         {
             if (ModuleConfig.SendNotification &&
                 Throttler.Shared.Throttle($"AutoPreventDuplicateStatus-Notification-{adjustedActionID}", 1_000))
-                NotifyHelper.NotificationInfo(Lang.Get("AutoPreventDuplicateStatus-PreventedNotification", actionData.Value.Name.ToString(), adjustedActionID));
+                NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoPreventDuplicateStatus-PreventedNotification", actionData.Value.Name.ToString(), adjustedActionID));
 
             isPrevented = true;
         }

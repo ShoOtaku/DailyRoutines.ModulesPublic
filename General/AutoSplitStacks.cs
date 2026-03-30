@@ -347,7 +347,7 @@ public unsafe class AutoSplitStacks : ModuleBase
         if (Inventories.Player.IsFull())
         {
             TaskHelper.Abort();
-            NotifyHelper.NotificationWarning(Lang.Get("AutoSplitStacks-Notification-FullInventory"));
+            NotifyHelper.Instance().NotificationWarning(Lang.Get("AutoSplitStacks-Notification-FullInventory"));
             return true;
         }
 
@@ -363,7 +363,7 @@ public unsafe class AutoSplitStacks : ModuleBase
         if (foundTypes.Count <= 0)
         {
             TaskHelper.Abort();
-            NotifyHelper.NotificationWarning(Lang.Get("AutoSplitStacks-Notification-ItemNoFound"));
+            NotifyHelper.Instance().NotificationWarning(Lang.Get("AutoSplitStacks-Notification-ItemNoFound"));
             return true;
         }
 
@@ -394,7 +394,7 @@ public unsafe class AutoSplitStacks : ModuleBase
         }
 
         TaskHelper.Abort();
-        NotifyHelper.NotificationWarning(Lang.Get("AutoSplitStacks-Notification-ItemNoFound"));
+        NotifyHelper.Instance().NotificationWarning(Lang.Get("AutoSplitStacks-Notification-ItemNoFound"));
         return true;
     }
 

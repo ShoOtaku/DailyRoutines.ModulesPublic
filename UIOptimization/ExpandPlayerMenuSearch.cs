@@ -325,7 +325,7 @@ public class ExpandPlayerMenuSearch : ModuleBase
 
                         if (result.Data.Count == 0)
                         {
-                            NotifyHelper.NotificationError(Lang.Get("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
+                            NotifyHelper.Instance().NotificationError(Lang.Get("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
                             break;
                         }
 
@@ -429,7 +429,7 @@ public class ExpandPlayerMenuSearch : ModuleBase
 
                     if (result.Data.Count == 0)
                     {
-                        NotifyHelper.NotificationError(Lang.Get("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
+                        NotifyHelper.Instance().NotificationError(Lang.Get("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
                         return;
                     }
 
@@ -469,7 +469,7 @@ public class ExpandPlayerMenuSearch : ModuleBase
 
                     if (result.characters.Count == 0)
                     {
-                        NotifyHelper.NotificationError(Lang.Get("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
+                        NotifyHelper.Instance().NotificationError(Lang.Get("ExpandPlayerMenuSearch-PlayerInfoNotFound"));
                         return;
                     }
 

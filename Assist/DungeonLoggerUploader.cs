@@ -118,7 +118,7 @@ public class DungeonLoggerUploader : ModuleBase
         JobName     = LocalPlayerState.ClassJobData.Name.ToString();
 
         if (ModuleConfig.SendChat)
-            NotifyHelper.Chat("已进入 “随机任务：指导者” 任务, 完成后将自动上传记录至网站");
+            NotifyHelper.Instance().Chat("已进入 “随机任务：指导者” 任务, 完成后将自动上传记录至网站");
     }
 
     private static void OnDutyCompleted(object? sender, ushort e)
@@ -157,19 +157,19 @@ public class DungeonLoggerUploader : ModuleBase
             {
                 IsLoggedIn = true;
                 if (showNotification)
-                    NotifyHelper.NotificationSuccess("登录成功");
+                    NotifyHelper.Instance().NotificationSuccess("登录成功");
             }
             else
             {
                 IsLoggedIn = false;
                 if (showNotification)
-                    NotifyHelper.NotificationError($"登录失败: {result?.Msg}");
+                    NotifyHelper.Instance().NotificationError($"登录失败: {result?.Msg}");
             }
         }
         catch (Exception ex)
         {
             IsLoggedIn = false;
-            NotifyHelper.NotificationError($"登录 DungeonLogger 异常: {ex.Message}");
+            NotifyHelper.Instance().NotificationError($"登录 DungeonLogger 异常: {ex.Message}");
             DLog.Error("登录 DungeonLogger 失败", ex);
         }
     }
@@ -225,7 +225,7 @@ public class DungeonLoggerUploader : ModuleBase
                 if (result?.Code == 0)
                 {
                     if (ModuleConfig.SendChat)
-                        NotifyHelper.Chat("“随机任务：指导者” 记录上传成功");
+                        NotifyHelper.Instance().Chat("“随机任务：指导者” 记录上传成功");
                 }
                 else
                     throw new Exception($"网站无对应职业数据 ({result?.Msg ?? "未知错误"})");
@@ -236,7 +236,7 @@ public class DungeonLoggerUploader : ModuleBase
         catch (Exception ex)
         {
             if (ModuleConfig.SendChat)
-                NotifyHelper.NotificationError($"“随机任务：指导者” 记录上传失败: {ex.Message}");
+                NotifyHelper.Instance().NotificationError($"“随机任务：指导者” 记录上传失败: {ex.Message}");
         }
     }
 

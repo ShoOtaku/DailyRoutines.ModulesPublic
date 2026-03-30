@@ -128,7 +128,7 @@ public unsafe class QueueCombatTeleport : ModuleBase
 
         if (ModuleConfig.Delay > 0)
         {
-            TeleportHelper.Enqueue(() => NotifyHelper.NotificationInfo(Lang.Get("QueueCombatTeleport-Notice-Waiting", ModuleConfig.Delay)));
+            TeleportHelper.Enqueue(() => NotifyHelper.Instance().NotificationInfo(Lang.Get("QueueCombatTeleport-Notice-Waiting", ModuleConfig.Delay)));
             TeleportHelper.DelayNext(ModuleConfig.Delay);
         }
 
@@ -185,9 +185,9 @@ public unsafe class QueueCombatTeleport : ModuleBase
 
         if (string.IsNullOrWhiteSpace(message)) return;
         if (ModuleConfig.SendChat)
-            NotifyHelper.Chat(message);
+            NotifyHelper.Instance().Chat(message);
         if (ModuleConfig.SendNotification)
-            NotifyHelper.NotificationInfo(message);
+            NotifyHelper.Instance().NotificationInfo(message);
     }
 
     protected override void Uninit()

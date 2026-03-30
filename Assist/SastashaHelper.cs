@@ -105,7 +105,7 @@ public unsafe class SastashaHelper : ModuleBase
 
         var info = BookToCoral[book.DataID];
 
-        NotifyHelper.Chat
+        NotifyHelper.Instance().Chat
         (
             Lang.GetSe
             (

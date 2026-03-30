@@ -79,8 +79,8 @@ public unsafe class AutoNotifyLeveUpdate : ModuleBase
                           $"{Lang.Get("AutoNotifyLeveUpdate-UpdateTimeText")}{NextLeveCheck.ToLocalTime():g}";
 
             if (ModuleConfig.OnChatMessage)
-                NotifyHelper.Chat(message);
-            NotifyHelper.NotificationInfo(message);
+                NotifyHelper.Instance().Chat(message);
+            NotifyHelper.Instance().NotificationInfo(message);
         }
     }
 

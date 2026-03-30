@@ -47,7 +47,7 @@ public class AutoGuardChatMessage : ModuleBase
                    .AddUiForegroundOff()
                    .Add(RawPayload.LinkTerminator)
                    .AddText("]");
-            NotifyHelper.Chat(builder.Build());
+            NotifyHelper.Instance().Chat(builder.Build());
         }
     }
 }

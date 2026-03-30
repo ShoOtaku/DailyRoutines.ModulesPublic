@@ -200,7 +200,7 @@ public class PartyFinderFilter : ModuleBase
         }
         catch (ArgumentException)
         {
-            NotifyHelper.NotificationWarning(Lang.Get("PartyFinderFilter-RegexError"));
+            NotifyHelper.Instance().NotificationWarning(Lang.Get("PartyFinderFilter-RegexError"));
             ModuleConfig = Config.Load(this) ?? new();
         }
     }

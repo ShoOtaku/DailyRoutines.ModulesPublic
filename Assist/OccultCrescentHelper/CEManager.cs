@@ -335,7 +335,7 @@ public partial class OccultCrescentHelper
             CETaskHelper.Abort();
 
             var message = Lang.Get("OccultCrescentHelper-CEManager-Notification-CEStart");
-            NotifyHelper.NotificationInfo(message);
+            NotifyHelper.Instance().NotificationInfo(message);
             NotifyHelper.Speak(message);
         }
 
@@ -591,9 +591,9 @@ public partial class OccultCrescentHelper
                        .Add(RawPayload.LinkTerminator);
             }
 
-            NotifyHelper.Chat(message.Build());
+            NotifyHelper.Instance().Chat(message.Build());
 
-            NotifyHelper.NotificationInfo($"{ceName}", $"{ce.GetNotificationTitle()}");
+            NotifyHelper.Instance().NotificationInfo($"{ceName}", $"{ce.GetNotificationTitle()}");
             NotifyHelper.Speak($"{ce.GetNotificationTitle()}");
         }
 

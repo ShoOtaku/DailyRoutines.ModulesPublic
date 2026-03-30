@@ -259,10 +259,10 @@ public class MultiTargetTracker : ModuleBase
             if (!TempTrackedPlayers.Add(data))
             {
                 TempTrackedPlayers.Remove(data);
-                NotifyHelper.NotificationSuccess(Lang.Get("Deleted"));
+                NotifyHelper.Instance().NotificationSuccess(Lang.Get("Deleted"));
             }
             else
-                NotifyHelper.NotificationSuccess(Lang.Get("Added"));
+                NotifyHelper.Instance().NotificationSuccess(Lang.Get("Added"));
         }
     }
 
@@ -282,12 +282,12 @@ public class MultiTargetTracker : ModuleBase
             if (ModuleConfig.PermanentTrackedPlayers.Contains(new(player)))
             {
                 ModuleConfig.PermanentTrackedPlayers.Remove(new(player));
-                NotifyHelper.NotificationSuccess(Lang.Get("Deleted"));
+                NotifyHelper.Instance().NotificationSuccess(Lang.Get("Deleted"));
             }
             else
             {
                 ModuleConfig.PermanentTrackedPlayers.Add(new(player));
-                NotifyHelper.NotificationSuccess(Lang.Get("Added"));
+                NotifyHelper.Instance().NotificationSuccess(Lang.Get("Added"));
             }
 
             ModuleConfig.Save(ModuleManager.GetModule<MultiTargetTracker>());

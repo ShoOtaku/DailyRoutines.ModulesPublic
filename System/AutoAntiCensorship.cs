@@ -300,7 +300,7 @@ public unsafe class AutoAntiCensorship : ModuleBase
             var highlightText = new SeString(origText.Payloads);
             HighlightCensorship(ref highlightText);
 
-            NotifyHelper.Chat
+            NotifyHelper.Instance().Chat
             (
                 new SeStringBuilder().AddUiForeground(28)
                                      .AddText("[自动反屏蔽词]\n")
@@ -363,7 +363,7 @@ public unsafe class AutoAntiCensorship : ModuleBase
             if (textInputComponent != null)
                 textInputComponent->SetText(handleText.EncodeWithNullTerminator());
 
-            NotifyHelper.Chat
+            NotifyHelper.Instance().Chat
             (
                 new SeStringBuilder().AddUiForeground(32)
                                      .AddText("[自动反屏蔽词]\n")

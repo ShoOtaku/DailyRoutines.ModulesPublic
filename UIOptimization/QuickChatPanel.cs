@@ -886,7 +886,7 @@ public unsafe class QuickChatPanel : ModuleBase
                             longestText = itemName;
 
                         if (ImGuiOm.SelectableImageWithText(texture.GetWrapOrEmpty().Handle, ScaledVector2(24f), itemName, false))
-                            NotifyHelper.Chat(new SeStringBuilder().AddItemLink(itemData.RowId, isConflictKeyHolding).Build());
+                            NotifyHelper.Instance().Chat(new SeStringBuilder().AddItemLink(itemData.RowId, isConflictKeyHolding).Build());
                     }
 
                     maxTextWidth = ImGui.CalcTextSize(longestText).X;

@@ -391,7 +391,7 @@ public partial class AutoReplyChatBot
                     if (ImGui.Selectable($"[{timestamp}] [{message.Name}] {message.Text}"))
                     {
                         ImGui.SetClipboardText(message.Text);
-                        NotifyHelper.NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {message.Text}");
+                        NotifyHelper.Instance().NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {message.Text}");
                     }
 
                     using (var context = ImRaii.ContextPopupItem($"{i}"))

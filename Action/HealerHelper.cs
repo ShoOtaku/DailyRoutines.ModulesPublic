@@ -80,9 +80,9 @@ public class HealerHelper : ModuleBase
         var job  = gameObject.ClassJob.Value;
 
         if (ModuleConfig.SendChat)
-            NotifyHelper.Chat(Lang.GetSe(locKeySuffix, name, job.ToBitmapFontIcon(), job.Name));
+            NotifyHelper.Instance().Chat(Lang.GetSe(locKeySuffix, name, job.ToBitmapFontIcon(), job.Name));
         if (ModuleConfig.SendNotification)
-            NotifyHelper.NotificationInfo(Lang.Get(locKeySuffix, name, string.Empty, job.Name));
+            NotifyHelper.Instance().NotificationInfo(Lang.Get(locKeySuffix, name, string.Empty, job.Name));
     }
 
     #endregion

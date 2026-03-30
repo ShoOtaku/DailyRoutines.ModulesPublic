@@ -263,11 +263,11 @@ public unsafe partial class AutoMJIWorkshopImport : ModuleBase
 
             ResetCurrentCycleToRefreshUI();
 
-            NotifyHelper.NotificationSuccess($"已成功将数据应用至工房 {(nextWeek ? "下周" : "本周")} 的生产计划中");
+            NotifyHelper.Instance().NotificationSuccess($"已成功将数据应用至工房 {(nextWeek ? "下周" : "本周")} 的生产计划中");
         }
         catch (Exception ex)
         {
-            NotifyHelper.NotificationError($"{Lang.Get("Error")}: {ex.Message}");
+            NotifyHelper.Instance().NotificationError($"{Lang.Get("Error")}: {ex.Message}");
         }
     }
 
@@ -428,7 +428,7 @@ public unsafe partial class AutoMJIWorkshopImport : ModuleBase
                 }
                 catch (Exception ex)
                 {
-                    NotifyHelper.NotificationError(ex.Message, "解析时发生错误");
+                    NotifyHelper.Instance().NotificationError(ex.Message, "解析时发生错误");
                     DLog.Error("解析时发生错误:", ex);
                 }
             }
@@ -550,7 +550,7 @@ public unsafe partial class AutoMJIWorkshopImport : ModuleBase
                     slot += craftObject.Value.CraftingTime;
                 }
                 else
-                    NotifyHelper.NotificationWarning($"无法找到物品数据: {item}");
+                    NotifyHelper.Instance().NotificationWarning($"无法找到物品数据: {item}");
             }
 
             return workshop;

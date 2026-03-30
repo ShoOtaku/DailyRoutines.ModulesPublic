@@ -147,7 +147,7 @@ public unsafe class AutoMateriaRetrive : ModuleBase
                 }
 
                 TaskHelper.Abort();
-                NotifyHelper.NotificationWarning(Lang.Get("AutoMateriaRetrive-NoItemFound"));
+                NotifyHelper.Instance().NotificationWarning(Lang.Get("AutoMateriaRetrive-NoItemFound"));
             }
         );
 

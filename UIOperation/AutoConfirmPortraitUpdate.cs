@@ -42,9 +42,9 @@ public class AutoConfirmPortraitUpdate : ModuleBase
         BannerPreview->Callback(0);
 
         if (ModuleConfig.SendNotification)
-            NotifyHelper.NotificationSuccess(Lang.Get("AutoConfirmPortraitUpdate-Notification"));
+            NotifyHelper.Instance().NotificationSuccess(Lang.Get("AutoConfirmPortraitUpdate-Notification"));
         if (ModuleConfig.SendChat)
-            NotifyHelper.Chat(Lang.Get("AutoConfirmPortraitUpdate-Notification"));
+            NotifyHelper.Instance().Chat(Lang.Get("AutoConfirmPortraitUpdate-Notification"));
     }
 
     protected override void Uninit() => DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);

@@ -359,7 +359,7 @@ public partial class OccultCrescentHelper
                               .AddText(islandID.ToString())
                               .AddUiForegroundOff()
                               .Build();
-                NotifyHelper.Chat(message);
+                NotifyHelper.Instance().Chat(message);
             }
 
             if (!IsJustLogin                                                  &&

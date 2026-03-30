@@ -33,7 +33,7 @@ public class AutoNotifyDutyConfirm : ModuleBase
         if (string.IsNullOrWhiteSpace(dutyName)) return;
 
         var loc = Lang.Get("AutoNotifyDutyConfirm-NoticeMessage", dutyName);
-        NotifyHelper.NotificationInfo(loc);
+        NotifyHelper.Instance().NotificationInfo(loc);
         NotifyHelper.Speak(loc);
     }
 

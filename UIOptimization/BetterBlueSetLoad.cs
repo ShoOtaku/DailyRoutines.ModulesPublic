@@ -104,7 +104,7 @@ public unsafe class BetterBlueSetLoad : ModuleBase
         CompareAndApply((int)index);
 
         var setName = AozNoteModule.Instance()->ActiveSets[(int)index].CustomNameString;
-        NotifyHelper.NotificationSuccess
+        NotifyHelper.Instance().NotificationSuccess
         (
             Lang.Get("BetterBlueSetLoad-Notification", index + 1) +
             (string.IsNullOrWhiteSpace(setName) ? string.Empty : $": {setName}")

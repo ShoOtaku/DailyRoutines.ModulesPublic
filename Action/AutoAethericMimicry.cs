@@ -190,11 +190,11 @@ public class AutoAethericMimicry : ModuleBase
         {
             if (chara == null)
             {
-                NotifyHelper.Chat(Lang.Get("AutoAethericMimicry-NoAvailableTarget"));
+                NotifyHelper.Instance().Chat(Lang.Get("AutoAethericMimicry-NoAvailableTarget"));
                 return;
             }
 
-            NotifyHelper.Chat
+            NotifyHelper.Instance().Chat
             (
                 Lang.GetSe
                 (

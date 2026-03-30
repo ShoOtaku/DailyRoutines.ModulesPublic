@@ -55,7 +55,7 @@ public class AutoPetFollow : ModuleBase
         ExecuteCommandManager.Instance().ExecuteCommandComplex(ExecuteCommandComplexFlag.PetAction, 0xE0000000, 2);
 
         if (ModuleConfig.SendNotification && Throttler.Shared.Throttle("AutoPetFollow-SendNotification", 10_000))
-            NotifyHelper.NotificationInfo(Lang.Get("AutoPetFollow-Notification"));
+            NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoPetFollow-Notification"));
     }
 
     protected override void Uninit() =>

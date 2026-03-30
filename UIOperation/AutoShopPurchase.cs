@@ -227,7 +227,7 @@ public class AutoShopPurchase : ModuleBase
             }
             catch (Exception ex)
             {
-                NotifyHelper.NotificationError($"{Lang.Get("Error")}: {ex.Message}");
+                NotifyHelper.Instance().NotificationError($"{Lang.Get("Error")}: {ex.Message}");
                 return [];
             }
         }
@@ -485,7 +485,7 @@ public class AutoShopPurchase : ModuleBase
                     if (!ModuleConfig.Presets.Contains(preset))
                     {
                         ModuleConfig.Presets.Add(preset);
-                        NotifyHelper.NotificationSuccess(Lang.Get("AutoShopPurchase-Tooltip-AddPresetSuccess", NameInput));
+                        NotifyHelper.Instance().NotificationSuccess(Lang.Get("AutoShopPurchase-Tooltip-AddPresetSuccess", NameInput));
                     }
                 }
             }

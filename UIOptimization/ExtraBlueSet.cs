@@ -207,7 +207,7 @@ public unsafe class ExtraBlueSet : ModuleBase
             if (final[i] != 0)
                 manager->AssignBlueMageActionToSlot(i, final[i]);
 
-        NotifyHelper.NotificationSuccess(Lang.Get("ExtraBlueSet-Notification", entry.Name));
+        NotifyHelper.Instance().NotificationSuccess(Lang.Get("ExtraBlueSet-Notification", entry.Name));
     }
 
     private static void OnCommand(string command, string args)

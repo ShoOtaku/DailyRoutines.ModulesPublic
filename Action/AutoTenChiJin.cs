@@ -189,7 +189,7 @@ public unsafe class AutoTenChiJin : ModuleBase
             if (!TenChiJinSequence.TryGetValue(actionID, out var sequence)) return;
 
             if (ModuleConfig.SendNotification)
-                NotifyHelper.NotificationInfo(Lang.Get("AutoTenChiJin-Notification", LuminaWrapper.GetActionName(actionID)));
+                NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoTenChiJin-Notification", LuminaWrapper.GetActionName(actionID)));
             TaskHelper.Abort();
 
             foreach (var ninJiTsu in sequence)
@@ -214,7 +214,7 @@ public unsafe class AutoTenChiJin : ModuleBase
             var isKassatsu        = localPlayer->StatusManager.HasStatus(497);
 
             if (ModuleConfig.SendNotification)
-                NotifyHelper.NotificationInfo(Lang.Get("AutoTenChiJin-Notification", LuminaWrapper.GetActionName(actionID)));
+                NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoTenChiJin-Notification", LuminaWrapper.GetActionName(actionID)));
             TaskHelper.Abort();
 
             for (var i = 0; i < sequence.Count; i++)

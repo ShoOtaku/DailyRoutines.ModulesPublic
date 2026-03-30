@@ -148,9 +148,9 @@ public class AutoSortItems : ModuleBase
         ChatManager.Instance().SendMessage("/itemsort execute inventory");
 
         if (ModuleConfig.SendNotification)
-            NotifyHelper.NotificationInfo(Lang.Get("AutoSortItems-SortMessage"));
+            NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoSortItems-SortMessage"));
         if (ModuleConfig.SendChat)
-            NotifyHelper.Chat(Lang.Get("AutoSortItems-SortMessage"));
+            NotifyHelper.Instance().Chat(Lang.Get("AutoSortItems-SortMessage"));
 
         return true;
 

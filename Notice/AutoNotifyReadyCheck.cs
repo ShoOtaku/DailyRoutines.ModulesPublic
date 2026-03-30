@@ -32,7 +32,7 @@ public class AutoNotifyReadyCheck : ModuleBase
     {
         if (!ValidLogMessages.Contains(logMessageID)) return;
 
-        NotifyHelper.NotificationInfo(LuminaWrapper.GetLogMessageText(3790));
+        NotifyHelper.Instance().NotificationInfo(LuminaWrapper.GetLogMessageText(3790));
         NotifyHelper.Speak(LuminaWrapper.GetLogMessageText(3790));
     }
 }

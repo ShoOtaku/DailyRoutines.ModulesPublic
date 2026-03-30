@@ -516,17 +516,17 @@ public unsafe class OptimizedFriendList : ModuleBase
                                     {
                                         if (data.Count == 0)
                                         {
-                                            NotifyHelper.Chat(Lang.Get("OptimizedFriendList-FriendUseNamesNotFound", name));
+                                            NotifyHelper.Instance().Chat(Lang.Get("OptimizedFriendList-FriendUseNamesNotFound", name));
                                             return;
                                         }
 
-                                        NotifyHelper.Chat($"{Lang.Get("OptimizedFriendList-FriendUseNamesFound", name)}:");
+                                        NotifyHelper.Instance().Chat($"{Lang.Get("OptimizedFriendList-FriendUseNamesFound", name)}:");
                                         var counter = 1;
 
                                         foreach (var nameChange in data)
                                         {
-                                            NotifyHelper.Chat($"{counter}. {nameChange.ChangedTime}:");
-                                            NotifyHelper.Chat($"     {nameChange.BeforeName} -> {nameChange.AfterName}:");
+                                            NotifyHelper.Instance().Chat($"{counter}. {nameChange.ChangedTime}:");
+                                            NotifyHelper.Instance().Chat($"     {nameChange.BeforeName} -> {nameChange.AfterName}:");
                                             counter++;
                                         }
                                     }
@@ -590,17 +590,17 @@ public unsafe class OptimizedFriendList : ModuleBase
                         {
                             if (data.Count == 0)
                             {
-                                NotifyHelper.Chat(Lang.Get("OptimizedFriendList-FriendUseNamesNotFound", name));
+                                NotifyHelper.Instance().Chat(Lang.Get("OptimizedFriendList-FriendUseNamesNotFound", name));
                                 return;
                             }
 
-                            NotifyHelper.Chat($"{Lang.Get("OptimizedFriendList-FriendUseNamesFound", name)}:");
+                            NotifyHelper.Instance().Chat($"{Lang.Get("OptimizedFriendList-FriendUseNamesFound", name)}:");
                             var counter = 1;
 
                             foreach (var nameChange in data)
                             {
-                                NotifyHelper.Chat($"{counter}. {nameChange.ChangedTime}:");
-                                NotifyHelper.Chat($"     {nameChange.BeforeName} -> {nameChange.AfterName}:");
+                                NotifyHelper.Instance().Chat($"{counter}. {nameChange.ChangedTime}:");
+                                NotifyHelper.Instance().Chat($"     {nameChange.BeforeName} -> {nameChange.AfterName}:");
                                 counter++;
                             }
                         }
@@ -618,17 +618,17 @@ public unsafe class OptimizedFriendList : ModuleBase
                 {
                     if (data.Count == 0)
                     {
-                        NotifyHelper.Chat(Lang.Get("OptimizedFriendList-FriendUseNamesNotFound", name));
+                        NotifyHelper.Instance().Chat(Lang.Get("OptimizedFriendList-FriendUseNamesNotFound", name));
                         return;
                     }
 
-                    NotifyHelper.Chat($"{Lang.Get("OptimizedFriendList-FriendUseNamesFound", name)}:");
+                    NotifyHelper.Instance().Chat($"{Lang.Get("OptimizedFriendList-FriendUseNamesFound", name)}:");
                     var counter = 1;
 
                     foreach (var nameChange in data)
                     {
-                        NotifyHelper.Chat($"{counter}. {nameChange.ChangedTime}:");
-                        NotifyHelper.Chat($"     {nameChange.BeforeName} -> {nameChange.AfterName}:");
+                        NotifyHelper.Instance().Chat($"{counter}. {nameChange.ChangedTime}:");
+                        NotifyHelper.Instance().Chat($"     {nameChange.BeforeName} -> {nameChange.AfterName}:");
                         counter++;
                     }
                 }

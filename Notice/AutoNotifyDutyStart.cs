@@ -23,7 +23,7 @@ public class AutoNotifyDutyStart : ModuleBase
     private static void OnDutyStart(object? sender, ushort e)
     {
         var message = Lang.Get("AutoNotifyDutyStart-NotificationMessage");
-        NotifyHelper.NotificationInfo(message);
+        NotifyHelper.Instance().NotificationInfo(message);
         NotifyHelper.Speak(message);
     }
 

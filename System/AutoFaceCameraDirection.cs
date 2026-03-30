@@ -274,7 +274,7 @@ public unsafe class AutoFaceCameraDirection : ModuleBase
 
         void NotifyCommandError()
         {
-            NotifyHelper.NotificationError(Lang.Get("Commands-InvalidArgs", command, args));
+            NotifyHelper.Instance().NotificationError(Lang.Get("Commands-InvalidArgs", command, args));
         }
     }
 

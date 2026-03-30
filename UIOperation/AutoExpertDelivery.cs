@@ -204,7 +204,7 @@ public unsafe class AutoExpertDelivery : ModuleBase
 
         if (companySeals + (uint)(sealReward * buffMultiplier) > capAmount)
         {
-            NotifyHelper.NotificationInfo(Lang.Get("AutoExpertDelivery-ReachdSealCap"));
+            NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoExpertDelivery-ReachdSealCap"));
             return true;
         }
 

@@ -577,7 +577,7 @@ public class OptimizedRecipeNote : ModuleBase
             builder.AppendLine($"/ac {LuminaWrapper.GetActionName(action)} <wait.3>");
         ImGui.SetClipboardText(builder.ToString());
 
-        NotifyHelper.NotificationSuccess($"{Lang.Get("CopiedToClipboard")}");
+        NotifyHelper.Instance().NotificationSuccess($"{Lang.Get("CopiedToClipboard")}");
     }
 
     private static unsafe void UpdateRecipeAddonButton()
@@ -761,7 +761,7 @@ public class OptimizedRecipeNote : ModuleBase
                .AddUiForegroundOff()
                .AddText("]")
                .Add(RawPayload.LinkTerminator);
-        NotifyHelper.Chat(builder.Build());
+        NotifyHelper.Instance().Chat(builder.Build());
     }
 
     private static void PrintInstallRaphaelPluginMessage()
@@ -781,7 +781,7 @@ public class OptimizedRecipeNote : ModuleBase
                                            .AddText("]")
                                            .Add(RawPayload.LinkTerminator)
                                            .Build();
-        NotifyHelper.Chat(message);
+        NotifyHelper.Instance().Chat(message);
     }
 
     private static unsafe uint GetCurrentRecipeID()
@@ -964,7 +964,7 @@ public class OptimizedRecipeNote : ModuleBase
                             builder.AppendLine($"/ac {LuminaWrapper.GetActionName(action)} <wait.3>");
                         ImGui.SetClipboardText(builder.ToString());
 
-                        NotifyHelper.NotificationSuccess($"{Lang.Get("CopiedToClipboard")}");
+                        NotifyHelper.Instance().NotificationSuccess($"{Lang.Get("CopiedToClipboard")}");
                     }
                 };
                 operationRow.Width += copyMacroButton.Width;

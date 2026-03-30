@@ -75,7 +75,7 @@ public unsafe class ExpandMacroTargetParameters : ModuleBase
             if (ImGui.IsItemClicked())
             {
                 ImGui.SetClipboardText(kvp.Key);
-                NotifyHelper.NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {kvp.Key}");
+                NotifyHelper.Instance().NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {kvp.Key}");
             }
 
             ImGui.TableNextColumn();
@@ -93,7 +93,7 @@ public unsafe class ExpandMacroTargetParameters : ModuleBase
             if (ImGui.IsItemClicked())
             {
                 ImGui.SetClipboardText($"{kvp.Key}ID>");
-                NotifyHelper.NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {kvp.Key}");
+                NotifyHelper.Instance().NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {kvp.Key}");
             }
 
             ImGui.TableNextColumn();

@@ -169,37 +169,37 @@ public unsafe class FastInstanceZoneChange : ModuleBase
             if (publicInstance.IsInstancedArea())
                 Overlay.IsOpen ^= true;
             else
-                NotifyHelper.NotificationError(Lang.Get("FastInstanceZoneChange-Notice-NoInstanceZones"));
+                NotifyHelper.Instance().NotificationError(Lang.Get("FastInstanceZoneChange-Notice-NoInstanceZones"));
             return;
         }
 
         if (args == "abort")
         {
             TaskHelper.Abort();
-            NotifyHelper.NotificationInfo(Lang.Get("FastInstanceZoneChange-Notice-Aborted"));
+            NotifyHelper.Instance().NotificationInfo(Lang.Get("FastInstanceZoneChange-Notice-Aborted"));
             return;
         }
 
         if (!uint.TryParse(args, out var targetInstance))
         {
-            NotifyHelper.NotificationError(Lang.Get("FastInstanceZoneChange-Notice-InvalidArgs", args));
+            NotifyHelper.Instance().NotificationError(Lang.Get("FastInstanceZoneChange-Notice-InvalidArgs", args));
             return;
         }
 
         if (!publicInstance.IsInstancedArea())
         {
-            NotifyHelper.NotificationError(Lang.Get("FastInstanceZoneChange-Notice-NoInstanceZones"));
+            NotifyHelper.Instance().NotificationError(Lang.Get("FastInstanceZoneChange-Notice-NoInstanceZones"));
             return;
         }
 
         if (publicInstance.InstanceId == targetInstance)
         {
-            NotifyHelper.NotificationError(Lang.Get("FastInstanceZoneChange-Notice-CurrentlyInSameInstance", targetInstance));
+            NotifyHelper.Instance().NotificationError(Lang.Get("FastInstanceZoneChange-Notice-CurrentlyInSameInstance", targetInstance));
             return;
         }
 
         TaskHelper.Abort();
-        NotifyHelper.NotificationInfo(Lang.Get("FastInstanceZoneChange-Notice-Change", targetInstance));
+        NotifyHelper.Instance().NotificationInfo(Lang.Get("FastInstanceZoneChange-Notice-Change", targetInstance));
 
         var isAnyAetheryteNearby = IsAnyAetheryteNearby(out _);
 
@@ -343,7 +343,7 @@ public unsafe class FastInstanceZoneChange : ModuleBase
 
         // 发送提示信息
         if (tryTimes > 0)
-            TaskHelper.Enqueue(() => NotifyHelper.NotificationInfo(Lang.Get("FastInstanceZoneChange-Notice-ChangeTimes", tryTimes)), "发送提示信息", weight: 2);
+            TaskHelper.Enqueue(() => NotifyHelper.Instance().NotificationInfo(Lang.Get("FastInstanceZoneChange-Notice-ChangeTimes", tryTimes)), "发送提示信息", weight: 2);
 
         // 延迟下一次检测
         TaskHelper.DelayNext(1_500, "等待 1.5 秒后继续", 2);

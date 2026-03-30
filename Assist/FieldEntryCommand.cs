@@ -120,7 +120,7 @@ public unsafe class FieldEntryCommand : ModuleBase
             if (ImGui.IsItemClicked())
             {
                 ImGui.SetClipboardText($"{command.Key}");
-                NotifyHelper.NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {command.Key}");
+                NotifyHelper.Instance().NotificationSuccess($"{Lang.Get("CopiedToClipboard")}: {command.Key}");
             }
 
             ImGui.TableNextColumn();
@@ -144,7 +144,7 @@ public unsafe class FieldEntryCommand : ModuleBase
             if (args == commandPair.Key || contentName.Contains(args, StringComparison.OrdinalIgnoreCase))
             {
                 commandPair.Value.EnqueueAction();
-                NotifyHelper.NotificationInfo(Lang.Get("FieldEntryCommand-Notification", contentName));
+                NotifyHelper.Instance().NotificationInfo(Lang.Get("FieldEntryCommand-Notification", contentName));
                 return;
             }
         }
