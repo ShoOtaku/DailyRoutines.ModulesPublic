@@ -320,7 +320,7 @@ public class ExpandPlayerMenuSearch : ModuleBase
                     while (!isFound)
                     {
                         var url      = string.Format(SearchAPI, TargetChara.Name, page);
-                        var response = await HTTPClientHelper.Get().GetStringAsync(url);
+                        var response = await HTTPClientHelper.Instance().Get().GetStringAsync(url);
                         var result   = JsonConvert.DeserializeObject<RSPlayerSearchResult>(response);
 
                         if (result.Data.Count == 0)
@@ -424,7 +424,7 @@ public class ExpandPlayerMenuSearch : ModuleBase
                     if (TargetChara == null) return;
 
                     var url      = string.Format(SEARCH_API, TargetChara.Name);
-                    var response = await HTTPClientHelper.Get().GetStringAsync(url);
+                    var response = await HTTPClientHelper.Instance().Get().GetStringAsync(url);
                     var result   = JsonConvert.DeserializeObject<LLAPlayerSearchResult>(response);
 
                     if (result.Data.Count == 0)
@@ -462,7 +462,7 @@ public class ExpandPlayerMenuSearch : ModuleBase
                     if (TargetChara == null) return;
 
                     var url      = string.Format(SEARCH_API, TargetChara.Name.Replace(" ", "%20"));
-                    var response = await HTTPClientHelper.Get().GetStringAsync(url);
+                    var response = await HTTPClientHelper.Instance().Get().GetStringAsync(url);
 
                     dynamic? result = JsonConvert.DeserializeObject(response);
                     if (result == null) return;

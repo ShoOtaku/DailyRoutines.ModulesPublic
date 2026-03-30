@@ -134,7 +134,7 @@ public class AutoShowDutyGuide : ModuleBase
     {
         try
         {
-            var originalText = await HTTPClientHelper.Get().GetStringAsync(string.Format(FF14OrgLinkBase, dutyID));
+            var originalText = await HTTPClientHelper.Instance().Get().GetStringAsync(string.Format(FF14OrgLinkBase, dutyID));
 
             var plainText = originalText.SanitizeMarkdown();
 

@@ -99,7 +99,7 @@ public class HealerHelper : ModuleBase
 
             try
             {
-                var json = await HTTPClientHelper.Get().GetStringAsync($"{URI}/card-order.json");
+                var json = await HTTPClientHelper.Instance().Get().GetStringAsync($"{URI}/card-order.json");
                 var resp = JsonConvert.DeserializeObject<AutoPlayCardManager.PlayCardOrder>(json);
 
                 if (resp != null)
@@ -121,7 +121,7 @@ public class HealerHelper : ModuleBase
 
             try
             {
-                var json = await HTTPClientHelper.Get().GetStringAsync($"{URI}/heal-action.json");
+                var json = await HTTPClientHelper.Instance().Get().GetStringAsync($"{URI}/heal-action.json");
                 var resp = JsonConvert.DeserializeObject<Dictionary<string, List<EasyHealManager.HealAction>>>(json);
 
                 if (resp != null)

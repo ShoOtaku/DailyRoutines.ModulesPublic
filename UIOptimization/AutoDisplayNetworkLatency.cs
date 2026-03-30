@@ -441,7 +441,7 @@ public partial class AutoDisplayNetworkLatency : ModuleBase
                 {
                     try
                     {
-                        if (HTTPClientHelper.Get() is not { } httpClient) return;
+                        if (HTTPClientHelper.Instance().Get() is not { } httpClient) return;
 
                         var response = await httpClient.GetStringAsync(string.Format(TARGET_IP_QUERY_API, address, CultureInfo.CurrentUICulture), token);
                         if (token.IsCancellationRequested) return;

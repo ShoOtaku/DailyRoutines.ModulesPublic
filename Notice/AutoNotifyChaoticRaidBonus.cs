@@ -211,7 +211,7 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
         {
             try
             {
-                var result  = await HTTPClientHelper.Get().GetStringAsync(string.Format(BASE_URL, dcName));
+                var result  = await HTTPClientHelper.Instance().Get().GetStringAsync(string.Format(BASE_URL, dcName));
                 var content = JsonConvert.DeserializeObject<ChaoticUptimeData>(result);
 
                 if (content is { IsUptime: true })

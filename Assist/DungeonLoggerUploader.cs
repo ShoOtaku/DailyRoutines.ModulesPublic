@@ -253,7 +253,7 @@ public class DungeonLoggerUploader : ModuleBase
             ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
         };
 
-        HTTPClientInstance = HTTPClientHelper.Get(handler, "DungeonLoggerUploader-Client-Insecure");
+        HTTPClientInstance = HTTPClientHelper.Instance().Get(handler, "DungeonLoggerUploader-Client-Insecure");
     }
 
     protected override void Uninit()

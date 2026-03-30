@@ -183,7 +183,7 @@ public partial class AutoReplyChatBot
         var json = JsonConvert.SerializeObject(body);
         req.Content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        using var resp = await HTTPClientHelper.Get(HTTP_CLIENT_NAME).SendAsync(req, ct).ConfigureAwait(false);
+        using var resp = await HTTPClientHelper.Instance().Get(HTTP_CLIENT_NAME).SendAsync(req, ct).ConfigureAwait(false);
         resp.EnsureSuccessStatusCode();
 
         var jsonResponse = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -221,7 +221,7 @@ public partial class AutoReplyChatBot
 
         try
         {
-            using var resp = await HTTPClientHelper.Get(HTTP_CLIENT_NAME).SendAsync(req, ct).ConfigureAwait(false);
+            using var resp = await HTTPClientHelper.Instance().Get(HTTP_CLIENT_NAME).SendAsync(req, ct).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
 
             var jsonResponse = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);

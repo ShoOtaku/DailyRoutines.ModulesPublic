@@ -707,7 +707,7 @@ public class AutoDisplayMitigationInfo : ModuleBase
         {
             try
             {
-                var json = await HTTPClientHelper.Get().GetStringAsync($"{URI}/mitigation.json", ct).ConfigureAwait(false);
+                var json = await HTTPClientHelper.Instance().Get().GetStringAsync($"{URI}/mitigation.json", ct).ConfigureAwait(false);
                 var resp = JsonConvert.DeserializeObject<MitigationInfoDto[]>(json);
 
                 if (resp == null)
