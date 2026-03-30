@@ -57,7 +57,7 @@ public unsafe class AutoLogin : ModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,  "Dialogue",   OnDialogue);
         OnTitleMenu(AddonEvent.PostSetup, null);
 
-        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("AutoLogin-CommandHelp") });
+        CommandManager.Instance().AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("AutoLogin-CommandHelp") });
         DService.Instance().ClientState.Login += OnLogin;
     }
 
@@ -421,7 +421,7 @@ public unsafe class AutoLogin : ModuleBase
     protected override void Uninit()
     {
         DService.Instance().ClientState.Login -= OnLogin;
-        CommandManager.RemoveCommand(COMMAND);
+        CommandManager.Instance().RemoveCommand(COMMAND);
 
         DService.Instance().AddonLifecycle.UnregisterListener(OnTitleMenu);
         DService.Instance().AddonLifecycle.UnregisterListener(OnDialogue);

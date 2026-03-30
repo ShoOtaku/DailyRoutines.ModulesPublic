@@ -2,6 +2,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -76,7 +77,7 @@ public unsafe class AutoRequestItemSubmit : ModuleBase
 
     private static void OperateOnRequest()
     {
-        if (DRConfig.Instance().ConflictKeyBinding.IsPressed())
+        if (PluginConfig.Instance().ConflictKeyBinding.IsPressed())
             return;
 
         var addon = (AddonRequest*)Request;

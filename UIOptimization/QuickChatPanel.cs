@@ -3,6 +3,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Keys;
@@ -874,7 +875,7 @@ public unsafe class QuickChatPanel : ModuleBase
                 if (!string.IsNullOrWhiteSpace(ItemSearchInput))
                 {
                     var longestText          = string.Empty;
-                    var isConflictKeyHolding = DRConfig.Instance().ConflictKeyBinding.IsPressed();
+                    var isConflictKeyHolding = PluginConfig.Instance().ConflictKeyBinding.IsPressed();
 
                     foreach (var data in Searcher.SearchResult)
                     {

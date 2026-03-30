@@ -23,10 +23,10 @@ public unsafe class CallbackCommand : ModuleBase
     private const string COMMAND = "callback";
 
     protected override void Init() =>
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("CallbackCommand-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("CallbackCommand-CommandHelp") });
 
     protected override void Uninit() =>
-        CommandManager.RemoveSubCommand(COMMAND);
+        CommandManager.Instance().RemoveSubCommand(COMMAND);
 
     protected override void ConfigUI() =>
         ImGui.TextWrapped(Lang.Get("CallbackCommand-CommandHelp-Detailed", COMMAND));

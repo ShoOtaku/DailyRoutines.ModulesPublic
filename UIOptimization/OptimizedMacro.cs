@@ -52,7 +52,7 @@ public unsafe class OptimizedMacro : ModuleBase
     {
         ModuleConfig = Config.Load(this) ?? new();
 
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("OptimizedMacro-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("OptimizedMacro-CommandHelp") });
 
         InputDialog = new MacroPresetsInputAddon
         {
@@ -79,7 +79,7 @@ public unsafe class OptimizedMacro : ModuleBase
 
     protected override void Uninit()
     {
-        CommandManager.RemoveSubCommand(COMMAND);
+        CommandManager.Instance().RemoveSubCommand(COMMAND);
 
         MacroController?.Dispose();
         MacroController = null;

@@ -23,10 +23,10 @@ public class JobSwitchCommand : ModuleBase
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init() =>
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("JobSwitchCommand-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("JobSwitchCommand-CommandHelp") });
 
     protected override void Uninit() =>
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.Instance().RemoveSubCommand(Command);
 
     private static void OnCommand(string command, string args)
     {

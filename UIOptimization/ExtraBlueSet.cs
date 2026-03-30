@@ -41,7 +41,7 @@ public unsafe class ExtraBlueSet : ModuleBase
         if (AOZNotebook->IsAddonAndNodesReady())
             OnAddon(AddonEvent.PostSetup, null);
 
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("ExtraBlueSet-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("ExtraBlueSet-CommandHelp") });
     }
 
     protected override void OverlayUI()
@@ -220,7 +220,7 @@ public unsafe class ExtraBlueSet : ModuleBase
 
     protected override void Uninit()
     {
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.Instance().RemoveSubCommand(Command);
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
     }
 

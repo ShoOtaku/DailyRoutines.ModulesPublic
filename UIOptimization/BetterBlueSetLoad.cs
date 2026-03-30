@@ -39,7 +39,7 @@ public unsafe class BetterBlueSetLoad : ModuleBase
             );
         AgentAozNotebookReceiveEventHook.Enable();
 
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("BetterBlueSetLoad-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("BetterBlueSetLoad-CommandHelp") });
     }
 
     protected override void ConfigUI()

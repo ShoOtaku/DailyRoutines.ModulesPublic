@@ -7,6 +7,7 @@ using DailyRoutines.Manager;
 using Lumina.Excel.Sheets;
 using OmenTools.Interop.Game.Helpers;
 using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
 
 namespace DailyRoutines.ModulesPublic;
@@ -61,10 +62,10 @@ public class ContentFinderCommand : ModuleBase
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init() =>
-        CommandManager.AddCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("ContentFinderCommand-CommandHelp") });
+        CommandManager.Instance().AddCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("ContentFinderCommand-CommandHelp") });
 
     protected override void Uninit() =>
-        CommandManager.RemoveCommand(Command);
+        CommandManager.Instance().RemoveCommand(Command);
 
     protected override void ConfigUI()
     {

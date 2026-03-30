@@ -3,6 +3,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using DailyRoutines.Manager;
 using DailyRoutines.Verification;
 using Dalamud.Game.ClientState.Conditions;
@@ -114,7 +115,7 @@ public unsafe class BetterTeleport : ModuleBase
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
         OnZoneChanged(0);
 
-        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("BetterTeleport-CommandHelp") });
+        CommandManager.Instance().AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("BetterTeleport-CommandHelp") });
 
         UseActionManager.Instance().RegPreUseAction(OnPostUseAction);
     }
@@ -550,7 +551,7 @@ public unsafe class BetterTeleport : ModuleBase
 
     private void DrawHoveredTooltip()
     {
-        if (HoveredAetheryte != null && DRConfig.Instance().ConflictKeyBinding.IsPressed())
+        if (HoveredAetheryte != null && PluginConfig.Instance().ConflictKeyBinding.IsPressed())
             PinnedAetheryte = HoveredAetheryte;
 
         if (PinnedAetheryte != null)
@@ -1174,7 +1175,7 @@ public unsafe class BetterTeleport : ModuleBase
     protected override void Uninit()
     {
         UseActionManager.Instance().Unreg(OnPostUseAction);
-        CommandManager.RemoveCommand(COMMAND);
+        CommandManager.Instance().RemoveCommand(COMMAND);
 
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
     }

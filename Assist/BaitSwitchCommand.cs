@@ -45,10 +45,10 @@ public class BaitSwitchCommand : ModuleBase
     };
 
     protected override void Init() =>
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("BaitSwitchCommand-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("BaitSwitchCommand-CommandHelp") });
 
     protected override void Uninit() =>
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.Instance().RemoveSubCommand(Command);
 
     protected override void ConfigUI() =>
         ImGui.TextWrapped(Lang.Get("BaitSwitchCommand-CommandHelpDetailed"));

@@ -108,7 +108,7 @@ public unsafe class FastSetWeatherTime : ModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostRequestedUpdate, "_NaviMap", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize,         "_NaviMap", OnAddon);
 
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastSetWeatherTime-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastSetWeatherTime-CommandHelp") });
     }
 
     protected override void Uninit()
@@ -118,7 +118,7 @@ public unsafe class FastSetWeatherTime : ModuleBase
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
 
-        CommandManager.RemoveSubCommand(COMMAND);
+        CommandManager.Instance().RemoveSubCommand(COMMAND);
 
         AddonDRFastSetWeather.Addon?.Dispose();
         AddonDRFastSetWeather.Addon = null;

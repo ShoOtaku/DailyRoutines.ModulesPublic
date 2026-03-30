@@ -2,6 +2,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -130,7 +131,7 @@ public unsafe class AutoRepeatChatMessage : ModuleBase
 
     private static void OnClickRepeat(uint id, SeString message)
     {
-        var triggerCheck = !ModuleConfig.UseTrigger || DRConfig.Instance().ConflictKeyBinding.IsPressed();
+        var triggerCheck = !ModuleConfig.UseTrigger || PluginConfig.Instance().ConflictKeyBinding.IsPressed();
         if (!triggerCheck) return;
 
         if (!SavedPayload.TryGetValue(id, out var info)) return;

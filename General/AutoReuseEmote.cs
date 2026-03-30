@@ -7,6 +7,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
 using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.Modules;
 
@@ -25,11 +26,11 @@ public class AutoReuseEmote : ModuleBase
     };
 
     protected override void Init() =>
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("AutoReuseEmote-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("AutoReuseEmote-CommandHelp") });
 
     protected override void Uninit()
     {
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.Instance().RemoveSubCommand(Command);
         CancelTokenAndNullify();
     }
 

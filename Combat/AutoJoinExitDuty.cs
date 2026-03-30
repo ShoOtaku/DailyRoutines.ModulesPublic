@@ -33,7 +33,7 @@ public unsafe class AutoJoinExitDuty : ModuleBase
     {
         TaskHelper ??= new() { TimeoutMS = 15_000 };
 
-        CommandManager.AddSubCommand
+        CommandManager.Instance().AddSubCommand
         (
             "joinexitduty",
             new CommandInfo(OnCommand) { HelpMessage = Lang.Get("AutoJoinExitDutyTitle") }
@@ -41,7 +41,7 @@ public unsafe class AutoJoinExitDuty : ModuleBase
     }
 
     protected override void Uninit() =>
-        CommandManager.RemoveSubCommand("joinexitduty");
+        CommandManager.Instance().RemoveSubCommand("joinexitduty");
 
     private void OnCommand(string command, string arguments)
     {

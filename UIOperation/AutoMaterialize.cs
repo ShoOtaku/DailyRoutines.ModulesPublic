@@ -55,7 +55,7 @@ public unsafe class AutoMaterialize : ModuleBase
         if (MaterializeDialog != null)
             OnDialogAddon(AddonEvent.PostSetup, null);
 
-        CommandManager.AddSubCommand(Command, new((_, _) => StartARoundAll()) { HelpMessage = Lang.Get("AutoMaterializeTitle") });
+        CommandManager.Instance().AddSubCommand(Command, new((_, _) => StartARoundAll()) { HelpMessage = Lang.Get("AutoMaterializeTitle") });
     }
 
     protected override void ConfigUI() => ImGuiOm.ConflictKeyText();
@@ -220,7 +220,7 @@ public unsafe class AutoMaterialize : ModuleBase
 
     protected override void Uninit()
     {
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.Instance().RemoveSubCommand(Command);
 
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);

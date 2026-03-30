@@ -1,9 +1,10 @@
-﻿using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Manager;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using OmenTools.Interop.Game.Models;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -25,7 +26,7 @@ public class CancelCountdownCommand : ModuleBase
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init() =>
-        CommandManager.AddSubCommand
+        CommandManager.Instance().AddSubCommand
         (
             COMMAND,
             new(OnCommand) { HelpMessage = Lang.Get("CancelCountdownCommand-CommandHelp") }
@@ -38,5 +39,5 @@ public class CancelCountdownCommand : ModuleBase
     }
 
     protected override void Uninit() =>
-        CommandManager.RemoveSubCommand(COMMAND);
+        CommandManager.Instance().RemoveSubCommand(COMMAND);
 }

@@ -73,7 +73,7 @@ public unsafe class AutoDiscard : ModuleBase
                                     .ToList();
         ItemSearcher ??= new(itemNames, [x => x.Name.ToString(), x => x.RowId.ToString()]);
 
-        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("AutoDiscard-CommandHelp") });
+        CommandManager.Instance().AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("AutoDiscard-CommandHelp") });
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreSetup, "SelectYesno", OnAddon);
     }
@@ -242,7 +242,7 @@ public unsafe class AutoDiscard : ModuleBase
     {
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
-        CommandManager.RemoveCommand(COMMAND);
+        CommandManager.Instance().RemoveCommand(COMMAND);
         ItemSearcher = null;
 
         LastAddedItemsByName.Clear();

@@ -98,7 +98,7 @@ public unsafe class AutoSubmarineCollect : ModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "SelectString", OnAddonSelectString);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SelectString", OnAddonSelectString);
 
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("AutoSubmarineCollect-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("AutoSubmarineCollect-CommandHelp") });
 
         LogMessageManager.Instance().RegPre(OnPreSendLogMessage);
 
@@ -112,7 +112,7 @@ public unsafe class AutoSubmarineCollect : ModuleBase
     protected override void Uninit()
     {
         LogMessageManager.Instance().Unreg(OnPreSendLogMessage);
-        CommandManager.RemoveSubCommand(COMMAND);
+        CommandManager.Instance().RemoveSubCommand(COMMAND);
 
         DService.Instance().AddonLifecycle.UnregisterListener(OnExplorationResult);
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddonSelectYesno);

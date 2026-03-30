@@ -44,7 +44,7 @@ public unsafe class AutoSellCards : ModuleBase
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "TripleTriadCoinExchange", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "TripleTriadCoinExchange", OnAddon);
 
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("AutoSellCards-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("AutoSellCards-CommandHelp") });
     }
 
     protected override void ConfigUI()
@@ -234,7 +234,7 @@ public unsafe class AutoSellCards : ModuleBase
 
     protected override void Uninit()
     {
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.Instance().RemoveSubCommand(Command);
 
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);

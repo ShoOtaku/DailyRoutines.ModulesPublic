@@ -36,12 +36,12 @@ public partial class OccultCrescentHelper
             DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
             DService.Instance().ClientState.Logout           += OnLogout;
 
-            CommandManager.AddSubCommand(COMMAND_TP, new(OnCommandTP) { HelpMessage = Lang.Get("OccultCrescentHelper-Command-PTP-Help") });
+            CommandManager.Instance().AddSubCommand(COMMAND_TP, new(OnCommandTP) { HelpMessage = Lang.Get("OccultCrescentHelper-Command-PTP-Help") });
         }
 
         public override void Uninit()
         {
-            CommandManager.RemoveSubCommand(COMMAND_TP);
+            CommandManager.Instance().RemoveSubCommand(COMMAND_TP);
 
             DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
             DService.Instance().ClientState.Logout           -= OnLogout;

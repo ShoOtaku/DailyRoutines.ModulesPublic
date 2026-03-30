@@ -60,13 +60,13 @@ public partial class OccultCrescentHelper
             if (isAnyNewCategory)
                 ModuleConfig.Save(MainModule);
 
-            CommandManager.AddSubCommand
+            CommandManager.Instance().AddSubCommand
             (
                 COMMAND_FATE,
                 new(OnCommandFate) { HelpMessage = $"{Lang.Get("OccultCrescentHelper-Command-PFate-Help")}" }
             );
 
-            CommandManager.AddSubCommand
+            CommandManager.Instance().AddSubCommand
             (
                 COMMAND_CE,
                 new(OnCommandCE) { HelpMessage = $"{Lang.Get("OccultCrescentHelper-Command-PCE-Help")}" }
@@ -75,8 +75,8 @@ public partial class OccultCrescentHelper
 
         public override void Uninit()
         {
-            CommandManager.RemoveSubCommand(COMMAND_FATE);
-            CommandManager.RemoveSubCommand(COMMAND_CE);
+            CommandManager.Instance().RemoveSubCommand(COMMAND_FATE);
+            CommandManager.Instance().RemoveSubCommand(COMMAND_CE);
 
             GameState.Instance().Logout -= OnLogout;
             ExecuteCommandManager.Instance().Unreg(OnPostReceivedCommand);

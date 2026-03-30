@@ -34,13 +34,13 @@ public partial class OccultCrescentHelper
         {
             SupportJobTaskHelper ??= new();
 
-            CommandManager.AddSubCommand
+            CommandManager.Instance().AddSubCommand
             (
                 COMMAND_SWITCH_JOB,
                 new(OnCommandSwitchJob) { HelpMessage = $"{Lang.Get("OccultCrescentHelper-Command-PJob-Help")}" }
             );
 
-            CommandManager.AddSubCommand
+            CommandManager.Instance().AddSubCommand
             (
                 COMMAND_BUFF,
                 new(OnCommandBuff) { HelpMessage = $"{Lang.Get("OccultCrescentHelper-Command-PBuff-Help")}" }
@@ -52,8 +52,8 @@ public partial class OccultCrescentHelper
 
         public override void Uninit()
         {
-            CommandManager.RemoveSubCommand(COMMAND_SWITCH_JOB);
-            CommandManager.RemoveSubCommand(COMMAND_BUFF);
+            CommandManager.Instance().RemoveSubCommand(COMMAND_SWITCH_JOB);
+            CommandManager.Instance().RemoveSubCommand(COMMAND_BUFF);
 
             SupportJobTaskHelper?.Abort();
             SupportJobTaskHelper?.Dispose();

@@ -4,6 +4,7 @@ using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Manager;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -25,7 +26,7 @@ public class AutoMaximiseWindow : ModuleBase
     {
         ControlGameWindow(SW_SHOWMAXIMIZED);
 
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("AutoMaximiseWindow-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("AutoMaximiseWindow-CommandHelp") });
     }
 
     protected override void ConfigUI()
@@ -53,7 +54,7 @@ public class AutoMaximiseWindow : ModuleBase
     }
 
     protected override void Uninit() =>
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.Instance().RemoveSubCommand(Command);
 
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(nint hWnd, int nCmdShow);

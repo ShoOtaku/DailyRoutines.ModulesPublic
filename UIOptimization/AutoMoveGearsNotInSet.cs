@@ -37,7 +37,7 @@ public class AutoMoveGearsNotInSet : ModuleBase
 
     protected override void Init()
     {
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("AutoMoveGearsNotInSet-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("AutoMoveGearsNotInSet-CommandHelp") });
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "ArmouryBoard", OnAddon);
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "ArmouryBoard", OnAddon);
@@ -48,7 +48,7 @@ public class AutoMoveGearsNotInSet : ModuleBase
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
         OnAddon(AddonEvent.PreFinalize, null);
 
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.Instance().RemoveSubCommand(Command);
     }
 
     protected override void ConfigUI()

@@ -4,6 +4,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using DailyRoutines.Manager;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Keys;
@@ -163,7 +164,7 @@ public unsafe class RightClickToMoveMode : ModuleBase
 
                     foreach (var keyToSelect in validKeys)
                     {
-                        using var disabled = ImRaii.Disabled(DRConfig.Instance().ConflictKeyBinding.Keyboard == keyToSelect);
+                        using var disabled = ImRaii.Disabled(PluginConfig.Instance().ConflictKeyBinding.Keyboard == keyToSelect);
 
                         if (ImGui.Selectable(keyToSelect.GetFancyName()))
                         {
@@ -243,7 +244,7 @@ public unsafe class RightClickToMoveMode : ModuleBase
 
     private static bool IsInterruptKeysPressed()
     {
-        if (DRConfig.Instance().ConflictKeyBinding.IsPressed()) return true;
+        if (PluginConfig.Instance().ConflictKeyBinding.IsPressed()) return true;
         if (ModuleConfig.WASDToInterrupt &&
             (DService.Instance().KeyState[VirtualKey.W] ||
              DService.Instance().KeyState[VirtualKey.A] ||

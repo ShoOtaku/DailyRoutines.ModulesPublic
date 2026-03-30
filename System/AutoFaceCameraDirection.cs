@@ -5,6 +5,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using DailyRoutines.Manager;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
@@ -112,7 +113,7 @@ public unsafe class AutoFaceCameraDirection : ModuleBase
 
         UseActionManager.Instance().RegPostUseActionLocation(OnPostUseAction);
 
-        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("AutoFaceCameraDirection-CommandHelp", COMMAND) });
+        CommandManager.Instance().AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("AutoFaceCameraDirection-CommandHelp", COMMAND) });
     }
 
     protected override void Uninit()
@@ -120,7 +121,7 @@ public unsafe class AutoFaceCameraDirection : ModuleBase
         UseActionManager.Instance().Unreg(OnPostUseAction);
         FrameworkManager.Instance().Unreg(OnUpdate);
         GamePacketManager.Instance().Unreg(OnPreSendPacket);
-        CommandManager.RemoveCommand(COMMAND);
+        CommandManager.Instance().RemoveCommand(COMMAND);
     }
 
     protected override void ConfigUI()
@@ -388,7 +389,7 @@ public unsafe class AutoFaceCameraDirection : ModuleBase
     {
         if (MovementManager.IsManagerBusy) return true;
 
-        var isConflict = DRConfig.Instance().ConflictKeyBinding.IsPressed();
+        var isConflict = PluginConfig.Instance().ConflictKeyBinding.IsPressed();
         return ModuleConfig.WorkMode switch
         {
             false => isConflict, // WorkMode=false: 按下打断键时跳过 (即不工作)

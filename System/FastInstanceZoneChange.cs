@@ -53,7 +53,7 @@ public unsafe class FastInstanceZoneChange : ModuleBase
         TaskHelper   ??= new() { TimeoutMS = 30_000, ShowDebug = true };
         ModuleConfig =   Config.Load(this) ?? new();
 
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastInstanceZoneChange-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastInstanceZoneChange-CommandHelp") });
 
         Overlay            ??= new(this);
         Overlay.WindowName =   Lang.Get("FastInstanceZoneChangeTitle");
@@ -72,7 +72,7 @@ public unsafe class FastInstanceZoneChange : ModuleBase
         DService.Instance().Condition.ConditionChange -= OnConditionChanged;
 
         HandleDtrEntry(false);
-        CommandManager.RemoveSubCommand(COMMAND);
+        CommandManager.Instance().RemoveSubCommand(COMMAND);
     }
 
     protected override void ConfigUI()

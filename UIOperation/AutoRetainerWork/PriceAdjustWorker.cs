@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Reflection;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using DailyRoutines.Manager;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
@@ -1668,7 +1669,7 @@ public unsafe partial class AutoRetainerWork
 
             if (!TryGetItemUpshelfCountLimit(*slot, out var upshelfQuantity)) return;
 
-            if (ModuleConfig.AutoPriceAdjustWhenNewOnSale && !DRConfig.Instance().ConflictKeyBinding.IsPressed())
+            if (ModuleConfig.AutoPriceAdjustWhenNewOnSale && !PluginConfig.Instance().ConflictKeyBinding.IsPressed())
             {
                 MoveToRetainerMarketHook.Original(manager, srcInv, srcSlot, dstInv, dstSlot, upshelfQuantity, 9_9999_9999);
                 EnqueuePriceAdjustSingle(dstSlot);

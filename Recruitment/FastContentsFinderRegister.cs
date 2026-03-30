@@ -2,6 +2,7 @@ using System.Numerics;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Internal;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
@@ -102,7 +103,7 @@ public unsafe class FastContentsFinderRegister : ModuleBase
 
                             if (cachedData.CurrentTab != 0)
                             {
-                                if (DRConfig.Instance().ConflictKeyBinding.IsPressed())
+                                if (PluginConfig.Instance().ConflictKeyBinding.IsPressed())
                                 {
                                     if (DService.Instance().Texture.TryGetFromGameIcon(new(60648), out var explorerTexture))
                                     {

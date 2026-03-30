@@ -27,7 +27,7 @@ public class FastResetAllSDEnmity : ModuleBase
         CancelSource ??= new();
 
         ExecuteCommandManager.Instance().RegPre(OnResetStrikingDummies);
-        CommandManager.AddSubCommand
+        CommandManager.Instance().AddSubCommand
         (
             Command,
             new CommandInfo(OnCommand)
@@ -81,7 +81,7 @@ public class FastResetAllSDEnmity : ModuleBase
     protected override void Uninit()
     {
         ExecuteCommandManager.Instance().Unreg(OnResetStrikingDummies);
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.Instance().RemoveSubCommand(Command);
 
         CancelSource?.Cancel();
         CancelSource?.Dispose();

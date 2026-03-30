@@ -2,6 +2,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using Dalamud.Game.Gui.ContextMenu;
 using OmenTools.Interop.Game.AddonEvent;
 using OmenTools.Interop.Game.Lumina;
@@ -37,7 +38,7 @@ public unsafe class AutoInventoryTransfer : ModuleBase
 
     private void OnContextMenuOpened(IMenuOpenedArgs args)
     {
-        if (!DRConfig.Instance().ConflictKeyBinding.IsPressed() || !IsInventoryOpen()) return;
+        if (!PluginConfig.Instance().ConflictKeyBinding.IsPressed() || !IsInventoryOpen()) return;
 
         TaskHelper.Enqueue(() => ContextMenuAddon->IsAddonAndNodesReady());
         TaskHelper.Enqueue(() => { AddonContextMenuEvent.Select(MenuTexts); });

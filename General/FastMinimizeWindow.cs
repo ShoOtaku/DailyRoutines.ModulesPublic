@@ -9,6 +9,7 @@ using DailyRoutines.Manager;
 using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -30,8 +31,8 @@ public unsafe class FastMinimizeWindow : ModuleBase
     {
         ModuleConfig = Config.Load(this) ?? new();
 
-        CommandManager.AddSubCommand(CommandMini, new(OnMinimizeCommand) { HelpMessage = Lang.Get("FastMinimizeWindow-MinimizeToTaskbar") });
-        CommandManager.AddSubCommand(CommandTray, new(OnTrayCommand) { HelpMessage     = Lang.Get("FastMinimizeWindow-MinimizeToTray") });
+        CommandManager.Instance().AddSubCommand(CommandMini, new(OnMinimizeCommand) { HelpMessage = Lang.Get("FastMinimizeWindow-MinimizeToTaskbar") });
+        CommandManager.Instance().AddSubCommand(CommandTray, new(OnTrayCommand) { HelpMessage     = Lang.Get("FastMinimizeWindow-MinimizeToTray") });
 
         WindowManager.Draw += DrawMinimizeButton;
 
@@ -42,8 +43,8 @@ public unsafe class FastMinimizeWindow : ModuleBase
     protected override void Uninit()
     {
         WindowManager.Draw -= DrawMinimizeButton;
-        CommandManager.RemoveSubCommand(CommandMini);
-        CommandManager.RemoveSubCommand(CommandTray);
+        CommandManager.Instance().RemoveSubCommand(CommandMini);
+        CommandManager.Instance().RemoveSubCommand(CommandTray);
 
         if (IsEnabled)
         {

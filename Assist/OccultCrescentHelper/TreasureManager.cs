@@ -158,7 +158,7 @@ public partial class OccultCrescentHelper
 
             GamePacketManager.Instance().RegPreSendPacket(OnPreSendPacket);
 
-            CommandManager.AddSubCommand
+            CommandManager.Instance().AddSubCommand
             (
                 COMMAND_TREASURE,
                 new(OnCommandTreasure) { HelpMessage = $"{Lang.Get("OccultCrescentHelper-Command-PTreasure-Help")}" }
@@ -315,7 +315,7 @@ public partial class OccultCrescentHelper
 
         public override void Uninit()
         {
-            CommandManager.RemoveSubCommand(COMMAND_TREASURE);
+            CommandManager.Instance().RemoveSubCommand(COMMAND_TREASURE);
 
             GamePacketManager.Instance().Unreg(OnPreSendPacket);
 

@@ -2,6 +2,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
@@ -26,7 +27,7 @@ public class AutoConstantlyInspect : ModuleBase
 
     private static unsafe void OnAddon(AddonEvent type, AddonArgs args)
     {
-        if (DRConfig.Instance().ConflictKeyBinding.IsPressed())
+        if (PluginConfig.Instance().ConflictKeyBinding.IsPressed())
         {
             NotifyHelper.Instance().NotificationSuccess(Lang.Get("ConflictKey-InterruptMessage"));
             return;

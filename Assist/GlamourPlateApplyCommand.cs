@@ -20,7 +20,7 @@ public unsafe class GlamourPlateApplyCommand : ModuleBase
     };
 
     protected override void Init() =>
-        CommandManager.AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("GlamourPlateApplyCommand-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("GlamourPlateApplyCommand-CommandHelp") });
 
     private static void OnCommand(string command, string arguments)
     {
@@ -48,5 +48,5 @@ public unsafe class GlamourPlateApplyCommand : ModuleBase
     }
 
     protected override void Uninit() =>
-        CommandManager.RemoveSubCommand(Command);
+        CommandManager.Instance().RemoveSubCommand(Command);
 }

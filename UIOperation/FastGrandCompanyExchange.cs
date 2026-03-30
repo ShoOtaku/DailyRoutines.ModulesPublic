@@ -18,6 +18,7 @@ using Lumina.Text.ReadOnly;
 using OmenTools.Dalamud.Attributes;
 using OmenTools.Interop.Game.AddonEvent;
 using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using OmenTools.Threading.TaskHelper.Enums;
 
 namespace DailyRoutines.ModulesPublic;
@@ -58,12 +59,12 @@ public class FastGrandCompanyExchange : ModuleBase
 
         DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw, "GrandCompanyExchange", OnAddon);
 
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastGrandCompanyExchange-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastGrandCompanyExchange-CommandHelp") });
     }
 
     protected override void Uninit()
     {
-        CommandManager.RemoveSubCommand(COMMAND);
+        CommandManager.Instance().RemoveSubCommand(COMMAND);
         DService.Instance().AddonLifecycle.UnregisterListener(OnAddon);
 
         Addon?.Dispose();

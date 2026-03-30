@@ -2,6 +2,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.UI;
@@ -45,7 +46,7 @@ public unsafe class BlockInputWhenFishing : ModuleBase
     }
 
     private static bool IsKeyDownDetour(UIInputData* data, int id) =>
-        DRConfig.Instance().ConflictKeyBinding.IsPressed() && IsKeyDownHook.Original(data, id);
+        PluginConfig.Instance().ConflictKeyBinding.IsPressed() && IsKeyDownHook.Original(data, id);
 
     protected override void Uninit() =>
         DService.Instance().Condition.ConditionChange -= OnConditionChanged;

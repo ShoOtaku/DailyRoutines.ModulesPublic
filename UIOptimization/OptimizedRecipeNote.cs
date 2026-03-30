@@ -4,6 +4,7 @@ using DailyRoutines.Common.Extensions;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Internal;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
@@ -430,7 +431,7 @@ public class OptimizedRecipeNote : ModuleBase
                                 // 既能 NPC 买到又能市场布告板
                                 if (item.ItemSearchCategory.RowId > 0 && itemInfo != null)
                                 {
-                                    if (!DRConfig.Instance().ConflictKeyBinding.IsPressed())
+                                    if (!PluginConfig.Instance().ConflictKeyBinding.IsPressed())
                                         OpenShopListByItemIDIPC.InvokeFunc(item.RowId);
                                     else
                                         ChatManager.Instance().SendMessage($"/pdr market {item.Name}");

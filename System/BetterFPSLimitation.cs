@@ -67,12 +67,12 @@ public class BetterFPSLimitation : ModuleBase
         HandleDtrEntry(true);
         FrameworkManager.Instance().Reg(OnUpdate, 1_000);
 
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("BetterFPSLimitation-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("BetterFPSLimitation-CommandHelp") });
     }
 
     protected override void Uninit()
     {
-        CommandManager.RemoveSubCommand(COMMAND);
+        CommandManager.Instance().RemoveSubCommand(COMMAND);
 
         FrameworkManager.Instance().Unreg(OnUpdate);
 

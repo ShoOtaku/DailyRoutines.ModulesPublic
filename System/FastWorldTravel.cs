@@ -4,6 +4,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using DailyRoutines.Manager;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
@@ -78,7 +79,7 @@ public class FastWorldTravel : ModuleBase
         if (GameState.IsCN)
             WorldStatusMonitor = new(CheckCNDataCenterStatus);
 
-        CommandManager.AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastWorldTravel-CommandHelp") });
+        CommandManager.Instance().AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FastWorldTravel-CommandHelp") });
 
         if (ModuleConfig.AddDtrEntry)
             HandleDtrEntry(true);
@@ -105,7 +106,7 @@ public class FastWorldTravel : ModuleBase
         WorldStatusMonitor = null;
 
         FrameworkManager.Instance().Unreg(OnUpdate);
-        CommandManager.RemoveSubCommand(COMMAND);
+        CommandManager.Instance().RemoveSubCommand(COMMAND);
     }
 
     protected override void ConfigUI()
@@ -1082,7 +1083,7 @@ public class FastWorldTravel : ModuleBase
                     TaskHelper.DelayNext(1000);
                     TaskHelper.Enqueue(() => AgentLobbyEvent.SelectCharacter(x => x.ContentId == travelData.ContentID), "选择目标角色");
 
-                    if (DRConfig.Instance().ModuleEnabled.GetValueOrDefault("AutoLogin", false))
+                    if (PluginConfig.Instance().ModuleEnabled.GetValueOrDefault("AutoLogin", false))
                         TaskHelper.EnqueueAsync(() => ModuleManager.LoadAsync(ModuleManager.GetModuleByName("AutoLogin")), "启用自动登录");
                     return;
                 }

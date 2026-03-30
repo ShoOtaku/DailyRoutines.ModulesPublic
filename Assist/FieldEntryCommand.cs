@@ -78,7 +78,7 @@ public unsafe class FieldEntryCommand : ModuleBase
 
         GamePacketManager.Instance().RegPreSendPacket(OnPreSendPacket);
 
-        CommandManager.AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FieldEntryCommand-CommandHelp") });
+        CommandManager.Instance().AddCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("FieldEntryCommand-CommandHelp") });
     }
 
     protected override void ConfigUI()
@@ -508,7 +508,7 @@ public unsafe class FieldEntryCommand : ModuleBase
     {
         GamePacketManager.Instance().Unreg(OnPreSendPacket);
 
-        CommandManager.RemoveCommand(COMMAND);
+        CommandManager.Instance().RemoveCommand(COMMAND);
 
         TPHelper?.Abort();
         TPHelper = null;

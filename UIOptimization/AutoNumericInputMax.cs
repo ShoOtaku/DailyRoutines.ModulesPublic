@@ -3,6 +3,7 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.Internal;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
@@ -82,7 +83,7 @@ public unsafe class AutoNumericInputMax : ModuleBase
     {
         var result = UldUpdateHook.Original(component);
 
-        if (DRConfig.Instance().ConflictKeyBinding.IsPressed())
+        if (PluginConfig.Instance().ConflictKeyBinding.IsPressed())
             LastInterruptTime = Environment.TickCount64;
 
         if (Environment.TickCount64 - LastInterruptTime > 10000)
