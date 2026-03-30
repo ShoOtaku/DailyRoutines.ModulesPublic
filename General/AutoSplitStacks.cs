@@ -64,7 +64,7 @@ public unsafe class AutoSplitStacks : ModuleBase
         CommandManager.Instance().AddCommand(Command, new(OnCommand) { HelpMessage = Lang.Get("AutoSplitStacks-CommandHelp") });
         DService.Instance().ContextMenu.OnMenuOpened += OnMenuOpened;
 
-        WindowManager.Draw += OnDraw;
+        WindowManager.Instance().PostDraw += OnDraw;
     }
 
     private void OnDraw()
@@ -427,7 +427,7 @@ public unsafe class AutoSplitStacks : ModuleBase
 
     protected override void Uninit()
     {
-        WindowManager.Draw -= OnDraw;
+        WindowManager.Instance().PostDraw -= OnDraw;
 
         CommandManager.Instance().RemoveCommand(Command);
         DService.Instance().ContextMenu.OnMenuOpened -= OnMenuOpened;

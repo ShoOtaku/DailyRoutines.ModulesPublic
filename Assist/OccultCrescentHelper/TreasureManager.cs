@@ -153,7 +153,7 @@ public partial class OccultCrescentHelper
         {
             TreasureTaskHelper ??= new() { TimeoutMS = 180_000 };
 
-            WindowManager.Draw                               += OnPosDraw;
+            WindowManager.Instance().PostDraw                               += OnPosDraw;
             DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
 
             GamePacketManager.Instance().RegPreSendPacket(OnPreSendPacket);
@@ -320,7 +320,7 @@ public partial class OccultCrescentHelper
             GamePacketManager.Instance().Unreg(OnPreSendPacket);
 
             DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
-            WindowManager.Draw                               -= OnPosDraw;
+            WindowManager.Instance().PostDraw                               -= OnPosDraw;
 
             TreasureTaskHelper?.Abort();
             TreasureTaskHelper?.Dispose();

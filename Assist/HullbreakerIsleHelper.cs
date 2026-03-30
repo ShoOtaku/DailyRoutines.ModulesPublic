@@ -35,7 +35,7 @@ public class HullbreakerIsleHelper : ModuleBase
     {
         DService.Instance().ClientState.TerritoryChanged -= OnZoneChanged;
 
-        WindowManager.Draw -= OnDraw;
+        WindowManager.Instance().PostDraw -= OnDraw;
         FrameworkManager.Instance().Unreg(OnUpdate);
 
         TrapPositions.Clear();
@@ -44,7 +44,7 @@ public class HullbreakerIsleHelper : ModuleBase
 
     private static void OnZoneChanged(ushort zone)
     {
-        WindowManager.Draw -= OnDraw;
+        WindowManager.Instance().PostDraw -= OnDraw;
         FrameworkManager.Instance().Unreg(OnUpdate);
         TrapPositions.Clear();
         FakeTreasurePositions.Clear();
@@ -52,7 +52,7 @@ public class HullbreakerIsleHelper : ModuleBase
         if (GameState.TerritoryType != 361) return;
 
         FrameworkManager.Instance().Reg(OnUpdate, 2_000);
-        WindowManager.Draw += OnDraw;
+        WindowManager.Instance().PostDraw += OnDraw;
     }
 
     private static void OnDraw()

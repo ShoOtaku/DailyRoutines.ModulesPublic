@@ -34,7 +34,7 @@ public unsafe class FastMinimizeWindow : ModuleBase
         CommandManager.Instance().AddSubCommand(CommandMini, new(OnMinimizeCommand) { HelpMessage = Lang.Get("FastMinimizeWindow-MinimizeToTaskbar") });
         CommandManager.Instance().AddSubCommand(CommandTray, new(OnTrayCommand) { HelpMessage     = Lang.Get("FastMinimizeWindow-MinimizeToTray") });
 
-        WindowManager.Draw += DrawMinimizeButton;
+        WindowManager.Instance().PostDraw += DrawMinimizeButton;
 
         if (ModuleConfig.AlwaysAddTrayIcon)
             CreateTrayIcon();
@@ -42,7 +42,7 @@ public unsafe class FastMinimizeWindow : ModuleBase
 
     protected override void Uninit()
     {
-        WindowManager.Draw -= DrawMinimizeButton;
+        WindowManager.Instance().PostDraw -= DrawMinimizeButton;
         CommandManager.Instance().RemoveSubCommand(CommandMini);
         CommandManager.Instance().RemoveSubCommand(CommandTray);
 

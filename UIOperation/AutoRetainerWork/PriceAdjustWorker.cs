@@ -85,8 +85,8 @@ public unsafe partial class AutoRetainerWork
             DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PostDraw,    "RetainerSellList", OnRetainerSellList);
             DService.Instance().AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, "RetainerSellList", OnRetainerSellList);
 
-            WindowManager.Draw += DrawMarketListWindow;
-            WindowManager.Draw += DrawUpshelfWindow;
+            WindowManager.Instance().PostDraw += DrawMarketListWindow;
+            WindowManager.Instance().PostDraw += DrawUpshelfWindow;
         }
 
         public override void DrawConfig()
@@ -206,10 +206,10 @@ public unsafe partial class AutoRetainerWork
             DService.Instance().AddonLifecycle.UnregisterListener(OnRetainerSell);
             DService.Instance().AddonLifecycle.UnregisterListener(OnRetainerSellList);
 
-            WindowManager.Draw           -= DrawMarketListWindow;
+            WindowManager.Instance().PostDraw           -= DrawMarketListWindow;
             IsNeedToDrawMarketListWindow =  false;
 
-            WindowManager.Draw              -= DrawUpshelfWindow;
+            WindowManager.Instance().PostDraw              -= DrawUpshelfWindow;
             IsNeedToDrawMarketUpshelfWindow =  false;
 
             DService.Instance().MarketBoard.HistoryReceived   -= OnHistoryReceived;

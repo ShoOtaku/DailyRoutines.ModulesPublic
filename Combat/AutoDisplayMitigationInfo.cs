@@ -241,7 +241,7 @@ public class AutoDisplayMitigationInfo : ModuleBase
         if (IsCombatEventsRegistered)
             return;
 
-        WindowManager.Draw += Draw;
+        WindowManager.Instance().PostDraw += Draw;
         FrameworkManager.Instance().Reg(OnUpdate, 500);
 
         BarEntry         ??= DService.Instance().DTRBar.Get("DailyRoutines-AutoDisplayMitigationInfo");
@@ -255,7 +255,7 @@ public class AutoDisplayMitigationInfo : ModuleBase
         if (!IsCombatEventsRegistered)
             return;
 
-        WindowManager.Draw -= Draw;
+        WindowManager.Instance().PostDraw -= Draw;
         FrameworkManager.Instance().Unreg(OnUpdate);
         State.Clear();
 

@@ -260,13 +260,13 @@ public class AutoShopPurchase : ModuleBase
         private bool IsAddNewPresetWindowOpen;
 
         public ShopPresetDisplayTable() =>
-            WindowManager.Draw += WindowRenderAddNewPreset;
+            WindowManager.Instance().PostDraw += WindowRenderAddNewPreset;
 
         private static unsafe AtkUnitList FocusedList =>
             RaptureAtkUnitManager.Instance()->FocusedUnitsList;
 
         public void Dispose() =>
-            WindowManager.Draw -= WindowRenderAddNewPreset;
+            WindowManager.Instance().PostDraw -= WindowRenderAddNewPreset;
 
         public void Draw()
         {

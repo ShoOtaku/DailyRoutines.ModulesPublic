@@ -74,7 +74,7 @@ public unsafe class AutoCountPlayers : ModuleBase
         Entry.Text    =   $"{Lang.Get("AutoCountPlayers-PlayersAroundCount")}: 0";
         Entry.OnClick +=  _ => Overlay.IsOpen ^= true;
 
-        WindowManager.Draw += OnDraw;
+        WindowManager.Instance().PostDraw += OnDraw;
 
         PlayersManager.ReceivePlayersAround      += OnReceivePlayers;
         PlayersManager.ReceivePlayersTargetingMe += OnPlayersTargetingMeUpdate;
@@ -98,7 +98,7 @@ public unsafe class AutoCountPlayers : ModuleBase
 
         FrameworkManager.Instance().Unreg(OnUpdate);
 
-        WindowManager.Draw                       -= OnDraw;
+        WindowManager.Instance().PostDraw                       -= OnDraw;
         PlayersManager.ReceivePlayersAround      -= OnReceivePlayers;
         PlayersManager.ReceivePlayersTargetingMe -= OnPlayersTargetingMeUpdate;
 
