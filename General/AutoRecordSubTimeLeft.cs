@@ -24,13 +24,6 @@ namespace DailyRoutines.ModulesPublic;
 
 public class AutoRecordSubTimeLeft : ModuleBase
 {
-    private static readonly CompSig                          AgentLobbyOnLoginSig = new("E8 ?? ?? ?? ?? 41 C6 45 ?? ?? E9 ?? ?? ?? ?? 83 FB 03");
-    private static          Hook<AgentLobbyOnLoginDelegate>? AgentLobbyOnLoginHook;
-
-    private static Config           ModuleConfig = null!;
-    private static IDtrBarEntry?    Entry;
-    private static PlaytimeManager? Manager;
-
     public override ModuleInfo Info { get; } = new()
     {
         Title       = "自动记录剩余游戏时间",
@@ -38,6 +31,14 @@ public class AutoRecordSubTimeLeft : ModuleBase
         Category    = ModuleCategory.General,
         Author      = ["Due"]
     };
+    
+    private unsafe delegate nint AgentLobbyOnLoginDelegate(AgentLobby* agent);
+    private static readonly CompSig                          AgentLobbyOnLoginSig = new("E8 ?? ?? ?? ?? 41 C6 45 ?? ?? E9 ?? ?? ?? ?? 83 FB 03");
+    private static          Hook<AgentLobbyOnLoginDelegate>? AgentLobbyOnLoginHook;
+
+    private static Config           ModuleConfig = null!;
+    private static IDtrBarEntry?    Entry;
+    private static PlaytimeManager? Manager;
 
     public override ModulePermission Permission { get; } = new() { CNOnly = true, CNDefaultEnabled = true };
 
@@ -339,11 +340,9 @@ public class AutoRecordSubTimeLeft : ModuleBase
         if (timeSpan.Seconds > 0)
             parts.Add($"{timeSpan.Seconds} 秒");
 
-        return parts.Count > 0 ? string.Join(" ", parts) : "0 秒";
+        return parts.Count > 0 ? $"{string.Join(" ", parts)} ({timeSpan.TotalMinutes:F0} 分钟)" : "0 秒";
     }
-
-    private unsafe delegate nint AgentLobbyOnLoginDelegate(AgentLobby* agent);
-
+    
     private class Config : ModuleConfig
     {
         public Dictionary<ulong, (DateTime Record, TimeSpan LeftMonth, TimeSpan LeftTime)> Infos = [];
