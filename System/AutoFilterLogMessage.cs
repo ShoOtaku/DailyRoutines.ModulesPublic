@@ -1,4 +1,4 @@
-﻿using DailyRoutines.Common.Module.Abstractions;
+using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;

@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using DailyRoutines.Common.Info.Abstractions;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
