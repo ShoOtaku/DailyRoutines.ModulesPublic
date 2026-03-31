@@ -9,11 +9,9 @@ using DailyRoutines.Internal;
 using DailyRoutines.Manager;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Keys;
-using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using OmenTools.Dalamud;
 using OmenTools.Interop.Game;
-using OmenTools.Interop.Game.Models;
 using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
@@ -26,10 +24,6 @@ public unsafe class RightClickToMoveMode : ModuleBase
         Description = Lang.Get("RightClickToMoveModeDescription"),
         Category    = ModuleCategory.General
     };
-    
-    private delegate        void                                 GameObjectSetRotationDelegate(nint obj, float value);
-    private static readonly CompSig                              GameObjectSetRotationSig = new("40 53 48 83 EC ?? F3 0F 10 81 ?? ?? ?? ?? 48 8B D9 0F 2E C1");
-    private static          Hook<GameObjectSetRotationDelegate>? GameObjectSetRotationHook;
 
     private static Config ModuleConfig = null!;
 
@@ -41,9 +35,6 @@ public unsafe class RightClickToMoveMode : ModuleBase
     protected override void Init()
     {
         ModuleConfig = Config.Load(this) ?? new();
-
-        GameObjectSetRotationHook ??= GameObjectSetRotationSig.GetHook<GameObjectSetRotationDelegate>(GameObjectSetRotationDetour);
-        GameObjectSetRotationHook.Enable();
 
         DService.Instance().ClientState.TerritoryChanged += OnZoneChanged;
 
@@ -108,15 +99,6 @@ public unsafe class RightClickToMoveMode : ModuleBase
     {
         SessionManager.Stop();
         TargetIndicatorRenderer.Reset();
-    }
-
-    private static void GameObjectSetRotationDetour(nint obj, float value)
-    {
-        if (SessionManager.Current is { Driver: MoveDriver.Game } &&
-            obj == (DService.Instance().ObjectTable.LocalPlayer?.Address ?? nint.Zero))
-            return;
-
-        GameObjectSetRotationHook.Original(obj, value);
     }
     
     private static void OnMouseClickCaptured(Vector2 clientPosition)
@@ -412,13 +394,6 @@ public unsafe class RightClickToMoveMode : ModuleBase
                 return;
             }
 
-            var remainingDistance = vnavmeshIPC.GetPathLeftDistance();
-            if (remainingDistance is > 0f and <= NAVMESH_TOLERANCE)
-            {
-                Stop();
-                return;
-            }
-
             var isBusy = vnavmeshIPC.GetIsPathfindRunning() || vnavmeshIPC.GetIsPathfindInProgress() || vnavmeshIPC.GetIsNavPathfindInProgress();
             if (!isBusy && session.ElapsedSeconds >= 0.15f)
                 Stop();
@@ -445,9 +420,7 @@ public unsafe class RightClickToMoveMode : ModuleBase
                 MovementController.Enabled         = false;
                 MovementController.DesiredPosition = default;
             }
-
-            vnavmeshIPC.SetPathfindTolerance(NAVMESH_TOLERANCE);
-
+            
             var fly = DService.Instance().Condition[ConditionFlag.InFlight] || DService.Instance().Condition[ConditionFlag.Diving];
             if (!vnavmeshIPC.PathfindAndMoveTo(targetPosition, fly)) return;
 
@@ -725,7 +698,6 @@ public unsafe class RightClickToMoveMode : ModuleBase
     
     private const float GAME_ARRIVAL_DISTANCE_SQ    = 2.25f;
     private const float NAVMESH_ARRIVAL_DISTANCE_SQ = 2.25f;
-    private const float NAVMESH_TOLERANCE           = 1.5f;
     private const float SMART_GAME_DISTANCE_SQ      = 144f;
     private const float SMART_GAME_HEIGHT_DELTA     = 1.5f;
     private const float PULSE_DURATION_SECONDS      = 0.45f;
