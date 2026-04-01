@@ -23,6 +23,15 @@ namespace DailyRoutines.ModulesPublic;
 
 public class BetterFPSLimitation : ModuleBase
 {
+    public override ModuleInfo Info { get; } = new()
+    {
+        Title       = Lang.Get("BetterFPSLimitationTitle"),
+        Description = Lang.Get("BetterFPSLimitationDescription"),
+        Category    = ModuleCategory.System
+    };
+
+    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
+    
     private const string COMMAND = "fps";
 
     private static Config ModuleConfig = null!;
@@ -32,15 +41,6 @@ public class BetterFPSLimitation : ModuleBase
     private static AddonDRBetterFPSLimitation? Addon;
 
     private static ushort NewThresholdInput = 120;
-
-    public override ModuleInfo Info { get; } = new()
-    {
-        Title       = Lang.Get("BetterFPSLimitationTitle"),
-        Description = Lang.Get("BetterFPSLimitationDescription"),
-        Category    = ModuleCategory.System
-    };
-
-    public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
     protected override void Init()
     {
@@ -148,11 +148,10 @@ public class BetterFPSLimitation : ModuleBase
         Entry.Text = text;
     }
 
-    // TODO: FFCS
     private static unsafe void Update()
     {
-        *(int*)((nint)Device.Instance()   + 168) = ModuleConfig.IsEnabled ? 1 : 0;
-        *(short*)((nint)Device.Instance() + 174) = ModuleConfig.Limitation;
+        Device.Instance()->IsFrameRateLimited = ModuleConfig.IsEnabled;
+        Device.Instance()->FrameRateLimit     = (short)MathF.Min(ModuleConfig.Limitation + 2, short.MaxValue);
     }
 
     private static void HandleDtrEntry(bool isAdd)
