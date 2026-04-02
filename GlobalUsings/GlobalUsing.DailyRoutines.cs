@@ -1,1 +1,1 @@
-global using Lang = DailyRoutines.Manager.LanguageManager;
+global using Lang = DailyRoutines.Internal.PluginLanguage;
