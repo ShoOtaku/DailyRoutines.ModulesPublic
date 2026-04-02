@@ -152,8 +152,6 @@ public partial class AutoRecordSubTimeLeft
         using var popup = ImRaii.Popup(popupID, ImGuiWindowFlags.NoTitleBar);
         if (!popup) return;
         
-        // ImGui.SetWindowSize(new(picker.PickerWidth, ImGui.GetWindowSize().Y));
-        
         var tempValue = value;
         if (picker.Draw($"##{popupID}-Picker", ref tempValue))
         {
