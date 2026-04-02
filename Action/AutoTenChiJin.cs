@@ -29,11 +29,9 @@ public unsafe class AutoTenChiJin : ModuleBase
         Category    = ModuleCategory.Action
     };
 
-    private static readonly CompSig IsSlotUsableSig = new("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 0F B6 F2 48 8B D9 41 8B F8");
-
-    private delegate byte IsSlotUsableDelegate(RaptureHotbarModule.HotbarSlot* slot, RaptureHotbarModule.HotbarSlotType type, uint id);
-
-    private static Hook<IsSlotUsableDelegate>? IsSlotUsableHook;
+    private static readonly CompSig                     IsSlotUsableSig = new("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 0F B6 F2 48 8B D9 41 8B F8");
+    private delegate        byte                        IsSlotUsableDelegate(RaptureHotbarModule.HotbarSlot* slot, RaptureHotbarModule.HotbarSlotType type, uint id);
+    private static          Hook<IsSlotUsableDelegate>? IsSlotUsableHook;
 
     private static Config                         ModuleConfig = null!;
     private static AddonDRNinJutsuActionsPreview? Addon;
