@@ -10,6 +10,7 @@ using Task = System.Threading.Tasks.Task;
 
 namespace DailyRoutines.ModulesPublic;
 
+// DumpCensorship
 public unsafe class AutoDumpCensoredWords : ModuleBase
 {
     public override ModuleInfo Info { get; } = new()
