@@ -10,7 +10,6 @@ using Task = System.Threading.Tasks.Task;
 
 namespace DailyRoutines.ModulesPublic;
 
-// DumpCensorship
 public unsafe class AutoDumpCensoredWords : ModuleBase
 {
     public override ModuleInfo Info { get; } = new()
@@ -22,8 +21,9 @@ public unsafe class AutoDumpCensoredWords : ModuleBase
 
     public override ModulePermission Permission { get; } = new() { CNOnly = true };
 
-    private static readonly CompSig VulgarInstanceOffsetBaseSig =
-        new("48 8B 81 ?? ?? ?? ?? 48 85 C0 74 ?? 48 8B D3");
+    private static readonly CompSig VulgarInstanceOffsetBaseSig = new(VULGAR_INSTANCE_OFFSET_BASE_PATTERN);
+    
+    private static readonly long HashProbeSalt = ComputeHashProbeSalt();
 
     private nint vulgarInstanceOffset;
 
@@ -72,6 +72,32 @@ public unsafe class AutoDumpCensoredWords : ModuleBase
         return allWords;
     }
 
+    private static long ComputeHashProbeSalt()
+    {
+        var hash = 0xCBF29CE484222325UL;
+
+        foreach (var character in VULGAR_INSTANCE_OFFSET_BASE_PATTERN)
+        {
+            hash ^= character;
+            hash *= 0x100000001B3UL;
+        }
+
+        foreach (var level in TrieLevels)
+        {
+            for (var round = 0; round < (level * 2) + 1; round++)
+            {
+                hash += (ulong)(level + TRIE_OFFSET_TABLE_BASE);
+
+                var mixed = hash;
+                mixed = (mixed ^ (mixed >> 30)) * 0xBF58476D1CE4E5B9UL;
+                mixed = (mixed ^ (mixed >> 27)) * 0x94D049BB133111EBUL;
+                hash  = mixed ^ (mixed >> 31);
+            }
+        }
+
+        return (long)(hash & HASH_PROBE_SALT_MASK);
+    }
+
     private class DicPointerParser
     (
         byte* basePtr
@@ -95,7 +121,7 @@ public unsafe class AutoDumpCensoredWords : ModuleBase
         private int GetTrieOffset
         (
             int level
-        ) => (int)ReadU32(0x8110 + (4 * level));
+        ) => (int)ReadU32(TRIE_OFFSET_TABLE_BASE + (4 * level));
 
         private bool IsCharClassified
         (
@@ -228,17 +254,18 @@ public unsafe class AutoDumpCensoredWords : ModuleBase
             var words   = new List<string>();
             var trieOff = GetTrieOffset(3);
             if (trieOff == 0) return words;
-            var trie            = trieOff;
-            var offset0         = (int)ReadU32(trie + 0x00);
-            var offset1         = (int)ReadU32(trie + 0x04);
-            var offset2         = (int)ReadU32(trie + 0x08);
-            var hashTable       = trie + offset0 + 0x1C;
-            var bucketEntryBase = trie + offset1 + 0x1C;
-            var wordDataBase    = trie + offset2 + 0x1C;
+            var offset0         = (int)ReadU32(trieOff + 0x00);
+            var offset1         = (int)ReadU32(trieOff + 0x04);
+            var offset2         = (int)ReadU32(trieOff + 0x08);
+            var hashTable       = trieOff + offset0 + 0x1C;
+            var bucketEntryBase = trieOff + offset1 + 0x1C;
+            var wordDataBase    = trieOff + offset2 + 0x1C;
+            var probeStart      = (int)((ulong)HashProbeSalt % HASH_BUCKET_COUNT);
 
-            for (var bucketIdx = 0; bucketIdx < 1024; bucketIdx++)
+            for (var probeOffset = 0; probeOffset < HASH_BUCKET_COUNT; probeOffset++)
             {
-                var entryIdx = (int)ReadU32(hashTable + (4 * bucketIdx));
+                var bucketIdx = (probeStart + probeOffset) & (HASH_BUCKET_COUNT - 1);
+                var entryIdx  = (int)ReadU32(hashTable + (4 * bucketIdx));
 
                 while (entryIdx != 0)
                 {
@@ -254,7 +281,6 @@ public unsafe class AutoDumpCensoredWords : ModuleBase
                         var ch = ReadU16(wordOff + (2 * i));
                         if (ch == 0) break;
 
-                        // 0x100002400
                         if (ch <= 0x20 && ((0x100002400L >> ch) & 1) != 0)
                         {
                             i++;
@@ -282,12 +308,26 @@ public unsafe class AutoDumpCensoredWords : ModuleBase
         public Dictionary<string, List<string>> DumpAll()
         {
             var results = new Dictionary<string, List<string>>();
-            foreach (var level in new[] { 0, 1, 2, 4 })
-                results[$"L{level}"] = TraverseTrie(level).Distinct().ToList();
-            results["L3"] = TraverseHash().Distinct().ToList();
+            foreach (var level in TrieLevels)
+                results[$"L{level}"] = [.. TraverseTrie(level).Distinct()];
+            results["L3"] = [.. TraverseHash().Distinct()];
             return results;
         }
     }
+    
+    #region 常量
+    
+    private const string VULGAR_INSTANCE_OFFSET_BASE_PATTERN = "48 8B 81 ?? ?? ?? ?? 48 85 C0 74 ?? 48 8B D3";
+
+    private const int HASH_BUCKET_COUNT = 1024;
+
+    private const int TRIE_OFFSET_TABLE_BASE = 0x8110;
+
+    private const ulong HASH_PROBE_SALT_MASK = 0xFFFF_FFFF_FFFFUL;
+    
+    private static readonly int[] TrieLevels = [0, 1, 2, 4];
+    
+    #endregion
 }
 
 #endif
