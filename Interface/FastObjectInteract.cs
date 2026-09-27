@@ -376,10 +376,10 @@ public unsafe partial class FastObjectInteract : ModuleBase
                     ChatManager.Instance().SendMessage($"/pdr insc {i}");
             }
         }
-        
+
         ImGui.SameLine();
         ImGui.SetCursorPosX(currentPosX);
-        ImGui.InvisibleButton("副本区", new(windowWidth, ImGui.GetFrameHeight()));
+        ImGui.InvisibleButton("副本区", new(Math.Max(windowWidth, 1f), ImGui.GetFrameHeight()));
     }
 
     private void RenderWorldChangeButtons()
@@ -387,7 +387,7 @@ public unsafe partial class FastObjectInteract : ModuleBase
         using var disabled = ImRaii.Disabled(isOnWorldTraveling);
 
         var currentPosX = ImGui.GetCursorPosX();
-        
+
         if (ImGui.CollapsingHeader(LuminaWrapper.GetAddonText(12510)))
         {
             foreach (var worldPair in dcWorlds)
@@ -397,10 +397,10 @@ public unsafe partial class FastObjectInteract : ModuleBase
                     ChatManager.Instance().SendMessage($"/pdr worldtravel {worldPair.Key}");
             }
         }
-        
+
         ImGui.SameLine();
         ImGui.SetCursorPosX(currentPosX);
-        ImGui.InvisibleButton("跨界传送", new(windowWidth, ImGui.GetFrameHeight()));
+        ImGui.InvisibleButton("跨界传送", new(Math.Max(windowWidth, 1f), ImGui.GetFrameHeight()));
     }
 
     private void RenderAethernetShardButtons
@@ -420,10 +420,10 @@ public unsafe partial class FastObjectInteract : ModuleBase
                     shard.TeleportTo();
             }
         }
-        
+
         ImGui.SameLine();
         ImGui.SetCursorPosX(currentPosX);
-        ImGui.InvisibleButton("城内以太之晶", new(windowWidth, ImGui.GetFrameHeight()));
+        ImGui.InvisibleButton("城内以太之晶", new(Math.Max(windowWidth, 1f), ImGui.GetFrameHeight()));
     }
 
     public bool ButtonCenterText
