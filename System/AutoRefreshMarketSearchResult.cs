@@ -1,6 +1,7 @@
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
+using Dalamud.Game.ClientState.Conditions;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using OmenTools.Interop.Game;
 using OmenTools.Interop.Game.Models;
@@ -53,6 +54,9 @@ public unsafe class AutoRefreshMarketSearchResult : ModuleBase
         int errorCode
     )
     {
+        if (ICondition.Instance()[ConditionFlag.OnFreeTrial])
+            return;
+        
         TaskHelper.Abort();
         TaskHelper.DelayNext(500, 1000);
         TaskHelper.Enqueue(() => InfoProxyItemSearch.Instance()->RequestData());
