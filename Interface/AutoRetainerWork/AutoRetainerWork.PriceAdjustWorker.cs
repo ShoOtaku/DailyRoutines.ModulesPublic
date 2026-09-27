@@ -42,18 +42,7 @@ public unsafe partial class AutoRetainerWork
         AutoRetainerWork module
     ) : RetainerWorkerBase(module)
     {
-        private delegate void MoveToRetainerMarketDelegate
-        (
-            InventoryManager* manager,
-            InventoryType     srcInv,
-            ushort            srcSlot,
-            InventoryType     dstInv,
-            ushort            dstSlot,
-            uint              quantity,
-            uint              unitPrice
-        );
-
-        private Hook<MoveToRetainerMarketDelegate>? MoveToRetainerMarketHook;
+        private Hook<InventoryManager.Delegates.MoveToRetainerMarket>? MoveToRetainerMarketHook;
 
         private TaskHelper?     taskHelper;
         private ItemSelectCombo itemSelectCombo = null!;
@@ -74,7 +63,7 @@ public unsafe partial class AutoRetainerWork
         private ResNode?         autoPriceAdjustWarningNode;
 
         private bool isPriceAdjustAllSameItems;
-        
+
         public override bool IsWorkerBusy() =>
             taskHelper?.IsBusy ?? false;
 
@@ -85,7 +74,7 @@ public unsafe partial class AutoRetainerWork
             (
                 typeof(InventoryManager.MemberFunctionPointers),
                 "MoveToRetainerMarket",
-                (MoveToRetainerMarketDelegate)MoveToRetainerMarketDetour
+                (InventoryManager.Delegates.MoveToRetainerMarket)MoveToRetainerMarketDetour
             );
             MoveToRetainerMarketHook.Enable();
 
@@ -97,7 +86,7 @@ public unsafe partial class AutoRetainerWork
                     return;
                 ToggleOverlayIPC.TryInvokeFunc(false);
             };
-            
+
             contextMenuEntry = new(this);
             priceAdjustAddon = new(this)
             {
@@ -122,10 +111,10 @@ public unsafe partial class AutoRetainerWork
 
             priceAdjustAddon?.Dispose();
             priceAdjustAddon = null;
-            
+
             openMarketEvent?.Dispose();
             openMarketEvent = null;
-            
+
             priceAdjustAllSameEvent?.Dispose();
             priceAdjustAllSameEvent = null;
 
@@ -133,7 +122,7 @@ public unsafe partial class AutoRetainerWork
             MoveToRetainerMarketHook = null;
 
             IAddonLifecycle.Instance().UnregisterListener(OnRetainerSell);
-            
+
             autoPriceAdjustWarningNode?.Dispose();
             autoPriceAdjustWarningNode = null;
 
@@ -143,7 +132,7 @@ public unsafe partial class AutoRetainerWork
             PriceCacheManager.ClearCache();
 
             contextMenuEntry = null;
-            
+
             taskHelper?.Abort();
             taskHelper?.Dispose();
             taskHelper = null;
@@ -185,17 +174,6 @@ public unsafe partial class AutoRetainerWork
                     isChecked =>
                     {
                         Module.config.SendPriceAdjustProcessMessage = isChecked;
-                        Module.config.Save(Module);
-                    },
-                    width
-                ),
-                CreateOverlayCheckbox
-                (
-                    Lang.Get("AutoRetainerWork-PriceAdjust-AutoAdjustWhenNewOnSale"),
-                    Module.config.AutoPriceAdjustWhenNewOnSale,
-                    isChecked =>
-                    {
-                        Module.config.AutoPriceAdjustWhenNewOnSale = isChecked;
                         Module.config.Save(Module);
                     },
                     width
@@ -671,26 +649,65 @@ public unsafe partial class AutoRetainerWork
         {
             if (!ICondition.Instance()[ConditionFlag.OccupiedSummoningBell]) return;
 
+            var slot = InventoryManager.Instance()->GetInventorySlot
+            (
+                AgentRetainer.Instance()->SellItemInventoryType,
+                AgentRetainer.Instance()->SellItemInventorySlot
+            );
+            if (slot == null) return;
+
             switch (type)
             {
                 case AddonEvent.PostSetup:
+                    if (AgentRetainer.Instance()->SellItemInventoryType != InventoryType.RetainerMarket)
+                    {
+                        var itemConfig = GetItemConfigByItemKey(new(slot->GetBaseItemId(), slot->IsHighQuality()));
+                        if (itemConfig.UpshelfCount > 0)
+                        {
+                            var quantityInput = (AtkComponentNumericInput*)RetainerSell->GetComponentByNodeId(14);
+                            if (quantityInput != null)
+                                quantityInput->InnerSetValue(itemConfig.UpshelfCount, true, false);
+                        }
+
+                        if (Module.config.AutoOnSale)
+                        {
+                            RetainerSell->Callback(0);
+                            return;
+                        }
+                        
+                        if (Module.config.AutoPriceAdjustWhenNewOnSale)
+                        {
+                            var countInputComponent = (AtkComponentNumericInput*)RetainerSell->GetComponentByNodeId(14);
+                            var priceInputComponent = (AtkComponentNumericInput*)RetainerSell->GetComponentByNodeId(10);
+
+                            if (countInputComponent != null &&
+                                priceInputComponent != null)
+                            {
+                                priceInputComponent->SetEnabledState(false);
+
+                                var ownerNode = priceInputComponent->OwnerNode;
+                                if (ownerNode == null) return;
+
+                                var parentNode = ownerNode->ParentNode;
+                                if (parentNode == null) return;
+
+                                autoPriceAdjustWarningNode = new()
+                                {
+                                    Size        = new(ownerNode->Width, ownerNode->Height),
+                                    Position    = new(ownerNode->X, ownerNode->Y),
+                                    TextTooltip = Lang.Get("AutoRetainerWork-PriceAdjust-AutoAdjustWhenNewOnSale-Warning")
+                                };
+                                autoPriceAdjustWarningNode.AttachNode(parentNode);
+                            }
+                        }
+                    }
+
                     var marketButton = RetainerSell->GetComponentButtonById(4);
                     if (marketButton != null)
                     {
                         marketButton->OwnerNode->ClearEvents();
-                        
-                        openMarketEvent = new((_, _, _, _) =>
-                            {
-                                var slot = InventoryManager.Instance()->GetInventorySlot
-                                (
-                                    AgentRetainer.Instance()->SellItemInventoryType,
-                                    AgentRetainer.Instance()->SellItemInventorySlot
-                                );
-                                if (slot == null) return;
-                                
-                                RequestMarketItemData(slot->GetBaseItemId(), true);
-                            }
-                        );
+
+                        openMarketEvent = new((_, _, _, _) => RequestMarketItemData(slot->GetBaseItemId(), true));
                         openMarketEvent.Add(RetainerSell, (AtkResNode*)marketButton->OwnerNode, AtkEventType.ButtonClick);
                     }
 
@@ -701,16 +718,10 @@ public unsafe partial class AutoRetainerWork
                         if (confirmButton != null)
                         {
                             confirmButton->OwnerNode->ClearEvents();
-                            
-                            priceAdjustAllSameEvent = new((_, _, _, _) =>
-                                {
-                                    var slot = InventoryManager.Instance()->GetInventorySlot
-                                    (
-                                        AgentRetainer.Instance()->SellItemInventoryType,
-                                        AgentRetainer.Instance()->SellItemInventorySlot
-                                    );
-                                    if (slot == null) return;
 
+                            priceAdjustAllSameEvent = new
+                            ((_, _, _, _) =>
+                                {
                                     if (TryGetSameItemSlots(slot->GetBaseItemId(), out var slots))
                                     {
                                         foreach (var s in slots)
@@ -725,40 +736,14 @@ public unsafe partial class AutoRetainerWork
                         }
                     }
 
-                    if (Module.config.AutoPriceAdjustWhenNewOnSale)
-                    {
-                        var countInputComponent = (AtkComponentNumericInput*)RetainerSell->GetComponentByNodeId(14);
-                        var priceInputComponent = (AtkComponentNumericInput*)RetainerSell->GetComponentByNodeId(10);
-
-                        if (countInputComponent                             != null &&
-                            priceInputComponent                             != null &&
-                            AgentRetainer.Instance()->SellItemInventoryType != InventoryType.RetainerMarket)
-                        {
-                            priceInputComponent->SetEnabledState(false);
-
-                            var ownerNode = priceInputComponent->OwnerNode;
-                            if (ownerNode == null) return;
-
-                            var parentNode = ownerNode->ParentNode;
-                            if (parentNode == null) return;
-
-                            autoPriceAdjustWarningNode = new()
-                            {
-                                Size        = new(ownerNode->Width, ownerNode->Height),
-                                Position    = new(ownerNode->X, ownerNode->Y),
-                                TextTooltip = Lang.Get("AutoRetainerWork-PriceAdjust-AutoAdjustWhenNewOnSale-Warning")
-                            };
-                            autoPriceAdjustWarningNode.AttachNode(parentNode);
-                        }
-                    }
                     break;
-                
+
                 case AddonEvent.PreFinalize:
                     autoPriceAdjustWarningNode = null;
-                    
+
                     openMarketEvent?.Dispose();
                     openMarketEvent = null;
-                    
+
                     priceAdjustAllSameEvent?.Dispose();
                     priceAdjustAllSameEvent = null;
 
@@ -794,6 +779,7 @@ public unsafe partial class AutoRetainerWork
         )
         {
             var slot = manager->GetInventorySlot(srcInv, srcSlot);
+
             if (slot == null)
             {
                 InvokeOriginal();
@@ -1474,11 +1460,12 @@ public unsafe partial class AutoRetainerWork
             PriceAdjustWorker worker
         ) : AttachedAddon("RetainerSellList")
         {
-            protected override bool CanOpenAddon => 
+            protected override bool CanOpenAddon =>
                 ICondition.Instance()[ConditionFlag.OccupiedSummoningBell];
 
             public TextButtonNode? PriceAdjustButton         { get; private set; }
             public CheckboxNode?   AutoAdjustPriceCheckbox   { get; private set; }
+            public CheckboxNode?   AutoOnSaleCheckbox        { get; private set; }
             public CheckboxNode?   NotifyPriceAdjustCheckbox { get; private set; }
 
             protected override void OnSetup
@@ -1487,12 +1474,43 @@ public unsafe partial class AutoRetainerWork
                 Span<AtkValue> atkValues
             )
             {
+                var iconRow = new HorizontalListNode
+                {
+                    Alignment         = HorizontalListAnchor.Right,
+                    Position          = ContentStartPosition + new Vector2(ContentSize.X - 1f, 0),
+                    FitToContentWidth = true
+                };
+                iconRow.AttachNode(this);
+
+                var settingsButton = new CircleButtonNode
+                {
+                    Icon        = CircleButtonIcon.GearCog,
+                    Size        = new(28),
+                    TextTooltip = Lang.Get("Settings"),
+                    OnClick     = () => ChatManager.Instance().SendCommand("/pdr search AutoRetainerWork")
+                };
+                iconRow.AddNode(settingsButton);
+
+                var clearPriceCacheButton = new CircleButtonNode
+                {
+                    Icon        = CircleButtonIcon.Refresh,
+                    TextTooltip = Lang.Get("AutoRetainerWork-PriceAdjust-ClearCache"),
+                    Size        = new(28),
+                    OnClick = () =>
+                    {
+                        PriceCacheManager.ClearCache();
+                        NotifyHelper.Toast(Lang.Get("AutoRetainerWork-PriceAdjust-CacheCleared"));
+                    }
+                };
+                iconRow.AddNode(clearPriceCacheButton);
+
                 var rootContainer = new VerticalListNode
                 {
-                    ItemSpacing = 5f,
-                    Position    = ContentStartPosition,
-                    Width       = ContentSize.X,
-                    FitContents = true
+                    ItemSpacing      = 5f,
+                    FirstItemSpacing = 30f,
+                    Position         = ContentStartPosition,
+                    Width            = ContentSize.X,
+                    FitContents      = true
                 };
                 rootContainer.AttachNode(this);
 
@@ -1510,14 +1528,15 @@ public unsafe partial class AutoRetainerWork
                     }
                 };
                 rootContainer.AddNode(PriceAdjustButton);
-                
+
                 var returnToInventory = new TextButtonNode
                 {
-                    String      = Lang.Get("AutoRetainerWork-PriceAdjust-ReturnAllToInventory"),
-                    Size        = new(rootContainer.Width, 28),
+                    String = Lang.Get("AutoRetainerWork-PriceAdjust-ReturnAllToInventory"),
+                    Size   = new(rootContainer.Width, 28),
                     OnClick = () =>
                     {
                         var container = InventoryManager.Instance()->GetInventoryContainer(InventoryType.RetainerMarket);
+
                         for (var i = 0; i < container->Size; i++)
                         {
                             var index = i;
@@ -1530,7 +1549,7 @@ public unsafe partial class AutoRetainerWork
                     }
                 };
                 rootContainer.AddNode(returnToInventory);
-                
+
                 var returnToRetainer = new TextButtonNode
                 {
                     String = Lang.Get("AutoRetainerWork-PriceAdjust-ReturnAllToRetainer"),
@@ -1538,6 +1557,7 @@ public unsafe partial class AutoRetainerWork
                     OnClick = () =>
                     {
                         var container = InventoryManager.Instance()->GetInventoryContainer(InventoryType.RetainerMarket);
+
                         for (var i = 0; i < container->Size; i++)
                         {
                             var index = i;
@@ -1550,24 +1570,13 @@ public unsafe partial class AutoRetainerWork
                     }
                 };
                 rootContainer.AddNode(returnToRetainer);
-                
-                var clearPriceCace = new TextButtonNode
-                {
-                    String = Lang.Get("AutoRetainerWork-PriceAdjust-ClearCache"),
-                    Size   = new(rootContainer.Width, 28),
-                    OnClick = () =>
-                    {
-                        PriceCacheManager.ClearCache();
-                        NotifyHelper.Toast(Lang.Get("AutoRetainerWork-PriceAdjust-CacheCleared"));
-                    }
-                };
-                rootContainer.AddNode(clearPriceCace);
-                
+
                 rootContainer.AddDummy(2f);
 
                 AutoAdjustPriceCheckbox = new()
                 {
                     String    = Lang.Get("AutoRetainerWork-PriceAdjust-AutoAdjustWhenNewOnSale"),
+                    TextTooltip = Lang.Get("AutoRetainerWork-PriceAdjust-AutoAdjustWhenNewOnSale-Help"),
                     Size      = new(rootContainer.Width, 28),
                     IsChecked = worker.Module.config.AutoPriceAdjustWhenNewOnSale,
                     OnClick = value =>
@@ -1578,6 +1587,20 @@ public unsafe partial class AutoRetainerWork
                 };
                 rootContainer.AddNode(AutoAdjustPriceCheckbox);
                 
+                AutoOnSaleCheckbox = new()
+                {
+                    String      = Lang.Get("AutoRetainerWork-PriceAdjust-AutoOnSale"),
+                    TextTooltip = Lang.Get("AutoRetainerWork-PriceAdjust-AutoOnSale-Help"),
+                    Size        = new(rootContainer.Width, 28),
+                    IsChecked   = worker.Module.config.AutoOnSale,
+                    OnClick = value =>
+                    {
+                        worker.Module.config.AutoOnSale = value;
+                        worker.Module.config.Save(worker.Module);
+                    }
+                };
+                rootContainer.AddNode(AutoOnSaleCheckbox);
+
                 NotifyPriceAdjustCheckbox = new()
                 {
                     String    = Lang.Get("AutoRetainerWork-PriceAdjust-SendProcessMessage"),
@@ -1590,7 +1613,7 @@ public unsafe partial class AutoRetainerWork
                     }
                 };
                 rootContainer.AddNode(NotifyPriceAdjustCheckbox);
-                
+
                 rootContainer.RecalculateLayout();
                 SetWindowSize(Size.X, ContentStartPosition.Y + rootContainer.Height + 20f);
                 rootContainer.Position = ContentStartPosition;

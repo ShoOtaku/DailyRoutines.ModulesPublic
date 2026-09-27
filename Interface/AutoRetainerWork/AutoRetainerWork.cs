@@ -579,6 +579,8 @@ public unsafe partial class AutoRetainerWork : ModuleBase
     private class Config : ModuleConfig
     {
         public bool AutoPriceAdjustWhenNewOnSale = true;
+        
+        public bool AutoOnSale = true;
 
         public bool AutoRetainerCollect = true;
 
