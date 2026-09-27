@@ -99,9 +99,12 @@ public unsafe partial class AutoShowItemNPCShopInfo
                     slot.CostRows[i].IsVisible = false;
 
             slot.SortedNPCInfos =
-            [
-                .. group.NPCInfos.Select(x => new NPCDisplayInfo(x.Name, x.Location, x.CostInfos))
-            ];
+                SortNPCInfos
+                (
+                    [
+                        .. group.NPCInfos.Select(x => new NPCDisplayInfo(x.Name, x.Location, x.CostInfos))
+                    ]
+                );
             slot.NPCCurrentPage = 0;
             ShowNPCPage(slot);
         }

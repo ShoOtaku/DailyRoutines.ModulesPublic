@@ -68,10 +68,13 @@ public unsafe partial class AutoShowItemNPCShopInfo
             slot.ItemName.String   = exchangeItem.GetItemName();
             slot.ItemName.FontSize = 16;
 
-            slot.SortedNPCInfos = SortNPCInfos
-            (
-                [.. exchangeItem.NPCInfos.Select(x => new NPCDisplayInfo(x.Name, x.Location, x.CostInfos))]
-            );
+            slot.SortedNPCInfos =
+                SortNPCInfos
+                (
+                    [
+                        .. exchangeItem.NPCInfos.Select(x => new NPCDisplayInfo(x.Name, x.Location, x.CostInfos))
+                    ]
+                );
 
             var firstNPC = slot.SortedNPCInfos.FirstOrDefault();
             var hasCost  = firstNPC is { CostInfos.Count: > 0 };

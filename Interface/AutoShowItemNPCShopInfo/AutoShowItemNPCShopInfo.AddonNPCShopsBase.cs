@@ -232,8 +232,7 @@ public unsafe partial class AutoShowItemNPCShopInfo
         [
             .. npcInfos.Where(x => x.Location               != null)
                        .OrderBy(x => x.Location.TerritoryID == 282)
-                       .ThenBy(x => GetLocationName(x.Location))
-                       .ThenBy(x => x.Name)
+                       .ThenBy(x => x.Location.TerritoryID)
         ];
 
         protected void ShowPage
@@ -398,7 +397,7 @@ public unsafe partial class AutoShowItemNPCShopInfo
         public sealed record NPCDisplayInfo
         (
             string                 Name,
-            ShopNPCLocation        Location,
+            ShopNPCLocation?       Location,
             List<ShopItemCostInfo> CostInfos
         );
 
