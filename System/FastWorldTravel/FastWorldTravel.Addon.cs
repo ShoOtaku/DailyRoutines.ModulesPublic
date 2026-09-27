@@ -64,9 +64,7 @@ public partial class FastWorldTravel
             Addon ??= new(module.TaskHelper)
             {
                 InternalName = "DRFastWorldTravel",
-                Title = GameState.IsCN ?
-                            $"Daily Routines {module.Info.Title}" :
-                            LuminaWrapper.GetAddonText(12510),
+                Title = LuminaWrapper.GetAddonText(12510),
                 Size = new
                 (
                     GameState.IsCN ?
