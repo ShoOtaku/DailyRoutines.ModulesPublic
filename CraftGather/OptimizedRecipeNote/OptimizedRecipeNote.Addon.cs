@@ -461,7 +461,7 @@ public partial class OptimizedRecipeNote
                 OnClick = (_, _, _, _, atkEventData) =>
                 {
                     if (!atkEventData->IsRightClick) return;
-                    Module.OpenItemContextMenu(resultItem.RowId);
+                    ContextMenuManager.Instance().OpenItem(resultItem.RowId);
                 }
             };
             ItemInfoContainer.AddNode(ItemIcon);

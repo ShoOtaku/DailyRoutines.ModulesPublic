@@ -75,20 +75,6 @@ public partial class OptimizedRecipeNote : ModuleBase
     );
     private Hook<RecipeNotePraticeSettingSetupDelegate>? RecipeNotePraticeSettingSetupHook;
 
-    private static readonly CompSig OpenContextMenuForItemSig = 
-        new("40 53 55 56 57 41 54 41 56 41 57 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 44 8B B4 24");
-    private unsafe delegate void OpenContextMenuForItemDelegate
-    (
-        AgentRecipeNote* agent,
-        uint             itemID,
-        CStringPointer   itemName,
-        short            a4,
-        int              recipeID,
-        int              craftType,
-        short            a7
-    );
-    private OpenContextMenuForItemDelegate? OpenContextMenuForItem;
-
     private Config config = null!;
 
     private readonly Dictionary<uint, CaculationResult> caculationResults = [];
@@ -128,8 +114,6 @@ public partial class OptimizedRecipeNote : ModuleBase
         TaskHelper ??= new() { TimeoutMS = 15_000 };
 
         config = Config.Load(this) ?? new();
-
-        OpenContextMenuForItem = OpenContextMenuForItemSig.GetDelegate<OpenContextMenuForItemDelegate>();
         
         SimpleCraftGetAmountUpperLimitHook =
             SimpleCraftGetAmountUpperLimitSig.GetHook<SimpleCraftGetAmountUpperLimitDelegate>(SimpleCraftGetAmountUpperLimitDetour);
@@ -1221,21 +1205,6 @@ public partial class OptimizedRecipeNote : ModuleBase
     #endregion
 
     #region 工具
-
-    private unsafe void OpenItemContextMenu(uint itemID)
-    {
-        using var itemNameString = new Utf8String(LuminaWrapper.GetItemName(itemID));
-        OpenContextMenuForItem
-        (
-            AgentRecipeNote.Instance(),
-            itemID,
-            itemNameString.StringPtr,
-            0,
-            255,
-            0,
-            0
-        );
-    }
     
     private static unsafe bool TryGetCurrentRecipe
     (
