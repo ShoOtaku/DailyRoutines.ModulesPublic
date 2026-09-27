@@ -382,13 +382,13 @@ public unsafe class CustomizeGameObject : ModuleBase
         using var table     = ImRaii.Table("###ConfigTable", 7, ImGuiTableFlags.BordersInner, tableSize);
         if (!table) return;
 
-        ImGui.TableSetupColumn("启用",   ImGuiTableColumnFlags.WidthFixed, ImGui.GetTextLineHeightWithSpacing());
-        ImGui.TableSetupColumn("备注",   ImGuiTableColumnFlags.None,       20);
-        ImGui.TableSetupColumn("模式",   ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("ModelSkeletonID").X);
-        ImGui.TableSetupColumn("值",    ImGuiTableColumnFlags.None,       30);
-        ImGui.TableSetupColumn("缩放比例", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("99.99").X);
-        ImGui.TableSetupColumn("缩放特效", ImGuiTableColumnFlags.WidthFixed, ImGui.GetTextLineHeightWithSpacing());
-        ImGui.TableSetupColumn("操作",   ImGuiTableColumnFlags.WidthFixed, 6 * ImGui.GetTextLineHeightWithSpacing());
+        ImGui.TableSetupColumn("启用",   ImGuiTableColumnFlags.WidthFixed,   ImGui.GetTextLineHeightWithSpacing());
+        ImGui.TableSetupColumn("备注",   ImGuiTableColumnFlags.WidthStretch, 20);
+        ImGui.TableSetupColumn("模式",   ImGuiTableColumnFlags.WidthFixed,   ImGui.CalcTextSize("ModelSkeletonID").X);
+        ImGui.TableSetupColumn("值",    ImGuiTableColumnFlags.WidthStretch, 30);
+        ImGui.TableSetupColumn("缩放比例", ImGuiTableColumnFlags.WidthFixed,   ImGui.CalcTextSize("99.99").X);
+        ImGui.TableSetupColumn("缩放特效", ImGuiTableColumnFlags.WidthFixed,   ImGui.GetTextLineHeightWithSpacing());
+        ImGui.TableSetupColumn("操作",   ImGuiTableColumnFlags.WidthFixed,   6 * ImGui.GetTextLineHeightWithSpacing());
 
         ImGui.TableNextRow(ImGuiTableRowFlags.Headers);
 
@@ -680,11 +680,11 @@ public unsafe class CustomizeGameObject : ModuleBase
         )
         {
             ImGui.TableNextRow();
-            
+
             ImGui.TableNextColumn();
             ImGui.AlignTextToFramePadding();
             ImGui.TextUnformatted(label);
-            
+
             ImGui.TableNextColumn();
             ImGui.SetNextItemWidth(-1f);
             ImGui.InputText($"###{label}Preview", ref value, 128, ImGuiInputTextFlags.ReadOnly);
