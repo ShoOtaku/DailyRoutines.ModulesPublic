@@ -21,9 +21,7 @@ public unsafe partial class AutoShowItemNPCShopInfo
         protected const int   MAX_COSTS     = 4;
         protected const int   NPCS_PER_PAGE = 5;
         protected const float HEADER_HEIGHT = 42f;
-        protected const float MAP_BTN_WIDTH = 28f;
         protected const float ROW_SPACING   = 4f;
-        protected const float ROW_SPACING_X = 6f;
 
         private int currentPage;
         private int totalPages;
@@ -33,6 +31,8 @@ public unsafe partial class AutoShowItemNPCShopInfo
         private PaginationNode?                  paginationBar;
 
         private TSectionSlot[]? sectionSlots;
+
+        private NPCRowNode? selectedSlot; 
 
         [SetsRequiredMembers]
         protected AddonNPCShopsBase
@@ -202,9 +202,22 @@ public unsafe partial class AutoShowItemNPCShopInfo
             float        contentWidth
         )
         {
-            slot.NPCRows = new NPCRowSlot[NPCS_PER_PAGE];
+            slot.NPCRows = new NPCRowNode[NPCS_PER_PAGE];
+
             for (var i = 0; i < NPCS_PER_PAGE; i++)
-                slot.NPCRows[i] = CreateNPCRowSlot(slot.Content, contentWidth);
+            {
+                var row = CreateNPCRow(slot.Content, contentWidth);
+
+                row.OnClick = () =>
+                {
+                    if (row.NPCInfo is not { } info) return;
+
+                    SelectNPCRow(row);
+                    OpenMap(info.Location, info.Name);
+                };
+
+                slot.NPCRows[i] = row;
+            }
 
             slot.NPCPaginationBar = new PaginationNode
             {
@@ -277,10 +290,10 @@ public unsafe partial class AutoShowItemNPCShopInfo
             for (var i = 0; i < NPCS_PER_PAGE; i++)
                 if (i < pageNpcs.Count)
                 {
-                    UpdateNPCRow(slot.NPCRows[i], pageNpcs[i]);
-                    slot.NPCRows[i].Row.IsVisible = true;
+                    slot.NPCRows[i].SetNPCInfo(pageNpcs[i]);
+                    slot.NPCRows[i].IsVisible = true;
                 }
-                else slot.NPCRows[i].Row.IsVisible = false;
+                else slot.NPCRows[i].IsVisible = false;
 
             var hasNPCPagination = totalNpcs > NPCS_PER_PAGE;
             slot.NPCPaginationBar.IsVisible = hasNPCPagination;
@@ -314,68 +327,34 @@ public unsafe partial class AutoShowItemNPCShopInfo
         ) =>
             slot.NPCPaginationBar.X = (slot.Content.Width - slot.NPCPaginationBar.Width) / 2.0f;
 
-        protected static NPCRowSlot CreateNPCRowSlot
+        private void SelectNPCRow
+        (
+            NPCRowNode row
+        )
+        {
+            if (sectionSlots == null) return;
+
+            selectedSlot?.Selected = false;
+            
+            row.Selected = true;
+            selectedSlot = row;
+        }
+
+        protected static NPCRowNode CreateNPCRow
         (
             VerticalListNode parent,
             float            contentWidth
         )
         {
-            var slot = new NPCRowSlot
+            var row = new NPCRowNode
             {
-                Row = new HorizontalListNode
-                {
-                    Size        = new(contentWidth, 32),
-                    ItemSpacing = ROW_SPACING_X,
-                    IsVisible   = false
-                }
+                Size      = new(contentWidth, 32f),
+                IsVisible = false
             };
 
-            parent.AddNode(slot.Row);
+            parent.AddNode(row);
 
-            slot.NPCNameNode = new TextNode
-            {
-                TextFlags = TextFlags.Ellipsis,
-                Position  = new(0, 4),
-                Size      = new(contentWidth - (3 * ROW_SPACING) - (2 * MAP_BTN_WIDTH), 28f),
-                FontSize  = 14
-            };
-            AtkColors.Text.ApplyTo(slot.NPCNameNode);
-            slot.Row.AddNode(slot.NPCNameNode);
-
-            slot.MapButton = new IconButtonNode
-            {
-                IconId      = 60561,
-                TextTooltip = LuminaWrapper.GetAddonText(467),
-                Size        = new(MAP_BTN_WIDTH),
-                Position    = new(0, -1)
-            };
-            slot.Row.AddNode(slot.MapButton);
-
-            slot.LocationButton = new IconButtonNode
-            {
-                IconId      = 60453,
-                Size        = new(MAP_BTN_WIDTH),
-                TextTooltip = LuminaWrapper.GetAddonText(1806),
-                Position    = new(0, -1)
-            };
-            slot.Row.AddNode(slot.LocationButton);
-
-            return slot;
-        }
-
-        private static void UpdateNPCRow
-        (
-            NPCRowSlot     row,
-            NPCDisplayInfo npcInfo
-        )
-        {
-            row.NPCNameNode.String      = $"{npcInfo.Name}（{npcInfo.Location.GetTerritory().ExtractPlaceName()}）";
-            row.NPCNameNode.TextTooltip = $"{npcInfo.Name}\n（{npcInfo.Location.GetTerritory().ExtractPlaceName()}）";
-
-            row.MapButton.OnClick = () => OpenMap(npcInfo.Location, npcInfo.Name);
-
-            row.LocationButton.IsEnabled = npcInfo.Location.TerritoryID != 282;
-            row.LocationButton.OnClick   = () => TeleportToLocation(npcInfo.Location);
+            return row;
         }
 
         private void UpdatePaginationState()
@@ -406,18 +385,70 @@ public unsafe partial class AutoShowItemNPCShopInfo
             public ResNode              Container        = null!;
             public SimpleNineGridNode   Background       = null!;
             public VerticalListNode     Content          = null!;
-            public NPCRowSlot[]         NPCRows          = null!;
+            public NPCRowNode[]         NPCRows          = null!;
             public PaginationNode       NPCPaginationBar = null!;
             public int                  NPCCurrentPage;
             public List<NPCDisplayInfo> SortedNPCInfos = [];
         }
 
-        public class NPCRowSlot
+        public class NPCRowNode : ListButtonNode
         {
-            public HorizontalListNode Row            = null!;
-            public TextNode           NPCNameNode    = null!;
-            public IconButtonNode     MapButton      = null!;
-            public IconButtonNode     LocationButton = null!;
+            public NPCRowNode()
+            {
+                AtkColors.Text.ApplyTo(LabelNode);
+
+                CollisionNode.AddEvent
+                (
+                    AtkEventType.MouseClick,
+                    (_, _, _, _, data) =>
+                    {
+                        if (!data->IsRightClick) return;
+                        if (NPCInfo is not { } info) return;
+
+                        OpenTeleportMenu(info.Location);
+                        OnClick();
+                    }
+                );
+            }
+
+            public NPCDisplayInfo? NPCInfo { get; private set; }
+
+            public void SetNPCInfo
+            (
+                NPCDisplayInfo info
+            )
+            {
+                NPCInfo = info;
+
+                var placeName = info.Location.GetTerritory().ExtractPlaceName();
+
+                String      = $"{info.Name}（{placeName}）";
+                TextTooltip = $"{info.Name}\n（{placeName}）";
+            }
+
+            private void OpenTeleportMenu
+            (
+                ShopNPCLocation location
+            ) =>
+                ContextMenuManager.Instance().Open
+                (
+                    new()
+                    {
+                        OwnerAddonID = ParentAddon->Id
+                    },
+                    [
+                        new ContextMenuEntryInfo
+                        (
+                            nameof(AutoShowItemNPCShopInfo),
+                            _ => new ContextMenuItem
+                            {
+                                Name      = LuminaWrapper.GetAddonText(1806),
+                                IsEnabled = location.TerritoryID != 282,
+                                OnClicked = _ => TeleportToLocation(location)
+                            }
+                        )
+                    ]
+                );
         }
     }
 }
