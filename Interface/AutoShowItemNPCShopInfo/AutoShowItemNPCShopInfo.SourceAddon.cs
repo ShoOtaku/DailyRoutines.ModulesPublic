@@ -4,7 +4,6 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.BaseTypes;
 using KamiToolKit.Nodes;
 using KamiToolKit.Nodes.Simplified;
-using Lumina.Excel.Sheets;
 using OmenTools.Info.Game.ItemSource;
 using OmenTools.Info.Game.ItemSource.Models;
 using OmenTools.Interop.Game.Lumina;
@@ -78,8 +77,6 @@ public unsafe partial class AutoShowItemNPCShopInfo
             Span<AtkValue> atkValues
         )
         {
-            var item = LuminaGetter.GetRowOrDefault<Item>(SourceInfo.ItemID);
-
             var sortedNPCs = SourceInfo.NPCInfos
                                        .Where(x => x.Location != null)
                                        .DistinctBy(x => $"{x.Name}_{x.Location.GetTerritory().ExtractPlaceName()}")
