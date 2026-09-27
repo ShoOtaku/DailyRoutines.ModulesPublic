@@ -19,7 +19,7 @@ public unsafe partial class BetterMarketBoard : ModuleBase
         Title               = Lang.Get("BetterMarketBoardTitle"),
         Description         = Lang.Get("BetterMarketBoardDescription", COMMAND),
         Category            = ModuleCategory.Interface,
-        Author              = ["Fragile"],
+        Author              = ["Fragile", "AtmoOmen"],
         ModulesPrerequisite = ["FastWorldTravel", "AutoShowItemNPCShopInfo"],
         ModulesPair         = ["AutoRefreshMarketSearchResult"],
         PreviewImageURL =

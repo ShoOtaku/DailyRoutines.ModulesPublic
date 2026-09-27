@@ -13,8 +13,9 @@ public unsafe partial class BetterMarketBoard
         !ItemSearchResult->IsAddonAndNodesReady();
 
     private static bool IsAbleToSearchLocalMarket() =>
-        GameState.IsLoggedIn &&
-        GameState.ContentFinderCondition == 0;
+        GameState.IsLoggedIn                  &&
+        GameState.ContentFinderCondition == 0 &&
+        !ICondition.Instance()[ConditionFlag.OnFreeTrial];
 
     private static bool IsOwnRetainer
     (

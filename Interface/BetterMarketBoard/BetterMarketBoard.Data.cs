@@ -323,10 +323,13 @@ public unsafe partial class BetterMarketBoard
 
             EffectiveRegionName = regionName;
 
-            if (!IsViewingCurrentWorld &&
-                (!owner.allWorlds.TryGetValue(regionName, out var region) ||
-                 !region.Values.Any(dc => dc.ContainsKey(SelectedWorldID))))
-                SelectedWorldID = GameState.CurrentWorld;
+            if (owner.allWorlds.TryGetValue(regionName, out var region) &&
+                !region.Values.Any(dc => dc.ContainsKey(SelectedWorldID)))
+            {
+                SelectedWorldID = region.Values.Any(dc => dc.ContainsKey(GameState.CurrentWorld)) ?
+                                      GameState.CurrentWorld :
+                                      region.Values.SelectMany(static dc => dc.Keys).FirstOrDefault();
+            }
 
             if (SelectedItemID == 0) return;
 
