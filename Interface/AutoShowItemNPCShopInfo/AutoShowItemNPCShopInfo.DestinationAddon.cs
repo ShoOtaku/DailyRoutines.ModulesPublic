@@ -1,11 +1,8 @@
-using System.Numerics;
+using System.Diagnostics.CodeAnalysis;
 using DailyRoutines.Common.Info;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit.BaseTypes;
 using KamiToolKit.Nodes;
-using KamiToolKit.Nodes.Simplified;
 using OmenTools.Info.Game.ItemSource.Models;
-using OmenTools.Interop.Game.Lumina;
 using OmenTools.KamiToolKit.Nodes;
 using OmenTools.OmenService;
 
@@ -13,33 +10,27 @@ namespace DailyRoutines.ModulesPublic.Interface.AutoShowItemNPCShopInfo;
 
 public unsafe partial class AutoShowItemNPCShopInfo
 {
-    private class AddonNPCShopsDestination : NativeAddon
+    private class AddonNPCShopsDestination : AddonNPCShopsBase<AddonNPCShopsDestination.SectionSlot>
     {
-        private const int   ITEMS_PER_PAGE = 20;
-        private const int   NPCS_PER_PAGE  = 5;
-        private const int   MAX_COSTS      = 4;
-        private const float MAP_BTN_WIDTH  = 28f;
-        private const float ROW_SPACING_X  = 6f;
-        private const float ROW_SPACING    = 4f;
-        private const float HEADER_HEIGHT  = 42f;
+        private const int ITEMS_PER_PAGE = 20;
 
+        [SetsRequiredMembers]
         private AddonNPCShopsDestination
         (
             ExchangeItemsInfo sourceInfo
-        ) =>
+        ) :
+            base("DRNPCShopsDestinations", Lang.Get("AutoShowItemNPCShopInfo-Addon-Destination")) =>
             SourceInfo = sourceInfo;
 
-        public static AddonNPCShopsDestination? Addon      { get; set; }
-        public        ExchangeItemsInfo         SourceInfo { get; set; }
+        public static AddonNPCShopsDestination? Addon { get; set; }
+
+        public ExchangeItemsInfo SourceInfo { get; set; }
 
         private List<ExchangeItemInfo> exchangeItems = [];
-        private int                    currentPage;
-        private int                    totalPages;
 
-        private ScrollingNode<VerticalListNode>? scrollingAreaNode;
-        private VerticalListNode?                contentNode;
-        private PaginationNode?                  paginationBar;
-        private SectionSlot[]?                   sectionSlots;
+        protected override int  SectionCount    => exchangeItems.Count;
+        protected override int  SectionsPerPage => ITEMS_PER_PAGE;
+        protected override uint HeaderItemID    => SourceInfo.CostItemID;
 
         public static void CloseAndClear()
         {
@@ -58,178 +49,29 @@ public unsafe partial class AutoShowItemNPCShopInfo
 
             CloseAndClear();
 
-            Addon ??= new(sourceInfo)
-            {
-                InternalName = "DRNPCShopsDestinations",
-                Title        = Lang.Get("AutoShowItemNPCShopInfo-Addon-Destination"),
-                Size         = new(700f, 550f)
-            };
+            Addon ??= new(sourceInfo);
             Addon.Open();
         }
 
-        protected override void OnSetup
-        (
-            AtkUnitBase*   addon,
-            Span<AtkValue> atkValues
-        )
-        {
+        protected override void BuildSections() =>
             exchangeItems = [.. SourceInfo.Items.OrderBy(x => x.GetItemName())];
-            totalPages    = Math.Max(1, (int)Math.Ceiling(exchangeItems.Count / (double)ITEMS_PER_PAGE));
-            currentPage   = 0;
 
-            var hasPagination = totalPages > 1;
-
-            var headerNode = new VerticalListNode
-            {
-                Size        = new(ContentSize.X - 16, HEADER_HEIGHT),
-                Position    = ContentStartPosition + new Vector2(8, 2),
-                ItemSpacing = 4
-            };
-            headerNode.AttachNode(this);
-
-            var itemInfoRow = new HorizontalListNode
-            {
-                Size        = new(headerNode.Width, 48f),
-                ItemSpacing = 4f
-            };
-            headerNode.AddNode(itemInfoRow);
-
-            var iconNode = new ItemIconNode
-            {
-                ItemID = SourceInfo.CostItemID,
-                Size   = new(50f),
-                OnClick = (_, _, _, _, data) =>
-                {
-                    if (!data->IsRightClick) return;
-                    ContextMenuManager.Instance().OpenItem(SourceInfo.CostItemID, AddonId);
-                }
-            };
-            itemInfoRow.AddNode(iconNode);
-
-            var nameNode = new TextNode
-            {
-                TextFlags     = TextFlags.Edge | TextFlags.MultiLine | TextFlags.WordWrap,
-                String        = LuminaWrapper.GetItemName(SourceInfo.CostItemID),
-                FontSize      = 24,
-                Height        = 42f,
-                AlignmentType = AlignmentType.Left
-            };
-            AtkColors.Label.ApplyTo(nameNode);
-
-            itemInfoRow.AddNode(nameNode);
-
-            paginationBar = new()
-            {
-                IsVisible              = hasPagination,
-                IsDisplayIndicatorText = true,
-                OnNextPage             = () => ShowPage(currentPage + 1),
-                OnPreviousPage         = () => ShowPage(currentPage - 1)
-            };
-            paginationBar.Position      = new(0.0f, ContentStartPosition.Y + ContentSize.Y - paginationBar.Height);
-            paginationBar.OnSizeUpdated = CenterPaginationBar;
-            paginationBar.AttachNode(this);
-
-            CenterPaginationBar();
-
-            var footerHeight = hasPagination ?
-                                   paginationBar.Height + 6.0f :
-                                   0.0f;
-
-            scrollingAreaNode = new ScrollingNode<VerticalListNode>
-            {
-                ContentNode =
-                {
-                    FitContents = true,
-                    ItemSpacing = 6
-                },
-                Position          = ContentStartPosition + new Vector2(6,  HEADER_HEIGHT + 6),
-                Size              = ContentSize          - new Vector2(12, HEADER_HEIGHT + 6 + footerHeight),
-                ScrollSpeed       = 100,
-                AutoHideScrollBar = true
-            };
-            scrollingAreaNode.AttachNode(this);
-
-            contentNode = scrollingAreaNode.ContentNode;
-
-            sectionSlots = new SectionSlot[ITEMS_PER_PAGE];
-
-            for (var i = 0; i < ITEMS_PER_PAGE; i++)
-            {
-                sectionSlots[i]                     = CreateSectionSlot(contentNode);
-                sectionSlots[i].Container.IsVisible = false;
-            }
-
-            ShowPage(0);
-        }
-
-        private void CenterPaginationBar()
-        {
-            if (paginationBar is not { } bar) return;
-
-            bar.X = ContentStartPosition.X + ((ContentSize.X - bar.Width) / 2.0f);
-        }
-
-        private static void CenterNPCPaginationBar
+        protected override void UpdateSectionContent
         (
-            SectionSlot slot
-        ) =>
-            slot.NPCPaginationBar.X = (slot.Content.Width - slot.NPCPaginationBar.Width) / 2.0f;
-
-        private void ShowPage
-        (
-            int page
+            SectionSlot slot,
+            int         index
         )
         {
-            if (sectionSlots == null || contentNode == null || scrollingAreaNode == null) return;
-            currentPage = Math.Clamp(page, 0, totalPages - 1);
+            var exchangeItem = exchangeItems[index];
 
-            var pageItems = exchangeItems.Skip(currentPage * ITEMS_PER_PAGE).Take(ITEMS_PER_PAGE).ToList();
-
-            for (var i = 0; i < ITEMS_PER_PAGE; i++)
-                if (i < pageItems.Count)
-                {
-                    UpdateSectionContent(sectionSlots[i], pageItems[i]);
-                    sectionSlots[i].Container.IsVisible = true;
-                }
-                else
-                {
-                    sectionSlots[i].Container.IsVisible = false;
-                    sectionSlots[i].Container.Height    = 0f;
-                }
-
-            scrollingAreaNode.ScrollBarNode.ScrollPosition = 0;
-            contentNode.RecalculateLayout();
-            scrollingAreaNode.RecalculateSizes();
-            UpdatePaginationState();
-        }
-
-        private void UpdatePaginationState()
-        {
-            if (paginationBar == null) return;
-
-            paginationBar.PreviousPageButtonNode.IsEnabled = currentPage > 0;
-            paginationBar.NextPageButtonNode.IsEnabled     = currentPage < totalPages - 1;
-            paginationBar.IndicatorTextNode.String         = $"{currentPage + 1}/{totalPages}";
-        }
-
-        private void UpdateSectionContent
-        (
-            SectionSlot      slot,
-            ExchangeItemInfo exchangeItem
-        )
-        {
             slot.ItemIcon.ItemID   = exchangeItem.ItemID;
             slot.ItemName.String   = exchangeItem.GetItemName();
             slot.ItemName.FontSize = 16;
 
-            slot.SortedNPCInfos =
-            [
-                .. exchangeItem.NPCInfos
-                               .Where(x => x.Location               != null)
-                               .OrderBy(x => x.Location.TerritoryID == 282)
-                               .ThenBy(x => GetLocationName(x.Location))
-                               .ThenBy(x => x.Name)
-            ];
+            slot.SortedNPCInfos = SortNPCInfos
+            (
+                [.. exchangeItem.NPCInfos.Select(x => new NPCDisplayInfo(x.Name, x.Location, x.CostInfos))]
+            );
 
             var firstNPC = slot.SortedNPCInfos.FirstOrDefault();
             var hasCost  = firstNPC is { CostInfos.Count: > 0 };
@@ -243,123 +85,35 @@ public unsafe partial class AutoShowItemNPCShopInfo
             ShowNPCPage(slot);
         }
 
-        private static void UpdateCostRow
-        (
-            SectionSlot            slot,
-            List<ShopItemCostInfo> costInfos
-        )
-        {
-            for (var i = 0; i < MAX_COSTS; i++)
-                if (i < costInfos.Count)
-                {
-                    var costInfo = costInfos[i];
-
-                    slot.CostIcons[i].ItemID    = costInfo.ItemID;
-                    slot.CostIcons[i].IsVisible = true;
-                    slot.CostTexts[i].String    = $"x{costInfo.Cost.ToChineseString()}";
-                    slot.CostTexts[i].IsVisible = true;
-                }
-                else
-                {
-                    slot.CostIcons[i].IsVisible = false;
-                    slot.CostTexts[i].IsVisible = false;
-                }
-        }
-
-        private static void LayoutCostRow
-        (
-            SectionSlot slot
-        )
-        {
-            slot.CostRow.RecalculateLayout();
-            slot.CostRow.X = slot.ItemHeader.Width - slot.CostRow.Width;
-
-            var costWidth = slot.CostRow.IsVisible ?
-                                slot.CostRow.Width + slot.ItemHeader.ItemSpacing :
-                                0f;
-
-            slot.ItemName.Width = slot.ItemHeader.Width - slot.ItemIcon.Width - slot.ItemHeader.ItemSpacing - costWidth;
-            slot.ItemHeader.RecalculateLayout();
-        }
-
-        private void ShowNPCPage
+        protected override float CalculateSectionHeight
         (
             SectionSlot slot,
-            bool        recalculateOuter = false
+            int         visibleNPCCount,
+            bool        hasNPCPagination
         )
         {
-            var totalNpcs = slot.SortedNPCInfos.Count;
-            var npcPages  = Math.Max(1, (int)Math.Ceiling(totalNpcs / (double)NPCS_PER_PAGE));
-            var npcPage   = Math.Clamp(slot.NPCCurrentPage, 0, npcPages - 1);
-            slot.NPCCurrentPage = npcPage;
+            const float SECTION_HEADER_HEIGHT = 38f;
+            const float ROW_HEIGHT            = 32f;
+            const float VERTICAL_PADDING      = 20f;
 
-            var pageNpcs = slot.SortedNPCInfos.Skip(npcPage * NPCS_PER_PAGE).Take(NPCS_PER_PAGE).ToList();
+            var paginationHeight = hasNPCPagination ?
+                                       32f :
+                                       0f;
 
-            for (var i = 0; i < NPCS_PER_PAGE; i++)
-                if (i < pageNpcs.Count)
-                {
-                    UpdateNPCRow(slot.NPCRows[i], pageNpcs[i]);
-                    slot.NPCRows[i].Row.IsVisible = true;
-                }
-                else slot.NPCRows[i].Row.IsVisible = false;
-
-            var hasNPCPagination = totalNpcs > NPCS_PER_PAGE;
-            slot.NPCPaginationBar.IsVisible = hasNPCPagination;
-
-            if (hasNPCPagination)
-            {
-                slot.NPCPaginationBar.PreviousPageButtonNode.IsEnabled = npcPage > 0;
-                slot.NPCPaginationBar.NextPageButtonNode.IsEnabled     = npcPage < npcPages - 1;
-                slot.NPCPaginationBar.IndicatorTextNode.String         = $"{npcPage + 1} / {npcPages}";
-            }
-
-            var visibleNPCCount = Math.Min(pageNpcs.Count, NPCS_PER_PAGE);
-            var sectionHeight   = CalculateSectionHeight(visibleNPCCount, hasNPCPagination);
-            slot.Container.Size  = new(slot.Container.Width, sectionHeight);
-            slot.Background.Size = slot.Container.Size;
-            slot.Content.Size    = slot.Container.Size - new Vector2(20f, 20f);
-            slot.Content.RecalculateLayout();
-
-            CenterNPCPaginationBar(slot);
-
-            if (recalculateOuter && contentNode != null && scrollingAreaNode != null)
-            {
-                contentNode.RecalculateLayout();
-                scrollingAreaNode.RecalculateSizes();
-            }
+            return VERTICAL_PADDING                                 +
+                   SECTION_HEADER_HEIGHT                            +
+                   (visibleNPCCount                  * ROW_HEIGHT)  +
+                   (Math.Max(0, visibleNPCCount - 1) * ROW_SPACING) +
+                   paginationHeight;
         }
 
-        private SectionSlot CreateSectionSlot
+        protected override SectionSlot CreateSectionSlot
         (
             VerticalListNode parent
         )
         {
-            var slot = new SectionSlot
-            {
-                Container = new ResNode { Size = new(parent.Width, 100) }
-            };
-
-            parent.AddNode(slot.Container);
-
-            slot.Background = new SimpleNineGridNode
-            {
-                TexturePath        = "ui/uld/EnemyList_hr1.tex",
-                TextureCoordinates = new(96, 80),
-                TextureSize        = new(24, 20),
-                Offsets            = new(8f),
-                MultiplyColor      = new(0.45f, 0.45f, 0.48f),
-                Alpha              = 0.28f,
-                Size               = slot.Container.Size
-            };
-            slot.Background.AttachNode(slot.Container);
-
-            slot.Content = new VerticalListNode
-            {
-                Size        = slot.Container.Size - new Vector2(20f, 20f),
-                Position    = new(10f, 10f),
-                ItemSpacing = 4
-            };
-            slot.Content.AttachNode(slot.Container);
+            var slot = new SectionSlot();
+            InitializeSectionSlot(slot, parent);
 
             var contentWidth = slot.Content.Width;
 
@@ -431,138 +185,58 @@ public unsafe partial class AutoShowItemNPCShopInfo
                 slot.CostRow.AddNode(slot.CostTexts[i]);
             }
 
-            slot.NPCRows = new NPCRowSlot[NPCS_PER_PAGE];
-            for (var i = 0; i < NPCS_PER_PAGE; i++)
-                slot.NPCRows[i] = CreateNPCRowSlot(slot.Content, contentWidth);
-
-            slot.NPCPaginationBar = new PaginationNode
-            {
-                IsVisible              = false,
-                IsDisplayIndicatorText = true,
-                OnPreviousPage = () =>
-                {
-                    slot.NPCCurrentPage--;
-                    ShowNPCPage(slot, true);
-                },
-                OnNextPage = () =>
-                {
-                    slot.NPCCurrentPage++;
-                    ShowNPCPage(slot, true);
-                },
-                OnSizeUpdated = () => CenterNPCPaginationBar(slot)
-            };
-            slot.Content.AddNode(slot.NPCPaginationBar);
+            InitializeSectionFooter(slot, contentWidth);
 
             return slot;
         }
 
-        private static NPCRowSlot CreateNPCRowSlot
+        private static void UpdateCostRow
         (
-            VerticalListNode parent,
-            float            contentWidth
+            SectionSlot            slot,
+            List<ShopItemCostInfo> costInfos
         )
         {
-            var slot = new NPCRowSlot
-            {
-                Row = new HorizontalListNode
+            for (var i = 0; i < MAX_COSTS; i++)
+                if (i < costInfos.Count)
                 {
-                    Size        = new(contentWidth, 32),
-                    ItemSpacing = ROW_SPACING_X,
-                    IsVisible   = false
+                    var costInfo = costInfos[i];
+
+                    slot.CostIcons[i].ItemID    = costInfo.ItemID;
+                    slot.CostIcons[i].IsVisible = true;
+                    slot.CostTexts[i].String    = $"x{costInfo.Cost.ToChineseString()}";
+                    slot.CostTexts[i].IsVisible = true;
                 }
-            };
-
-            parent.AddNode(slot.Row);
-
-            slot.NPCNameNode = new TextNode
-            {
-                TextFlags = TextFlags.Ellipsis,
-                Position  = new(0, 4),
-                Size      = new(contentWidth - (3 * ROW_SPACING) - (2 * MAP_BTN_WIDTH), 28f),
-                FontSize  = 14
-            };
-            AtkColors.Text.ApplyTo(slot.NPCNameNode);
-            slot.Row.AddNode(slot.NPCNameNode);
-
-            slot.MapButton = new IconButtonNode
-            {
-                IconId      = 60561,
-                TextTooltip = LuminaWrapper.GetAddonText(467),
-                Size        = new(MAP_BTN_WIDTH),
-                Position    = new(0, -1)
-            };
-            slot.Row.AddNode(slot.MapButton);
-
-            slot.LocationButton = new IconButtonNode
-            {
-                IconId      = 60453,
-                Size        = new(MAP_BTN_WIDTH),
-                TextTooltip = LuminaWrapper.GetAddonText(1806),
-                Position    = new(0, -1)
-            };
-            slot.Row.AddNode(slot.LocationButton);
-
-            return slot;
+                else
+                {
+                    slot.CostIcons[i].IsVisible = false;
+                    slot.CostTexts[i].IsVisible = false;
+                }
         }
 
-        private static void UpdateNPCRow
+        private static void LayoutCostRow
         (
-            NPCRowSlot          row,
-            ExchangeItemNPCInfo npcInfo
+            SectionSlot slot
         )
         {
-            row.NPCNameNode.String      = $"{npcInfo.Name}（{npcInfo.Location.GetTerritory().ExtractPlaceName()}）";
-            row.NPCNameNode.TextTooltip = $"{npcInfo.Name}\n（{npcInfo.Location.GetTerritory().ExtractPlaceName()}）";
+            slot.CostRow.RecalculateLayout();
+            slot.CostRow.X = slot.ItemHeader.Width - slot.CostRow.Width;
 
-            row.MapButton.OnClick = () => OpenMap(npcInfo.Location, npcInfo.Name);
+            var costWidth = slot.CostRow.IsVisible ?
+                                slot.CostRow.Width + slot.ItemHeader.ItemSpacing :
+                                0f;
 
-            row.LocationButton.IsEnabled = npcInfo.Location.TerritoryID != 282;
-            row.LocationButton.OnClick   = () => TeleportToLocation(npcInfo.Location);
+            slot.ItemName.Width = slot.ItemHeader.Width - slot.ItemIcon.Width - slot.ItemHeader.ItemSpacing - costWidth;
+            slot.ItemHeader.RecalculateLayout();
         }
 
-        private static float CalculateSectionHeight
-        (
-            int  visibleNPCCount,
-            bool hasNPCPagination
-        )
+        public new class SectionSlot : AddonNPCShopsBase<SectionSlot>.SectionSlot
         {
-            const float HEADER_HEIGHT    = 38f;
-            const float ROW_HEIGHT       = 32f;
-            const float VERTICAL_PADDING = 20f;
-            var paginationHeight = hasNPCPagination ?
-                                       32f :
-                                       0f;
-
-            return VERTICAL_PADDING                                 +
-                   HEADER_HEIGHT                                    +
-                   (visibleNPCCount                  * ROW_HEIGHT)  +
-                   (Math.Max(0, visibleNPCCount - 1) * ROW_SPACING) +
-                   paginationHeight;
-        }
-
-        private class SectionSlot
-        {
-            public ResNode                   Container        = null!;
-            public SimpleNineGridNode        Background       = null!;
-            public VerticalListNode          Content          = null!;
-            public HorizontalListNode        ItemHeader       = null!;
-            public ItemIconNode              ItemIcon         = null!;
-            public TextNode                  ItemName         = null!;
-            public HorizontalListNode        CostRow          = null!;
-            public ItemIconNode[]            CostIcons        = null!;
-            public TextNode[]                CostTexts        = null!;
-            public NPCRowSlot[]              NPCRows          = null!;
-            public PaginationNode            NPCPaginationBar = null!;
-            public int                       NPCCurrentPage;
-            public List<ExchangeItemNPCInfo> SortedNPCInfos = [];
-        }
-
-        private class NPCRowSlot
-        {
-            public HorizontalListNode Row            = null!;
-            public TextNode           NPCNameNode    = null!;
-            public IconButtonNode     MapButton      = null!;
-            public IconButtonNode     LocationButton = null!;
+            public HorizontalListNode ItemHeader = null!;
+            public ItemIconNode       ItemIcon   = null!;
+            public TextNode           ItemName   = null!;
+            public HorizontalListNode CostRow    = null!;
+            public ItemIconNode[]     CostIcons  = null!;
+            public TextNode[]         CostTexts  = null!;
         }
     }
 }
