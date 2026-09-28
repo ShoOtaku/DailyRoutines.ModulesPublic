@@ -8,13 +8,13 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Common.Lua;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using OmenTools.ImGuiOm.Widgets.Combos;
 using OmenTools.Interop.Game;
 using OmenTools.Interop.Game.Models;
 using OmenTools.Interop.Game.Models.Native;
-using OmenTools.Interop.Windows.Helpers;
 using OmenTools.OmenService;
 using AgentId = Dalamud.Game.Agent.AgentId;
 using LuaFunctionDelegate = OmenTools.Interop.Game.Models.Native.LuaFunctionDelegate;
@@ -36,12 +36,13 @@ public unsafe class AutoCutsceneSkip : ModuleBase
     private static readonly CompSig CutsceneHandleInputSig = new("E8 ?? ?? ?? ?? 44 0F B6 E0 48 8B 4E 08");
     private delegate byte CutsceneHandleInputDelegate
     (
-        nint  a1,
-        float a2
+        UIInputModule* module,
+        float          a2
     );
     private Hook<CutsceneHandleInputDelegate>? CutsceneHandleInputHook;
 
-    private static readonly CompSig PlayCutsceneSig = new("40 53 55 57 41 56 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 48 8B 59");
+    private static readonly CompSig PlayCutsceneSig = 
+        new("40 53 55 57 41 56 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 84 24 ?? ?? ?? ?? 48 8B 59");
     private delegate nint PlayCutsceneDelegate
     (
         EventFramework* a1,
@@ -61,18 +62,18 @@ public unsafe class AutoCutsceneSkip : ModuleBase
     (
         "48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B B9 ?? ?? ?? ?? 48 8B D9 48 8B 4F ?? E8 ?? ?? ?? ?? 48 8D 8B ?? ?? ?? ?? 8B F0 E8 ?? ?? ?? ?? 48 8B 4F ?? 48 8B D0 E8 ?? ?? ?? ?? 48 8B 4F ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 4F ?? BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 85 C0 74 ?? 4C 8D 0D ?? ?? ?? ?? 48 8B CF 4C 8D 05 ?? ?? ?? ?? 8D 56 ?? E8 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 48 8B CF 4C 8D 05 ?? ?? ?? ?? 8D 56 ?? E8 ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 48 8B CF 4C 8D 05 ?? ?? ?? ?? 8D 56 ?? E8 ?? ?? ?? ?? 48 8B 4F ?? BA ?? ?? ?? ?? 48 8B 5C 24 ?? 48 8B 74 24 ?? 48 83 C4 ?? 5F E9 ?? ?? ?? ?? CC CC CC CC CC CC CC CC CC CC CC CC 48 89 5C 24"
     );
-
+    
     private Hook<LuaFunctionDelegate>? PlayCutsceneLuaHook;
 
-
-    private static readonly CompSig LuaBaseSig02 = new("40 55 56 57 41 55 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24");
+    private static readonly CompSig LuaBaseSig02 = 
+        new("40 55 56 57 41 55 48 81 EC ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 33 C4 48 89 44 24");
 
     private Hook<LuaFunctionDelegate>? PlayStaffRollHook;
     private Hook<LuaFunctionDelegate>? PlayToBeContinuedHook;
     private Hook<LuaFunctionDelegate>? IsEnterTerritoryEventLoginHook;
     
-
-    private static readonly CompSig PushAgentResultToLuaSig = new("40 53 48 83 EC ?? 0F B6 41 ?? 48 8B D9 A8 ?? 74 ?? 24 ?? 88 41 ?? 48 83 3D");
+    private static readonly CompSig PushAgentResultToLuaSig = 
+        new("40 53 48 83 EC ?? 0F B6 41 ?? 48 8B D9 A8 ?? 74 ?? 24 ?? 88 41 ?? 48 83 3D");
     private delegate void PushAgentResultToLuaDelegate
     (
         void* agent
@@ -246,21 +247,25 @@ public unsafe class AutoCutsceneSkip : ModuleBase
 
     private byte CutsceneHandleInputDetour
     (
-        nint  a1,
-        float a2
+        UIInputModule* module,
+        float          a2
     )
     {
         if (!ICondition.Instance()[ConditionFlag.OccupiedInCutSceneEvent])
-            return CutsceneHandleInputHook.Original(a1, a2);
+            return CutsceneHandleInputHook.Original(module, a2);
 
-        if (*(ulong*)(a1 + 56) != 0 && JournalResult == null && SatisfactionSupplyResult == null)
+        var skipCallback = module->CutsceneSkipCallback;
+        if (skipCallback != null && JournalResult == null && SatisfactionSupplyResult == null)
         {
-            KeyEmulationHelper.SendKeypress(Keys.Escape);
-            if (SelectString->IsAddonAndNodesReady())
-                SelectString->Callback(0);
+            var option = default(AtkValue);
+            option.Type = AtkValueType.Int;
+            option.Int  = 0;
+
+            var result = default(AtkValue);
+            skipCallback->ReceiveEvent(&result, &option, 1, 11);
         }
 
-        return CutsceneHandleInputHook.Original(a1, a2);
+        return CutsceneHandleInputHook.Original(module, a2);
     }
 
     private static nint PlayCutsceneDetour
