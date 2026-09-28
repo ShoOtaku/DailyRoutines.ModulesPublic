@@ -171,16 +171,6 @@ public unsafe partial class AutoShowItemNPCShopInfo : ModuleBase
             LuminaWrapper.GetAddonText(8495) :
             location.GetTerritory().ExtractPlaceName();
 
-    private static void OpenMarket
-    (
-        uint itemID
-    )
-    {
-        var item = LuminaGetter.GetRowOrDefault<Item>(itemID);
-        if (!item.Name.IsEmpty)
-            ChatManager.Instance().SendMessage($"/pdr market {item.Name}");
-    }
-
     private static void OpenMap
     (
         ShopNPCLocation location,

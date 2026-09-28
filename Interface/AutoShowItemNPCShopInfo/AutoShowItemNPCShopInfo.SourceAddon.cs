@@ -57,23 +57,19 @@ public unsafe partial class AutoShowItemNPCShopInfo
             Addon.Open();
         }
 
-        protected override void BuildSections()
-        {
-            var sortedNPCs = SourceInfo.NPCInfos
-                                       .Where(x => x.Location != null)
-                                       .DistinctBy(x => $"{x.Name}_{x.Location.GetTerritory().ExtractPlaceName()}")
-                                       .OrderBy(x => x.Location.TerritoryID == 282)
-                                       .ThenBy(x => GetLocationName(x.Location))
-                                       .ThenBy(x => x.Name)
-                                       .ToList();
-
+        protected override void BuildSections() =>
             costGroups =
             [
-                .. sortedNPCs
-                   .GroupBy(x => GetCostKey(x.CostInfos))
-                   .Select(g => new CostGroup { CostInfos = g.First().CostInfos, NPCInfos = [.. g] })
+                .. SourceInfo.NPCInfos
+                             .GroupBy(x => GetCostKey(x.CostInfos))
+                             .Select
+                             (g => new CostGroup
+                                 {
+                                     CostInfos = g.First().CostInfos,
+                                     NPCInfos  = [.. g]
+                                 }
+                             )
             ];
-        }
 
         protected override void UpdateSectionContent
         (
