@@ -160,7 +160,7 @@ public partial class BetterMarketBoard
             float sales
         ) =>
             sales > 0 ?
-                sales.ToString("0.##", CultureInfo.InvariantCulture) :
+                ((int)MathF.Ceiling(sales)).ToChineseString() :
                 "-";
     }
 
