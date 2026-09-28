@@ -179,8 +179,6 @@ public unsafe class AutoCutsceneSkip : ModuleBase
             ImGui.SameLine();
             ImGui.TextUnformatted(Lang.Get("Zone"));
         }
-        
-        
     }
 
     private void OnZoneChanged
