@@ -1,3 +1,4 @@
+using DailyRoutines.Common.Extensions;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
@@ -9,12 +10,12 @@ using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Common.Lua;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using OmenTools.ImGuiOm.Widgets.Combos;
 using OmenTools.Interop.Game;
 using OmenTools.Interop.Game.Models;
-using OmenTools.Interop.Game.Models.Native;
 using OmenTools.OmenService;
 using AgentId = Dalamud.Game.Agent.AgentId;
 using LuaFunctionDelegate = OmenTools.Interop.Game.Models.Native.LuaFunctionDelegate;
@@ -71,14 +72,6 @@ public unsafe class AutoCutsceneSkip : ModuleBase
     private Hook<LuaFunctionDelegate>? PlayStaffRollHook;
     private Hook<LuaFunctionDelegate>? PlayToBeContinuedHook;
     private Hook<LuaFunctionDelegate>? IsEnterTerritoryEventLoginHook;
-    
-    private static readonly CompSig PushAgentResultToLuaSig = 
-        new("40 53 48 83 EC ?? 0F B6 41 ?? 48 8B D9 A8 ?? 74 ?? 24 ?? 88 41 ?? 48 83 3D");
-    private delegate void PushAgentResultToLuaDelegate
-    (
-        void* agent
-    );
-    private PushAgentResultToLuaDelegate PushAgentResultToLua = null!;
 
     private MemoryPatch cutsceneUnskippablePatch = null!;
 
@@ -89,13 +82,12 @@ public unsafe class AutoCutsceneSkip : ModuleBase
 
     protected override void Init()
     {
-        PushAgentResultToLua     = PushAgentResultToLuaSig.GetDelegate<PushAgentResultToLuaDelegate>();
         cutsceneUnskippablePatch = new("75 ?? 48 8B 4B ?? 48 8B 01 FF 50 ?? 48 8B C8 BA ?? ?? ?? ?? E8 ?? ?? ?? ?? 80 7B", [0xEB]);
-        whitelistZoneCombo       = new("Whitelist");
-        blacklistZoneCombo       = new("Blacklist");
 
         config = Config.Load(this) ?? new();
-
+        
+        whitelistZoneCombo = new("Whitelist");
+        blacklistZoneCombo = new("Blacklist");
         whitelistZoneCombo.SelectedIDs = config.WhitelistZones;
         blacklistZoneCombo.SelectedIDs = config.BlacklistZones;
 
@@ -141,53 +133,54 @@ public unsafe class AutoCutsceneSkip : ModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), $"{Lang.Get("WorkMode")}:");
-
-        ImGui.SameLine();
-        var bgColor = ImGui.GetColorU32(ImGuiCol.FrameBg);
-        ImGui.SameLine();
-        if (ImGuiOm.ToggleButton
-            (
-                "WorkMode",
-                ref config.WorkMode,
-                bgActiveColor: bgColor,
-                bgColor: bgColor
-            ))
-            config.Save(this);
-
-        ImGui.SameLine();
-        ImGui.TextUnformatted
-        (
-            Lang.Get
-            (
-                config.WorkMode ?
-                    "Whitelist" :
-                    "Blacklist"
-            )
-        );
-
-        ImGuiOm.HelpMarker(Lang.Get("AutoCutsceneSkip-WorkModeHelp"));
-
-        ImGui.SameLine();
-        ImGui.SetNextItemWidth(200f * GlobalUIScale);
-
-        if (config.WorkMode)
+        using (ImRaii.Heading1(Lang.Get("WorkMode")))
+        using (ImRaii.ItemWidth(200f * GlobalUIScale))
         {
-            if (whitelistZoneCombo.DrawCheckbox())
-            {
-                config.WhitelistZones = whitelistZoneCombo.SelectedIDs;
+            var bgColor = ImGui.GetColorU32(ImGuiCol.FrameBg);
+            if (ImGuiOm.ToggleButton
+                (
+                    "WorkMode",
+                    ref config.WorkMode,
+                    bgActiveColor: bgColor,
+                    bgColor: bgColor
+                ))
                 config.Save(this);
-            }
-        }
-        else
-        {
-            if (blacklistZoneCombo.DrawCheckbox())
+            
+            ImGui.SameLine();
+            ImGui.TextUnformatted
+            (
+                Lang.Get
+                (
+                    config.WorkMode ?
+                        "Whitelist" :
+                        "Blacklist"
+                )
+            );
+            
+            ImGuiOm.HelpMarker(Lang.Get("AutoCutsceneSkip-WorkModeHelp"));
+            
+            if (config.WorkMode)
             {
-                config.BlacklistZones = blacklistZoneCombo.SelectedIDs;
-                config.Save(this);
+                if (whitelistZoneCombo.DrawCheckbox())
+                {
+                    config.WhitelistZones = whitelistZoneCombo.SelectedIDs;
+                    config.Save(this);
+                }
             }
+            else
+            {
+                if (blacklistZoneCombo.DrawCheckbox())
+                {
+                    config.BlacklistZones = blacklistZoneCombo.SelectedIDs;
+                    config.Save(this);
+                }
+            }
+            
+            ImGui.SameLine();
+            ImGui.TextUnformatted(Lang.Get("Zone"));
         }
+        
+        
     }
 
     private void OnZoneChanged
@@ -215,7 +208,7 @@ public unsafe class AutoCutsceneSkip : ModuleBase
         }
     }
 
-    private void OnAgent
+    private static void OnAgent
     (
         AgentEvent type,
         AgentArgs  args
@@ -227,22 +220,18 @@ public unsafe class AutoCutsceneSkip : ModuleBase
 
         if (atkValues[0].Int != 12) return;
         if (agent->Context   == null) return;
-
-        var index = agent->FindFirstUncompletedEntry();
+        
+        var index = agent->FindFirstUncompleteEntry();
 
         if (index < 0)
         {
-            agent->AgentInterface.Hide();
+            agent->Hide();
             return;
         }
 
         agent->SelectedIndex = index;
-
-        agent->PendingResultFlags |= AgentPointMenu.PendingResultFlag.HasPendingResult;
-        PushAgentResultToLua(agent);
-
-        agent->AgentInterface.Hide();
-        agent->PendingResultFlags &= ~AgentPointMenu.PendingResultFlag.HasPendingResult;
+        agent->SendEntryToAddon((uint)index);
+        agent->Hide();
     }
 
     private byte CutsceneHandleInputDetour
