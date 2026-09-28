@@ -80,12 +80,7 @@ public unsafe partial class AutoRetainerWork
 
             taskHelper                 ??= new() { TimeoutMS = 30_000, ShowDebug = true };
             taskHelper.EnterBusyAction =   () => ToggleOverlayIPC.TryInvokeFunc(true);
-            taskHelper.LeaveBusyAction = () =>
-            {
-                if (RetainerSellList->IsAddonAndNodesReady())
-                    return;
-                ToggleOverlayIPC.TryInvokeFunc(false);
-            };
+            taskHelper.LeaveBusyAction =   () => ToggleOverlayIPC.TryInvokeFunc(false);
 
             contextMenuEntry = new(this);
             priceAdjustAddon = new(this)
@@ -98,7 +93,8 @@ public unsafe partial class AutoRetainerWork
             IMarketBoard.Instance().HistoryReceived   += OnHistoryReceived;
             IMarketBoard.Instance().OfferingsReceived += OnOfferingReceived;
 
-            IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostSetup, "RetainerSell", OnRetainerSell);
+            IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostSetup,   "RetainerSell", OnRetainerSell);
+            IAddonLifecycle.Instance().RegisterListener(AddonEvent.PreFinalize, "RetainerSell", OnRetainerSell);
             if (RetainerSell->IsAddonAndNodesReady())
                 OnRetainerSell(AddonEvent.PostSetup, null);
 
@@ -649,16 +645,31 @@ public unsafe partial class AutoRetainerWork
         {
             if (!ICondition.Instance()[ConditionFlag.OccupiedSummoningBell]) return;
 
-            var slot = InventoryManager.Instance()->GetInventorySlot
-            (
-                AgentRetainer.Instance()->SellItemInventoryType,
-                AgentRetainer.Instance()->SellItemInventorySlot
-            );
-            if (slot == null) return;
-
             switch (type)
             {
+                case AddonEvent.PreFinalize:
+                    if (!taskHelper.IsBusy)
+                        ToggleOverlayIPC.TryInvokeFunc(false);
+                    
+                    autoPriceAdjustWarningNode = null;
+
+                    openMarketEvent?.Dispose();
+                    openMarketEvent = null;
+
+                    priceAdjustAllSameEvent?.Dispose();
+                    priceAdjustAllSameEvent = null;
+
+                    isPriceAdjustAllSameItems = false;
+                    break;
+                
                 case AddonEvent.PostSetup:
+                    var slot = InventoryManager.Instance()->GetInventorySlot
+                    (
+                        AgentRetainer.Instance()->SellItemInventoryType,
+                        AgentRetainer.Instance()->SellItemInventorySlot
+                    );
+                    if (slot == null) return;
+                    
                     if (AgentRetainer.Instance()->SellItemInventoryType != InventoryType.RetainerMarket)
                     {
                         var itemConfig = GetItemConfigByItemKey(new(slot->GetBaseItemId(), slot->IsHighQuality()));
@@ -736,18 +747,6 @@ public unsafe partial class AutoRetainerWork
                         }
                     }
 
-                    break;
-
-                case AddonEvent.PreFinalize:
-                    autoPriceAdjustWarningNode = null;
-
-                    openMarketEvent?.Dispose();
-                    openMarketEvent = null;
-
-                    priceAdjustAllSameEvent?.Dispose();
-                    priceAdjustAllSameEvent = null;
-
-                    isPriceAdjustAllSameItems = false;
                     break;
             }
         }
