@@ -1,6 +1,7 @@
 ﻿using DailyRoutines.Extensions;
 using OmenTools.Interop.Game.AddonEvent;
 using OmenTools.KamiToolKit.Nodes;
+using OmenTools.KamiToolKit.Nodes.Collasping;
 using OmenTools.Threading.TaskHelper;
 
 namespace DailyRoutines.ModulesPublic.Interface;

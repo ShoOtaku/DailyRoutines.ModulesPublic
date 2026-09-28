@@ -5,6 +5,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using OmenTools.Interop.Game.AddonEvent;
 using OmenTools.Interop.Game.Helpers;
 using OmenTools.KamiToolKit.Nodes;
+using OmenTools.KamiToolKit.Nodes.Collasping;
 using OmenTools.Threading.TaskHelper;
 
 namespace DailyRoutines.ModulesPublic.Interface;

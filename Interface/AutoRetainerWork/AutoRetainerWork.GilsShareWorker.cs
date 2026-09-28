@@ -2,6 +2,7 @@
 using FFXIVClientStructs.FFXIV.Client.Game;
 using OmenTools.Interop.Game.AddonEvent;
 using OmenTools.KamiToolKit.Nodes;
+using OmenTools.KamiToolKit.Nodes.Collasping;
 using OmenTools.OmenService;
 using OmenTools.Threading.TaskHelper;
 

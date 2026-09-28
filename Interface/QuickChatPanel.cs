@@ -24,6 +24,7 @@ using Lumina.Text.ReadOnly;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.KamiToolKit.Addons;
 using OmenTools.KamiToolKit.Nodes;
+using OmenTools.KamiToolKit.Nodes.Collasping;
 using OmenTools.OmenService;
 using OmenTools.Threading.TaskHelper;
 using Action = System.Action;

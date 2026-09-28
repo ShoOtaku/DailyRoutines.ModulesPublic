@@ -16,6 +16,7 @@ using Lumina.Excel.Sheets;
 using OmenTools.Info.Game.Data;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.KamiToolKit.Nodes;
+using OmenTools.KamiToolKit.Nodes.Collasping;
 using OmenTools.Threading;
 using Action = System.Action;
 

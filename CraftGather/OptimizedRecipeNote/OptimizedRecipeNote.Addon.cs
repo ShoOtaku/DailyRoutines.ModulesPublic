@@ -14,6 +14,7 @@ using Lumina.Data.Parsing.Uld;
 using Lumina.Text.ReadOnly;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.KamiToolKit.Nodes;
+using OmenTools.KamiToolKit.Nodes.GaugeBarCraft;
 using OmenTools.OmenService;
 using OmenTools.Threading.TaskHelper;
 
@@ -60,11 +61,11 @@ public partial class OptimizedRecipeNote
 
         public const float EXECUTION_CONTAINER_HEIGHT = 40f;
 
-        public HorizontalListNode   ExecutionContainer { get; private set; }
-        public TextButtonNode       ExecuteButton      { get; private set; }
-        public NumericInputNode     CraftCountInput    { get; private set; }
-        public ProgressBarCraftNode CraftProgressBar   { get; private set; }
-        public TextNode             CraftRoundInfo     { get; private set; }
+        public HorizontalListNode ExecutionContainer { get; private set; }
+        public TextButtonNode     ExecuteButton      { get; private set; }
+        public NumericInputNode   CraftCountInput    { get; private set; }
+        public GaugeBarCraftNode  CraftProgressBar   { get; private set; }
+        public TextNode           CraftRoundInfo     { get; private set; }
 
         #endregion
 
@@ -292,7 +293,8 @@ public partial class OptimizedRecipeNote
                             {
                                 var currentCraftRound = currentRound + 1;
 
-                                CraftProgressBar.Progress  = (float)currentCraftRound / totalCraftRound;
+                                CraftProgressBar.MaxValue  = totalCraftRound;
+                                CraftProgressBar.Value     = currentCraftRound;
                                 CraftProgressBar.IsVisible = true;
 
                                 CraftRoundInfo.String    = $"{currentCraftRound}/{totalCraftRound}";
@@ -362,7 +364,8 @@ public partial class OptimizedRecipeNote
 
             CraftProgressBar = new()
             {
-                Progress = 0.5f,
+                MaxValue = 1,
+                Value    = 1,
                 Size     = new(240, 16),
                 Y        = 12
             };
