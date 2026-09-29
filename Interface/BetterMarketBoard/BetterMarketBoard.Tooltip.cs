@@ -88,8 +88,7 @@ public partial class BetterMarketBoard
         var       builder = rented.Builder;
 
         // 标题
-        builder.AppendNewLine()
-               .Append($"[{LuminaWrapper.GetAddonText(6556)}]");
+        builder.Append($"[{LuminaWrapper.GetAddonText(6556)}]");
 
         if (isRequesting)
         {

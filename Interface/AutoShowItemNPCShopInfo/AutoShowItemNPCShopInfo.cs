@@ -76,7 +76,6 @@ public unsafe partial class AutoShowItemNPCShopInfo : ModuleBase
             isAnyValid = true;
 
             builder.Builder
-                   .AppendNewLine()
                    .Append($"[{Lang.Get("AutoShowItemNPCShopInfo-Tooltip-Source")}]");
 
             var shopInfo = sourceInfo.NPCInfos
@@ -128,8 +127,6 @@ public unsafe partial class AutoShowItemNPCShopInfo : ModuleBase
         var destinationResult = ItemSourceInfo.QueryExchangeItems(itemID);
         if (destinationResult is { State: ItemSourceQueryState.Ready, Data: { } destinationInfo })
         {
-            builder.Builder.AppendNewLine();
-            
             var message = Lang.Get
             (
                 isAnyValid ?
