@@ -1,9 +1,9 @@
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
+using DailyRoutines.Extensions;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using Lumina.Excel.Sheets;
 using OmenTools.Info.Game.ItemSource;
 using OmenTools.Info.Game.ItemSource.Enums;
 using OmenTools.Info.Game.ItemSource.Models;
@@ -18,10 +18,9 @@ public unsafe partial class AutoShowItemNPCShopInfo : ModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title               = Lang.Get("AutoShowItemNPCShopInfoTitle"),
-        Description         = Lang.Get("AutoShowItemNPCShopInfoDescription"),
-        Category            = ModuleCategory.Interface,
-        ModulesPrerequisite = ["BetterMarketBoard", "BetterTeleport"],
+        Title       = Lang.Get("AutoShowItemNPCShopInfoTitle"),
+        Description = Lang.Get("AutoShowItemNPCShopInfoDescription"),
+        Category    = ModuleCategory.Interface,
         PreviewImageURL =
         [
             "https://gh.atmoomen.top/raw.githubusercontent.com/Dalamud-DailyRoutines/DailyRoutines/main/Resources/Modules/AutoShowItemNPCShopInfo/AutoShowItemNPCShopInfo-UI.png",
@@ -163,14 +162,6 @@ public unsafe partial class AutoShowItemNPCShopInfo : ModuleBase
         }
     }
 
-    private static string GetLocationName
-    (
-        ShopNPCLocation location
-    ) =>
-        location.TerritoryID == 282 ?
-            LuminaWrapper.GetAddonText(8495) :
-            location.GetTerritory().ExtractPlaceName();
-
     private static void OpenMap
     (
         ShopNPCLocation location,
@@ -195,7 +186,6 @@ public unsafe partial class AutoShowItemNPCShopInfo : ModuleBase
         instance->SetFlagMapMarker(location.TerritoryID, location.MapID, pos);
 
         var aetheryte = AetheryteRecordManager.Instance().GetNearestAetheryte(location.TerritoryID, pos);
-        if (aetheryte != null)
-            ChatManager.Instance().SendMessage($"/pdrtelepo {aetheryte.Name}");
+        aetheryte?.TeleportTo();
     }
 }

@@ -406,7 +406,6 @@ public unsafe partial class AutoShowItemNPCShopInfo
                         if (NPCInfo is not { } info) return;
 
                         OpenTeleportMenu(info.Location);
-                        OnClick();
                     }
                 );
             }
