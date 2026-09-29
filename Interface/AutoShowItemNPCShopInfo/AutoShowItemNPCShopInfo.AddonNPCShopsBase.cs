@@ -244,6 +244,7 @@ public unsafe partial class AutoShowItemNPCShopInfo
         ) =>
         [
             .. npcInfos.Where(x => x.Location               != null)
+                       .DistinctBy(x => $"{x.Location.TerritoryID}_{x.Name}")
                        .OrderBy(x => x.Location.TerritoryID == 282)
                        .ThenBy(x => x.Location.TerritoryID)
         ];
