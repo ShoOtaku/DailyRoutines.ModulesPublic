@@ -335,7 +335,7 @@ public class ExpandItemMenuSearch : ModuleBase
         ) => true;
 
         private static string GetVariant() =>
-            GameState.ClientLanguge switch
+            GameState.ClientLanguage switch
             {
                 Language.Japanese           => "ja",
                 Language.English            => "en",
@@ -461,7 +461,7 @@ public class ExpandItemMenuSearch : ModuleBase
         ) => true;
 
         private static string GetPrefix() =>
-            GameState.ClientLanguge switch
+            GameState.ClientLanguage switch
             {
                 Language.Japanese => "jp",
                 Language.French   => "fr",
@@ -536,7 +536,7 @@ public class ExpandItemMenuSearch : ModuleBase
         ) => true;
 
         private static string GetPrefixByLang() =>
-            GameState.ClientLanguge switch
+            GameState.ClientLanguage switch
             {
                 Language.English            => "en.",
                 Language.French             => "fr.",

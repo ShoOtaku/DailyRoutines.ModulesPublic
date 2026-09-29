@@ -60,7 +60,17 @@ public unsafe partial class AutoShowItemNPCShopInfo : ModuleBase
         ref List<TooltipItemModification> modifications
     )
     {
-        if (kind is not ItemKind.Normal)
+        modifications.Add
+        (
+            new()
+            {
+                Target = TooltipItemType.ShopInfo,
+                Type   = TooltipModificationType.Contribute,
+                Text   = new()
+            }
+        );
+        
+        if (kind is ItemKind.Collectible or ItemKind.EventItem)
             return;
 
         const int    MAX_DISPLAY_COUNT = 5;
@@ -148,12 +158,6 @@ public unsafe partial class AutoShowItemNPCShopInfo : ModuleBase
                     Target = TooltipItemType.Description,
                     Type   = TooltipModificationType.Append,
                     Text   = builder.Builder.ToReadOnlySeString()
-                },
-                new()
-                {
-                    Target = TooltipItemType.ShopInfo,
-                    Type   = TooltipModificationType.Contribute,
-                    Text   = new()
                 }
             );
         }

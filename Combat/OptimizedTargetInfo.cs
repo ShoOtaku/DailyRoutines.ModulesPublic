@@ -1025,10 +1025,10 @@ public unsafe class OptimizedTargetInfo : ModuleBase
                 var (divisor, unit) = num switch
                 {
                     >= 1_0000_0000 => (1_0000_0000f,
-                                          GameState.ClientLanguge is Language.ChineseTraditional or Language.Japanese or Language.TraditionalChinese ?
+                                          GameState.ClientLanguage is Language.ChineseTraditional or Language.Japanese or Language.TraditionalChinese ?
                                               "億" :
                                               "亿"),
-                    >= 1_0000 => (1_0000f, GameState.ClientLanguge is Language.ChineseTraditional or Language.TraditionalChinese ?
+                    >= 1_0000 => (1_0000f, GameState.ClientLanguage is Language.ChineseTraditional or Language.TraditionalChinese ?
                                                "萬" :
                                                "万"),
                     _ => (1f, string.Empty)

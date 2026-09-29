@@ -501,7 +501,7 @@ public class ExpandPlayerMenuSearch : ModuleBase
             };
 
         private static string GetPrefix() =>
-            GameState.ClientLanguge switch
+            GameState.ClientLanguage switch
             {
                 Language.Japanese           => "ja",
                 Language.French             => "fr",
@@ -572,7 +572,7 @@ public class ExpandPlayerMenuSearch : ModuleBase
             $"https://{GetPrefix()}.finalfantasyxiv.com/lodestone/character/{characterID}/";
 
         private static string GetPrefix() =>
-            GameState.ClientLanguge switch
+            GameState.ClientLanguage switch
             {
                 Language.Japanese => "jp",
                 Language.French   => "fr",
@@ -594,7 +594,7 @@ public class ExpandPlayerMenuSearch : ModuleBase
             $"https://www.lalachievements.com{GetVariant()}/char/{characterID}/";
         
         private static string GetVariant() =>
-            GameState.ClientLanguge switch
+            GameState.ClientLanguage switch
             {
                 Language.Japanese => "/ja",
                 Language.French   => "/fr",
