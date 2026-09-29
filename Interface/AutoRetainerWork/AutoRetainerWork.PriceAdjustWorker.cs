@@ -20,6 +20,7 @@ using OmenTools.Dalamud.Attributes;
 using OmenTools.ImGuiOm.Widgets.Combos;
 using OmenTools.Interop.Game.AddonEvent;
 using OmenTools.Interop.Game.Lumina;
+using OmenTools.Interop.Game.Models;
 using OmenTools.KamiToolKit.Addons;
 using OmenTools.KamiToolKit.Nodes;
 using OmenTools.KamiToolKit.Nodes.Collasping;

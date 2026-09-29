@@ -13,7 +13,7 @@ using Lumina.Text.ReadOnly;
 using OmenTools.Dalamud;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
-using AtkEventWrapper = OmenTools.OmenService.AtkEventWrapper;
+using AtkEventWrapper = OmenTools.Interop.Game.Models.AtkEventWrapper;
 
 namespace DailyRoutines.ModulesPublic.Interface;
 

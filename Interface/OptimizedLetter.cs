@@ -16,7 +16,7 @@ using OmenTools.KamiToolKit.Nodes;
 using OmenTools.OmenService;
 using OmenTools.Threading.TaskHelper;
 using TinyPinyin;
-using AtkEventWrapper = OmenTools.OmenService.AtkEventWrapper;
+using AtkEventWrapper = OmenTools.Interop.Game.Models.AtkEventWrapper;
 
 namespace DailyRoutines.ModulesPublic.Interface;
 

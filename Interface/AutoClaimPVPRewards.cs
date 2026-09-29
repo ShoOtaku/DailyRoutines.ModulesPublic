@@ -7,7 +7,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using OmenTools.Info.Game.Enums;
 using OmenTools.OmenService;
-using AtkEventWrapper = OmenTools.OmenService.AtkEventWrapper;
+using AtkEventWrapper = OmenTools.Interop.Game.Models.AtkEventWrapper;
 
 namespace DailyRoutines.ModulesPublic.Interface;
 
