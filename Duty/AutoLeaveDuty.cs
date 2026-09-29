@@ -1,12 +1,15 @@
+using DailyRoutines.Common.Extensions;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.DutyState;
+using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using OmenTools.ImGuiOm.Widgets.Combos;
 using OmenTools.Interop.Game.ExecuteCommand.Implementations;
+using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic.Duty;
@@ -25,6 +28,8 @@ public class AutoLeaveDuty : ModuleBase
     private ContentSelectCombo contentSelectCombo  = null!;
     private ContentSelectCombo immediateLeaveCombo = null!;
 
+    private LeaveDutyKind manualLeaveKind = LeaveDutyKind.None;
+
     protected override void Init()
     {
         contentSelectCombo  =   new("Blacklist");
@@ -39,10 +44,14 @@ public class AutoLeaveDuty : ModuleBase
 
         IDutyState.Instance().DutyCompleted      += OnDutyComplete;
         IClientState.Instance().TerritoryChanged += OnZoneChanged;
+
+        CommandManager.Instance().AddSubCommand(COMMAND, new(OnCommand) { HelpMessage = Lang.Get("AutoLeaveDuty-Command-Set") });
     }
 
     protected override void Uninit()
     {
+        CommandManager.Instance().RemoveSubCommand(COMMAND);
+
         IDutyState.Instance().DutyCompleted      -= OnDutyComplete;
         IClientState.Instance().TerritoryChanged -= OnZoneChanged;
 
@@ -52,6 +61,30 @@ public class AutoLeaveDuty : ModuleBase
     protected override void ConfigUI()
     {
         using var itemWidth = ImRaii.ItemWidth(250f * GlobalUIScale);
+
+        using (ImRaii.Heading1(Lang.Get("Command")))
+        {
+            foreach (var dutyKind in Enum.GetValues<LeaveDutyKind>())
+            {
+                var command = $"/pdr {COMMAND} {dutyKind}";
+
+                ImGui.TextUnformatted(command);
+                if (ImGui.IsItemHovered())
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+
+                if (ImGui.IsItemClicked())
+                {
+                    ImGui.SetClipboardText(command);
+                    NotifyHelper.Instance().NotificationSuccess(command, Lang.Get("CopiedToClipboard"));
+                }
+
+                ImGui.TextUnformatted(Lang.Get($"AutoLeaveDuty-Command-Set-{dutyKind}"));
+
+                ImGui.Spacing();
+            }
+        }
+
+        ImGui.NewLine();
 
         // 延迟
         if (ImGui.InputInt($"{Lang.Get("Delay")} (ms)###DelayInput", ref config.Delay))
@@ -99,11 +132,62 @@ public class AutoLeaveDuty : ModuleBase
         }
     }
 
+    private unsafe void OnCommand
+    (
+        string command,
+        string args
+    )
+    {
+        if (GameState.ContentFinderCondition == 0)
+        {
+            using var utf8String = new Utf8String($"/pdr {command}");
+            RaptureLogModule.Instance()->ShowLogMessageString(726, &utf8String);
+            return;
+        }
+
+        if (!Enum.TryParse<LeaveDutyKind>(args, true, out var kind))
+        {
+            NotifyHelper.Instance().ChatError
+            (
+                ISeStringEvaluator.Instance().EvaluateFromLogMessage
+                (
+                    3802,
+                    [
+                        1,
+                        LuminaWrapper.GetAddonText(9448),
+                        args
+                    ]
+                )
+            );
+
+            return;
+        }
+
+        manualLeaveKind = kind;
+
+        var message = Lang.Get($"AutoLeaveDuty-Notification-Set-{kind}");
+        NotifyHelper.Instance().Chat(message);
+        NotifyHelper.Toast(message);
+    }
+
     private void OnDutyComplete
     (
         IDutyStateEventArgs args
     )
     {
+        if (manualLeaveKind != LeaveDutyKind.None)
+        {
+            switch (manualLeaveKind)
+            {
+                case LeaveDutyKind.InstantLeave:
+                    TaskHelper.Enqueue(() => DutyCommand.Leave(DutyCommand.LeaveDutyKind.Inactive));
+                    break;
+
+                case LeaveDutyKind.NoLeave:
+                    return;
+            }
+        }
+
         if (config.BlacklistContent.Contains(GameState.ContentFinderCondition))
             return;
 
@@ -132,8 +216,11 @@ public class AutoLeaveDuty : ModuleBase
     private void OnZoneChanged
     (
         uint u
-    ) =>
+    )
+    {
+        manualLeaveKind = LeaveDutyKind.None;
         TaskHelper.Abort();
+    }
 
     // 拦截一下那个信息
     private static void OnPreReceiveLogmessage
@@ -156,4 +243,19 @@ public class AutoLeaveDuty : ModuleBase
 
         public bool NoLeaveHighEndDuties = true;
     }
+
+    private enum LeaveDutyKind
+    {
+        None,
+
+        InstantLeave,
+
+        NoLeave
+    }
+
+    #region 常量
+
+    private const string COMMAND = "autoleaveduty";
+
+    #endregion
 }
