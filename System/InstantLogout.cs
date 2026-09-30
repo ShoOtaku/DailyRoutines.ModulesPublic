@@ -196,6 +196,18 @@ public unsafe class InstantLogout : ModuleBase
     )
     {
         taskHelper.Enqueue(() => ContentsFinderHelper.RequestDutyNormal(167, ContentsFinderHelper.DefaultOption));
+        taskHelper.Enqueue
+        (() =>
+            {
+                var logoutParams = new LogoutCallbackInterface.LogoutParams
+                {
+                    Type = 0,
+                    Code = 10000
+                };
+
+                AgentLobby.Instance()->LogoutCallbackInterface.OnLogout(&logoutParams);
+            }
+        ); // 本地登出
         taskHelper.Enqueue(() => !GameState.IsLoggedIn);
     }
 
