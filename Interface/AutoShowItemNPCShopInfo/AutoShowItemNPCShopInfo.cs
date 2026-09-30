@@ -144,6 +144,10 @@ public unsafe partial class AutoShowItemNPCShopInfo : ModuleBase
                     "AutoShowItemNPCShopInfo-Tooltip-Destination",
                 destinationInfo.Items.Count
             );
+
+            if (isAnyValid)
+                builder.Builder.AppendNewLine();
+            
             builder.Builder.Append($"{(isAnyValid ? SPACING : string.Empty)}{message}");
             
             isAnyValid = true;
