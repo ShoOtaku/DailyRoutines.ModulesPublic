@@ -387,7 +387,7 @@ public unsafe class AutoExpertDelivery : ModuleBase
                 IsEnabled = true,
                 IsChecked = instance.config.SkipWhenHQ,
                 Size      = new(100, 27),
-                String    = Lang.Get("AutoExpertDelivery-SkipHQ"),
+                String    = Lang.Get("SkipHQItem"),
                 OnClick = x =>
                 {
                     instance.config.SkipWhenHQ = x;
