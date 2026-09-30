@@ -71,7 +71,7 @@ public partial class BetterFPSLimitation
 
             RecordFrame();
 
-            Device.Instance()->IsFrameRateLimited = false;
+            Device.Instance()->FrameRateLimitPreset = 0;
             SwapChainPresentHook.Original(thisPtr);
         }
 
