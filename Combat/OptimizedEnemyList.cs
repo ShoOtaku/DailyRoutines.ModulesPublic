@@ -582,8 +582,7 @@ public unsafe class OptimizedEnemyList : ModuleBase
                 TextureSize        = new(24, 20),
                 Size               = new(124, 24),
                 Offsets            = new(8),
-                Alpha              = 1f,
-                AddColor           = Vector3.One
+                Alpha              = 1f
             };
 
             var healthNode = new TextNode
