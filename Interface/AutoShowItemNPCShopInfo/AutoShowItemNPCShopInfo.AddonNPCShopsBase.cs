@@ -444,7 +444,14 @@ public unsafe partial class AutoShowItemNPCShopInfo
                             {
                                 Name      = LuminaWrapper.GetAddonText(1806),
                                 IsEnabled = location.TerritoryID != 282,
-                                OnClicked = _ => TeleportToLocation(location)
+                                OnClicked = _ =>
+                                {
+                                    IFramework.Instance().RunOnTick
+                                    (
+                                        () => TeleportToLocation(location),
+                                        delayTicks: 1
+                                    );
+                                }
                             }
                         )
                     ]
