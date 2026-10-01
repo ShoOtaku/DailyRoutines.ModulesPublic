@@ -118,6 +118,8 @@ public class AutoNotifyDiademWeather : ModuleBase
                 ["weather"] = weather.Name
             }
         );
+        
+        NotifyHelper.Toast(message);
         NotifyHelper.Chat(message);
         NotifyHelper.Instance().TrayInfo(message);
     }
