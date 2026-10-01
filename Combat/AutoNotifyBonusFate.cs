@@ -4,11 +4,10 @@ using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
 using Dalamud.Game.ClientState.Fates;
-using Dalamud.Game.Text.SeStringHandling;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using Lumina.Text.ReadOnly;
 using OmenTools.Info.Game.Enums;
-using OmenTools.Interop.Game.Helpers;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 
@@ -47,17 +46,6 @@ public class AutoNotifyBonusFate : ModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(Lang.Get("SendChat"), ref config.SendChat))
-            config.Save(this);
-
-        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref config.SendNotification))
-            config.Save(this);
-
-        if (ImGui.Checkbox(Lang.Get("SendTTS"), ref config.SendTTS))
-            config.Save(this);
-
-        ImGui.NewLine();
-
         if (ImGui.Checkbox(Lang.Get("OpenMap"), ref config.AutoOpenMap))
             config.Save(this);
     }
@@ -94,13 +82,17 @@ public class AutoNotifyBonusFate : ModuleBase
 
     private void UpdateAndNotify()
     {
-        if (!ValidTerritories.Contains(GameState.TerritoryType) || GameState.Map == 0) return;
+        if (!ValidTerritories.Contains(GameState.TerritoryType) || 
+            GameState.Map == 0) 
+            return;
 
         var fateTable = IFateTable.Instance();
 
         if (fateTable.Length == 0)
         {
-            if (notifiedFates.Count > 0) notifiedFates.Clear();
+            if (notifiedFates.Count > 0) 
+                notifiedFates.Clear();
+            
             return;
         }
 
@@ -125,46 +117,35 @@ public class AutoNotifyBonusFate : ModuleBase
         IFate fate
     )
     {
-        var mapPos = PositionHelper.WorldToMap(fate.Position.ToVector2(), GameState.MapData);
-
-        var chatMessage = Lang.GetSe
+        var message = Lang.GetSe
         (
             "AutoNotifyBonusFate-Chat",
-            fate.Name.ToString(),
-            fate.Progress,
-            SeString.CreateMapLink(GameState.TerritoryType, GameState.Map, mapPos.X, mapPos.Y)
+            new Dictionary<string, object>
+            {
+                ["fate"] = ReadOnlySeString.CreateMapLink
+                (
+                    fate.Position,
+                    displayNameOverride: $"{fate.Name}（{fate.Progress}%）"
+                ),
+            }
         );
-        var notificationMessage = Lang.Get("AutoNotifyBonusFate-Notification", fate.Name.ToString(), fate.Progress);
+        
+        NotifyHelper.Chat(message);
+        NotifyHelper.Toast(message);
 
-        if (config.SendChat)
-            NotifyHelper.Instance().Chat(chatMessage);
-        if (config.SendNotification)
-            NotifyHelper.Instance().NotificationInfo(notificationMessage);
-        if (config.SendTTS)
-            NotifyHelper.Speak(notificationMessage);
+        NotifyHelper.Instance().TrayInfo
+        (
+            $"{fate.Name}（{fate.Progress}%）",
+            Lang.Get("AutoNotifyBonusFate-Notification")
+        );
 
         if (config.AutoOpenMap)
-        {
-            var instance = AgentMap.Instance();
-            if (instance == null) return;
-
-            var currentZoneMapID = instance->CurrentMapId;
-            instance->SelectedMapId = currentZoneMapID;
-
-            if (!instance->IsAgentActive())
-                instance->Show();
-
-            instance->SetFlagMapMarker(GameState.TerritoryType, currentZoneMapID, fate.Position);
-            instance->OpenMap(currentZoneMapID, GameState.TerritoryType, fate.Name.ToString());
-        }
+            AgentMap.Instance()->SetMapFlagAndOpen(GameState.Map, fate.Position, fate.Name.ToString());
     }
 
     private class Config : ModuleConfig
     {
         public bool AutoOpenMap = true;
-        public bool SendChat;
-        public bool SendNotification = true;
-        public bool SendTTS          = true;
     }
 
     #region 常量
