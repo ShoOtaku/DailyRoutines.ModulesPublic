@@ -1,11 +1,7 @@
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
-using DailyRoutines.Extensions;
-using FFXIVClientStructs.FFXIV.Client.Game;
-using Lumina.Excel.Sheets;
 using OmenTools.Info.Lumina;
-using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic.Duty;
@@ -21,76 +17,92 @@ public class AutoNotifyDutyName : ModuleBase
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private Config config = null!;
-
-    protected override void Init()
-    {
-        config = Config.Load(this) ?? new();
-
+    protected override void Init() =>
         IClientState.Instance().TerritoryChanged += OnZoneChange;
-    }
 
     protected override void Uninit() =>
         IClientState.Instance().TerritoryChanged -= OnZoneChange;
 
-    protected override void ConfigUI()
-    {
-        if (ImGui.Checkbox(Lang.Get("SendTTS"), ref config.SendTTS))
-            config.Save(this);
-
-        if (ImGui.Checkbox(Lang.Get("SendChat"), ref config.SendChat))
-            config.Save(this);
-
-        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref config.SendNotification))
-            config.Save(this);
-    }
-
-    private unsafe void OnZoneChange
+    private static unsafe void OnZoneChange
     (
         uint u
     )
     {
-        if (GameMain.Instance()->CurrentContentFinderConditionId == 0 ||
-            !LuminaGetter.TryGetRow<ContentFinderCondition>(GameMain.Instance()->CurrentContentFinderConditionId, out var content))
+        if (GameState.ContentFinderCondition == 0)
             return;
 
-        var levelText = content.ClassJobLevelRequired == content.ClassJobLevelSync ||
-                        content.ClassJobLevelRequired > content.ClassJobLevelSync ?
-                            content.ClassJobLevelSync.ToString() :
-                            $"{content.ClassJobLevelRequired}-{content.ClassJobLevelSync}";
+        var content = GameState.ContentFinderConditionData;
 
-        var maxILGearIL = content.ClassJobLevelSync == 0 ?
-                              0 :
-                              Sheets.Gears.Values
-                                    .Where(x => x.LevelEquip != 1 && x.LevelEquip <= content.ClassJobLevelSync)
-                                    .OrderByDescending(x => x.LevelItem.RowId)
-                                    .FirstOrDefault().LevelItem.RowId;
+        var maxLevel = Math.Max(content.ClassJobLevelRequired, content.ClassJobLevelSync);
 
-        var message = Lang.Get
+        NotifyHelper.Instance().TrayInfo
         (
-            "AutoNotifyDutyName-NoticeMessage",
-            levelText,
-            content.Name.ToString(),
-            Lang.Get("ILMinimum"),
-            content.ItemLevelRequired,
-            Lang.Get("ILMaximum"),
-            content.ItemLevelSync != 0 ?
-                content.ItemLevelSync :
-                maxILGearIL
+            Lang.Get
+            (
+                "AutoNotifyDutyName-Notification-Message",
+                new Dictionary<string, object>
+                {
+                    ["level"]   = content.ClassJobLevelRequired,
+                    ["content"] = content.Name
+                }
+            ),
+            Lang.Get("AutoNotifyDutyName-Notification-Title")
         );
 
-        if (config.SendTTS)
-            NotifyHelper.Speak(message);
-        if (config.SendChat)
-            NotifyHelper.Instance().Chat(message);
-        if (config.SendNotification)
-            NotifyHelper.Instance().NotificationInfo(message);
-    }
+        var minIL = content.ItemLevelRequired;
+        var maxIL =
+            content is { ItemLevelRequired: 0, ClassJobLevelSync: 0 } ?
+                0 :
+                Sheets.Gears.Values
+                      .Where(x => x.LevelEquip != 1 && x.LevelEquip <= maxLevel)
+                      .OrderByDescending(x => x.LevelItem.RowId)
+                      .FirstOrDefault().LevelItem.RowId;
 
-    private class Config : ModuleConfig
-    {
-        public bool SendChat         = true;
-        public bool SendNotification = true;
-        public bool SendTTS          = true;
+        if (content.ClassJobLevelRequired == 0)
+        {
+            NotifyHelper.Chat
+            (
+                Lang.Get
+                (
+                    "AutoNotifyDutyName-Message-NoLevel",
+                    new Dictionary<string, object>
+                    {
+                        ["content"] = content.Name
+                    }
+                )
+            );
+        }
+        else if (minIL == 0 && maxIL == 0)
+        {
+            NotifyHelper.Chat
+            (
+                Lang.Get
+                (
+                    "AutoNotifyDutyName-Message-NoItemLevel",
+                    new Dictionary<string, object>
+                    {
+                        ["level"]   = content.ClassJobLevelRequired,
+                        ["content"] = content.Name
+                    }
+                )
+            );
+        }
+        else
+        {
+            NotifyHelper.Chat
+            (
+                Lang.Get
+                (
+                    "AutoNotifyDutyName-Message",
+                    new Dictionary<string, object>
+                    {
+                        ["level"]   = content.ClassJobLevelRequired,
+                        ["content"] = content.Name,
+                        ["minIL"]   = minIL,
+                        ["maxIL"]   = maxIL
+                    }
+                )
+            );
+        }
     }
 }
