@@ -235,6 +235,7 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
                 );
                 
                 NotifyHelper.Instance().TrayInfo(message);
+                NotifyHelper.Toast(message);
                 NotifyHelper.Chat
                 (
                     new XivChatEntry
