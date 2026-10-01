@@ -1,8 +1,8 @@
-using System.Collections.Frozen;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using Dalamud.Game.Text;
 using Newtonsoft.Json;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
@@ -55,17 +55,6 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref config.SendNotification))
-            config.Save(this);
-
-        if (ImGui.Checkbox(Lang.Get("SendChat"), ref config.SendChat))
-            config.Save(this);
-
-        if (ImGui.Checkbox(Lang.Get("SendTTS"), ref config.SendTTS))
-            config.Save(this);
-
-        ImGui.NewLine();
-
         using var table = ImRaii.Table("Table", 3, ImGuiTableFlags.None, (ImGui.GetContentRegionAvail() / 1.5f) with { Y = 0 });
         if (!table) return;
 
@@ -119,7 +108,8 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
                 }
 
                 var snapshot = await GetStateSnapshot();
-                if (snapshot != null) await RunCheckAsync(snapshot);
+                if (snapshot != null) 
+                    await RunCheckAsync(snapshot);
 
                 await Task.Delay(60_000, ct);
             }
@@ -228,21 +218,31 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
         return null;
     }
 
-    private void Notify
+    private static void Notify
     (
         string dcName
     ) =>
         IFramework.Instance().RunOnTick
         (() =>
             {
-                var text = Lang.Get("AutoNotifyChaoticRaidBonus-Notification", dcName);
-
-                if (config.SendNotification)
-                    NotifyHelper.Instance().NotificationInfo(text);
-                if (config.SendChat)
-                    NotifyHelper.Instance().Chat(text);
-                if (config.SendTTS)
-                    NotifyHelper.Speak(text);
+                var message = Lang.Get
+                (
+                    "AutoNotifyChaoticRaidBonus-Notification",
+                    new Dictionary<string, object>
+                    {
+                        ["dataCenter"] = dcName
+                    }
+                );
+                
+                NotifyHelper.Instance().TrayInfo(message);
+                NotifyHelper.Chat
+                (
+                    new XivChatEntry
+                    {
+                        Type    = XivChatType.Notice,
+                        Message = message
+                    }
+                );
             }
         );
 
@@ -250,10 +250,6 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
     {
         public Dictionary<string, bool> DataCenters           = [];
         public Dictionary<string, long> DataCentersNotifyTime = [];
-        public bool                     SendChat              = true;
-
-        public bool SendNotification = true;
-        public bool SendTTS          = true;
     }
 
     private class ChaoticUptimeData
@@ -284,7 +280,7 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
 
     private const string BASE_URL = "https://api.ff14.xin/status?data_center={0}";
 
-    private static readonly FrozenSet<string> AllDataCenters =
+    private static readonly string[] AllDataCenters =
     [
         "陆行鸟", "莫古力", "猫小胖", "豆豆柴",
         "Elemental", "Gaia", "Mana", "Meteor",
