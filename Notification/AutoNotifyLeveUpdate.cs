@@ -19,8 +19,7 @@ public unsafe class AutoNotifyLeveUpdate : ModuleBase
 
     private Config config = null!;
 
-    private DateTime nextLeveCheck = DateTime.MinValue;
-    private DateTime finishTime    = StandardTimeManager.Instance().UTCNow;
+    private DateTime finishTime = StandardTimeManager.Instance().UTCNow;
     private int      lastLeve;
 
     protected override void Init()
@@ -34,15 +33,6 @@ public unsafe class AutoNotifyLeveUpdate : ModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextUnformatted($"{Lang.Get("AutoNotifyLeveUpdate-NumText")}{lastLeve}");
-        ImGui.TextUnformatted($"{Lang.Get("AutoNotifyLeveUpdate-FullTimeText")}{finishTime.ToLocalTime():g}");
-        ImGui.TextUnformatted($"{Lang.Get("AutoNotifyLeveUpdate-UpdateTimeText")}{nextLeveCheck.ToLocalTime():g}");
-
-        if (ImGui.Checkbox(Lang.Get("AutoNotifyLeveUpdate-OnChatMessageConfig"), ref config.OnChatMessage))
-            config.Save(this);
-
-        ImGui.SetNextItemWidth(200f * GlobalUIScale);
-
         if (ImGui.SliderInt
             (
                 Lang.Get("AutoNotifyLeveUpdate-NotificationThreshold"),
@@ -61,43 +51,37 @@ public unsafe class AutoNotifyLeveUpdate : ModuleBase
         IFramework _
     )
     {
-        if (!GameState.IsLoggedIn)
+        if (!GameState.IsLoggedIn ||
+            GameState.ContentFinderCondition != 0)
             return;
 
         var nowUTC         = StandardTimeManager.Instance().UTCNow;
         var leveAllowances = QuestManager.Instance()->NumLeveAllowances;
-        if (lastLeve == leveAllowances) return;
+        if (lastLeve == leveAllowances)
+            return;
 
         var decreasing = leveAllowances > lastLeve;
-        lastLeve      = leveAllowances;
-        nextLeveCheck = MathNextTime(nowUTC);
-        finishTime    = MathFinishTime(leveAllowances, nowUTC);
+        lastLeve   = leveAllowances;
+        finishTime = GetFinishTime(leveAllowances, nowUTC);
 
-        if (leveAllowances >= config.NotificationThreshold && decreasing)
-        {
-            var message = $"{Lang.Get("AutoNotifyLeveUpdate-NotificationTitle")}\n"                        +
-                          $"{Lang.Get("AutoNotifyLeveUpdate-NumText")}{leveAllowances}\n"                  +
-                          $"{Lang.Get("AutoNotifyLeveUpdate-FullTimeText")}{finishTime.ToLocalTime():g}\n" +
-                          $"{Lang.Get("AutoNotifyLeveUpdate-UpdateTimeText")}{nextLeveCheck.ToLocalTime():g}";
+        if (leveAllowances < config.NotificationThreshold || !decreasing)
+            return;
 
-            if (config.OnChatMessage)
-                NotifyHelper.Instance().Chat(message);
-            NotifyHelper.Instance().NotificationInfo(message);
-        }
+        NotifyHelper.Instance().Chat
+        (
+            Lang.Get
+            (
+                "AutoNotifyLeveUpdate-Notification",
+                new Dictionary<string, object>
+                {
+                    ["count"] = leveAllowances,
+                    ["date"]  = finishTime.ToLocalTime()
+                }
+            )
+        );
     }
 
-    private static DateTime MathNextTime
-    (
-        DateTime nowUTC
-    ) =>
-        nowUTC.AddHours
-        (
-            nowUTC.Hour >= 12 ?
-                24 - nowUTC.Hour :
-                12 - nowUTC.Hour
-        ).Date;
-
-    private static DateTime MathFinishTime
+    private static DateTime GetFinishTime
     (
         int      num,
         DateTime nowUTC
@@ -124,7 +108,6 @@ public unsafe class AutoNotifyLeveUpdate : ModuleBase
 
     private class Config : ModuleConfig
     {
-        public int  NotificationThreshold = 97;
-        public bool OnChatMessage         = true;
+        public int NotificationThreshold = 97;
     }
 }
