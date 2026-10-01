@@ -279,7 +279,7 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
 
     #region 常量
 
-    private const string BASE_URL = "https://api.ff14.xin/status?data_center={0}";
+    private const string BASE_URL = "https://uptime.ff14.xin/status?data_center={0}";
 
     private static readonly string[] AllDataCenters =
     [
