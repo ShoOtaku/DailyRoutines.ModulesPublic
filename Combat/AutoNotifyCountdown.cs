@@ -1,7 +1,6 @@
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
-using DailyRoutines.Extensions;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using OmenTools.OmenService;
 
@@ -13,45 +12,35 @@ public class AutoNotifyCountdown : ModuleBase
     {
         Title       = Lang.Get("AutoNotifyCountdownTitle"),
         Description = Lang.Get("AutoNotifyCountdownDescription"),
-        Category    = ModuleCategory.Notification,
+        Category    = ModuleCategory.Combat,
         Author      = ["HSS"]
     };
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
-    private Config config = null!;
-
-    protected override void Init()
-    {
-        config = Config.Load(this) ?? new();
-
+    
+    protected override void Init() =>
         LogMessageManager.Instance().RegPost(OnLogMessage);
-    }
 
     protected override void Uninit() =>
         LogMessageManager.Instance().Unreg(OnLogMessage);
 
-    private void OnLogMessage
+    private static void OnLogMessage
     (
         uint                logMessageID,
         LogMessageQueueItem item
     )
     {
         if (logMessageID != 5255) return;
-        if (config.OnlyNotifyWhenBackground && GameState.IsForeground) return;
 
-        NotifyHelper.Instance().NotificationInfo(Lang.Get("AutoNotifyCountdown-NotificationTitle"));
-        NotifyHelper.Speak(Lang.Get("AutoNotifyCountdown-NotificationTitle"));
-    }
-
-    protected override void ConfigUI()
-    {
-        if (ImGui.Checkbox(Lang.Get("OnlyNotifyWhenBackground"), ref config.OnlyNotifyWhenBackground))
-            config.Save(this);
-    }
-
-    private class Config : ModuleConfig
-    {
-        public bool OnlyNotifyWhenBackground = true;
+        var message = Lang.Get
+        (
+            "AutoNotifyCountdown-Notification",
+            new Dictionary<string, object>
+            {
+                ["seconds"] = item.Parameters[0].IntValue
+            }
+        );
+        
+        NotifyHelper.Instance().TrayInfo(message);
     }
 }
