@@ -1,12 +1,9 @@
-using System.Collections.Frozen;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.UI;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using Lumina.Text.ReadOnly;
 using OmenTools.Info.Game.Enums;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
@@ -29,9 +26,7 @@ public unsafe class AutoNotifyMentorRouletteProgress : ModuleBase
     };
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
-    private DalamudLinkPayload? achievementLinkPayload;
-
+    
     protected override void Init()
     {
         TaskHelper ??= new();
@@ -40,13 +35,8 @@ public unsafe class AutoNotifyMentorRouletteProgress : ModuleBase
         OnZoneChanged(0);
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() =>
         IClientState.Instance().TerritoryChanged -= OnZoneChanged;
-
-        if (achievementLinkPayload != null)
-            LinkPayloadManager.Instance().Unreg(achievementLinkPayload.CommandId);
-    }
 
     private void OnZoneChanged
     (
@@ -92,41 +82,35 @@ public unsafe class AutoNotifyMentorRouletteProgress : ModuleBase
 
                 if (firstIncomplete == null) return true;
 
-                if (achievementLinkPayload != null)
-                    LinkPayloadManager.Instance().Unreg(achievementLinkPayload.CommandId);
-
-                achievementLinkPayload = LinkPayloadManager.Instance().Reg((_, _) => AgentAchievement.Instance()->OpenById(firstIncomplete.ID), out _);
-                var builder = new SeStringBuilder();
-                builder.AddText(Lang.Get("AutoNotifyMentorRouletteProgres-Notification-Title"))
-                       .Add(NewLinePayload.Payload)
-                       .AddText($"   {Lang.Get("AutoNotifyMentorRouletteProgres-Notification-CurrentProgress")}: {firstIncomplete.Current} / {firstIncomplete.Max}")
-                       .Add(NewLinePayload.Payload)
-                       .AddText($"   {Lang.Get("AutoNotifyMentorRouletteProgres-Notification-TargetAchievement")}: ")
-                       .Add(RawPayload.LinkTerminator)
-                       .Add(achievementLinkPayload)
-                       .AddRange(SeString.TextArrowPayloads)
-                       .AddText(firstIncomplete.Name)
-                       .Add(RawPayload.LinkTerminator);
+                using var rented  = new RentedSeStringBuilder();
+                var       builder = rented.Builder;
+                
+                builder.Append(Lang.Get("AutoNotifyMentorRouletteProgres-Notification-Title"))
+                       .AppendNewLine()
+                       .Append($"{Lang.Get("AutoNotifyMentorRouletteProgres-Notification-CurrentProgress")}：{firstIncomplete.Current}/{firstIncomplete.Max}")
+                       .AppendNewLine()
+                       .Append($"{Lang.Get("AutoNotifyMentorRouletteProgres-Notification-TargetAchievement")}：")
+                       .Append(ReadOnlySeString.CreateAchievementLink(firstIncomplete.ID));
 
                 if (firstIncomplete.GetData().Title is { RowId: > 0 } titleRowRef)
                 {
-                    builder.Add(NewLinePayload.Payload)
-                           .AddText
+                    builder.AppendNewLine()
+                           .Append
                            (
-                               $"   {Lang.Get("AutoNotifyMentorRouletteProgres-Notification-AchievementReward")}:"          +
-                               $" {(LocalPlayerState.Sex == 0 ? titleRowRef.Value.Masculine : titleRowRef.Value.Feminine)}" +
-                               $" [{LuminaWrapper.GetAddonText(14119)}]"
+                               $"{Lang.Get("AutoNotifyMentorRouletteProgres-Notification-AchievementReward")}："          +
+                               $"{(LocalPlayerState.Sex == 0 ? titleRowRef.Value.Masculine : titleRowRef.Value.Feminine)}" +
+                               $"（{LuminaWrapper.GetAddonText(14119)}）" // 称号
                            );
                 }
                 else if (firstIncomplete.GetData().Item is { RowId: > 0 } itemRowRef)
                 {
-                    builder.Add(NewLinePayload.Payload)
-                           .AddText($"   {Lang.Get("AutoNotifyMentorRouletteProgres-Notification-AchievementReward")}: ")
-                           .Append(SeString.CreateItemLink(itemRowRef.Value, false));
+                    builder.AppendNewLine()
+                           .Append($"{Lang.Get("AutoNotifyMentorRouletteProgres-Notification-AchievementReward")}：")
+                           .Append(ReadOnlySeString.CreateItemLink(itemRowRef.Value.RowId, false));
                 }
 
-                builder.Add(NewLinePayload.Payload)
-                       .AddText($"   {Lang.Get("AutoNotifyMentorRouletteProgres-Notification-CurrentDuty")}: ")
+                builder.AppendNewLine()
+                       .Append($"{Lang.Get("AutoNotifyMentorRouletteProgres-Notification-CurrentDuty")}：")
                        .Append
                        (
                            ISeStringEvaluator.Instance().EvaluateFromAddon
@@ -136,11 +120,10 @@ public unsafe class AutoNotifyMentorRouletteProgress : ModuleBase
                                    (uint)GameState.ContentFinderConditionData.ClassJobLevelRequired,
                                    GameState.ContentFinderConditionData.Name
                                ]
-                           ).ToDalamudString()
+                           )
                        );
 
-                // TODO: 改成 ReadOnlyString
-                NotifyHelper.Instance().Chat(builder.Build().Encode());
+                NotifyHelper.Chat(builder.ToReadOnlySeString());
                 return true;
             }
         );
@@ -150,7 +133,7 @@ public unsafe class AutoNotifyMentorRouletteProgress : ModuleBase
 
     private const byte MENTOR_ROULETTE_ID = 9;
 
-    private static readonly FrozenSet<uint> MentorRouletteAchievements = [1472, 1473, 1474, 1475, 1603, 1604];
+    private static readonly uint[] MentorRouletteAchievements = [1472, 1473, 1474, 1475, 1603, 1604];
 
     #endregion
 }
