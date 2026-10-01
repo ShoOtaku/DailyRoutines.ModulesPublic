@@ -1,4 +1,4 @@
-using System.Collections.Frozen;
+using DailyRoutines.Common.Extensions;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
@@ -8,7 +8,7 @@ using Lumina.Excel.Sheets;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 
-namespace DailyRoutines.ModulesPublic;
+namespace DailyRoutines.ModulesPublic.CraftGather;
 
 public class AutoNotifyDiademWeather : ModuleBase
 {
@@ -16,7 +16,7 @@ public class AutoNotifyDiademWeather : ModuleBase
     {
         Title       = Lang.Get("AutoNotifyDiademWeatherTitle"),
         Description = Lang.Get("AutoNotifyDiademWeatherDescription"),
-        Category    = ModuleCategory.Notification
+        Category    = ModuleCategory.CraftGather
     };
 
     private Config config = null!;
@@ -41,8 +41,8 @@ public class AutoNotifyDiademWeather : ModuleBase
 
     protected override void ConfigUI()
     {
-        ImGui.TextColored(KnownColor.LightSkyBlue.ToVector4(), LuminaWrapper.GetAddonText(8555));
-
+        using var heading = ImRaii.Heading1(LuminaWrapper.GetAddonText(8555));
+        
         var weathers = string.Join
         (
             ',',
@@ -68,8 +68,10 @@ public class AutoNotifyDiademWeather : ModuleBase
                         ImGuiSelectableFlags.DontClosePopups
                     ))
                 {
-                    if (!config.Weathers.Add(weather))
+                    if (config.Weathers.Contains(weather))
                         config.Weathers.Remove(weather);
+                    else
+                        config.Weathers.Add(weather);
 
                     config.Save(this);
                 }
@@ -84,7 +86,7 @@ public class AutoNotifyDiademWeather : ModuleBase
     {
         FrameworkManager.Instance().Unreg(OnUpdate);
 
-        if (GameState.TerritoryType != 939) return;
+        if (GameState.TerritoryType != DIADEM_ZONE) return;
 
         FrameworkManager.Instance().Reg(OnUpdate, 10_000);
     }
@@ -94,31 +96,42 @@ public class AutoNotifyDiademWeather : ModuleBase
         IFramework framework
     )
     {
-        if (GameState.TerritoryType != 939)
+        if (GameState.TerritoryType != DIADEM_ZONE)
         {
             FrameworkManager.Instance().Unreg(OnUpdate);
             return;
         }
 
         var weatherID = WeatherManager.Instance()->GetCurrentWeather();
-        if (lastWeather == weatherID || !LuminaGetter.TryGetRow<Weather>(weatherID, out var weather)) return;
+        if (lastWeather == weatherID ||
+            !LuminaGetter.TryGetRow<Weather>(weatherID, out var weather))
+            return;
 
         lastWeather = weatherID;
         if (!config.Weathers.Contains(weatherID)) return;
 
-        var message = Lang.Get("AutoNotifyDiademWeather-Notification", weather.Name.ToString());
-        NotifyHelper.Instance().Chat(message);
-        NotifyHelper.Instance().NotificationInfo(message);
+        var message = Lang.Get
+        (
+            "AutoNotifyDiademWeather-Notification",
+            new Dictionary<string, object>
+            {
+                ["weather"] = weather.Name
+            }
+        );
+        NotifyHelper.Chat(message);
+        NotifyHelper.Instance().TrayInfo(message);
     }
 
     private class Config : ModuleConfig
     {
-        public HashSet<uint> Weathers = [];
+        public uint[] Weathers = [];
     }
 
     #region 常量
 
-    private static readonly FrozenSet<uint> SpecialWeathers = [133, 134, 135, 136];
+    private static readonly uint[] SpecialWeathers = [133, 134, 135, 136];
+
+    private const uint DIADEM_ZONE = 939;
 
     #endregion
 }
