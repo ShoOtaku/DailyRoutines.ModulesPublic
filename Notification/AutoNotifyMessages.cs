@@ -1,11 +1,10 @@
-using System.Collections.Frozen;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
 using Dalamud.Game.Chat;
 using Dalamud.Game.Text;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
+using OmenTools.Info.Game.Data;
 using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
@@ -36,10 +35,7 @@ public class AutoNotifyMessages : ModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(Lang.Get("OnlyNotifyWhenBackground"), ref config.OnlyNotifyWhenBackground))
-            config.Save(this);
-
-        ImGui.SetNextItemWidth(300f * GlobalUIScale);
+        using var itemWidth = ImRaii.ItemWidth(300f * GlobalUIScale);
 
         using (var combo = ImRaii.Combo
                (
@@ -62,14 +58,16 @@ public class AutoNotifyMessages : ModuleBase
                 ImGui.Separator();
                 ImGui.Spacing();
 
-                foreach (var chatType in KnownChatTypes)
+                foreach (var (chatType, addonText) in XIVChatTypes.ChatTypeToAddonText)
                 {
-                    if (!string.IsNullOrEmpty(searchChatTypesContent) &&
-                        !chatType.ToString().Contains(searchChatTypesContent, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!string.IsNullOrEmpty(searchChatTypesContent)                                             &&
+                        !chatType.ToString().Contains(searchChatTypesContent, StringComparison.OrdinalIgnoreCase) &&
+                        !addonText.Contains(searchChatTypesContent, StringComparison.OrdinalIgnoreCase))
+                        continue;
 
                     var existed = config.ValidChatTypes.Contains(chatType);
 
-                    if (ImGui.Checkbox(chatType.ToString(), ref existed))
+                    if (ImGui.Checkbox($"{addonText}##{chatType}", ref existed))
                     {
                         if (!config.ValidChatTypes.Remove(chatType))
                             config.ValidChatTypes.Add(chatType);
@@ -79,8 +77,6 @@ public class AutoNotifyMessages : ModuleBase
                 }
             }
         }
-
-        ImGui.SetNextItemWidth(300f * GlobalUIScale);
 
         using (var combo = ImRaii.Combo
                (
@@ -124,16 +120,14 @@ public class AutoNotifyMessages : ModuleBase
                     using var id = ImRaii.PushId(keyword);
                     ImGui.Selectable(keyword);
 
-                    using (var context = ImRaii.ContextPopupItem($"{keyword}"))
+                    using var context = ImRaii.ContextPopupItem($"{keyword}");
+                    if (!context)
+                        continue;
+
+                    if (ImGui.MenuItem(Lang.Get("Delete")))
                     {
-                        if (context)
-                        {
-                            if (ImGui.MenuItem(Lang.Get("Delete")))
-                            {
-                                config.ValidKeywords.Remove(keyword);
-                                config.Save(this);
-                            }
-                        }
+                        config.ValidKeywords.Remove(keyword);
+                        config.Save(this);
                     }
                 }
             }
@@ -145,8 +139,7 @@ public class AutoNotifyMessages : ModuleBase
         IHandleableChatMessage message
     )
     {
-        if (!KnownChatTypes.Contains(message.LogKind)) return;
-        if (config.OnlyNotifyWhenBackground  && !Framework.Instance()->WindowInactive) return;
+        if (!XIVChatTypes.ChatTypeToAddonText.ContainsKey(message.LogKind)) return;
         if (config.ValidChatTypes.Count == 0 && config.ValidKeywords.Count == 0) return;
 
         var messageContent = message.Message.ToString();
@@ -155,23 +148,23 @@ public class AutoNotifyMessages : ModuleBase
                                config.ValidKeywords.FirstOrDefault(x => messageContent.Contains(x, StringComparison.OrdinalIgnoreCase)) != null;
         if (!conditionType && !conditionMessage) return;
 
-        var title   = $"[{message.LogKind}]  {message.Sender.TextValue}";
-        var content = message.Message.TextValue;
-
-        NotifyHelper.Instance().NotificationInfo(content, title);
-        NotifyHelper.Speak($"{message.Sender.TextValue}{Lang.Get("AutoNotifyMessages-SomeoneSay")}: {content}");
+        NotifyHelper.Instance().TrayInfo
+        (
+            Lang.Get
+            (
+                "AutoNotifyMessages-Notification",
+                new Dictionary<string, object>
+                {
+                    ["player"]  = message.Sender,
+                    ["message"] = messageContent
+                }
+            )
+        );
     }
 
     private class Config : ModuleConfig
     {
-        public bool                 OnlyNotifyWhenBackground;
         public HashSet<XivChatType> ValidChatTypes = [];
         public List<string>         ValidKeywords  = [];
     }
-
-    #region 常量
-
-    private static FrozenSet<XivChatType> KnownChatTypes { get; } = [.. Enum.GetValues<XivChatType>()];
-
-    #endregion
 }
