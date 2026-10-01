@@ -1,16 +1,12 @@
-using System.Diagnostics;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
-using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.DutyState;
 using FFXIVClientStructs.FFXIV.Client.Game.Group;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using OmenTools.OmenService;
-using OmenTools.Threading;
 
 namespace DailyRoutines.ModulesPublic.Duty;
 
@@ -24,21 +20,15 @@ public unsafe class AutoNotifyCutsceneEnd : ModuleBase
     };
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
-
-    private Config config = null!;
-
-    private bool       isDutyEnd;
-    private Stopwatch? stopwatch;
+    
+    private long cutsceneBeginTick;
+    private long cutsceneLastWatchingTick;
 
     protected override void Init()
     {
-        config = Config.Load(this) ?? new();
-
-        stopwatch  ??= new();
         TaskHelper ??= new() { TimeoutMS = 30_000 };
 
         IClientState.Instance().TerritoryChanged += OnZoneChanged;
-        IDutyState.Instance().DutyCompleted      += OnDutyComplete;
         ICondition.Instance().ConditionChange    += OnConditionChanged;
 
         OnZoneChanged(0);
@@ -48,27 +38,13 @@ public unsafe class AutoNotifyCutsceneEnd : ModuleBase
     {
         ICondition.Instance().ConditionChange    -= OnConditionChanged;
         IClientState.Instance().TerritoryChanged -= OnZoneChanged;
-        IDutyState.Instance().DutyCompleted      -= OnDutyComplete;
 
         ClearResources();
-        stopwatch = null;
-    }
-
-    protected override void ConfigUI()
-    {
-        if (ImGui.Checkbox(Lang.Get("SendChat"), ref config.SendChat))
-            config.Save(this);
-
-        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref config.SendNotification))
-            config.Save(this);
-
-        if (ImGui.Checkbox(Lang.Get("SendTTS"), ref config.SendTTS))
-            config.Save(this);
     }
 
     private void OnZoneChanged
     (
-        uint u
+        uint zone
     )
     {
         ClearResources();
@@ -109,7 +85,8 @@ public unsafe class AutoNotifyCutsceneEnd : ModuleBase
 
         if (!value)
         {
-            if (isDutyEnd) return;
+            if (GameState.IsDutyCompleted) 
+                return;
 
             IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostRequestedUpdate, "_PartyList", OnAddon);
         }
@@ -128,7 +105,7 @@ public unsafe class AutoNotifyCutsceneEnd : ModuleBase
         // 不在副本内 / PVP / 副本已经结束 / 少于两个真人玩家 → 结束检查
         if (GameState.ContentFinderCondition == 0 ||
             GameState.IsInPVPArea                 ||
-            isDutyEnd                             ||
+            GameState.IsDutyCompleted             ||
             GroupManager.Instance()->MainGroup.MemberCount < 2)
         {
             ClearResources();
@@ -141,56 +118,55 @@ public unsafe class AutoNotifyCutsceneEnd : ModuleBase
         if (ICondition.Instance()[ConditionFlag.InCombat])
         {
             // 进战时还在检查
-            if (stopwatch.IsRunning)
-                CheckStopwatchAndRelay();
+            if (cutsceneBeginTick != 0)
+                RelayCutsceneEnd();
 
             IAddonLifecycle.Instance().UnregisterListener(OnAddon);
             return;
         }
 
-        // 计时器运行中
-        if (stopwatch.IsRunning)
-        {
-            // 检查是否任一玩家仍在剧情状态
-            if (IsAnyPartyMemberWatchingCutscene(agent))
-                return;
+        var now = Environment.TickCount64;
 
-            CheckStopwatchAndRelay();
-        }
-        else
+        if (IsAnyPartyMemberWatchingCutscene(agent))
         {
-            // 居然无一人正在看剧情
-            if (!IsAnyPartyMemberWatchingCutscene(agent))
-                return;
+            if (cutsceneBeginTick == 0)
+                cutsceneBeginTick = now;
 
-            stopwatch.Restart();
+            cutsceneLastWatchingTick = now;
+            return;
         }
+
+        if (cutsceneBeginTick == 0) return;
+
+        // 在线状态会瞬时抖动, 需要持续一段时间确认无人观看
+        if (now - cutsceneLastWatchingTick < 1_000) return;
+
+        RelayCutsceneEnd();
     }
 
-    private void OnDutyComplete
-    (
-        IDutyStateEventArgs args
-    ) =>
-        isDutyEnd = true;
-
-    private void CheckStopwatchAndRelay()
+    private void RelayCutsceneEnd()
     {
-        if (!stopwatch.IsRunning || !Throttler.Shared.Throttle("AutoNotifyCutsceneEnd-Relay", 1_000)) return;
+        var elapsedTime = TimeSpan.FromMilliseconds(cutsceneLastWatchingTick - cutsceneBeginTick);
 
-        var elapsedTime = stopwatch.Elapsed;
-        stopwatch.Reset();
+        cutsceneBeginTick        = 0;
+        cutsceneLastWatchingTick = 0;
 
         // 小于四秒 → 不播报
-        if (elapsedTime < TimeSpan.FromSeconds(4)) return;
-
-        var message = $"{Lang.Get("AutoNotifyCutsceneEnd-NotificationMessage")}";
-        if (config.SendChat)
-            NotifyHelper.Instance().Chat($"{message} {Lang.Get("AutoNotifyCutsceneEnd-NotificationMessage-WaitSeconds", $"{elapsedTime.TotalSeconds:F0}")}");
-        if (config.SendNotification)
-            NotifyHelper.Instance().NotificationInfo
-                ($"{message} {Lang.Get("AutoNotifyCutsceneEnd-NotificationMessage-WaitSeconds", $"{elapsedTime.TotalSeconds:F0}")}");
-        if (config.SendTTS)
-            NotifyHelper.Speak(message);
+        if (elapsedTime < TimeSpan.FromSeconds(4)) 
+            return;
+        
+        NotifyHelper.Instance().TrayInfo(Lang.Get("AutoNotifyCutsceneEnd-Notification"));
+        NotifyHelper.Chat
+        (
+            Lang.Get
+            (
+                "AutoNotifyCutsceneEnd-Message",
+                new Dictionary<string, object>
+                {
+                    ["seconds"] = (int)elapsedTime.TotalSeconds
+                }
+            )
+        );
     }
 
     private static bool IsAnyPartyMemberWatchingCutscene
@@ -200,20 +176,30 @@ public unsafe class AutoNotifyCutsceneEnd : ModuleBase
     {
         if (agent == null) return false;
 
-        var group = GroupManager.Instance()->MainGroup;
+        ref var group = ref GroupManager.Instance()->MainGroup;
         if (group.MemberCount < 2) return false;
 
+        // 0x10 为服务器同步的过场动画中标志
+        for (var i = 0; i < group.MemberCount; i++)
+        {
+            if ((group.PartyMembers[i].Flags & 0x10) != 0)
+                return true;
+        }
+        
         foreach (var member in agent->PartyMembers)
         {
             if (member.EntityId  == 0 ||
-                member.ContentId == 0 ||
-                member.Object    == null)
+                member.ContentId == 0)
                 continue;
 
-            if (!IDutyState.Instance().IsDutyStarted &&
-                !member.Object->GetIsTargetable())
+            // 对象尚未创建, 说明该成员还没加载出来
+            if (member.Object == null)
                 return true;
 
+            if (!GameState.IsDutyStarted && !member.Object->GetIsTargetable())
+                return true;
+
+            // 过场动画中
             if (member.Object->OnlineStatus == 15)
                 return true;
         }
@@ -225,14 +211,7 @@ public unsafe class AutoNotifyCutsceneEnd : ModuleBase
     {
         TaskHelper?.Abort();
         IAddonLifecycle.Instance().UnregisterListener(OnAddon);
-        stopwatch?.Reset();
-        isDutyEnd = false;
-    }
-
-    private class Config : ModuleConfig
-    {
-        public bool SendChat         = true;
-        public bool SendNotification = true;
-        public bool SendTTS          = true;
+        cutsceneBeginTick        = 0;
+        cutsceneLastWatchingTick = 0;
     }
 }
