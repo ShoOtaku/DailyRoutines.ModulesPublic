@@ -1,16 +1,15 @@
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
-using DailyRoutines.Extensions;
-using Dalamud.Game.Addon.Lifecycle;
-using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
-using Dalamud.Memory;
-using FFXIVClientStructs.FFXIV.Component.GUI;
+using Dalamud.Hooking;
+using FFXIVClientStructs.FFXIV.Client.Enums;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic.Duty;
 
-public class AutoNotifyDutyConfirm : ModuleBase
+public unsafe class AutoNotifyDutyConfirm : ModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
@@ -21,26 +20,80 @@ public class AutoNotifyDutyConfirm : ModuleBase
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    protected override void Init() =>
-        IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostSetup, "ContentsFinderConfirm", OnAddonSetup);
+    private Hook<ContentsFinderQueueInfo.Delegates.OnQueuePop>? OnQueuePopHook;
 
-    protected override void Uninit() =>
-        IAddonLifecycle.Instance().UnregisterListener(OnAddonSetup);
+    protected override void Init()
+    {
+        OnQueuePopHook ??= IGameInteropProvider.Instance().HookFromMemberFunction
+        (
+            typeof(ContentsFinderQueueInfo.MemberFunctionPointers),
+            "OnQueuePop",
+            (ContentsFinderQueueInfo.Delegates.OnQueuePop)OnQueuePopDetour
+        );
+        OnQueuePopHook.Enable();
+    }
 
-    private static unsafe void OnAddonSetup
+    private void OnQueuePopDetour
     (
-        AddonEvent type,
-        AddonArgs  args
+        ContentsFinderQueueInfo* queueInfo,
+        ContentsFinderQueueState state,
+        uint                     contentFinderConditionID,
+        nint                     a4,
+        bool                     isInProgressParty,
+        ContentsFinder.LootRule  lootRule,
+        ulong                    inProgressPartyStartTimestamp,
+        nint                     a8,
+        bool                     isUnrestrictedParty,
+        bool                     isMinimalIL,
+        bool                     isSilenceEcho,
+        bool                     isExplorerMode,
+        bool                     isLevelSync,
+        bool                     isLimitedLeveling
     )
     {
-        var addon = (AtkUnitBase*)args.Addon.Address;
-        if (addon == null) return;
+        var previousState = queueInfo->QueueState;
 
-        var dutyName = MemoryHelper.ReadStringNullTerminated((nint)addon->AtkValues[1].String.Value);
-        if (string.IsNullOrWhiteSpace(dutyName)) return;
+        OnQueuePopHook.Original
+        (
+            queueInfo,
+            state,
+            contentFinderConditionID,
+            a4,
+            isInProgressParty,
+            lootRule,
+            inProgressPartyStartTimestamp,
+            a8,
+            isUnrestrictedParty,
+            isMinimalIL,
+            isSilenceEcho,
+            isExplorerMode,
+            isLevelSync,
+            isLimitedLeveling
+        );
 
-        var loc = Lang.Get("AutoNotifyDutyConfirm-NoticeMessage", dutyName);
-        NotifyHelper.Instance().NotificationInfo(loc);
-        NotifyHelper.Speak(loc);
+        if (state != ContentsFinderQueueState.Ready ||
+            previousState is ContentsFinderQueueState.None or ContentsFinderQueueState.Ready)
+            return;
+
+        var dutyName = LuminaWrapper.GetContentName(contentFinderConditionID);
+        if (string.IsNullOrEmpty(dutyName)) 
+            return;
+
+        NotifyHelper.Instance().TrayInfo
+        (
+            dutyName,
+            Lang.Get("AutoNotifyDutyConfirm-Notification")
+        );
+        NotifyHelper.Chat
+        (
+            Lang.Get
+            (
+                "AutoNotifyDutyConfirm-Message",
+                new Dictionary<string, object>
+                {
+                    ["duty"] = dutyName
+                }
+            )
+        );
     }
 }
