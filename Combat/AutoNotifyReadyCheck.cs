@@ -1,10 +1,7 @@
-using System.Collections.Frozen;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
-using DailyRoutines.Extensions;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
-using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 
 namespace DailyRoutines.ModulesPublic;
@@ -32,15 +29,9 @@ public class AutoNotifyReadyCheck : ModuleBase
         LogMessageQueueItem item
     )
     {
-        if (!ValidLogMessages.Contains(logMessageID)) return;
+        if (logMessageID is not (3790 or 3791)) 
+            return;
 
-        NotifyHelper.Instance().NotificationInfo(LuminaWrapper.GetLogMessageText(3790));
-        NotifyHelper.Speak(LuminaWrapper.GetLogMessageText(3790));
+        NotifyHelper.Instance().TrayInfo(item.ToReadOnlySeString().ToString());
     }
-
-    #region 常量
-
-    private static readonly FrozenSet<uint> ValidLogMessages = [3790, 3791];
-
-    #endregion
 }
