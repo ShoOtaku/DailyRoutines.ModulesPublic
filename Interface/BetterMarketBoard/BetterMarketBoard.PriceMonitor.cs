@@ -136,7 +136,7 @@ public unsafe partial class BetterMarketBoard
                     var message0 = Lang.GetSe
                     (
                         "BetterMarketBoard-PriceMonitor-Notification-Found",
-                        ReadOnlySeString.CreateItemName(monitorItem.ItemID, monitorItem.HQOnly),
+                        ReadOnlySeString.CreateItem(monitorItem.ItemID, monitorItem.HQOnly),
                         listingsToSnipe.First().UnitPrice.ToChineseString(),
                         monitorItem.PriceThreshold.ToChineseString()
                     );
