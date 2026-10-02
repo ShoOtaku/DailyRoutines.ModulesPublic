@@ -7,6 +7,7 @@ using DailyRoutines.Extensions;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using OmenTools.Dalamud;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 using OmenTools.Threading;
@@ -43,19 +44,13 @@ public unsafe class AutoLucidDreaming : ModuleBase
 
     protected override void ConfigUI()
     {
-        if (ImGui.Checkbox(Lang.Get("OnlyInDuty"), ref config.OnlyInDuty))
-            config.Save(this);
-
         ImGui.SetNextItemWidth(250f * GlobalUIScale);
-        if (ImGui.DragInt("##MpThresholdSlider", ref config.MpThreshold, 100f, 3000, 9000, $"{LuminaWrapper.GetAddonText(233)}: %d"))
+        if (ImGui.DragInt($"{Lang.Get("LowerLimit")}##MPThresholdSlider", ref config.MPThreshold, 100f, 3000, 9000, $"{LuminaWrapper.GetAddonText(233)}: %d"))
             config.Save(this);
-
+        
         ImGui.NewLine();
-
-        if (ImGui.Checkbox(Lang.Get("SendChat"), ref config.SendChat))
-            config.Save(this);
-
-        if (ImGui.Checkbox(Lang.Get("SendNotification"), ref config.SendNotification))
+        
+        if (ImGui.Checkbox(Lang.Get("OnlyInDuty"), ref config.OnlyInDuty))
             config.Save(this);
     }
 
@@ -85,7 +80,7 @@ public unsafe class AutoLucidDreaming : ModuleBase
             (config.OnlyInDuty && GameState.ContentFinderCondition == 0) ||
             player.EntityID != LocalPlayerState.EntityID                 ||
             !ValidClassJobs.Contains(player.ClassJob.RowId)              ||
-            player.CurrentMp > config.MpThreshold)
+            player.CurrentMp > config.MPThreshold)
             return;
 
         // 无法获取技能信息
@@ -228,47 +223,19 @@ public unsafe class AutoLucidDreaming : ModuleBase
 
                 if (Throttler.Shared.Throttle("AutoLucidDreaming-SendChat", 10_000))
                 {
-                    using var rented = new RentedSeStringBuilder();
-                    rented.Builder
-                          .PushColorType(32)
-                          .Append(LuminaWrapper.GetActionName(LUCID_DREAMING_ID))
-                          .PopColorType();
-
-                    if (config.SendChat)
-                    {
-                        NotifyHelper.Instance().Chat
+                    NotifyHelper.Instance().Chat
+                    (
+                        Lang.Get
                         (
-                            Lang.GetSe
-                            (
-                                "AutoLucidDreaming-Notification",
-                                rented.Builder,
-                                LocalPlayerState.Object?.CurrentMp ?? 0
-                            )
-                        );
-                    }
-
-                    rented.Builder.Clear();
-                    rented.Builder
-                          .PushEdgeColorType(32)
-                          .Append(LuminaWrapper.GetActionName(LUCID_DREAMING_ID))
-                          .PopEdgeColorType();
-
-                    if (config.SendNotification)
-                    {
-                        NotifyHelper.ToastQuest
-                        (
-                            Lang.GetSe
-                            (
-                                "AutoLucidDreaming-Notification",
-                                rented.Builder,
-                                LocalPlayerState.Object?.CurrentMp ?? 0
-                            ),
-                            new()
+                            "AutoLucidDreaming-Notification",
+                            new Dictionary<string, object>
                             {
-                                IconId = LuminaWrapper.GetActionIconID(LUCID_DREAMING_ID)
+                                ["currentMP"]     = LocalPlayerState.Object?.CurrentMp ?? 0,
+                                ["mpThreshold"]   = config.MPThreshold,
+                                ["lucidDreaming"] = LuminaWrapper.GetActionName(LUCID_DREAMING_ID)
                             }
-                        );
-                    }
+                        )
+                    );
                 }
 
                 return true;
@@ -279,11 +246,8 @@ public unsafe class AutoLucidDreaming : ModuleBase
 
     private class Config : ModuleConfig
     {
-        public int  MpThreshold = 7000;
+        public int  MPThreshold = 7500;
         public bool OnlyInDuty;
-
-        public bool SendChat;
-        public bool SendNotification = true;
     }
 
     #region 常量
