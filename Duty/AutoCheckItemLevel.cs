@@ -1,13 +1,12 @@
-using System.Collections.Frozen;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.Sheets;
+using Lumina.Text.ReadOnly;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 using OmenTools.Threading;
@@ -35,7 +34,7 @@ public unsafe class AutoCheckItemLevel : ModuleBase
 
     private void OnZoneChanged
     (
-        uint u
+        uint zone
     )
     {
         TaskHelper.Abort();
@@ -48,13 +47,20 @@ public unsafe class AutoCheckItemLevel : ModuleBase
             ICondition.Instance()[ConditionFlag.DutyRecorderPlayback])
             return;
 
-        TaskHelper.Enqueue(() => !ICondition.Instance().IsBetweenAreas && IObjectTable.Instance().LocalPlayer != null, "WaitForEnteringDuty");
-        TaskHelper.Enqueue(() => CheckMembersItemLevel([LocalPlayerState.EntityID]));
+        TaskHelper.Enqueue
+        (
+            () => !ICondition.Instance().IsBetweenAreas &&
+                  IObjectTable.Instance().LocalPlayer != null,
+            "等待进入副本"
+        );
+
+        TaskHelper.Enqueue(() => CheckMembersItemLevel([LocalPlayerState.EntityID], []));
     }
 
     private bool CheckMembersItemLevel
     (
-        HashSet<ulong> checkedMembers
+        HashSet<ulong>                                        checkedMembers,
+        List<(HudPartyMember Member, uint AvgIL, uint MinIL)> pendingMembers
     )
     {
         var agent        = AgentHUD.Instance();
@@ -149,7 +155,7 @@ public unsafe class AutoCheckItemLevel : ModuleBase
 
                     var avgItemLevel = (uint)(totalIL / itemSlotAmount);
 
-                    SendNotification(member, avgItemLevel, lowestIL);
+                    pendingMembers.Add((member, avgItemLevel, lowestIL));
 
                     CharacterInspect->Close(true);
                     agentInspect->FetchCharacterDataStatus = 0;
@@ -165,74 +171,87 @@ public unsafe class AutoCheckItemLevel : ModuleBase
             if (checkedCount != 0 && checkedCount % 3 == 0)
                 TaskHelper.DelayNext(1000, "等待 1 秒");
 
-            TaskHelper.Enqueue(() => CheckMembersItemLevel(checkedMembers), "进入新循环");
+            TaskHelper.Enqueue(() => CheckMembersItemLevel(checkedMembers, pendingMembers), "进入新循环");
             return true;
         }
+
+        SendNotifications(pendingMembers);
 
         TaskHelper.Abort();
         return true;
     }
 
-    private static void SendNotification
+    private static void SendNotifications
     (
-        HudPartyMember partyMember,
-        uint           avgIL,
-        uint           lowIL
+        List<(HudPartyMember Member, uint AvgIL, uint MinIL)> pendingMembers
     )
     {
-        if (partyMember.Object == null) return;
+        var content   = GameState.ContentFinderConditionData;
+        var hasOutput = false;
 
-        var content = GameState.ContentFinderConditionData;
-        if (content.RowId == 0) return;
+        using var rented       = new RentedSeStringBuilder();
+        using var playerRented = new RentedSeStringBuilder();
 
-        var ssb = new SeStringBuilder();
+        foreach (var (partyMember, avgIL, minIL) in pendingMembers)
+        {
+            if (partyMember.Object == null)
+                continue;
 
-        ssb.AddUiForeground(25)
-           .Add(new PlayerPayload(partyMember.Name.ToString(), partyMember.Object->HomeWorld))
-           .AddUiForegroundOff();
+            var isAbnormal = partyMember.Object->Level <= content.ClassJobLevelRequired ||
+                             minIL                     <= content.ItemLevelRequired;
+            if (!isAbnormal)
+                continue;
 
-        ssb.Append($" ({LuminaWrapper.GetJobName(partyMember.Object->ClassJob)})");
+            playerRented.AppendIcon((uint)LuminaGetter.GetRowOrDefault<ClassJob>(partyMember.Object->ClassJob).ToBitmapFontIcon())
+                        .Append
+                        (
+                            ReadOnlySeString.CreatePlayer
+                            (
+                                partyMember.Object->NameString,
+                                partyMember.Object->HomeWorld
+                            )
+                        );
 
-        var level = partyMember.Object->Level;
-        ssb.Append($" {Lang.Get("Level")}: ")
-           .AddUiForeground
-           (
-               level.ToString(),
-               (ushort)(level >= content.ClassJobLevelSync ?
-                            43 :
-                            17)
-           );
+            var playerLink = ReadOnlySeString.CreatePlayerLink
+            (
+                partyMember.Object->NameString,
+                partyMember.Object->HomeWorld,
+                playerRented.ToReadOnlySeString()
+            );
+            playerRented.Clear();
 
-        ssb.Add(new NewLinePayload());
+            var message = Lang.GetSe
+            (
+                "AutoCheckItemLevel-Notification-Message",
+                new Dictionary<string, object>
+                {
+                    ["level"]  = partyMember.Object->Level,
+                    ["player"] = playerLink,
+                    ["minIL"]  = minIL,
+                    ["avgIL"]  = avgIL
+                }
+            );
 
-        ssb.Append($" {Lang.Get("ILAverage")}: ")
-           .AddUiForeground
-           (
-               avgIL.ToString(),
-               (ushort)(avgIL > content.ItemLevelSync ?
-                            43 :
-                            17)
-           );
+            if (!hasOutput)
+            {
+                rented.Append(Lang.Get("AutoCheckItemLevel-Notification-Title"))
+                      .AppendNewLine();
+                hasOutput = true;
+            }
+            else
+                rented.AppendNewLine();
 
-        ssb.Append($" {Lang.Get("ILMinimum")}: ")
-           .AddUiForeground
-           (
-               lowIL.ToString(),
-               (ushort)(lowIL > content.ItemLevelRequired ?
-                            43 :
-                            17)
-           );
+            rented.Append(message);
+        }
 
-        ssb.Add(new NewLinePayload());
-
-        // TODO: 改成 ReadOnlyString
-        NotifyHelper.Instance().Chat(ssb.Build().Encode());
+        if (hasOutput)
+            NotifyHelper.Instance().Chat(rented.ToReadOnlySeString());
     }
 
     #region 常量
 
-    private static readonly FrozenSet<uint> ValidContentJobCategories = [108, 142, 146];
-    private static readonly FrozenSet<uint> HaveOffHandJobCategories  = [2, 7, 8, 20];
+    private static readonly uint[] ValidContentJobCategories = [108, 142, 146];
+    private static readonly uint[] HaveOffHandJobCategories  = [2, 7, 8, 20];
 
     #endregion
 }
