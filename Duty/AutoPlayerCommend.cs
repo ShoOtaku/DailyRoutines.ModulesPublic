@@ -3,11 +3,12 @@ using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
 using Dalamud.Game.DutyState;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
+using Lumina.Text.ReadOnly;
 using OmenTools.ImGuiOm.Widgets.Combos;
 using OmenTools.Interop.Game.Helpers;
 using OmenTools.Interop.Game.Lumina;
@@ -261,11 +262,22 @@ public unsafe class AutoPlayerCommend : ModuleBase
 
             AgentId.ContentsMvp.SendEvent(0, 0, playerIndex);
 
+            using var rented = new RentedSeStringBuilder();
+            rented.AppendIcon((uint)job.ToBitmapFontIcon())
+                  .Append(ReadOnlySeString.CreatePlayer(memberInfo.Name, memberInfo.HomeWorld));
+
             var message = Lang.GetSe
             (
                 "AutoPlayerCommend-Notification-Given",
-                job.ToBitmapFontIcon(),
-                new PlayerPayload(memberInfo.Name, memberInfo.HomeWorld)
+                new Dictionary<string, object>
+                {
+                    ["player"] = ReadOnlySeString.CreatePlayerLink
+                    (
+                        memberInfo.Name,
+                        memberInfo.HomeWorld,
+                        rented.ToReadOnlySeString()
+                    )
+                }
             );
             
             NotifyHelper.Instance().Chat(message);
@@ -403,11 +415,22 @@ public unsafe class AutoPlayerCommend : ModuleBase
                 {
                     module.assignedContentID = contentID;
 
+                    using var rented = new RentedSeStringBuilder();
+                    rented.AppendIcon((uint)LuminaGetter.GetRowOrDefault<ClassJob>(targetCharacter->Job).ToBitmapFontIcon())
+                          .Append(ReadOnlySeString.CreatePlayer(targetCharacter->NameString, targetCharacter->HomeWorld));
+
                     var message = Lang.GetSe
                     (
-                        "AutoPlayerCommend-Notification-AssignedPlayer",
-                        LuminaGetter.GetRowOrDefault<ClassJob>(targetCharacter->Job).ToBitmapFontIcon(),
-                        new PlayerPayload(targetCharacter->NameString, targetCharacter->HomeWorld)
+                        "AutoPlayerCommend-Notification-Given",
+                        new Dictionary<string, object>
+                        {
+                            ["player"] = ReadOnlySeString.CreatePlayerLink
+                            (
+                                targetCharacter->NameString,
+                                targetCharacter->HomeWorld,
+                                rented.ToReadOnlySeString()
+                            )
+                        }
                     );
 
                     NotifyHelper.Instance().Chat(message);
