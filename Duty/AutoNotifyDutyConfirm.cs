@@ -84,7 +84,7 @@ public unsafe class AutoNotifyDutyConfirm : ModuleBase
             dutyName,
             Lang.Get("AutoNotifyDutyConfirm-Notification")
         );
-        NotifyHelper.Chat
+        NotifyHelper.Instance().Chat
         (
             Lang.Get
             (
@@ -93,7 +93,8 @@ public unsafe class AutoNotifyDutyConfirm : ModuleBase
                 {
                     ["duty"] = dutyName
                 }
-            )
+            ),
+            false
         );
     }
 }

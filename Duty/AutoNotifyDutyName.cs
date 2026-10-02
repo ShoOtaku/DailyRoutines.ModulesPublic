@@ -60,7 +60,7 @@ public class AutoNotifyDutyName : ModuleBase
 
         if (content.ClassJobLevelRequired == 0)
         {
-            NotifyHelper.Chat
+            NotifyHelper.Instance().Chat
             (
                 Lang.Get
                 (
@@ -69,12 +69,13 @@ public class AutoNotifyDutyName : ModuleBase
                     {
                         ["content"] = content.Name
                     }
-                )
+                ),
+                false
             );
         }
         else if (minIL == 0 && maxIL == 0)
         {
-            NotifyHelper.Chat
+            NotifyHelper.Instance().Chat
             (
                 Lang.Get
                 (
@@ -84,12 +85,13 @@ public class AutoNotifyDutyName : ModuleBase
                         ["level"]   = content.ClassJobLevelRequired,
                         ["content"] = content.Name
                     }
-                )
+                ),
+                false
             );
         }
         else
         {
-            NotifyHelper.Chat
+            NotifyHelper.Instance().Chat
             (
                 Lang.Get
                 (
@@ -101,7 +103,8 @@ public class AutoNotifyDutyName : ModuleBase
                         ["minIL"]   = minIL,
                         ["maxIL"]   = maxIL
                     }
-                )
+                ),
+                false
             );
         }
     }

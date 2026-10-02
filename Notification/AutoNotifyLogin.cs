@@ -26,7 +26,7 @@ public class AutoNotifyLogin : ModuleBase
     {
         var message = Lang.Get("AutoNotifyLogin-Notification");
         
-        NotifyHelper.Chat(message);
+        NotifyHelper.Instance().Chat(message, false);
         NotifyHelper.Instance().TrayInfo(message);
     }
 }

@@ -130,7 +130,7 @@ public class AutoNotifyBonusFate : ModuleBase
             }
         );
         
-        NotifyHelper.Chat(message);
+        NotifyHelper.Instance().Chat(message, false);
         NotifyHelper.Toast(message);
 
         NotifyHelper.Instance().TrayInfo

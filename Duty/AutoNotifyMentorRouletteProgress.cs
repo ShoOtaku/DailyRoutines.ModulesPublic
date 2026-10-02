@@ -123,7 +123,7 @@ public unsafe class AutoNotifyMentorRouletteProgress : ModuleBase
                            )
                        );
 
-                NotifyHelper.Chat(builder.ToReadOnlySeString());
+                NotifyHelper.Instance().Chat(builder.ToReadOnlySeString(), false);
                 return true;
             }
         );

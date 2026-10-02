@@ -120,7 +120,7 @@ public class AutoNotifyDiademWeather : ModuleBase
         );
         
         NotifyHelper.Toast(message);
-        NotifyHelper.Chat(message);
+        NotifyHelper.Instance().Chat(message, false);
         NotifyHelper.Instance().TrayInfo(message);
     }
 

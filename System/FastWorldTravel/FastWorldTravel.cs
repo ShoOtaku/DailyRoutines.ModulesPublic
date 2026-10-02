@@ -260,7 +260,7 @@ public partial class FastWorldTravel : ModuleBase
             $"{char.ToUpper(worldName[0])}{worldName[1..]}"
         );
         
-        NotifyHelper.Chat(message);
+        NotifyHelper.Instance().Chat(message, false);
         NotifyHelper.Toast(message);
         
         // 跨大区

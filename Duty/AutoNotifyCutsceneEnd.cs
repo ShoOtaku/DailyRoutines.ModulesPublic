@@ -156,7 +156,7 @@ public unsafe class AutoNotifyCutsceneEnd : ModuleBase
             return;
         
         NotifyHelper.Instance().TrayInfo(Lang.Get("AutoNotifyCutsceneEnd-Notification"));
-        NotifyHelper.Chat
+        NotifyHelper.Instance().Chat
         (
             Lang.Get
             (
@@ -165,7 +165,8 @@ public unsafe class AutoNotifyCutsceneEnd : ModuleBase
                 {
                     ["seconds"] = (int)elapsedTime.TotalSeconds
                 }
-            )
+            ),
+            false
         );
     }
 
