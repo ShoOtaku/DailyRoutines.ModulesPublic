@@ -2,8 +2,8 @@ using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using DailyRoutines.Extensions;
+using DailyRoutines.RemoteInteraction.ChaoticUptime;
 using Dalamud.Game.Text;
-using Newtonsoft.Json;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 using NotifyHelper = OmenTools.OmenService.NotifyHelper;
@@ -108,7 +108,7 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
                 }
 
                 var snapshot = await GetStateSnapshot();
-                if (snapshot != null) 
+                if (snapshot != null)
                     await RunCheckAsync(snapshot);
 
                 await Task.Delay(60_000, ct);
@@ -200,10 +200,9 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
         {
             try
             {
-                var result  = await HTTPClientHelper.Instance().Get().GetStringAsync(string.Format(BASE_URL, dcName));
-                var content = JsonConvert.DeserializeObject<ChaoticUptimeData>(result);
+                var value = await RemoteChaoticUptime.GetFreshAsync(dcName, cancelSource.Token);
 
-                if (content is { IsUptime: true })
+                if (value.IsUptime)
                 {
                     Notify(dcName);
                     return (dcName, state.ServerTime);
@@ -233,7 +232,7 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
                         ["dataCenter"] = dcName
                     }
                 );
-                
+
                 NotifyHelper.Instance().TrayInfo(message);
                 NotifyHelper.Toast(message);
                 NotifyHelper.Chat
@@ -253,21 +252,6 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
         public Dictionary<string, long> DataCentersNotifyTime = [];
     }
 
-    private class ChaoticUptimeData
-    {
-        [JsonProperty("data_center")]
-        public string DataCenter { get; set; }
-
-        [JsonProperty("is_uptime")]
-        public bool IsUptime { get; set; }
-
-        [JsonProperty("last_bonus_starts")]
-        public List<DateTime> LastBonusStartTimes { get; set; }
-
-        [JsonProperty("last_bonus_ends")]
-        public List<DateTime> LastBonusEndTimes { get; set; }
-    }
-
     private record StateSnapshot
     (
         string CurrentDC,
@@ -278,8 +262,6 @@ public class AutoNotifyChaoticRaidBonus : ModuleBase
     );
 
     #region 常量
-
-    private const string BASE_URL = "https://uptime.ff14.xin/status?data_center={0}";
 
     private static readonly string[] AllDataCenters =
     [
