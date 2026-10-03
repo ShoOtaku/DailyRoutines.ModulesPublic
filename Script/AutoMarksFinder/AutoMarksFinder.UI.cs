@@ -820,7 +820,8 @@ public partial class AutoMarksFinder
                     {
                         try
                         {
-                            const string URL = "https://gh.atmoomen.top/StaticAssets/main/DailyRoutines/module/AutoMarksFinder_SpawnPoints.json";
+                            const string URL =
+                                "https://gh.atmoomen.top/raw.githubusercontent.com/Dalamud-DailyRoutines/DailyRoutines/main/Resources/Modules/AutoMarksFinder/SpawnPoints.json";
 
                             var content = await HTTPClientHelper.Instance().Get().GetStringAsync(URL).ConfigureAwait(false);
 

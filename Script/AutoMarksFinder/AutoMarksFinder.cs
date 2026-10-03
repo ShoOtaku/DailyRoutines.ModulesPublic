@@ -20,10 +20,15 @@ public partial class AutoMarksFinder : ModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title               = Lang.Get("AutoMarksFinderTitle"),
-        Description         = Lang.Get("AutoMarksFinderDescription"),
-        Category            = ModuleCategory.Script,
-        ModulesPair    = ["NoUIFade", "NoFallDamage", "InstantTeleport"],
+        Title       = Lang.Get("AutoMarksFinderTitle"),
+        Description = Lang.Get("AutoMarksFinderDescription"),
+        Category    = ModuleCategory.Script,
+        ModulesPair =
+        [
+            "NoUIFade",
+            "NoFallDamage",
+            "InstantTeleport"
+        ],
         ModulesPrerequisite = ["FastInstanceZoneChange"],
         Author              = ["AtmoOmen", "KirisameVanilla"]
     };
