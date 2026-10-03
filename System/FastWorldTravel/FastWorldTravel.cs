@@ -36,8 +36,12 @@ public partial class FastWorldTravel : ModuleBase
                       (!GameState.IsCN ?
                            string.Empty :
                            "\n支持快捷超域旅行并实时显示各服务器超域旅行拥挤度 [国服特供]"),
-        Category            = ModuleCategory.System,
-        ModulesPair    = ["InstantReturn", "InstantTeleport"],
+        Category = ModuleCategory.System,
+        ModulesPair =
+        [
+            "InstantReturn",
+            "InstantTeleport"
+        ],
         ModulesPrerequisite = ["InstantLogout"]
     };
 
@@ -459,7 +463,7 @@ public partial class FastWorldTravel : ModuleBase
 
         TaskHelper.Enqueue(() => TitleMenu->IsAddonAndNodesReady(), "等待标题界面");
 
-        TaskHelper.DelayNext(2000, "等待 2 秒");
+        TaskHelper.DelayNext(3000, "等待 3 秒");
     }
 
     private async Task EnqueueDCTravelRequest
