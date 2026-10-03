@@ -131,54 +131,40 @@ public partial class FastWorldTravel : ModuleBase
             return;
         }
         
-        if (selectYesnoAddon != null &&
-            !AddonHelper.TryGetPtrByName("DRSelectYesno", out _))
+        selectYesnoAddon?.Dispose();
+        selectYesnoAddon = null;
+
+        using var rented  = new RentedSeStringBuilder();
+        var       builder = rented.Builder;
+
+        builder.Append(GameState.HomeWorldData.Name);
+
+        if (GameState.CurrentDataCenter != GameState.HomeDataCenter)
         {
-            try
-            {
-                selectYesnoAddon?.Dispose();
-                selectYesnoAddon = null;
-            }
-            catch
-            {
-                // 谁敢猜这个时候会发生什么
-            }
+            builder.AppendIcon((uint)BitmapFontIcon.CrossWorld)
+                   .Append(GameState.HomeDataCenterData.Name);
         }
 
-        if (selectYesnoAddon == null)
-        {
-            using var rented  = new RentedSeStringBuilder();
-            var       builder = rented.Builder;
-
-            builder.Append(GameState.HomeWorldData.Name);
-
-            if (GameState.CurrentDataCenter != GameState.HomeDataCenter)
+        selectYesnoAddon = SelectYesnoAddon.Open
+        (
+            new()
             {
-                builder.AppendIcon((uint)BitmapFontIcon.CrossWorld)
-                       .Append(GameState.HomeDataCenterData.Name);
-            }
-
-            selectYesnoAddon = SelectYesnoAddon.Open
-            (
-                new()
+                Prompt = Lang.GetSe
+                (
+                    "FastWorldTravel-Notification-TravelBackConfirm",
+                    builder
+                ),
+                Callback = (_, result) =>
                 {
-                    Prompt = Lang.GetSe
-                    (
-                        "FastWorldTravel-Notification-TravelBackConfirm",
-                        builder
-                    ),
-                    Callback = (_, result) =>
-                    {
-                        selectYesnoAddon = null;
+                    selectYesnoAddon = null;
 
-                        if (result != SelectYesnoAddonResult.Yes)
-                            return;
+                    if (result != SelectYesnoAddonResult.Yes)
+                        return;
 
-                        ChatManager.Instance().SendCommand($"/pdr worldtravel {GameState.HomeWorldData.Name}");
-                    }
+                    ChatManager.Instance().SendCommand($"/pdr worldtravel {GameState.HomeWorldData.Name}");
                 }
-            );
-        }
+            }
+        );
     }
 
     private void OnConditionChanged
