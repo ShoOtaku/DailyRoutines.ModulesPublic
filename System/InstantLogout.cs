@@ -199,7 +199,7 @@ public unsafe class InstantLogout : ModuleBase
         taskHelper.Enqueue(() => ContentsFinderHelper.RequestDutyNormal(167, ContentsFinderHelper.DefaultOption));
         
         // 本地登出，不等待服务器回包，避免卡死。
-        taskHelper.Enqueue(() => AgentLobby.Instance()->HandleLogout(false, 60));
+        taskHelper.Enqueue(() => AgentLobby.Instance()->HandleLogout(false, 1));
         
         // 避免那边修改不到
         taskHelper.DelayNext(500);
