@@ -252,9 +252,9 @@ public unsafe class AutoCheckItemLevel : ModuleBase
                 "AutoCheckItemLevel-Notification-Message",
                 new Dictionary<string, object>
                 {
-                    ["level"]  = levelText,
+                    ["levelText"]  = levelText,
                     ["player"] = playerLink,
-                    ["minIL"]  = minILText,
+                    ["minILText"]  = minILText,
                     ["avgIL"]  = result.AverageItemLevel
                 }
             );
