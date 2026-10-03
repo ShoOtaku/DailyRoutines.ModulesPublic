@@ -77,8 +77,7 @@ public unsafe class AutoCheckItemLevel : ModuleBase
 
             if (member            == null ||
                 member->EntityId  == 0    ||
-                member->ContentId == 0    ||
-                member->EntityId  == LocalPlayerState.EntityID)
+                member->ContentId == 0)
                 continue;
 
             var entityID = member->EntityId;
@@ -178,7 +177,16 @@ public unsafe class AutoCheckItemLevel : ModuleBase
         List<MemberItemLevel> results
     )
     {
-        var content   = GameState.ContentFinderConditionData;
+        var content = GameState.ContentFinderConditionData;
+
+        var title = Lang.Get
+        (
+            "AutoCheckItemLevel-Notification-Title",
+            new Dictionary<string, object>
+            {
+                ["memberCount"] = results.Count,
+            }
+        );
         
         var minIL = 0U;
         if (content.ItemLevelRequired > 0)
@@ -251,15 +259,17 @@ public unsafe class AutoCheckItemLevel : ModuleBase
                 }
             );
 
-            if (hasOutput)
-                rented.AppendNewLine();
+            if (!hasOutput)
+                rented.Append(title);
+
+            rented.AppendNewLine();
 
             hasOutput = true;
             rented.Append(message);
         }
 
         if (hasOutput)
-            NotifyHelper.Instance().Chat(rented.ToReadOnlySeString());
+            NotifyHelper.Instance().Chat(rented.ToReadOnlySeString(), false);
     }
 
     private readonly struct MemberItemLevel
