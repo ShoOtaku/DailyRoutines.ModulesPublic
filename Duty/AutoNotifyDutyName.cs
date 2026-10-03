@@ -54,7 +54,10 @@ public class AutoNotifyDutyName : ModuleBase
             content is { ItemLevelRequired: 0, ClassJobLevelSync: 0 } ?
                 0 :
                 Sheets.Gears.Values
-                      .Where(x => x.LevelEquip <= maxLevel)
+                      .Where
+                      (x => x.LevelEquip != 1 &&
+                            x.LevelEquip <= maxLevel
+                      )
                       .OrderByDescending(x => x.LevelItem.RowId)
                       .FirstOrDefault()
                       .LevelItem.RowId;
