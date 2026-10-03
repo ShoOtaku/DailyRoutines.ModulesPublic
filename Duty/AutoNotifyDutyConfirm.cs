@@ -4,8 +4,10 @@ using DailyRoutines.Common.Module.Models;
 using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Enums;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
+using ContentsFinder = FFXIVClientStructs.FFXIV.Client.Game.UI.ContentsFinder;
 
 namespace DailyRoutines.ModulesPublic.Duty;
 
@@ -75,7 +77,16 @@ public unsafe class AutoNotifyDutyConfirm : ModuleBase
             previousState is ContentsFinderQueueState.None or ContentsFinderQueueState.Ready)
             return;
 
-        var dutyName = LuminaWrapper.GetContentName(contentFinderConditionID);
+        var entry = ContentsFinder.Instance()->QueueInfo.PoppedQueueEntry;
+        if (entry.ContentType == ContentsType.None)
+            return;
+
+        var dutyName = entry.ContentType switch
+        {
+            ContentsType.Regular  => LuminaWrapper.GetContentName(entry.Id),
+            ContentsType.Roulette => LuminaWrapper.GetContentRouletteName(entry.Id),
+            _                     => string.Empty
+        };
         if (string.IsNullOrEmpty(dutyName)) 
             return;
 
