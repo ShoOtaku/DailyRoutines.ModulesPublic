@@ -24,7 +24,7 @@ public unsafe class AutoPeloton : ModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new();
+        TaskHelper ??= new() { TimeoutMS = 5_000 };
         config     =   Config.Load(this) ?? new();
 
         LocalPlayerState.Instance().PlayerMoveStateChanged += OnMoveStateChanged;
@@ -56,7 +56,7 @@ public unsafe class AutoPeloton : ModuleBase
     )
     {
         if (player.Address != LocalPlayerState.Object?.Address) return;
-        if (id != 1199 && id != 50) return;
+        if (id != STATUS_PELOTON && id != STATUS_SPRINT) return;
 
         CheckAndUsePeloton();
     }
@@ -72,10 +72,14 @@ public unsafe class AutoPeloton : ModuleBase
 
     private void CheckAndUsePeloton()
     {
-        if (config.OnlyInDuty && GameState.ContentFinderCondition == 0) return;
-        if (GameState.IsInPVPArea) return;
-        if (ICondition.Instance()[ConditionFlag.InCombat]) return;
-        if (!UIModule.IsScreenReady()                       ||
+        if (config.OnlyInDuty &&
+            GameState.ContentFinderCondition == 0)
+            return;
+        if (GameState.IsInPVPArea)
+            return;
+        if (ICondition.Instance()[ConditionFlag.InCombat])
+            return;
+        if (!UIModule.IsScreenReady()               ||
             ICondition.Instance().IsOccupiedInEvent ||
             IObjectTable.Instance().LocalPlayer is null)
             return;
@@ -87,26 +91,27 @@ public unsafe class AutoPeloton : ModuleBase
             return;
 
         TaskHelper.Abort();
-        TaskHelper.Enqueue(UsePeloton, $"UseAction_{PELOTONING_ACTION_ID}", 5_000, weight: 1);
+        TaskHelper.Enqueue(UsePeloton);
     }
 
     private bool UsePeloton()
     {
-        if (IObjectTable.Instance().LocalPlayer is not { } localPlayer) return false;
+        if (IObjectTable.Instance().LocalPlayer is not { } localPlayer)
+            return false;
+
         var actionManager = ActionManager.Instance();
         var statusManager = localPlayer.ToStruct()->StatusManager;
 
-        if (actionManager->GetActionStatus(ActionType.Action, PELOTONING_ACTION_ID) != 0) return false;
-        if (statusManager.HasStatus(1199) || statusManager.HasStatus(50)) return true;
-        if (!LocalPlayerState.Instance().IsMoving) return true;
+        if (actionManager->GetActionStatus(ActionType.Action, PELOTONING_ACTION_ID) != 0)
+            return false;
 
-        TaskHelper.Enqueue
-        (
-            () => UseActionManager.Instance().UseAction(ActionType.Action, PELOTONING_ACTION_ID),
-            $"UseAction_{PELOTONING_ACTION_ID}",
-            5_000,
-            weight: 1
-        );
+        if (statusManager.HasStatus(STATUS_PELOTON) || statusManager.HasStatus(STATUS_SPRINT))
+            return true;
+
+        if (!LocalPlayerState.Instance().IsMoving)
+            return true;
+
+        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, PELOTONING_ACTION_ID));
         return true;
     }
 
@@ -118,7 +123,9 @@ public unsafe class AutoPeloton : ModuleBase
 
     #region 常量
 
-    private const uint PELOTONING_ACTION_ID = 7557;
+    private const uint PELOTONING_ACTION_ID = 7557; // 速行
+    private const uint STATUS_PELOTON       = 1199; // 速行
+    private const uint STATUS_SPRINT        = 50;   // 冲刺
 
     #endregion
 }

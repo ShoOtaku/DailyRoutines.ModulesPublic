@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
@@ -23,8 +22,30 @@ public class AutoTankStance : ModuleBase
 
     protected override void Init()
     {
-        config     =   Config.Load(this) ?? new();
-        TaskHelper ??= new() { TimeoutMS = 30_000 };
+        config = Config.Load(this) ?? new();
+        TaskHelper ??= new()
+        {
+            TimeoutMS = 5_000,
+            MoveToNextCheckFunc = () =>
+            {
+                if (ICondition.Instance().IsBetweenAreas    ||
+                    ICondition.Instance().IsOccupiedInEvent ||
+                    !UIModule.IsScreenReady()               ||
+                    LocalPlayerState.Object is not { IsTargetable: true })
+                    return false;
+
+                var tankStance = TankStanceActions.FirstOrDefault(x => x.ClassJob == LocalPlayerState.ClassJob);
+
+                if (GameState.IsDutyCompleted ||
+                    tankStance.Action == 0)
+                {
+                    TaskHelper.Abort();
+                    return false;
+                }
+
+                return true;
+            }
+        };
 
         IClientState.Instance().TerritoryChanged += OnZoneChanged;
         IDutyState.Instance().DutyRecommenced    += OnDutyRecommenced;
@@ -46,19 +67,18 @@ public class AutoTankStance : ModuleBase
 
     private void OnZoneChanged
     (
-        uint u
+        uint zone
     )
     {
-        TaskHelper.Abort();
-
         if (!GameState.IsInPVEActonZone) return;
 
         if (config.OnlyAutoStanceWhenOneTank &&
             GameState.ContentFinderConditionData.ContentMemberType.Value.TanksPerParty != 1)
             return;
 
-        TaskHelper.DelayNext(1000);
-        TaskHelper.Enqueue(CheckCurrentJob);
+        TaskHelper.Abort();
+        TaskHelper.DelayNext(1_000);
+        TaskHelper.Enqueue(UseTankStance);
     }
 
     private void OnDutyRecommenced
@@ -67,20 +87,18 @@ public class AutoTankStance : ModuleBase
     )
     {
         TaskHelper.Abort();
-        TaskHelper.Enqueue(CheckCurrentJob);
+        TaskHelper.Enqueue(UseTankStance);
     }
 
-    private static bool CheckCurrentJob()
+    private static bool UseTankStance()
     {
-        if (ICondition.Instance().IsBetweenAreas || ICondition.Instance().IsOccupiedInEvent || !UIModule.IsScreenReady()) return false;
+        var tankStance = TankStanceActions.FirstOrDefault(x => x.ClassJob == LocalPlayerState.ClassJob);
 
-        if (IObjectTable.Instance().LocalPlayer is not { ClassJob.RowId: var job, IsTargetable: true } || job == 0)
-            return false;
+        if (tankStance.Action == 0)
+            return true;
 
-        if (!TankStanceActions.TryGetValue(job, out var info)) return true;
-        if (LocalPlayerState.HasStatus(info.Status, out _)) return true;
-
-        return UseActionManager.Instance().UseAction(ActionType.Action, info.Action);
+        return LocalPlayerState.HasStatus(tankStance.Status, out _) ||
+               UseActionManager.Instance().UseAction(ActionType.Action, tankStance.Action);
     }
 
     private class Config : ModuleConfig
@@ -90,19 +108,19 @@ public class AutoTankStance : ModuleBase
 
     #region 常量
 
-    private static readonly FrozenDictionary<uint, (uint Action, uint Status)> TankStanceActions = new Dictionary<uint, (uint Action, uint Status)>
-    {
+    private static readonly (uint ClassJob, uint Action, uint Status)[] TankStanceActions =
+    [
         // 剑术师 / 骑士
-        [1]  = (28, 79),
-        [19] = (28, 79),
+        (1, 28, 79),
+        (19, 28, 79),
         // 斧术师 / 战士
-        [3]  = (48, 91),
-        [21] = (48, 91),
+        (3, 48, 91),
+        (21, 48, 91),
         // 暗黑骑士
-        [32] = (3629, 743),
+        (32, 3629, 743),
         // 绝枪战士
-        [37] = (16142, 1833)
-    }.ToFrozenDictionary();
+        (37, 16142, 1833)
+    ];
 
     #endregion
 }

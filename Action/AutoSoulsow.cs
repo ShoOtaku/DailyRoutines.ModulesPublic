@@ -20,7 +20,30 @@ public class AutoSoulsow : ModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeoutMS = 30_000 };
+        TaskHelper ??= new()
+        {
+            TimeoutMS = 5_000,
+            MoveToNextCheckFunc = () =>
+            {
+                if (ICondition.Instance().IsBetweenAreas    ||
+                    ICondition.Instance().IsOccupiedInEvent ||
+                    !UIModule.IsScreenReady()               ||
+                    LocalPlayerState.Object == null)
+                    return false;
+
+                if (LocalPlayerState.ClassJob != CLASS_JOB_REAPER ||
+                    !GameState.IsInPVEActonZone                   ||
+                    GameState.IsDutyCompleted                     ||
+                    ICondition.Instance()
+                              .Any(ConditionFlag.InCombat, ConditionFlag.Mounted, ConditionFlag.Mounting, ConditionFlag.InFlight))
+                {
+                    TaskHelper.Abort();
+                    return false;
+                }
+
+                return true;
+            }
+        };
 
         IClientState.Instance().TerritoryChanged += OnZoneChanged;
         IDutyState.Instance().DutyRecommenced    += OnDutyRecommenced;
@@ -41,20 +64,20 @@ public class AutoSoulsow : ModuleBase
     )
     {
         TaskHelper.Abort();
-        TaskHelper.Enqueue(CheckCurrentJob);
+        TaskHelper.Enqueue(UseRelatedActions);
     }
 
     // 进入副本
     private void OnZoneChanged
     (
-        uint u
+        uint zone
     )
     {
+        if (GameState.ContentFinderCondition == 0)
+            return;
+
         TaskHelper.Abort();
-
-        if (GameState.ContentFinderCondition == 0) return;
-
-        TaskHelper.Enqueue(CheckCurrentJob);
+        TaskHelper.Enqueue(UseRelatedActions);
     }
 
     // 战斗状态
@@ -68,37 +91,29 @@ public class AutoSoulsow : ModuleBase
 
         TaskHelper.Abort();
         if (!value)
-            TaskHelper.Enqueue(CheckCurrentJob);
-    }
-
-    private bool CheckCurrentJob()
-    {
-        if (ICondition.Instance().IsBetweenAreas || !UIModule.IsScreenReady() || ICondition.Instance().IsOccupiedInEvent) return false;
-
-        if (ICondition.Instance()[ConditionFlag.InCombat] || LocalPlayerState.ClassJob != 39 || !GameState.IsInPVEActonZone)
-        {
-            TaskHelper.Abort();
-            return true;
-        }
-
-        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
-        return true;
+            TaskHelper.Enqueue(UseRelatedActions);
     }
 
     private bool UseRelatedActions()
     {
-        if (IObjectTable.Instance().LocalPlayer is not { } localPlayer) return false;
-
-        // 播魂种
-        if (localPlayer.StatusList.HasStatus(2594) || !ActionManager.IsActionUnlocked(24387))
+        if (LocalPlayerState.HasStatus(STATUS_SOULSOW, out _) ||
+            !ActionManager.IsActionUnlocked(SOULSOW))
         {
             TaskHelper.Abort();
             return true;
         }
 
-        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, 24387), $"UseAction_{24387}", 5_000, weight: 1);
+        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, SOULSOW));
         TaskHelper.DelayNext(2_000);
-        TaskHelper.Enqueue(CheckCurrentJob, "二次检查", weight: 1);
+        TaskHelper.Enqueue(UseRelatedActions);
         return true;
     }
+
+    #region 常量
+
+    private const uint CLASS_JOB_REAPER = 39;
+    private const uint SOULSOW          = 24387; // 播魂种
+    private const uint STATUS_SOULSOW   = 2594;  // 播魂种
+
+    #endregion
 }

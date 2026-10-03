@@ -7,7 +7,6 @@ using Dalamud.Game.DutyState;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
-using Control = FFXIVClientStructs.FFXIV.Client.Game.Control.Control;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -15,19 +14,35 @@ public class AutoUmbralSoul : ModuleBase
 {
     public override ModuleInfo Info { get; } = new()
     {
-        Title = Lang.Get("AutoUmbralSoulTitle"),
-        Description = Lang.Get
-        (
-            "AutoUmbralSoulDescription",
-            LuminaWrapper.GetJobName(CLASS_JOB),     // 黑魔法师
-            LuminaWrapper.GetActionName(UMBRAL_SOUL) // 灵极魂
-        ),
-        Category = ModuleCategory.Action
+        Title       = Lang.Get("AutoUmbralSoulTitle"),
+        Description = Lang.Get("AutoUmbralSoulDescription"),
+        Category    = ModuleCategory.Action
     };
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeoutMS = 30_000 };
+        TaskHelper ??= new()
+        {
+            TimeoutMS = 5_000,
+            MoveToNextCheckFunc = () =>
+            {
+                if (ICondition.Instance().IsBetweenAreas ||
+                    ICondition.Instance().IsOccupiedInEvent)
+                    return false;
+
+                if (LocalPlayerState.ClassJob != CLASS_JOB_BLACK_MAGE ||
+                    !GameState.IsInPVEActonZone                       ||
+                    GameState.IsDutyCompleted                         ||
+                    ICondition.Instance()
+                              .Any(ConditionFlag.InCombat, ConditionFlag.Mounted, ConditionFlag.Mounting, ConditionFlag.InFlight))
+                {
+                    TaskHelper.Abort();
+                    return false;
+                }
+
+                return true;
+            }
+        };
 
         IClientState.Instance().TerritoryChanged += OnZoneChanged;
         IDutyState.Instance().DutyRecommenced    += OnDutyRecommenced;
@@ -41,46 +56,9 @@ public class AutoUmbralSoul : ModuleBase
         ICondition.Instance().ConditionChange    -= OnConditionChanged;
     }
 
-    private bool CheckCurrentJob()
+    private bool UseRelatedActions()
     {
-        if (ICondition.Instance().IsBetweenAreas ||
-            ICondition.Instance().IsOccupiedInEvent)
-            return false;
-
-        if (LocalPlayerState.ClassJob != CLASS_JOB || !GameState.IsInPVEActonZone)
-        {
-            TaskHelper.Abort();
-            return true;
-        }
-
-        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
-        return true;
-    }
-
-    private unsafe bool UseRelatedActions()
-    {
-        if (ICondition.Instance().Any
-            (
-                ConditionFlag.InCombat,
-                ConditionFlag.Mounted,
-                ConditionFlag.Mounting,
-                ConditionFlag.InFlight
-            ))
-        {
-            TaskHelper.Abort();
-            return true;
-        }
-
         var gauge = IJobGauges.Instance().Get<BLMGauge>();
-
-        var localPlayer = Control.GetLocalPlayer();
-        if (localPlayer == null) return false;
-
-        if (localPlayer->ClassJob != CLASS_JOB)
-        {
-            TaskHelper.Abort();
-            return true;
-        }
 
         // 六层灵极魂 → 耀星, 不把耀星打出来太亏了
         if (gauge.AstralSoulStacks == 6)
@@ -107,9 +85,9 @@ public class AutoUmbralSoul : ModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, action), $"UseAction_{action}", 2_000, weight: 1);
-        TaskHelper.DelayNext(500, $"Delay_Use{action}", 1);
-        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
+        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, action));
+        TaskHelper.DelayNext(500);
+        TaskHelper.Enqueue(UseRelatedActions);
         return true;
     }
 
@@ -124,7 +102,7 @@ public class AutoUmbralSoul : ModuleBase
 
         TaskHelper.Abort();
         if (!value)
-            TaskHelper.Enqueue(CheckCurrentJob);
+            TaskHelper.Enqueue(UseRelatedActions);
     }
 
     // 重新挑战
@@ -134,7 +112,7 @@ public class AutoUmbralSoul : ModuleBase
     )
     {
         TaskHelper.Abort();
-        TaskHelper.Enqueue(CheckCurrentJob);
+        TaskHelper.Enqueue(UseRelatedActions);
     }
 
     // 进入副本
@@ -143,19 +121,19 @@ public class AutoUmbralSoul : ModuleBase
         uint zone
     )
     {
-        if (GameState.ContentFinderCondition == 0) return;
+        if (GameState.ContentFinderCondition == 0)
+            return;
 
         TaskHelper.Abort();
-        TaskHelper.Enqueue(CheckCurrentJob);
+        TaskHelper.Enqueue(UseRelatedActions);
     }
 
     #region 常量
 
-    private const uint CLASS_JOB = 25;
-
-    private const uint UMBRAL_SOUL = 16506;
-    private const uint TRANSPOSE   = 149;
-    private const uint BLIZZARD4  = 3576;
+    private const uint CLASS_JOB_BLACK_MAGE = 25;
+    private const uint UMBRAL_SOUL          = 16506; // 灵极魂
+    private const uint TRANSPOSE            = 149;   // 星灵移位
+    private const uint BLIZZARD4            = 3576;  // 冰澈
 
     #endregion
 }

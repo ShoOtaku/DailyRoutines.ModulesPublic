@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
@@ -8,7 +7,6 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using OmenTools.OmenService;
-using OmenTools.Threading.TaskHelper;
 
 namespace DailyRoutines.ModulesPublic;
 
@@ -23,7 +21,30 @@ public class AutoSummonPet : ModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new TaskHelper { TimeoutMS = 30_000 };
+        TaskHelper ??= new()
+        {
+            TimeoutMS = 5_000,
+            MoveToNextCheckFunc = () =>
+            {
+                if (ICondition.Instance().IsBetweenAreas    ||
+                    ICondition.Instance().IsOccupiedInEvent ||
+                    LocalPlayerState.Object is not { IsTargetable: true })
+                    return false;
+
+                var summonAction = SummonActions.FirstOrDefault(x => x.ClassJob == LocalPlayerState.ClassJob);
+
+                if (!UIModule.IsScreenReady()                    ||
+                    ICondition.Instance()[ConditionFlag.Casting] ||
+                    GameState.IsDutyCompleted                    ||
+                    summonAction.Action == 0)
+                {
+                    TaskHelper.Abort();
+                    return false;
+                }
+
+                return true;
+            }
+        };
 
         IClientState.Instance().TerritoryChanged += OnZoneChanged;
         IDutyState.Instance().DutyRecommenced    += OnDutyRecommenced;
@@ -42,58 +63,56 @@ public class AutoSummonPet : ModuleBase
     )
     {
         TaskHelper.Abort();
-        TaskHelper.Enqueue(CheckCurrentJob);
+        TaskHelper.Enqueue(SummonPet);
     }
 
     // 进入副本
     private void OnZoneChanged
     (
-        uint u
+        uint zone
     )
     {
+        if (!GameState.IsInPVEActonZone)
+            return;
+
         TaskHelper.Abort();
-
-        if (!GameState.IsInPVEActonZone) return;
-
         TaskHelper.DelayNext(1_000);
-        TaskHelper.Enqueue(CheckCurrentJob);
+        TaskHelper.Enqueue(SummonPet);
     }
 
-    private unsafe bool CheckCurrentJob()
+    private unsafe bool SummonPet()
     {
-        if (ICondition.Instance().IsBetweenAreas         ||
-            !UIModule.IsScreenReady()                            ||
-            ICondition.Instance()[ConditionFlag.Casting] ||
-            IObjectTable.Instance().LocalPlayer is not { IsTargetable: true } localPlayer) return false;
+        if (LocalPlayerState.Object is not { } localPlayer)
+            return false;
 
-        if (!SummonActions.TryGetValue(LocalPlayerState.ClassJob, out var actionID))
+        var summonAction = SummonActions.FirstOrDefault(x => x.ClassJob == LocalPlayerState.ClassJob);
+
+        if (summonAction.Action == 0)
         {
             TaskHelper.Abort();
             return true;
         }
 
-        var state = CharacterManager.Instance()->LookupPetByOwnerObject(localPlayer.ToStruct()) != null;
-
-        if (state)
+        if (CharacterManager.Instance()->LookupPetByOwnerObject(localPlayer.ToStruct()) != null)
         {
             TaskHelper.Abort();
             return true;
         }
 
-        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, actionID));
+        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, summonAction.Action));
         TaskHelper.DelayNext(1_000);
-        TaskHelper.Enqueue(CheckCurrentJob);
+        TaskHelper.Enqueue(SummonPet);
         return true;
     }
 
     #region 常量
 
-    private static readonly FrozenDictionary<uint, uint> SummonActions = new Dictionary<uint, uint>
-    {
-        [28] = 17215, // 学者
-        [26] = 25798, // 秘术师 / 召唤师
-        [27] = 25798
-    }.ToFrozenDictionary();
+    private static readonly (uint ClassJob, uint Action)[] SummonActions =
+    [
+        (28, 17215), // 学者
+        (26, 25798), // 秘术师 / 召唤师
+        (27, 25798)
+    ];
 
     #endregion
 }

@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using System.Numerics;
 using DailyRoutines.Common.Module.Abstractions;
 using DailyRoutines.Common.Module.Enums;
@@ -25,13 +24,8 @@ public unsafe class AutoDance : ModuleBase
         UseActionManager.Instance().RegPostUseActionLocation(OnPostUseAction);
     }
 
-    protected override void Uninit()
-    {
+    protected override void Uninit() =>
         UseActionManager.Instance().Unreg(OnPostUseAction);
-
-        TaskHelper?.Abort();
-        TaskHelper = null;
-    }
 
     private void OnPostUseAction
     (
@@ -50,7 +44,7 @@ public unsafe class AutoDance : ModuleBase
         if (gauge.IsDancing) return;
 
         TaskHelper.Enqueue(() => gauge.IsDancing);
-        TaskHelper.Enqueue(() => DanceStep(actionID != 15997));
+        TaskHelper.Enqueue(() => DanceStep(actionID == TECHNIQUE_STEP));
     }
 
     private bool DanceStep
@@ -88,7 +82,10 @@ public unsafe class AutoDance : ModuleBase
 
     #region 常量
 
-    private static readonly FrozenSet<uint> DanceActions = [15997, 15998];
+    private const uint STANDARD_STEP  = 15997; // 标准舞步
+    private const uint TECHNIQUE_STEP = 15998; // 技巧舞步
+
+    private static readonly uint[] DanceActions = [STANDARD_STEP, TECHNIQUE_STEP];
 
     #endregion
 }

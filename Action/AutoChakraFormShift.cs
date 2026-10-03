@@ -5,8 +5,6 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.JobGauge.Types;
 using Dalamud.Game.DutyState;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using Lumina.Excel.Sheets;
-using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 using Control = FFXIVClientStructs.FFXIV.Client.Game.Control.Control;
 
@@ -23,25 +21,40 @@ public class AutoChakraFormShift : ModuleBase
 
     protected override void Init()
     {
-        TaskHelper ??= new() { TimeoutMS = 30_000 };
+        TaskHelper ??= new()
+        {
+            TimeoutMS = 5_000,
+            MoveToNextCheckFunc = () =>
+            {
+                if (ICondition.Instance().IsBetweenAreas    ||
+                    ICondition.Instance().IsOccupiedInEvent ||
+                    LocalPlayerState.Object == null)
+                    return false;
+
+                if (LocalPlayerState.ClassJob != CLASS_JOB_MONK ||
+                    !GameState.IsInPVEActonZone                 ||
+                    GameState.IsDutyCompleted                   ||
+                    ICondition.Instance()
+                              .Any(ConditionFlag.InCombat, ConditionFlag.Mounted, ConditionFlag.Mounting, ConditionFlag.InFlight))
+                {
+                    TaskHelper.Abort();
+                    return false;
+                }
+
+                return true;
+            }
+        };
 
         IClientState.Instance().TerritoryChanged += OnZoneChanged;
         IDutyState.Instance().DutyRecommenced    += OnDutyRecommenced;
         ICondition.Instance().ConditionChange    += OnConditionChanged;
     }
 
-    private bool CheckCurrentJob()
+    protected override void Uninit()
     {
-        if (ICondition.Instance().IsBetweenAreas || ICondition.Instance().IsOccupiedInEvent) return false;
-
-        if (LocalPlayerState.ClassJob != 20 || !GameState.IsInPVEActonZone)
-        {
-            TaskHelper.Abort();
-            return true;
-        }
-
-        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
-        return true;
+        IClientState.Instance().TerritoryChanged -= OnZoneChanged;
+        IDutyState.Instance().DutyRecommenced    -= OnDutyRecommenced;
+        ICondition.Instance().ConditionChange    -= OnConditionChanged;
     }
 
     private unsafe bool UseRelatedActions()
@@ -49,7 +62,8 @@ public class AutoChakraFormShift : ModuleBase
         var gauge = IJobGauges.Instance().Get<MNKGauge>();
 
         var localPlayer = Control.GetLocalPlayer();
-        if (localPlayer == null) return false;
+        if (localPlayer == null)
+            return false;
 
         var statusManager = localPlayer->StatusManager;
 
@@ -59,10 +73,10 @@ public class AutoChakraFormShift : ModuleBase
             gauge.Chakra != 5)
             action = STEELED_MEDITATION;
         // 演武
-        else if (ActionManager.IsActionUnlocked(FORM_SHIFT) &&
-                 !LocalPlayerState.HasStatus(110, out _)    &&
-                 (!LocalPlayerState.HasStatus(2513, out var statusIndex) || statusManager.GetRemainingTime(statusIndex) <= 27))
-            action = 4262;
+        else if (ActionManager.IsActionUnlocked(FORM_SHIFT)                 &&
+                 !LocalPlayerState.HasStatus(STATUS_PERFECT_BALANCE, out _) &&
+                 (!LocalPlayerState.HasStatus(STATUS_FORMLESS_FIST, out var statusIndex) || statusManager.GetRemainingTime(statusIndex) <= 27))
+            action = FORM_SHIFT;
 
         if (action == 0)
         {
@@ -70,9 +84,9 @@ public class AutoChakraFormShift : ModuleBase
             return true;
         }
 
-        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, action), $"UseAction_{action}", 2_000, weight: 1);
-        TaskHelper.DelayNext(500, $"Delay_Use{action}", 1);
-        TaskHelper.Enqueue(UseRelatedActions, "UseRelatedActions", 5_000, weight: 1);
+        TaskHelper.Enqueue(() => UseActionManager.Instance().UseAction(ActionType.Action, action));
+        TaskHelper.DelayNext(500);
+        TaskHelper.Enqueue(UseRelatedActions);
         return true;
     }
 
@@ -87,7 +101,7 @@ public class AutoChakraFormShift : ModuleBase
 
         TaskHelper.Abort();
         if (!value)
-            TaskHelper.Enqueue(CheckCurrentJob);
+            TaskHelper.Enqueue(UseRelatedActions);
     }
 
     // 重新挑战
@@ -97,7 +111,7 @@ public class AutoChakraFormShift : ModuleBase
     )
     {
         TaskHelper.Abort();
-        TaskHelper.Enqueue(CheckCurrentJob);
+        TaskHelper.Enqueue(UseRelatedActions);
     }
 
     // 进入副本
@@ -106,23 +120,20 @@ public class AutoChakraFormShift : ModuleBase
         uint zone
     )
     {
-        if (LuminaGetter.GetRow<TerritoryType>(zone) is not { ContentFinderCondition.RowId: > 0 }) return;
+        if (GameState.ContentFinderCondition == 0)
+            return;
 
         TaskHelper.Abort();
-        TaskHelper.Enqueue(CheckCurrentJob);
-    }
-
-    protected override void Uninit()
-    {
-        IClientState.Instance().TerritoryChanged -= OnZoneChanged;
-        IDutyState.Instance().DutyRecommenced    -= OnDutyRecommenced;
-        ICondition.Instance().ConditionChange    -= OnConditionChanged;
+        TaskHelper.Enqueue(UseRelatedActions);
     }
 
     #region 常量
 
-    private const uint STEELED_MEDITATION = 36940;
-    private const uint FORM_SHIFT         = 4262;
+    private const uint STEELED_MEDITATION     = 36940; // 铁山斗气
+    private const uint FORM_SHIFT             = 4262;  // 演武
+    private const uint STATUS_PERFECT_BALANCE = 110;   // 震脚
+    private const uint STATUS_FORMLESS_FIST   = 2513;  // 无相身形
+    private const uint CLASS_JOB_MONK         = 20;
 
     #endregion
 }
