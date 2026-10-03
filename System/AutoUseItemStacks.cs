@@ -159,25 +159,9 @@ public unsafe class AutoUseItemStacks : ModuleBase
             return new()
             {
                 Name = Lang.Get("AutoUseItemStacks-ContextMenu"),
-                OnClicked = clickedArgs =>
+                OnClicked = _ =>
                 {
-                    if (module.drInputNumeric != null &&
-                        !AddonHelper.TryGetPtrByName("DRInputNumeric", out _))
-                    {
-                        try
-                        {
-                            module.drInputNumeric?.Dispose();
-                            module.drInputNumeric = null;
-                        }
-                        catch
-                        {
-                            // 谁敢猜这个时候会发生什么
-                        }
-                    }
-
-                    if (module.drInputNumeric != null)
-                        return;
-
+                    module.drInputNumeric?.Dispose();
                     module.drInputNumeric = InputNumericAddon.Open
                     (
                         new()

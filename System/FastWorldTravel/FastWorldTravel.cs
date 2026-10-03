@@ -132,7 +132,6 @@ public partial class FastWorldTravel : ModuleBase
         }
         
         selectYesnoAddon?.Dispose();
-        selectYesnoAddon = null;
 
         using var rented  = new RentedSeStringBuilder();
         var       builder = rented.Builder;

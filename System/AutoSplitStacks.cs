@@ -390,25 +390,9 @@ public unsafe class AutoSplitStacks : ModuleBase
             return new()
             {
                 Name = Lang.Get("AutoSplitStacks-ContextMenu-Split"),
-                OnClicked = clickedArgs =>
+                OnClicked = _ =>
                 {
-                    if (module.drInputNumeric != null &&
-                        !AddonHelper.TryGetPtrByName("DRInputNumeric", out _))
-                    {
-                        try
-                        {
-                            module.drInputNumeric?.Dispose();
-                            module.drInputNumeric = null;
-                        }
-                        catch
-                        {
-                            // 谁敢猜这个时候会发生什么
-                        }
-                    }
-
-                    if (module.drInputNumeric != null)
-                        return;
-                    
+                    module.drInputNumeric?.Dispose();
                     module.drInputNumeric = InputNumericAddon.Open
                     (
                         new()

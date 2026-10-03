@@ -141,23 +141,7 @@ public unsafe class ClickableAethernet : ModuleBase
                             if (addon->NumBlockingAddons != 0)
                                 return;
 
-                            if (drSelectYesno != null &&
-                                !AddonHelper.TryGetPtrByName("DRSelectYesno", out _))
-                            {
-                                try
-                                {
-                                    drSelectYesno?.Dispose();
-                                    drSelectYesno = null;
-                                }
-                                catch
-                                {
-                                    // 谁敢猜这个时候会发生什么
-                                }
-                            }
-
-                            if (drSelectYesno != null)
-                                return;
-
+                            drSelectYesno?.Dispose();
                             drSelectYesno = SelectYesnoAddon.Open
                             (
                                 new()

@@ -82,22 +82,7 @@ public unsafe class BetterBlueSetLoad : ModuleBase
         if (values[1].Type != AtkValueType.UInt || index > 4) 
             return InvokeOriginal();
         
-        if (drSelectYesno != null &&
-            !AddonHelper.TryGetPtrByName("DRSelectYesno", out _))
-        {
-            try
-            {
-                drSelectYesno?.Dispose();
-                drSelectYesno = null;
-            }
-            catch
-            {
-                // 谁敢猜这个时候会发生什么
-            }
-        }
-
-        if (drSelectYesno != null)
-            return InvokeOriginal();
+        drSelectYesno?.Dispose();
 
         addon->IsVisible = false;
         drSelectYesno = SelectYesnoAddon.Open
