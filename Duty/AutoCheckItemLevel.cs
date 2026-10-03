@@ -4,12 +4,14 @@ using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Client.Game.Group;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using Lumina.Excel.Sheets;
 using Lumina.Text.ReadOnly;
+using OmenTools.Info.Lumina;
+using OmenTools.Interop.Game.ExecuteCommand.Implementations;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
-using OmenTools.Threading;
 
 namespace DailyRoutines.ModulesPublic.Duty;
 
@@ -54,193 +56,205 @@ public unsafe class AutoCheckItemLevel : ModuleBase
             "等待进入副本"
         );
 
-        TaskHelper.Enqueue(() => CheckMembersItemLevel([LocalPlayerState.EntityID], []));
+        TaskHelper.Enqueue(StartInspect, "开始检查");
     }
 
-    private bool CheckMembersItemLevel
-    (
-        HashSet<ulong>                                        checkedMembers,
-        List<(HudPartyMember Member, uint AvgIL, uint MinIL)> pendingMembers
-    )
+    private bool StartInspect()
     {
-        var agent        = AgentHUD.Instance();
-        var agentInspect = AgentInspect.Instance();
+        var group = GroupManager.Instance()->GetGroup();
 
-        if (agent == null || agentInspect == null || agent->PartyMemberCount <= 1)
+        if (group == null || group->MemberCount <= 1)
         {
             TaskHelper.Abort();
             return true;
         }
 
-        if (ICondition.Instance().IsBetweenAreas) return false;
+        var results = new List<MemberItemLevel>();
 
-        if (CharacterInspect != null)
+        for (var index = 0; index < group->MemberCount; index++)
         {
-            CharacterInspect->Close(true);
-            return false;
-        }
+            var member = group->GetPartyMemberByIndex(index);
 
-        var members = agent->PartyMembers.ToArray();
-
-        foreach (var member in members)
-        {
-            if (member.EntityId  == 0                         ||
-                member.ContentId == 0                         ||
-                member.EntityId  == LocalPlayerState.EntityID ||
-                !checkedMembers.Add(member.EntityId))
+            if (member            == null ||
+                member->EntityId  == 0    ||
+                member->ContentId == 0    ||
+                member->EntityId  == LocalPlayerState.EntityID)
                 continue;
 
-            TaskHelper.Enqueue
-            (
-                () =>
-                {
-                    if (CharacterInspect != null && agentInspect->CurrentEntityId == member.EntityId) return true;
-
-                    if (Throttler.Shared.Throttle("AutoCheckItemLevel-OpenExamine"))
-                    {
-                        if (CharacterInspect != null)
-                        {
-                            CharacterInspect->Close(true);
-                            Throttler.Shared.Throttle("AutoCheckItemLevel-OpenExamine", 10, true);
-                        }
-                        else
-                            agentInspect->ExamineCharacter(member.EntityId);
-                    }
-
-                    return false;
-                },
-                "打开检视界面"
-            );
+            var entityID = member->EntityId;
 
             TaskHelper.Enqueue
             (
                 () =>
                 {
-                    if (member.Object == null) return false;
-                    if (!InventoryType.Examine.TryGetItems(_ => true, out var list)) return false;
-
-                    while (list.Count < 13)
-                        list.Add(new());
-
-                    uint totalIL        = 0U, lowestIL = 9999U;
-                    var  itemSlotAmount = 11;
-
-                    for (var i = 0; i < 13; i++)
-                    {
-                        var slot   = list[i];
-                        var itemID = slot.ItemId;
-
-                        if (!LuminaGetter.TryGetRow(itemID, out Item item)) continue;
-
-                        switch (i)
-                        {
-                            case 0:
-                            {
-                                var category = item.ClassJobCategory.RowId;
-                                if (HaveOffHandJobCategories.Contains(category))
-                                    itemSlotAmount++;
-
-                                break;
-                            }
-                            case 1 when itemSlotAmount != 12:
-                            case 5: // 腰带
-                                continue;
-                        }
-
-                        if (item.LevelItem.RowId < lowestIL)
-                            lowestIL = item.LevelItem.RowId;
-
-                        totalIL += item.LevelItem.RowId;
-                    }
-
-                    var avgItemLevel = (uint)(totalIL / itemSlotAmount);
-
-                    pendingMembers.Add((member, avgItemLevel, lowestIL));
-
-                    CharacterInspect->Close(true);
-                    agentInspect->FetchCharacterDataStatus = 0;
-                    agentInspect->FetchSearchCommentStatus = 0;
-                    agentInspect->FetchCharacterDataStatus = 0;
-
+                    InspectCommand.Inspect(entityID);
                     return true;
                 },
-                "检查装等"
+                "请求检视"
             );
 
-            var checkedCount = checkedMembers.Count - 1;
-            if (checkedCount != 0 && checkedCount % 3 == 0)
-                TaskHelper.DelayNext(1000, "等待 1 秒");
-
-            TaskHelper.Enqueue(() => CheckMembersItemLevel(checkedMembers, pendingMembers), "进入新循环");
-            return true;
+            TaskHelper.Enqueue(() => ReadMemberItemLevel(entityID, member, results), "读取装等");
         }
 
-        SendNotifications(pendingMembers);
+        TaskHelper.Enqueue
+        (
+            () =>
+            {
+                SendNotifications(results);
+                return true;
+            },
+            "发送通知"
+        );
 
-        TaskHelper.Abort();
+        return true;
+    }
+
+    private static bool ReadMemberItemLevel
+    (
+        uint                  entityID,
+        PartyMember*          member,
+        List<MemberItemLevel> results
+    )
+    {
+        if (UIState.Instance()->Inspect.EntityId != entityID) return false;
+        if (!TryGetItemLevel(out var avgItemLevel, out var lowestItemLevel)) return false;
+
+        results.Add(new(member, avgItemLevel, lowestItemLevel));
+
+        return true;
+    }
+
+    private static bool TryGetItemLevel
+    (
+        out uint avgItemLevel,
+        out uint lowestItemLevel
+    )
+    {
+        avgItemLevel    = 0;
+        lowestItemLevel = 0;
+
+        var container = InventoryManager.Instance()->GetInventoryContainer(InventoryType.Examine);
+        if (container == null || !container->IsLoaded) return false;
+
+        uint totalItemLevel = 0;
+        var  itemSlotAmount = 11;
+        var  lowestIL       = 9999U;
+
+        for (var index = 0; index < 13 && index < container->Size; index++)
+        {
+            var slot = container->GetInventorySlot(index);
+            if (slot == null) continue;
+
+            if (!LuminaGetter.TryGetRow(slot->ItemId, out Item item)) continue;
+
+            switch (index)
+            {
+                case 0:
+                {
+                    if (HaveOffHandJobCategories.Contains(item.ClassJobCategory.RowId))
+                        itemSlotAmount++;
+
+                    break;
+                }
+                case 1 when itemSlotAmount != 12:
+                case 5:
+                    continue;
+            }
+
+            if (item.LevelItem.RowId < lowestIL)
+                lowestIL = item.LevelItem.RowId;
+
+            totalItemLevel += item.LevelItem.RowId;
+        }
+
+        avgItemLevel    = totalItemLevel / (uint)itemSlotAmount;
+        lowestItemLevel = lowestIL;
+
         return true;
     }
 
     private static void SendNotifications
     (
-        List<(HudPartyMember Member, uint AvgIL, uint MinIL)> pendingMembers
+        List<MemberItemLevel> results
     )
     {
         var content   = GameState.ContentFinderConditionData;
+        
+        var minIL = 0U;
+        if (content.ItemLevelRequired > 0)
+            minIL = content.ItemLevelRequired;
+        else if (content.ClassJobLevelRequired > 0)
+        {
+            minIL = Sheets.Gears.Values
+                          .Where
+                          (x => x.LevelEquip      != 1                             &&
+                                x.LevelEquip      == content.ClassJobLevelRequired &&
+                                x.LevelItem.RowId != 1
+                          )
+                          .OrderBy(x => x.LevelItem.RowId)
+                          .FirstOrDefault()
+                          .LevelItem.RowId;
+        }
+        
         var hasOutput = false;
 
         using var rented       = new RentedSeStringBuilder();
-        using var playerRented = new RentedSeStringBuilder();
+        using var payloadRented = new RentedSeStringBuilder();
 
-        foreach (var (partyMember, avgIL, minIL) in pendingMembers)
+        foreach (var result in results)
         {
-            if (partyMember.Object == null)
-                continue;
+            var member = result.Member;
 
-            var isAbnormal = partyMember.Object->Level <= content.ClassJobLevelRequired ||
-                             minIL                     <= content.ItemLevelRequired;
-            if (!isAbnormal)
-                continue;
+            var isLevelAbnormal = content.ClassJobLevelRequired < content.ClassJobLevelSync &&
+                                  member->Level                 <= content.ClassJobLevelRequired;
+            var isMinILAbnormal = result.LowestItemLevel <= minIL;
+            if (content.ClassJobLevelSync     == 0 ||
+                content.ClassJobLevelRequired == content.ClassJobLevelSync)
+                isLevelAbnormal = false;
 
-            playerRented.AppendIcon((uint)LuminaGetter.GetRowOrDefault<ClassJob>(partyMember.Object->ClassJob).ToBitmapFontIcon())
-                        .Append
-                        (
-                            ReadOnlySeString.CreatePlayer
-                            (
-                                partyMember.Object->NameString,
-                                partyMember.Object->HomeWorld
-                            )
-                        );
+            payloadRented.AppendIcon((uint)LuminaGetter.GetRowOrDefault<ClassJob>(member->ClassJob).ToBitmapFontIcon())
+                         .Append(ReadOnlySeString.CreatePlayer(member->NameString, member->HomeWorld));
 
             var playerLink = ReadOnlySeString.CreatePlayerLink
             (
-                partyMember.Object->NameString,
-                partyMember.Object->HomeWorld,
-                playerRented.ToReadOnlySeString()
+                member->NameString,
+                member->HomeWorld,
+                payloadRented.ToReadOnlySeString()
             );
-            playerRented.Clear();
+            payloadRented.Clear();
+
+            var levelText = !isLevelAbnormal ?
+                                member->Level.ToString() :
+                                payloadRented.PushColorType(COLOR_TYPE_LEVEL_LOW)
+                                             .Append(member->Level.ToString())
+                                             .PopColorType()
+                                             .ToReadOnlySeString();
+            payloadRented.Clear();
+            
+            var minILText = !isMinILAbnormal ?
+                                result.LowestItemLevel.ToString() :
+                                payloadRented.PushColorType(COLOR_TYPE_LEVEL_LOW)
+                                             .Append(result.LowestItemLevel.ToString())
+                                             .PopColorType()
+                                             .ToReadOnlySeString();
+            payloadRented.Clear();
 
             var message = Lang.GetSe
             (
                 "AutoCheckItemLevel-Notification-Message",
                 new Dictionary<string, object>
                 {
-                    ["level"]  = partyMember.Object->Level,
+                    ["level"]  = levelText,
                     ["player"] = playerLink,
-                    ["minIL"]  = minIL,
-                    ["avgIL"]  = avgIL
+                    ["minIL"]  = minILText,
+                    ["avgIL"]  = result.AverageItemLevel
                 }
             );
 
-            if (!hasOutput)
-            {
-                rented.Append(Lang.Get("AutoCheckItemLevel-Notification-Title"))
-                      .AppendNewLine();
-                hasOutput = true;
-            }
-            else
+            if (hasOutput)
                 rented.AppendNewLine();
 
+            hasOutput = true;
             rented.Append(message);
         }
 
@@ -248,10 +262,24 @@ public unsafe class AutoCheckItemLevel : ModuleBase
             NotifyHelper.Instance().Chat(rented.ToReadOnlySeString());
     }
 
+    private readonly struct MemberItemLevel
+    (
+        PartyMember* member,
+        uint         averageItemLevel,
+        uint         lowestItemLevel
+    )
+    {
+        public readonly PartyMember* Member           = member;
+        public readonly uint         AverageItemLevel = averageItemLevel;
+        public readonly uint         LowestItemLevel  = lowestItemLevel;
+    }
+
     #region 常量
 
     private static readonly uint[] ValidContentJobCategories = [108, 142, 146];
     private static readonly uint[] HaveOffHandJobCategories  = [2, 7, 8, 20];
+
+    private const uint COLOR_TYPE_LEVEL_LOW = 32;
 
     #endregion
 }
