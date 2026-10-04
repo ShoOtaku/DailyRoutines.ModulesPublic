@@ -178,7 +178,7 @@ public partial class OptimizedRecipeNote
 
             StatsContainerBackground = new()
             {
-                TexturePath        = "ui/uld/img04/BgParts_hr1.tex",
+                TexturePath        = "ui/uld/BgParts_hr1.tex",
                 TextureCoordinates = new(61, 37),
                 TextureSize        = new(16, 16),
                 Offsets            = new(7),
@@ -430,7 +430,7 @@ public partial class OptimizedRecipeNote
 
             ActionContainerBackground = new()
             {
-                TexturePath        = "ui/uld/img04/BgParts_hr1.tex",
+                TexturePath        = "ui/uld/BgParts_hr1.tex",
                 TextureCoordinates = new(61, 37),
                 TextureSize        = new(16, 16),
                 Offsets            = new(7),
