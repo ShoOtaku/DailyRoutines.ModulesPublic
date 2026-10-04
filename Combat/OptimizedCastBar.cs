@@ -7,10 +7,15 @@ using DailyRoutines.Extensions;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Conditions;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Nodes.Simplified;
+using Lumina.Excel.Sheets;
+using OmenTools.Info.Game.Enums;
 using OmenTools.Interop.Game.Lumina;
+using OmenTools.OmenService;
 using OmenTools.Threading;
 
 namespace DailyRoutines.ModulesPublic;
@@ -31,13 +36,18 @@ public unsafe class OptimizedCastBar : ModuleBase
 
     private SimpleNineGridNode? slideMarkerZoneNode;
     private SimpleNineGridNode? slideMarkerLineNode;
+    
+    private uint aetheryteID;
 
     protected override void Init()
     {
         config = Config.Load(this) ?? new();
 
-        IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostDraw,    "_CastBar", OnAddon);
-        IAddonLifecycle.Instance().RegisterListener(AddonEvent.PreFinalize, "_CastBar", OnAddon);
+        ExecuteCommandManager.Instance().RegPost(OnExecuteCommand);
+        
+        IAddonLifecycle.Instance().RegisterListener(AddonEvent.PreRequestedUpdate, "_CastBar", OnAddon);
+        IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostDraw,           "_CastBar", OnAddon);
+        IAddonLifecycle.Instance().RegisterListener(AddonEvent.PreFinalize,        "_CastBar", OnAddon);
 
         ICondition.Instance().ConditionChange += OnConditionChanged;
     }
@@ -47,6 +57,8 @@ public unsafe class OptimizedCastBar : ModuleBase
         ICondition.Instance().ConditionChange -= OnConditionChanged;
 
         IAddonLifecycle.Instance().UnregisterListener(OnAddon);
+        
+        ExecuteCommandManager.Instance().Unreg(OnExecuteCommand);
 
         slideMarkerZoneNode?.Dispose();
         slideMarkerZoneNode = null;
@@ -220,35 +232,42 @@ public unsafe class OptimizedCastBar : ModuleBase
                 }
             }
 
-            if (config.SlideCastHighlightType == SlideCastHighlightType.None) return;
-
-            if (config.SlideCastHighlightType == SlideCastHighlightType.Line)
+            if (config.SlideCastHighlightType != SlideCastHighlightType.None)
             {
-                ImGui.Spacing();
+                if (config.SlideCastHighlightType == SlideCastHighlightType.Line)
+                {
+                    ImGui.Spacing();
 
-                ImGui.SliderInt(Lang.Get("Width"), ref config.SlideCastLineWidth, 1, 10);
+                    ImGui.SliderInt(Lang.Get("Width"), ref config.SlideCastLineWidth, 1, 10);
+                    if (ImGui.IsItemDeactivatedAfterEdit())
+                        config.Save(this);
+
+                    ImGui.SliderInt(Lang.Get("Height"), ref config.SlideCastLineHeight, 0, 20);
+                    if (ImGui.IsItemDeactivatedAfterEdit())
+                        config.Save(this);
+
+                    ImGui.Spacing();
+                }
+
+                ImGui.SliderInt(Lang.Get("OptimizedCastBar-SlideCastOffsetTime"), ref config.SlideCastZoneAdjust, 0, 1000);
                 if (ImGui.IsItemDeactivatedAfterEdit())
                     config.Save(this);
 
-                ImGui.SliderInt(Lang.Get("Height"), ref config.SlideCastLineHeight, 0, 20);
+                ImGui.ColorEdit4(Lang.Get("OptimizedCastBar-SlideCastMarkerNotReadyColor"), ref config.SlideCastNotReadyColor);
                 if (ImGui.IsItemDeactivatedAfterEdit())
                     config.Save(this);
 
-                ImGui.Spacing();
+                ImGui.ColorEdit4(Lang.Get("OptimizedCastBar-SlideCastMarkerReadyColor"), ref config.SlideCastReadyColor);
+                if (ImGui.IsItemDeactivatedAfterEdit())
+                    config.Save(this);
             }
-
-            ImGui.SliderInt(Lang.Get("OptimizedCastBar-SlideCastOffsetTime"), ref config.SlideCastZoneAdjust, 0, 1000);
-            if (ImGui.IsItemDeactivatedAfterEdit())
-                config.Save(this);
-
-            ImGui.ColorEdit4(Lang.Get("OptimizedCastBar-SlideCastMarkerNotReadyColor"), ref config.SlideCastNotReadyColor);
-            if (ImGui.IsItemDeactivatedAfterEdit())
-                config.Save(this);
-
-            ImGui.ColorEdit4(Lang.Get("OptimizedCastBar-SlideCastMarkerReadyColor"), ref config.SlideCastReadyColor);
-            if (ImGui.IsItemDeactivatedAfterEdit())
-                config.Save(this);
         }
+        
+        ImGui.NewLine();
+        
+        if (ImGui.Checkbox(Lang.Get("OptimizedCastBar-DisplayDetailedCastInfo"), ref config.DisplayDetailedCastInfo))
+            config.Save(this);
+        ImGuiOm.HelpMarker(Lang.Get("OptimizedCastBar-DisplayDetailedCastInfo-Help"));
     }
 
     private void OnConditionChanged
@@ -267,6 +286,21 @@ public unsafe class OptimizedCastBar : ModuleBase
 
         UpdateOriginalAddonNodes();
     }
+    
+    private void OnExecuteCommand
+    (
+        ExecuteCommandFlag command,
+        uint               param1,
+        uint               param2,
+        uint               param3,
+        uint               param4
+    ) =>
+        aetheryteID = command switch
+        {
+            ExecuteCommandFlag.Teleport              => param1,
+            ExecuteCommandFlag.TeleportToFriendHouse => param3,
+            _                                        => aetheryteID
+        };
 
     private void OnAddon
     (
@@ -274,6 +308,8 @@ public unsafe class OptimizedCastBar : ModuleBase
         AddonArgs  args
     )
     {
+        var addon = (AddonCastBar*)CastBar;
+        
         switch (type)
         {
             case AddonEvent.PreFinalize:
@@ -281,19 +317,76 @@ public unsafe class OptimizedCastBar : ModuleBase
                 slideMarkerLineNode = null;
 
                 UpdateOriginalAddonNodes();
-                return;
+                break;
+
+            case AddonEvent.PreRequestedUpdate:
+            {
+                if (addon == null)
+                    return;
+                if (!config.DisplayDetailedCastInfo)
+                    return;
+                if (LocalPlayerState.Object is not { } localPlayer)
+                    return;
+
+                switch (localPlayer.CastActionType)
+                {
+                    // 传送
+                    case ActionType.Action when localPlayer.CastActionID == 5:
+                    {
+                        if (AetheryteRecordManager.Instance().AllRecords.FirstOrDefault(x => x.RowID == aetheryteID) is not { } aetheryteRecord)
+                            return;
+
+                        using var utf8String = new Utf8String(aetheryteRecord.Name);
+                        AtkStage.Instance()->GetStringArrayData(StringArrayType.CastBar)->SetValue(0, utf8String.StringPtr);
+
+                        var node = addon->GetTextNodeById(4);
+                        if (node == null)
+                            return;
+                        if (node->NodeText.EqualToString(aetheryteRecord.Name))
+                            return;
+
+                        node->SetText(utf8String.StringPtr);
+                        break;
+                    }
+                    // 坐骑
+                    case ActionType.Mount:
+                    {
+                        if (!LuminaGetter.TryGetRow<Mount>(localPlayer.CastActionID, out var mountRow))
+                            return;
+
+                        var text = mountRow.Singular.ToString();
+
+                        using var utf8String = new Utf8String(text);
+                        AtkStage.Instance()->GetStringArrayData(StringArrayType.CastBar)->SetValue(0, utf8String.StringPtr);
+
+                        var node     = addon->GetTextNodeById(4);
+                        var iconNode = (AtkComponentIcon*)addon->GetComponentByNodeId(8);
+                        if (node == null || iconNode == null)
+                            return;
+                        if (!node->NodeText.EqualToString(text))
+                            node->SetText(utf8String.StringPtr);
+                        if (iconNode->IconId != mountRow.Icon)
+                            iconNode->LoadIcon(mountRow.Icon);
+                        break;
+                    }
+                }
+
+                break;
+            }
+            
             case AddonEvent.PostDraw:
-                if (CastBar == null) return;
-
-                var addon = (AddonCastBar*)CastBar;
-
+                if (addon == null) 
+                    return;
+                
                 var progressBarNode = (AtkNineGridNode*)CastBar->GetNodeById(11);
-                if (progressBarNode == null) return;
+                if (progressBarNode == null) 
+                    return;
 
                 if (Throttler.Shared.Throttle("OptimizedCastBar-PostDraw-UpdateOriginal"))
                     UpdateOriginalAddonNodes();
 
-                if (!Throttler.Shared.Throttle("OptimizedCastBar-PostDraw-UpdateSlideCast", 10)) return;
+                if (!Throttler.Shared.Throttle("OptimizedCastBar-PostDraw-UpdateSlideCast", 10)) 
+                    return;
 
                 var slidePerercentage = ((float)(addon->CastTime * 10) - config.SlideCastZoneAdjust) / (addon->CastTime * 10);
                 var slidePosition     = 160                                                          * slidePerercentage;
@@ -355,7 +448,7 @@ public unsafe class OptimizedCastBar : ModuleBase
                         break;
                 }
 
-                return;
+                break;
         }
     }
 
@@ -453,15 +546,15 @@ public unsafe class OptimizedCastBar : ModuleBase
         public Vector2 NameTextPosition  = new(48, 0);
         public byte    NameTextSize      = 12;
 
-        public SlideCastHighlightType SlideCastHighlightType = SlideCastHighlightType.Zone;
+        // 滑步
+        public SlideCastHighlightType SlideCastHighlightType = SlideCastHighlightType.None;
         public int                    SlideCastLineHeight;
+        public int                    SlideCastLineWidth     = 3;
+        public Vector4                SlideCastNotReadyColor = new(0.8f, 0.3f, 0.3f, 1);
+        public Vector4                SlideCastReadyColor    = new(0.3f, 0.8f, 0.3f, 1);
+        public int                    SlideCastZoneAdjust    = 500;
 
-        public int SlideCastLineWidth = 3;
-
-        public Vector4 SlideCastNotReadyColor = new(0.8f, 0.3f, 0.3f, 1);
-        public Vector4 SlideCastReadyColor    = new(0.3f, 0.8f, 0.3f, 1);
-
-        public int SlideCastZoneAdjust = 500;
+        public bool DisplayDetailedCastInfo = true;
     }
 
     private enum SlideCastHighlightType
