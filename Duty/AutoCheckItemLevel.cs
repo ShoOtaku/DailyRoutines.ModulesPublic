@@ -206,7 +206,7 @@ public unsafe class AutoCheckItemLevel : ModuleBase
         
         var hasOutput = false;
 
-        using var rented       = new RentedSeStringBuilder();
+        using var rented        = new RentedSeStringBuilder();
         using var payloadRented = new RentedSeStringBuilder();
 
         foreach (var result in results)
