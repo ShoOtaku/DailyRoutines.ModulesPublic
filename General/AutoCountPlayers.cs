@@ -189,67 +189,48 @@ public unsafe class AutoCountPlayers : ModuleBase
                                     .Where(player => MatchesSearch(player.Name, searchInput))
                                     .ToList();
 
-        DrawSectionHeader(Lang.Get("AutoCountPlayers-PlayersAround"), players.Count);
-
-        var hoveredID = 0ul;
-
         foreach (var player in players)
         {
             using var id = ImRaii.PushId($"{player.GameObjectID}");
 
-            using var rented = new RentedSeStringBuilder();
-
-            var playerInfo = rented.Append(player.Name)
-                                   .AppendIcon((uint)BitmapFontIcon.CrossWorld)
-                                   .Append(player.HomeWorld.Value.Name.ToString())
-                                   .ToReadOnlySeString();
-
-            if (!DrawPlayerRow(player.ClassJob.Value.GetIcon(), playerInfo, clickable: true))
+            if (!DrawPlayerRow(player.ClassJob.Value.GetIcon(), player.Name, player.HomeWorld.Value.Name.ToString(), clickable: true))
                 continue;
-
-            hoveredID = player.GameObjectID;
 
             ImGui.SetTooltip(Lang.Get("Locate"));
 
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 NotifyPlayerPosition(player);
-        }
 
-        DrawPlayersAroundLines(players, hoveredID);
+            DrawPlayerLine(player);
+        }
     }
 
-    private void DrawPlayersAroundLines
+    private void DrawPlayerLine
     (
-        List<IPlayerCharacter> players,
-        ulong                  hoveredID
+        IPlayerCharacter player,
+        bool             isAlert   = false,
+        string?          extraInfo = null
     )
     {
-        if (players.Count == 0) return;
-
         var gameGUI  = IGameGui.Instance();
         var viewport = ImGui.GetMainViewport();
 
         if (!gameGUI.WorldToScreen(LocalPlayerState.Object.Position, out var localScreenPos, out _))
             localScreenPos = viewport.Pos + viewport.Size with { X = viewport.Size.X * 0.5f };
 
-        foreach (var player in players)
-        {
-            if (hoveredID != 0 && player.GameObjectID != hoveredID) continue;
+        gameGUI.WorldToScreen(player.Position, out var screenPos, out var isInView);
 
-            gameGUI.WorldToScreen(player.Position, out var screenPos, out var isInView);
+        var linePositions = GetLinePositions
+        (
+            screenPos,
+            isInView,
+            viewport.Pos,
+            viewport.Size,
+            OFFSCREEN_MARKER_INSET  * GlobalUIScale,
+            OFFSCREEN_LINE_OVERFLOW * GlobalUIScale
+        );
 
-            var linePositions = GetLinePositions
-            (
-                screenPos,
-                isInView,
-                viewport.Pos,
-                viewport.Size,
-                OFFSCREEN_MARKER_INSET  * GlobalUIScale,
-                OFFSCREEN_LINE_OVERFLOW * GlobalUIScale
-            );
-
-            DrawLine(localScreenPos, linePositions.LineEnd, linePositions.Marker, player, isInView);
-        }
+        DrawLine(localScreenPos, linePositions.LineEnd, linePositions.Marker, player, isInView, isAlert, extraInfo);
     }
 
     private void DrawPlayersInZoneTab()
@@ -273,18 +254,14 @@ public unsafe class AutoCountPlayers : ModuleBase
         {
             DrawSectionHeader(LuminaWrapper.GetDataCenterName(dataCenterID), players.Count);
 
-            foreach (var player in players)
+            using (ImRaii.PushIndent(SECTION_PLAYER_INDENT))
             {
-                using var id = ImRaii.PushId($"{player.ContentId}");
+                foreach (var player in players)
+                {
+                    using var id = ImRaii.PushId($"{player.ContentId}");
 
-                using var rented = new RentedSeStringBuilder();
-
-                var playerInfo = rented.Append(player.NameString)
-                                       .AppendIcon((uint)BitmapFontIcon.CrossWorld)
-                                       .Append(LuminaWrapper.GetWorldName(player.HomeWorld))
-                                       .ToReadOnlySeString();
-
-                DrawPlayerRow(LuminaWrapper.GetJobIcon(player.Job), playerInfo);
+                    DrawPlayerRow(LuminaWrapper.GetJobIcon(player.Job), player.NameString, LuminaWrapper.GetWorldName(player.HomeWorld));
+                }
             }
 
             ImGui.Spacing();
@@ -299,22 +276,15 @@ public unsafe class AutoCountPlayers : ModuleBase
         using var child = ImRaii.Child("列表", ImGui.GetContentRegionAvail() - ImGui.GetStyle().ItemSpacing, true);
         if (!child) return;
 
-        DrawSectionHeader(Lang.Get("AutoCountPlayers-TargetedHistory"), config.TargetingHistories.Count);
-
         foreach (var record in config.TargetingHistories.AsEnumerable().Reverse())
         {
             using var id = ImRaii.PushId($"{record.StartTime.Ticks}-{record.Name}");
 
-            using var rented = new RentedSeStringBuilder();
-
-            rented.Append(record.Name)
-                  .AppendIcon((uint)BitmapFontIcon.CrossWorld)
-                  .Append(LuminaWrapper.GetWorldName(record.HomeWorldID));
-
             DrawPlayerRow
             (
                 LuminaGetter.GetRowOrDefault<ClassJob>(record.JobID).GetIcon(),
-                rented.ToReadOnlySeString(),
+                record.Name,
+                LuminaWrapper.GetWorldName(record.HomeWorldID),
                 $"[{record.Duration:mm\\:ss}]",
                 KnownColor.Orange,
                 $"{LuminaWrapper.GetZonePlaceName(record.ZoneID)}  {record.StartTime:MM/dd HH:mm}"
@@ -324,40 +294,41 @@ public unsafe class AutoCountPlayers : ModuleBase
 
     private static bool DrawPlayerRow
     (
-        uint             jobIconID,
-        ReadOnlySeString playerInfo,
-        string?          trailingText  = null,
-        KnownColor       trailingColor = KnownColor.Gray,
-        string?          subText       = null,
-        bool             clickable     = false
+        uint       jobIconID,
+        string     playerName,
+        string     worldName,
+        string?    trailingText  = null,
+        KnownColor trailingColor = KnownColor.Gray,
+        string?    subText       = null,
+        bool       clickable     = false
     )
     {
-        var style        = ImGui.GetStyle();
-        var lineHeight   = ImGui.GetTextLineHeight();
-        var indent       = PLAYER_ROW_INDENT * GlobalUIScale;
-        var rowStart     = ImGui.GetCursorScreenPos();
-        var rowAvail     = ImGui.GetContentRegionAvail().X;
-        var contentStart = rowStart with { X = rowStart.X + indent };
-        var rowHeight    = lineHeight + (style.FramePadding.Y * 2);
-        var textPos      = contentStart with { Y = contentStart.Y + style.FramePadding.Y };
-        var subSpacing   = PLAYER_ROW_SUB_SPACING * GlobalUIScale;
-        var hovered      = false;
+        using var rented = new RentedSeStringBuilder();
+
+        var playerInfo = rented.Append(playerName)
+                               .AppendIcon((uint)BitmapFontIcon.CrossWorld)
+                               .Append(worldName)
+                               .ToReadOnlySeString();
+
+        var style      = ImGui.GetStyle();
+        var lineHeight = ImGui.GetTextLineHeight();
+        var rowStart   = ImGui.GetCursorScreenPos();
+        var rowHeight  = lineHeight + (style.FramePadding.Y * 2);
+        var textPos    = rowStart with { Y = rowStart.Y + style.FramePadding.Y };
+        var subSpacing = PLAYER_ROW_SUB_SPACING * GlobalUIScale;
 
         if (!string.IsNullOrEmpty(subText))
             rowHeight += lineHeight + subSpacing;
 
-        ImGui.SetCursorScreenPos(contentStart);
+        var rowSize = new Vector2(ImGui.GetContentRegionAvail().X, rowHeight);
 
         if (clickable)
-        {
-            ImGui.Selectable("##Row", false, ImGuiSelectableFlags.None, new Vector2(rowAvail - indent, rowHeight));
-
-            hovered = ImGui.IsItemHovered();
-        }
+            ImGui.Selectable("##Row", false, ImGuiSelectableFlags.None, rowSize);
         else
-            ImGui.Dummy(new Vector2(rowAvail - indent, rowHeight));
+            ImGui.Dummy(rowSize);
 
-        var rowEnd = ImGui.GetCursorScreenPos() with { X = rowStart.X };
+        var hovered = clickable && ImGui.IsItemHovered();
+        var rowEnd  = ImGui.GetCursorScreenPos() with { X = rowStart.X };
 
         ImGui.SetCursorScreenPos(textPos);
 
@@ -381,7 +352,7 @@ public unsafe class AutoCountPlayers : ModuleBase
 
         if (!string.IsNullOrEmpty(trailingText))
         {
-            var trailingX = rowStart.X + rowAvail - ImGui.CalcTextSize(trailingText).X - style.FramePadding.X;
+            var trailingX = rowStart.X + rowSize.X - ImGui.CalcTextSize(trailingText).X - style.FramePadding.X;
 
             ImGui.SetCursorScreenPos(textPos with { X = trailingX });
 
@@ -437,13 +408,6 @@ public unsafe class AutoCountPlayers : ModuleBase
         rented.AppendIcon((uint)player.ClassJob.Value.ToBitmapFontIcon())
               .Append(ReadOnlySeString.CreatePlayer(player.Name, player.HomeWorld.RowId));
 
-        var playerLink = ReadOnlySeString.CreatePlayerLink
-        (
-            player.Name,
-            player.HomeWorld.RowId,
-            rented.ToReadOnlySeString()
-        );
-
         NotifyHelper.Instance().Chat
         (
             Lang.GetSe
@@ -451,7 +415,7 @@ public unsafe class AutoCountPlayers : ModuleBase
                 "AutoCountPlayers-Message-DetailedPosition",
                 new Dictionary<string, object>
                 {
-                    ["playerLink"] = playerLink,
+                    ["playerLink"] = ReadOnlySeString.CreatePlayerLink(player.Name, player.HomeWorld.RowId, rented.ToReadOnlySeString()),
                     ["mapLink"]    = ReadOnlySeString.CreateMapLink(player.Position)
                 }
             ),
@@ -527,33 +491,11 @@ public unsafe class AutoCountPlayers : ModuleBase
             }
         }
 
-        var gameGUI  = IGameGui.Instance();
-        var viewport = ImGui.GetMainViewport();
-
-        if (!gameGUI.WorldToScreen(localPlayer->Position, out var localScreenPos, out _))
-            localScreenPos = viewport.Pos + new Vector2(viewport.Size.X * 0.5f, viewport.Size.Y);
-
         foreach (var playerInfo in PlayersManager.Instance().PlayersTargetingMe)
         {
-            gameGUI.WorldToScreen(playerInfo.Player.Position, out var screenPos, out var isInView);
-
-            var linePositions = GetLinePositions
+            DrawPlayerLine
             (
-                screenPos,
-                isInView,
-                viewport.Pos,
-                viewport.Size,
-                OFFSCREEN_MARKER_INSET  * GlobalUIScale,
-                OFFSCREEN_LINE_OVERFLOW * GlobalUIScale
-            );
-
-            DrawLine
-            (
-                localScreenPos,
-                linePositions.LineEnd,
-                linePositions.Marker,
                 playerInfo.Player,
-                isInView,
                 true,
                 $" [{TimeSpan.FromSeconds(playerInfo.TargetingDurationSeconds)}]"
             );
@@ -772,7 +714,8 @@ public unsafe class AutoCountPlayers : ModuleBase
                         {
                             ["playerCount"] = targetingPlayersInfo.Count
                         }
-                    )
+                    ),
+                    Lang.Get("AutoCountPlayers-Notification-Title")
                 );
 
                 var messageTitle = Lang.Get
@@ -836,37 +779,20 @@ public unsafe class AutoCountPlayers : ModuleBase
     (
         InfoProxyCommonList* info,
         string               searchText
-    )
-    {
-        var groups = new Dictionary<uint, List<InfoProxyCommonList.CharacterData>>();
-
-        foreach (var player in info->CharDataSpan)
-        {
-            if (IsPlayerSearchZone                     && player.Location != GameState.TerritoryType) continue;
-            if (!string.IsNullOrWhiteSpace(searchText) && !player.NameString.Contains(searchText)) continue;
-
-            var dataCenterID = LuminaWrapper.GetWorldDC(player.HomeWorld);
-
-            if (!groups.TryGetValue(dataCenterID, out var players))
-            {
-                players              = [];
-                groups[dataCenterID] = players;
-            }
-
-            players.Add(player);
-        }
-
-        return
-        [
-            .. groups.OrderBy(x => x.Key)
-                     .Select
-                     (x => (x.Key,
-                               x.Value.OrderBy(player => player.HomeWorld)
-                                .ThenBy(player => player.NameString)
-                                .ToList())
-                     )
-        ];
-    }
+    ) =>
+    [
+        .. info->CharDataSpan.ToArray()
+                             .Where(player => !IsPlayerSearchZone || player.Location == GameState.TerritoryType)
+                             .Where(player => MatchesSearch(player.NameString, searchText))
+                             .GroupBy(player => LuminaWrapper.GetWorldDC(player.HomeWorld))
+                             .OrderBy(group => group.Key)
+                             .Select
+                             (group => (group.Key,
+                                           group.OrderBy(player => player.HomeWorld)
+                                                .ThenBy(player => player.NameString)
+                                                .ToList())
+                             )
+    ];
 
     private void DrawLine
     (
@@ -1038,7 +964,7 @@ public unsafe class AutoCountPlayers : ModuleBase
     private const float SECTION_HEADER_PADDING_HORIZONTAL = 6f;
     private const float SECTION_HEADER_PADDING_VERTICAL   = 4f;
     private const float SECTION_HEADER_LINE_THICKNESS     = 1f;
-    private const float PLAYER_ROW_INDENT                 = 12f;
+    private const float SECTION_PLAYER_INDENT             = 12f;
     private const float PLAYER_ROW_ICON_SPACING           = 4f;
     private const float PLAYER_ROW_SUB_SPACING            = 2f;
 
