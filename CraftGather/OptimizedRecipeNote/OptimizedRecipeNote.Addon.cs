@@ -339,7 +339,7 @@ public partial class OptimizedRecipeNote
                             );
                             NotifyHelper.Instance().Chat(message);
                             NotifyHelper.Toast(message);
-                            NotifyHelper.Instance().TrayInfo(message.ToString());
+                            NotifyHelper.Instance().TrayInfo(message.ToString(), Lang.Get("OptimizedRecipeNote-Message-CraftComplete-Title"));
                         }
                     );
                 }
