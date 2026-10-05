@@ -12,14 +12,15 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using Dalamud.Interface.Utility;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Client.UI.Info;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using Lumina.Excel.Sheets;
+using Lumina.Text.ReadOnly;
 using OmenTools.Info.Lumina;
-using OmenTools.Interop.Game.Helpers;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.OmenService;
 using OmenTools.Threading;
@@ -153,32 +154,9 @@ public unsafe class AutoCountPlayers : ModuleBase
 
         if (ImGui.Checkbox(Lang.Get("AutoCountPlayers-DisplayLineWhenTargetingMe"), ref config.DisplayLineWhenTargetingMe))
             config.Save(this);
-
-        if (config.DisplayLineWhenTargetingMe)
-        {
-            using (ImRaii.PushIndent())
-            {
-                if (ImGui.Checkbox(Lang.Get("SendChat"), ref config.SendChat))
-                    config.Save(this);
-
-                if (ImGui.Checkbox(Lang.Get("SendNotification"), ref config.SendNotification))
-                    config.Save(this);
-
-                if (ImGui.Checkbox(Lang.Get("SendTTS"), ref config.SendTTS))
-                    config.Save(this);
-
-                if (config.SendNotification || config.SendTTS)
-                {
-                    using (ImRaii.PushIndent())
-                    {
-                        if (ImGui.Checkbox(Lang.Get("AutoCountPlayers-FilterFriend"), ref config.FilterFriend))
-                            config.Save(this);
-                    }
-                }
-            }
-        }
-
-
+        
+        if (ImGui.Checkbox(Lang.Get("AutoCountPlayers-FilterFriend"), ref config.FilterFriend))
+            config.Save(this);
     }
 
     protected override void OverlayUI()
@@ -202,30 +180,36 @@ public unsafe class AutoCountPlayers : ModuleBase
                 {
                     using var id = ImRaii.PushId($"{playerAround.GameObjectID}");
 
-                    if (!string.IsNullOrWhiteSpace(searchInput) && !playerAround.Name.Contains(searchInput)) continue;
+                    if (!string.IsNullOrWhiteSpace(searchInput) && !playerAround.Name.Contains(searchInput)) 
+                        continue;
 
                     if (ImGuiOm.ButtonIcon("定位", FontAwesomeIcon.Flag, Lang.Get("Locate")))
                     {
-                        var mapPos = PositionHelper.WorldToMap(playerAround.Position.ToVector2(), GameState.MapData);
-                        var message = new SeStringBuilder()
-                                      .Add
-                                      (
-                                          new PlayerPayload
-                                          (
-                                              playerAround.Name,
-                                              playerAround.ToStruct()->HomeWorld
-                                          )
-                                      )
-                                      .Append(" (")
-                                      .AddIcon(playerAround.ClassJob.Value.ToBitmapFontIcon())
-                                      .Append($" {playerAround.ClassJob.Value.Name})")
-                                      .Add(new NewLinePayload())
-                                      .Append("     ")
-                                      .Append(SeString.CreateMapLink(GameState.TerritoryType, GameState.Map, mapPos.X, mapPos.Y))
-                                      .Build();
+                        using var rented = new RentedSeStringBuilder();
+                        
+                        rented.AppendIcon((uint)playerAround.ClassJob.Value.ToBitmapFontIcon())
+                              .Append(ReadOnlySeString.CreatePlayer(playerAround.Name, playerAround.HomeWorld.RowId));
 
-                        // TODO: 改成 ReadOnlyString
-                        NotifyHelper.Instance().Chat(message.Encode());
+                        var playerLink = ReadOnlySeString.CreatePlayerLink
+                        (
+                            playerAround.Name,
+                            playerAround.HomeWorld.RowId,
+                            rented.ToReadOnlySeString()
+                        );
+                        
+                        NotifyHelper.Instance().Chat
+                        (
+                            Lang.GetSe
+                            (
+                                "AutoCountPlayers-Message-DetailedPosition",
+                                new Dictionary<string, object>
+                                {
+                                    ["playerLink"] = playerLink,
+                                    ["mapLink"]    = ReadOnlySeString.CreateMapLink(playerAround.Position)
+                                }
+                            ),
+                            false
+                        );
                     }
 
                     var gameGUI  = IGameGui.Instance();
@@ -234,7 +218,7 @@ public unsafe class AutoCountPlayers : ModuleBase
                     gameGUI.WorldToScreen(playerAround.Position, out var screenPos, out var isInView);
 
                     if (!gameGUI.WorldToScreen(LocalPlayerState.Object.Position, out var localScreenPos, out _))
-                        localScreenPos = viewport.Pos + new Vector2(viewport.Size.X * 0.5f, viewport.Size.Y);
+                        localScreenPos = viewport.Pos + viewport.Size with { X = viewport.Size.X * 0.5f };
 
                     if (!ImGui.IsAnyItemHovered() || ImGui.IsItemHovered())
                     {
@@ -613,45 +597,61 @@ public unsafe class AutoCountPlayers : ModuleBase
         if (targetingPlayersInfo.Count > 0 &&
             (GameState.ContentFinderCondition == 0 || IPartyList.Instance().Length < 2))
         {
-            var newTargetingPlayers = targetingPlayersInfo.Where(info => info.IsNew).ToList();
+            var newTargetingPlayers = targetingPlayersInfo.Where(info => info.IsNew)
+                                                          .ToList();
 
-            if (newTargetingPlayers.Any(info => Throttler.Shared.Throttle($"AutoCountPlayers-Player-{info.Player.EntityID}", 30_000)))
+            if (newTargetingPlayers.Any
+                (info => Throttler.Shared.Throttle
+                 (
+                     $"AutoCountPlayers-Player-{info.Player.EntityID}",
+                     30_000
+                 ) && !info.Player.ToStruct()->IsFriend
+                ))
             {
-                if (config.SendTTS)
-                {
-                    if (!config.FilterFriend || targetingPlayersInfo.All(x => !x.Player.ToStruct()->IsFriend))
-                        NotifyHelper.Speak(Lang.Get("AutoCountPlayers-Notification-SomeoneTargetingMe"));
-                }
+                NotifyHelper.Instance().TrayWarning
+                (
+                    Lang.Get
+                    (
+                        "AutoCountPlayers-Notification-Message",
+                        new Dictionary<string, object>
+                        {
+                            ["playerCount"] = targetingPlayersInfo.Count
+                        }
+                    )
+                );
 
-                if (config.SendNotification)
-                {
-                    if (!config.FilterFriend || targetingPlayersInfo.All(x => !x.Player.ToStruct()->IsFriend))
-                        NotifyHelper.Instance().NotificationWarning(Lang.Get("AutoCountPlayers-Notification-SomeoneTargetingMe"));
-                }
-
-                if (config.SendChat)
-                {
-                    var builder = new SeStringBuilder();
-
-                    builder.Append($"{Lang.Get("AutoCountPlayers-Notification-SomeoneTargetingMe")}:");
-                    builder.Add(new NewLinePayload());
-
-                    foreach (var info in targetingPlayersInfo)
+                var messageTitle = Lang.Get
+                (
+                    "AutoCountPlayers-Message",
+                    new Dictionary<string, object>
                     {
-                        builder.Add(new PlayerPayload(info.Player.Name, info.Player.HomeWorld.RowId))
-                               .Append(" (")
-                               .AddIcon(info.Player.ClassJob.Value.ToBitmapFontIcon())
-                               .Append($" {info.Player.ClassJob.Value.Name})");
-                        builder.Add(new NewLinePayload());
+                        ["playerCount"] = targetingPlayersInfo.Count
                     }
+                );
 
-                    var message = builder.Build();
-                    if (message.Payloads.Last() is NewLinePayload)
-                        message.Payloads.RemoveAt(message.Payloads.Count - 1);
+                using var rented       = new RentedSeStringBuilder();
+                using var playerRented = new RentedSeStringBuilder();
+                
+                rented.Append(messageTitle);
 
-                    // TODO: 改成 ReadOnlyString
-                    NotifyHelper.Instance().Chat(builder.Build().Encode());
+                foreach (var player in targetingPlayersInfo)
+                {
+                    playerRented.AppendIcon((uint)player.Player.ClassJob.Value.ToBitmapFontIcon())
+                                 .Append(ReadOnlySeString.CreatePlayer(player.Player.Name, player.Player.HomeWorld.RowId));
+
+                    var playerLink = ReadOnlySeString.CreatePlayerLink
+                    (
+                        player.Player.Name,
+                        player.Player.HomeWorld.RowId,
+                        playerRented.ToReadOnlySeString()
+                    );
+                    playerRented.Clear();
+
+                    rented.AppendNewLine()
+                          .Append("  ")
+                          .Append(playerLink);
                 }
+                NotifyHelper.Instance().Chat(rented.ToReadOnlySeString(), false);
             }
         }
     }
@@ -787,10 +787,6 @@ public unsafe class AutoCountPlayers : ModuleBase
 
         public bool  FilterFriend;
         public float ScaleFactor = 1;
-
-        public bool SendChat         = true;
-        public bool SendNotification = true;
-        public bool SendTTS          = true;
 
         public List<TargetingRecord> TargetingHistories = [];
     }
