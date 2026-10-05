@@ -14,6 +14,7 @@ using Lumina.Data.Parsing.Uld;
 using Lumina.Text.ReadOnly;
 using OmenTools.Interop.Game.Lumina;
 using OmenTools.KamiToolKit.Nodes;
+using OmenTools.KamiToolKit.Nodes.Background;
 using OmenTools.KamiToolKit.Nodes.GaugeBarCraft;
 using OmenTools.OmenService;
 using OmenTools.Threading.TaskHelper;
@@ -45,7 +46,7 @@ public partial class OptimizedRecipeNote
         public const float STATS_COLUMN_WIDTH            = 120F;
         public const float STATS_COLUMN_DUMMY            = 18.5f;
 
-        public SimpleNineGridNode StatsContainerBackground   { get; private set; }
+        public BackgroundNode     StatsContainerBackground   { get; private set; }
         public HorizontalListNode StatsContainer             { get; private set; }
         public IconImageNode      ClassJobIcon               { get; private set; }
         public VerticalListNode   ClassJobInfoContainer      { get; private set; }
@@ -87,7 +88,7 @@ public partial class OptimizedRecipeNote
         public const float ACTION_USED_ALPHA   = 0.2f;
         public const float ACTION_NORMAL_ALPHA = 1f;
 
-        public SimpleNineGridNode ActionContainerBackground { get; private set; }
+        public BackgroundNode     ActionContainerBackground { get; private set; }
         public VerticalListNode   ActionContainer           { get; private set; }
         public HorizontalListNode ItemInfoContainer         { get; private set; }
         public ItemIconNode       ItemIcon                  { get; private set; }
@@ -178,11 +179,8 @@ public partial class OptimizedRecipeNote
 
             StatsContainerBackground = new()
             {
-                TexturePath        = "ui/uld/BgParts_hr1.tex",
-                TextureCoordinates = new(61, 37),
-                TextureSize        = new(16, 16),
-                Offsets            = new(7),
-                Size               = ContentSize with { Y = STATS_CONTAINER_HEIGHT }
+                Type = BackgroundType.SoftDot,
+                Size = ContentSize with { Y = STATS_CONTAINER_HEIGHT }
             };
             RootContainer.AddNode(StatsContainerBackground);
 
@@ -430,11 +428,8 @@ public partial class OptimizedRecipeNote
 
             ActionContainerBackground = new()
             {
-                TexturePath        = "ui/uld/BgParts_hr1.tex",
-                TextureCoordinates = new(61, 37),
-                TextureSize        = new(16, 16),
-                Offsets            = new(7),
-                Size               = ContentSize with { Y = STATS_CONTAINER_HEIGHT }
+                Type = BackgroundType.SoftDot,
+                Size = ContentSize with { Y = STATS_CONTAINER_HEIGHT }
             };
             RootContainer.AddNode(ActionContainerBackground);
 
