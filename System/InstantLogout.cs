@@ -107,9 +107,8 @@ public unsafe class InstantLogout : ModuleBase
     {
         if (TaskHelper.IsBusy)
         {
-            if (logoutParams->Type != 0 ||
-                logoutParams->Code != 10000)
-                return;
+            logoutParams->Type = 0;
+            logoutParams->Code = 10000;
         }
 
         OnLogoutHook.Original(thisPtr, logoutParams);
@@ -198,15 +197,21 @@ public unsafe class InstantLogout : ModuleBase
     {
         taskHelper.Enqueue(() => ContentsFinderHelper.RequestDutyNormal(167, ContentsFinderHelper.DefaultOption));
         
-        // 本地登出，不等待服务器回包，避免卡死。
-        taskHelper.Enqueue(() => AgentLobby.Instance()->HandleLogout(false, 1));
-        
         // 避免那边修改不到
         taskHelper.DelayNext(500);
-        // 实际上为帧数倒数 TODO：FFCS
-        taskHelper.Enqueue(() => AgentLobby.Instance()->HoveredCharacterIndex == 0);
         
-        taskHelper.Enqueue(() => !GameState.IsLoggedIn);
+        // 实际上为帧数倒数 TODO：FFCS
+        taskHelper.Enqueue
+        (
+            () => AgentLobby.Instance()->HoveredCharacterIndex == 0 &&
+                  !GameState.IsLoggedIn,
+            timeoutMS: 5_000,
+            timeoutAction: () =>
+            {
+                // 没等到服务器回包
+                AgentLobby.Instance()->HandleLogout(false, 1);
+            }
+        );
     }
 
     private static void Shutdown
