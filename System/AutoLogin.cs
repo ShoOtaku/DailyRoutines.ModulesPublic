@@ -505,7 +505,7 @@ public unsafe class AutoLogin : ModuleBase
 
     #region IPC
 
-    [IPCProvider("AutoLogin.MarkNextAutoLoginHandled")]
+    [IPCProvider("DailyRoutines.Modules.AutoLogin.MarkNextAutoLoginHandled")]
     private void MarkNextAutoLoginHandled() =>
         isNextAutoLoginHandled = true;
 

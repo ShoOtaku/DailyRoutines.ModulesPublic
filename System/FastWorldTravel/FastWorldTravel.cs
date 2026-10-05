@@ -446,7 +446,14 @@ public partial class FastWorldTravel : ModuleBase
             "登出游戏"
         );
 
-        TaskHelper.Enqueue(() => TitleMenu->IsAddonAndNodesReady(), "等待标题界面");
+        // 实际上为帧数倒数 TODO：FFCS
+        TaskHelper.Enqueue
+        (
+            () => !GameState.IsLoggedIn             &&
+                  TitleMenu->IsAddonAndNodesReady() &&
+                  AgentLobby.Instance()->HoveredCharacterIndex == 0,
+            "等待标题界面"
+        );
 
         TaskHelper.DelayNext(3000, "等待 3 秒");
     }
@@ -661,7 +668,7 @@ public partial class FastWorldTravel : ModuleBase
 
     #region IPC
 
-    [IPCSubscriber("AutoLogin.MarkNextAutoLoginHandled")]
+    [IPCSubscriber("DailyRoutines.Modules.AutoLogin.MarkNextAutoLoginHandled")]
     private IPCSubscriber<object> markNextAutoLoginHandledIPC;
 
     #endregion
