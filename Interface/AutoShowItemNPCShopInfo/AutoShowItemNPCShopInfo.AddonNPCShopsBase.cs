@@ -262,12 +262,18 @@ public unsafe partial class AutoShowItemNPCShopInfo
             var sectionCount = Math.Min(SectionCount - firstIndex, SectionsPerPage);
 
             for (var i = 0; i < SectionsPerPage; i++)
+            {
                 if (i < sectionCount)
                 {
                     UpdateSectionContent(sectionSlots[i], firstIndex + i);
                     sectionSlots[i].Container.IsVisible = true;
                 }
-                else sectionSlots[i].Container.IsVisible = false;
+                else
+                    sectionSlots[i].Container.IsVisible = false;
+            }
+
+            selectedSlot?.Selected = false;
+            selectedSlot           = null;
 
             scrollingAreaNode.ScrollBarNode.ScrollPosition = 0;
             contentNode.RecalculateLayout();
@@ -289,12 +295,18 @@ public unsafe partial class AutoShowItemNPCShopInfo
             var pageNpcs = slot.SortedNPCInfos.Skip(npcPage * NPCS_PER_PAGE).Take(NPCS_PER_PAGE).ToList();
 
             for (var i = 0; i < NPCS_PER_PAGE; i++)
+            {
                 if (i < pageNpcs.Count)
                 {
                     slot.NPCRows[i].SetNPCInfo(pageNpcs[i]);
                     slot.NPCRows[i].IsVisible = true;
                 }
-                else slot.NPCRows[i].IsVisible = false;
+                else 
+                    slot.NPCRows[i].IsVisible = false;
+            }
+            
+            selectedSlot?.Selected = false;
+            selectedSlot           = null;
 
             var hasNPCPagination = totalNpcs > NPCS_PER_PAGE;
             slot.NPCPaginationBar.IsVisible = hasNPCPagination;
