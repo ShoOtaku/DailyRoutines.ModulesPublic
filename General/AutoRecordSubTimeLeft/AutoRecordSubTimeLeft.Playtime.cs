@@ -234,8 +234,18 @@ public partial class AutoRecordSubTimeLeft
             ExecuteWithFileLock
             (() =>
                 {
-                    var store = RecoverStaleSessions(LoadStoreFromDisk(), nowUTC, out _);
-                    var next  = CloneStore(store);
+                    var store        = LoadStoreFromDisk();
+                    var isRegistered = store.ActiveSessions.ContainsKey(sessionID);
+
+                    store = RecoverStaleSessions(store, nowUTC, out _);
+
+                    if (isRegistered && !store.ActiveSessions.ContainsKey(sessionID))
+                    {
+                        startUTCTicks = nowUTC.Ticks;
+                        Volatile.Write(ref sessionStartUTCTicks, startUTCTicks);
+                    }
+
+                    var next = CloneStore(store);
 
                     next.ActiveSessions[sessionID] = new()
                     {
@@ -271,13 +281,19 @@ public partial class AutoRecordSubTimeLeft
             ExecuteWithFileLock
             (() =>
                 {
-                    var store = RecoverStaleSessions(LoadStoreFromDisk(), nowUTC, out _);
-                    var next  = CloneStore(store);
+                    var store        = LoadStoreFromDisk();
+                    var isRegistered = store.ActiveSessions.ContainsKey(sessionID);
+
+                    store = RecoverStaleSessions(store, nowUTC, out _);
+
+                    var isSettled = isRegistered && !store.ActiveSessions.ContainsKey(sessionID);
+                    var next      = CloneStore(store);
 
                     if (next.ActiveSessions.Remove(sessionID, out var existingLease))
                         localStartUTCTicks = Math.Min(localStartUTCTicks, existingLease.StartUTCTicks);
 
-                    AddRangeToDailyTotals(next.DailyTotals, UTCToLocalDateTime(localStartUTCTicks), nowUTC.ToLocalTime());
+                    if (!isSettled)
+                        AddRangeToDailyTotals(next.DailyTotals, UTCToLocalDateTime(localStartUTCTicks), nowUTC.ToLocalTime());
 
                     WriteStoreSynchronously(next);
                     PublishStore(next);
@@ -654,7 +670,14 @@ public partial class AutoRecordSubTimeLeft
 
             try
             {
-                lockTaken = fileMutex.WaitOne(3_000);
+                try
+                {
+                    lockTaken = fileMutex.WaitOne(3_000);
+                }
+                catch (AbandonedMutexException)
+                {
+                    lockTaken = true;
+                }
 
                 if (!lockTaken)
                 {

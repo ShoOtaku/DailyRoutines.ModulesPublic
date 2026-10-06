@@ -283,7 +283,7 @@ public partial class AutoRecordSubTimeLeft : ModuleBase
                       .Append("[剩余时长]")
                       .PopColorType()
                       .AppendNewLine()
-                      .Append(FormatTimeSpan(expireTime - now))
+                      .Append(FormatTimeSpan(expireTime - now, !isMonth))
                       .AppendNewLine()
                       .AppendNewLine()
                       .PushColorType(28)

@@ -10,32 +10,33 @@ public partial class AutoRecordSubTimeLeft
 {
     private static string FormatTimeSpan
     (
-        TimeSpan timeSpan
+        TimeSpan timeSpan,
+        bool     displayTotalMinutes = true
     )
     {
         if (timeSpan < TimeSpan.FromSeconds(1))
-            return "0 秒";
+            return "0秒";
 
         if (timeSpan.TotalSeconds is var totalSeconds and < 60)
-            return $"{(int)totalSeconds} 秒";
+            return $"{(int)totalSeconds}秒";
 
         var parts = new List<string>(4);
         if (timeSpan.Days > 0)
-            parts.Add($"{timeSpan.Days} 天");
+            parts.Add($"{timeSpan.Days}天");
         if (timeSpan.Hours > 0)
-            parts.Add($"{timeSpan.Hours} 小时");
+            parts.Add($"{timeSpan.Hours}小时");
         if (timeSpan.Minutes > 0)
-            parts.Add($"{timeSpan.Minutes} 分");
+            parts.Add($"{timeSpan.Minutes}分");
         if (parts.Count == 0) // 管他呢
-            parts.Add($"{timeSpan.Seconds} 秒");
+            parts.Add($"{timeSpan.Seconds}秒");
 
-        var text = string.Join(" ", parts);
-        if (timeSpan.TotalMinutes is var totalMinutes and >= 60)
-            text += $" [{(int)totalMinutes} 分钟]";
+        var text = string.Join(string.Empty, parts);
+        if (displayTotalMinutes && timeSpan.TotalMinutes is var totalMinutes and >= 60)
+            text += $"［{(int)totalMinutes}分钟］";
 
         return text;
     }
-    
+
     private static unsafe (long MonthTime, long PointTime) GetLeftTimeSecond
     (
         in LobbySubscriptionInfo info
@@ -92,8 +93,8 @@ public partial class AutoRecordSubTimeLeft
         textNode->SetPositionFloat(-20, 40);
         textNode->SetText
         (
-            $"月卡: {FormatTimeSpan(leftMonth == TimeSpan.MinValue ? TimeSpan.Zero : leftMonth)}\n" +
-            $"点卡: {FormatTimeSpan(leftTime  == TimeSpan.MinValue ? TimeSpan.Zero : leftTime)}"
+            $"月卡：{FormatTimeSpan(leftMonth == TimeSpan.MinValue ? TimeSpan.Zero : leftMonth, false)}\n" +
+            $"点卡：{FormatTimeSpan(leftTime  == TimeSpan.MinValue ? TimeSpan.Zero : leftTime)}"
         );
     }
 
