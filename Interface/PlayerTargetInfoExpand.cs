@@ -269,7 +269,7 @@ public unsafe class PlayerTargetInfoExpand : ModuleBase
             c => LuminaGetter.GetRowOrDefault<Emote>(c.ToStruct()->EmoteController.EmoteId).Name.ToString()
         ),
         new("/TargetsTarget/", Lang.Get("TargetOfTarget"), c => c.TargetObject?.Name.ToString() ?? string.Empty),
-        new("/ShieldValue/", Lang.Get("Sheild"), c => c.ShieldPercentage.ToString()),
+        new("/ShieldValue/", Lang.Get("Shield"), c => c.ShieldPercentage.ToString()),
         new("/CurrentHP/", LuminaWrapper.GetAddonText(232), c => c.CurrentHp.ToString()),
         new("/MaxHP/", Lang.Get("MaxHP"), c => c.MaxHp.ToString()),
         new("/CurrentMP/", LuminaWrapper.GetAddonText(233), c => c.CurrentMp.ToString()),
