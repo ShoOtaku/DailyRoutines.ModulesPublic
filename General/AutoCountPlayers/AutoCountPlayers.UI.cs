@@ -79,12 +79,12 @@ public unsafe partial class AutoCountPlayers
                         {
                             using (FontManager.Instance().UIFont80.Push())
                             {
-                                var text = Lang.Get("AutoCountPlayers-Notification-SomeoneTargetingMe");
+                                var text = Lang.Get("AutoCountPlayers-Notification-Title");
                                 ImGuiOm.TextOutlined
                                 (
                                     ImGui.GetCursorScreenPos() - new Vector2(ImGui.CalcTextSize(text).X * 0.3f, 0),
                                     KnownColor.Orange.ToUInt(),
-                                    $"({text})",
+                                    $"（{text}）",
                                     KnownColor.SaddleBrown.ToUInt()
                                 );
                             }
