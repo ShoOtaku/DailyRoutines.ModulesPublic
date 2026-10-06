@@ -2,13 +2,13 @@ using DailyRoutines.Common.Module.Enums;
 using DailyRoutines.Common.Module.Models;
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Hooking;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using Lumina.Excel.Sheets;
-using Lumina.Text.ReadOnly;
 using OmenTools.Interop.Game.Lumina;
-using OmenTools.Threading;
+using OmenTools.Interop.Game.Models;
 using ModuleBase = DailyRoutines.Common.Module.Abstractions.ModuleBase;
 
 namespace DailyRoutines.ModulesPublic.Interface;
@@ -24,10 +24,23 @@ public unsafe class ShopDisplayRealItemIcon : ModuleBase
 
     public override ModulePermission Permission { get; } = new() { AllDefaultEnabled = true };
 
-    private List<(uint ID, uint IconID, string Name)> collectablesShopItemDatas = [];
+    private static readonly CompSig CollectablesShopItemFillSig = new
+    (
+        "48 89 5C 24 ?? 48 89 6C 24 ?? 48 89 74 24 ?? 57 48 83 EC ?? 48 8B F9 49 8B F0 49 8B 08 48 8B EA"
+    );
+    private delegate void CollectablesShopItemFillDelegate
+    (
+        AtkUnitBase*                                addon,
+        AtkComponentListItemPopulator.ListItemInfo* itemInfo,
+        AtkResNode**                                nodeList
+    );
+    private Hook<CollectablesShopItemFillDelegate> CollectablesShopItemFillHook;
 
     protected override void Init()
     {
+        CollectablesShopItemFillHook = CollectablesShopItemFillSig.GetHook<CollectablesShopItemFillDelegate>(CollectablesShopItemFillDetour);
+        CollectablesShopItemFillHook.Enable();
+
         IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostSetup,   "Shop", OnShop);
         IAddonLifecycle.Instance().RegisterListener(AddonEvent.PreRefresh,  "Shop", OnShop);
         IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostRefresh, "Shop", OnShop);
@@ -59,10 +72,6 @@ public unsafe class ShopDisplayRealItemIcon : ModuleBase
             OnShopExchange
         );
 
-        IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostDraw,    "CollectablesShop", OnCollectablesShop);
-        IAddonLifecycle.Instance().RegisterListener(AddonEvent.PreRefresh,  "CollectablesShop", OnCollectablesShop);
-        IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostRefresh, "CollectablesShop", OnCollectablesShop);
-
         IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostSetup,   "FreeShop", OnFreeShop);
         IAddonLifecycle.Instance().RegisterListener(AddonEvent.PreRefresh,  "FreeShop", OnFreeShop);
         IAddonLifecycle.Instance().RegisterListener(AddonEvent.PostRefresh, "FreeShop", OnFreeShop);
@@ -74,8 +83,28 @@ public unsafe class ShopDisplayRealItemIcon : ModuleBase
         IAddonLifecycle.Instance().UnregisterListener(OnInclusionShop);
         IAddonLifecycle.Instance().UnregisterListener(OnGrandCompanyExchange);
         IAddonLifecycle.Instance().UnregisterListener(OnShopExchange);
-        IAddonLifecycle.Instance().UnregisterListener(OnCollectablesShop);
         IAddonLifecycle.Instance().UnregisterListener(OnFreeShop);
+    }
+
+    private void CollectablesShopItemFillDetour
+    (
+        AtkUnitBase*                                addon,
+        AtkComponentListItemPopulator.ListItemInfo* itemInfo,
+        AtkResNode**                                nodeList
+    )
+    {
+        CollectablesShopItemFillHook.Original(addon, itemInfo, nodeList);
+
+        var listItem = itemInfo->ListItem;
+        if (listItem == null || listItem->UIntValues.Count < 3) return;
+
+        var itemID = listItem->UIntValues[2] % 50_0000;
+        if (itemID == 0 || !LuminaGetter.TryGetRow<Item>(itemID, out var itemRow)) return;
+
+        var imageNode = nodeList[0]->GetAsAtkImageNode();
+        if (imageNode == null) return;
+
+        imageNode->LoadIconTexture(itemRow.Icon, 0);
     }
 
     private static void OnFreeShop
@@ -97,61 +126,6 @@ public unsafe class ShopDisplayRealItemIcon : ModuleBase
             if (!LuminaGetter.TryGetRow<Item>(itemID, out var itemRow)) continue;
 
             addon->AtkValues[199 + i].SetUInt(itemRow.Icon);
-        }
-    }
-
-    private void OnCollectablesShop
-    (
-        AddonEvent type,
-        AddonArgs  args
-    )
-    {
-        if (type == AddonEvent.PostDraw &&
-            !Throttler.Shared.Throttle("ShopDisplayRealItemIcon-OnCollectablesShop", 100)) return;
-
-        var addon = args.Addon.ToStruct();
-        if (addon == null) return;
-
-        if (type == AddonEvent.PostRefresh)
-        {
-            var itemCount = addon->AtkValues[20].UInt;
-            if (itemCount == 0) return;
-
-            List<(uint ID, uint IconID, string Name)> itemDatas = [];
-
-            for (var i = 0; i < itemCount; i++)
-            {
-                var itemID = addon->AtkValues[34 + (11 * i)].UInt % 50_0000;
-                if (itemID == 0) continue;
-                if (!LuminaGetter.TryGetRow<Item>(itemID, out var itemRow)) continue;
-
-                itemDatas.Add(new(itemID, itemRow.Icon, itemRow.Name.ToString()));
-            }
-
-            collectablesShopItemDatas = itemDatas;
-        }
-
-        if (collectablesShopItemDatas.Count == 0) return;
-
-        var listComponent = (AtkComponentNode*)addon->GetNodeById(28);
-        if (listComponent == null) return;
-
-        for (var i = 0; i < 15; i++)
-        {
-            var listItemComponent = (AtkComponentNode*)listComponent->Component->UldManager.NodeList[16 + i];
-            if (listItemComponent == null) continue;
-
-            var nameNode = (AtkTextNode*)listItemComponent->Component->UldManager.SearchNodeById(4);
-            if (nameNode == null) return;
-
-            var name = new ReadOnlySeString(nameNode->NodeText).ToString().SanitizeSEIcon();
-            var data = collectablesShopItemDatas.FirstOrDefault(x => x.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
-            if (data == default) continue;
-
-            var imageNode = (AtkImageNode*)listItemComponent->Component->UldManager.SearchNodeById(2);
-            if (imageNode == null) continue;
-
-            imageNode->LoadIconTexture(data.IconID, 0);
         }
     }
 
